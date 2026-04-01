@@ -7,6 +7,7 @@
 >
 > **✨ Latest Updates:**
 >
+> - **SkillRegistryV2**: Fixed skill registration revert - now uses `ownerOf()` instead of non-existent `getAgent()`
 > - **Phase 4**: Complete test suite with 201 passing tests (AgenticCommerceV4: 89%, AgentReviewV4: 91%, ServiceRegistryV2: 83% coverage)
 > - **Phase 3**: Comprehensive event system for real-time tracking with enhanced security
 > - **Phase 2**: DoS prevention with O(1) optimizations and client-side validation
@@ -29,16 +30,17 @@ USDC:      0x1c7D4B196Cb0C7B01d743Fbc6116a902379C7238
 
 ### Core Contract Addresses (Sepolia)
 
-| Contract                 | Address                                      | Purpose                       | Status     |
-| ------------------------ | -------------------------------------------- | ----------------------------- | ---------- |
-| `AgentSkillRegistry`     | `0x7cf16C00ed4831EB9eE3a8765831968F0a28f53D` | What are my capabilities?     | ✅ Live    |
-| `ServiceRegistryV2`      | `0x62E1eeEa1A2Ab987004F35bDA430457Ed6077201` | What do I offer? (UUPS Proxy) | ✅ Phase 4 |
-| `ServiceRegistryV2 Impl` | `0xe5B75877598F276DC63843514A888fBDc60B4086` | Implementation (Fixed Mar 30) | ✅ Phase 4 |
-| `AgenticCommerce`        | `0xA7E8F13AC8E659356333Bf3e579BF3f39334821e` | How do I get paid? (V4)       | ✅ Phase 4 |
-| `AgentReview`            | `0x716B02447b52Eab450e31bD77103B41bC2c7bE0b` | How do I prove my value? (V4) | ✅ Phase 4 |
-| `PriceOracle`            | `0x5C4AC3dAF76708DCd51911BA3B33027eAB1B4047` | Price feeds (Chainlink)       | ✅ Live    |
-| `CommitReveal`           | `0x6CEd1574A3dF7ec646e43DD8408300117c453Aa3` | Front-running protection      | ✅ Live    |
-| `SlashManager`           | `0x7Cf955900FD7a12680E90D834eAf19346f5DBcf9` | 3-of-5 multisig governance    | ✅ Phase 4 |
+| Contract                    | Address                                      | Purpose                                       | Status     |
+| --------------------------- | -------------------------------------------- | --------------------------------------------- | ---------- |
+| `AgentSkillRegistryV2`      | `0xA84684261558f342d6871DD2CFef90A2117Aa20A` | What are my capabilities? (UUPS Proxy, Fixed) | ✅ Live    |
+| `AgentSkillRegistryV2 Impl` | `0x3Eec6BAF9FAc410B9C580d3Eb8c971a14298BC87` | Implementation (ownerOf fix)                  | ✅ Live    |
+| `ServiceRegistryV2`         | `0x62E1eeEa1A2Ab987004F35bDA430457Ed6077201` | What do I offer? (UUPS Proxy)                 | ✅ Phase 4 |
+| `ServiceRegistryV2 Impl`    | `0xe5B75877598F276DC63843514A888fBDc60B4086` | Implementation (Fixed Mar 30)                 | ✅ Phase 4 |
+| `AgenticCommerce`           | `0xA7E8F13AC8E659356333Bf3e579BF3f39334821e` | How do I get paid? (V4)                       | ✅ Phase 4 |
+| `AgentReview`               | `0x716B02447b52Eab450e31bD77103B41bC2c7bE0b` | How do I prove my value? (V4)                 | ✅ Phase 4 |
+| `PriceOracle`               | `0x5C4AC3dAF76708DCd51911BA3B33027eAB1B4047` | Price feeds (Chainlink)                       | ✅ Live    |
+| `CommitReveal`              | `0x6CEd1574A3dF7ec646e43DD8408300117c453Aa3` | Front-running protection                      | ✅ Live    |
+| `SlashManager`              | `0x7Cf955900FD7a12680E90D834eAf19346f5DBcf9` | 3-of-5 multisig governance                    | ✅ Phase 4 |
 
 > **Note**: All V3 contracts have been removed. Current production uses V4 contracts with comprehensive test coverage.
 

@@ -57,28 +57,29 @@ export function useSkill(skillId: bigint | undefined) {
     return { skill: undefined, isLoading, error, refetch };
   }
 
-  const skillData = data as unknown as [
-    bigint,
-    string,
-    string,
-    string,
-    string,
-    string[],
-    boolean,
-    `0x${string}`,
-    bigint,
-  ];
+  // V2 Contract returns: [agentId, name, version, description, endpoint, domains, isActive, registeredBy, registeredAt]
+  const skillData = data as unknown as {
+    agentId: bigint;
+    name: string;
+    version: string;
+    description: string;
+    endpoint: string;
+    domains: string[];
+    isActive: boolean;
+    registeredBy: `0x${string}`;
+    registeredAt: bigint;
+  };
 
   const skill: Skill = {
-    agentId: skillData[0],
-    name: skillData[1],
-    version: skillData[2],
-    description: skillData[3],
-    endpoint: skillData[4],
-    domains: skillData[5],
-    isActive: skillData[6],
-    registeredBy: skillData[7],
-    registeredAt: skillData[8],
+    agentId: skillData.agentId,
+    name: skillData.name,
+    version: skillData.version,
+    description: skillData.description,
+    endpoint: skillData.endpoint,
+    domains: skillData.domains,
+    isActive: skillData.isActive,
+    registeredBy: skillData.registeredBy,
+    registeredAt: skillData.registeredAt,
   };
 
   return { skill, isLoading, error, refetch };
@@ -108,6 +109,30 @@ export function useRegisterSkill() {
   };
 }
 
+export function useUpdateSkill() {
+  const { writeContract, data, isPending, error, reset } = useWriteContract();
+  return {
+    updateSkill: (
+      skillId: bigint,
+      name: string,
+      version: string,
+      description: string,
+      endpoint: string,
+      domains: string[]
+    ) =>
+      writeContract({
+        address: SKILL_REGISTRY_ADDRESS,
+        abi: AGENT_SKILL_REGISTRY_ABI,
+        functionName: 'updateSkill',
+        args: [skillId, name, version, description, endpoint, domains],
+      }),
+    hash: data,
+    isPending,
+    error,
+    reset,
+  };
+}
+
 export function useDeactivateSkill() {
   const { writeContract, data, isPending, error, reset } = useWriteContract();
   return {
@@ -125,12 +150,12 @@ export function useDeactivateSkill() {
   };
 }
 
-export function useFindSkillsByDomain(domain: string) {
+export function useFindSkillsByDomain(domain: string | undefined) {
   const { data, isLoading, error, refetch } = useReadContract({
     address: SKILL_REGISTRY_ADDRESS,
     abi: AGENT_SKILL_REGISTRY_ABI,
     functionName: 'findSkillsByDomain',
-    args: [domain],
+    args: domain ? [domain] : undefined,
     query: {
       enabled: !!domain,
       retry: 2,

@@ -76,6 +76,7 @@ interface ServiceListProps {
   showActiveOnly?: boolean;
   minPrice?: string;
   maxPrice?: string;
+  skillDomain?: string;
   sortBy?: string;
   sortOrder?: string;
 }
@@ -85,6 +86,7 @@ export function ServiceList({
   showActiveOnly = true,
   minPrice = '',
   maxPrice = '',
+  skillDomain = '',
   sortBy = 'newest',
   sortOrder = 'desc',
 }: ServiceListProps) {

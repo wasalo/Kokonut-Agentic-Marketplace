@@ -65,7 +65,8 @@
     "sonner": "^2.0.7",
     "uuid": "^9.0.1",
     "viem": "^2.47.6",
-    "wagmi": "^3.6.0"
+    "wagmi": "^3.6.0",
+    "ws": "^8.20.0"
   },
   "devDependencies": {
     "@types/jest": "^29.5.11",

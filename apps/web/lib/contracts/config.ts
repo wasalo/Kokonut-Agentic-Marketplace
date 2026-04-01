@@ -8,7 +8,9 @@ export const CONTRACT_ADDRESSES = {
     erc8004Reputation: '0x8004B663056A597Dffe9eCcC1965A193B7388713',
 
     // Phase 3: Comprehensive Events (Latest)
-    skillRegistry: '0x7cf16C00ed4831EB9eE3a8765831968F0a28f53D',
+    // UPDATED: SkillRegistry V2 - Uses ownerOf() instead of getAgent() to fix revert issues
+    skillRegistry: '0xA84684261558f342d6871DD2CFef90A2117Aa20A',
+    skillRegistryImpl: '0x3Eec6BAF9FAc410B9C580d3Eb8c971a14298BC87',
     serviceRegistry: '0x62E1eeEa1A2Ab987004F35bDA430457Ed6077201',
     serviceRegistryImpl: '0x218340e07bEd7fD15058414388F2C82E0f3B04f9',
     agenticCommerce: '0xA7E8F13AC8E659356333Bf3e579BF3f39334821e',

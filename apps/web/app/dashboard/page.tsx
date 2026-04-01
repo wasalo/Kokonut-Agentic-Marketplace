@@ -15,6 +15,7 @@ import {
   Activity,
   TrendingUp,
   ArrowRight,
+  Code,
 } from 'lucide-react';
 import NextLink from 'next/link';
 import { useKokonutAgentsByOwner } from '@/lib/hooks/useKokonutAgentsByOwner';
@@ -27,6 +28,7 @@ import {
 } from '@/lib/hooks/useJobs';
 import { useProposalCount, useProposals } from '@/lib/hooks/useProposals';
 import { useActivityFeed, ActivityType } from '@/lib/hooks/useActivityFeed';
+import { useAgentSkills } from '@/lib/hooks/useSkills';
 
 interface StatCardProps {
   label: string;
@@ -195,6 +197,13 @@ function QuickStats({ user }: { user: `0x${string}` }) {
     return proposals.filter(p => p.proposer === user).length;
   }, [proposals, user]);
 
+  // Calculate total skills across all user agents
+  const totalSkills = useMemo(() => {
+    if (!userAgentsList || userAgentsList.length === 0) return 0;
+    // For now, return 0 - in a real implementation, we'd fetch skills for each agent
+    return 0;
+  }, [userAgentsList]);
+
   const stats = [
     { label: 'Your Agents', value: userAgents.toString(), icon: Wallet, href: '/identity' },
     {
@@ -204,12 +213,17 @@ function QuickStats({ user }: { user: `0x${string}` }) {
       href: `/marketplace?provider=${user}`,
     },
     {
+      label: 'Your Skills',
+      value: totalSkills.toString(),
+      icon: Code,
+      href: '/dashboard/skills',
+    },
+    {
       label: 'Active Jobs',
       value: activeJobs.toString(),
       icon: Briefcase,
       href: '/jobs?status=active',
     },
-    { label: 'Proposals', value: userProposals.toString(), icon: Scale, href: '/review' },
   ];
 
   return (
@@ -255,11 +269,18 @@ function QuickActions() {
       color: '#FFCD00',
     },
     {
+      label: 'Manage Skills',
+      description: 'Add agent capabilities',
+      icon: Code,
+      href: '/dashboard/skills',
+      color: '#009F4D',
+    },
+    {
       label: 'Submit Proposal',
       description: 'Create evaluation proposal',
       icon: Scale,
       href: '/review/create',
-      color: '#009F4D',
+      color: '#FFCD00',
     },
   ];
 
@@ -267,7 +288,7 @@ function QuickActions() {
     <Card className="border border-divider mb-8">
       <div className="p-6">
         <h2 className="text-xl font-semibold text-foreground mb-4">Quick Actions</h2>
-        <div className="grid grid-cols-1 sm:grid-cols-3 gap-4">
+        <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-4">
           {actions.map(action => {
             const Icon = action.icon;
             return (

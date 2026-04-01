@@ -4,7 +4,15 @@ import { useState, useCallback, useEffect } from 'react';
 import { useAccount } from 'wagmi';
 import { useSearchParams, useRouter } from 'next/navigation';
 import NextLink from 'next/link';
-import { Plus, Search, ShoppingBag, SlidersHorizontal, ArrowUpDown, Loader2 } from 'lucide-react';
+import {
+  Plus,
+  Search,
+  ShoppingBag,
+  SlidersHorizontal,
+  ArrowUpDown,
+  Loader2,
+  Code,
+} from 'lucide-react';
 import { Card } from '@heroui/react';
 import { ServiceList } from '@/components/heroui/service-list';
 import { useAllServices } from '@/lib/hooks/useServicesContract';
@@ -30,6 +38,19 @@ function StatCard({ label, value, isLoading }: StatCardProps): JSX.Element {
   );
 }
 
+// Popular skill domains for filtering
+const SKILL_DOMAINS = [
+  { value: '', label: 'All Skills' },
+  { value: 'defi', label: 'DeFi' },
+  { value: 'nft', label: 'NFT' },
+  { value: 'ai', label: 'AI / ML' },
+  { value: 'governance', label: 'Governance' },
+  { value: 'web3', label: 'Web3' },
+  { value: 'data', label: 'Data Analysis' },
+  { value: 'security', label: 'Security' },
+  { value: 'infrastructure', label: 'Infrastructure' },
+];
+
 function FilterSection({
   searchQuery,
   setSearchQuery,
@@ -39,6 +60,8 @@ function FilterSection({
   setMinPrice,
   maxPrice,
   setMaxPrice,
+  skillDomain,
+  setSkillDomain,
   onApplyFilters,
   hasActiveFilters,
   isSearching,
@@ -51,6 +74,8 @@ function FilterSection({
   setMinPrice: (v: string) => void;
   maxPrice: string;
   setMaxPrice: (v: string) => void;
+  skillDomain: string;
+  setSkillDomain: (v: string) => void;
   onApplyFilters: () => void;
   hasActiveFilters: boolean;
   isSearching: boolean;
@@ -83,9 +108,33 @@ function FilterSection({
         </button>
       </div>
 
+      {/* Quick skill filter - always visible */}
+      <div className="flex flex-wrap gap-2 mt-4">
+        {SKILL_DOMAINS.slice(1, 6).map(domain => (
+          <button
+            key={domain.value}
+            onClick={() => setSkillDomain(skillDomain === domain.value ? '' : domain.value)}
+            className={`px-3 py-1.5 rounded-full text-sm transition-colors ${
+              skillDomain === domain.value
+                ? 'bg-success text-white'
+                : 'bg-content2 text-default-600 hover:bg-content3'
+            }`}
+          >
+            {domain.label}
+          </button>
+        ))}
+        <NextLink
+          href="/marketplace/skills"
+          className="px-3 py-1.5 rounded-full text-sm text-primary hover:bg-content2 transition-colors flex items-center gap-1"
+        >
+          <Code className="w-3.5 h-3.5" />
+          Browse All Skills
+        </NextLink>
+      </div>
+
       {isExpanded && (
         <div className="mt-4 pt-4 border-t border-divider">
-          <div className="grid grid-cols-1 sm:grid-cols-3 gap-4 mb-4">
+          <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-4 mb-4">
             <div>
               <label className="text-sm font-medium text-default-500 mb-2 block">Status</label>
               <label className="flex items-center gap-2 cursor-pointer">
@@ -101,6 +150,23 @@ function FilterSection({
 
             <div>
               <label className="text-sm font-medium text-default-500 mb-2 block">
+                Skill Domain
+              </label>
+              <select
+                value={skillDomain}
+                onChange={e => setSkillDomain(e.target.value)}
+                className="w-full px-3 py-2 border border-divider rounded-lg bg-content2 focus:outline-none focus:ring-2 focus:ring-success text-sm"
+              >
+                {SKILL_DOMAINS.map(domain => (
+                  <option key={domain.value} value={domain.value}>
+                    {domain.label}
+                  </option>
+                ))}
+              </select>
+            </div>
+
+            <div>
+              <label className="text-sm font-medium text-default-500 mb-2 block">
                 Min Price (USDC)
               </label>
               <input
@@ -108,7 +174,7 @@ function FilterSection({
                 placeholder="0"
                 value={minPrice}
                 onChange={e => setMinPrice(e.target.value)}
-                className="w-full px-3 py-2 border border-divider rounded-lg bg-content2 focus:outline-none focus:ring-2 focus:ring-success"
+                className="w-full px-3 py-2 border border-divider rounded-lg bg-content2 focus:outline-none focus:ring-2 focus:ring-success text-sm"
               />
             </div>
 
@@ -121,7 +187,7 @@ function FilterSection({
                 placeholder="Any"
                 value={maxPrice}
                 onChange={e => setMaxPrice(e.target.value)}
-                className="w-full px-3 py-2 border border-divider rounded-lg bg-content2 focus:outline-none focus:ring-2 focus:ring-success"
+                className="w-full px-3 py-2 border border-divider rounded-lg bg-content2 focus:outline-none focus:ring-2 focus:ring-success text-sm"
               />
             </div>
           </div>
@@ -133,6 +199,7 @@ function FilterSection({
                 setShowActiveOnly(true);
                 setMinPrice('');
                 setMaxPrice('');
+                setSkillDomain('');
               }}
               className="px-4 py-2 border border-divider rounded-lg hover:bg-content2 transition-colors text-sm"
             >
@@ -194,6 +261,7 @@ export default function MarketplacePage(): JSX.Element {
   const [showActiveOnly, setShowActiveOnly] = useState(true);
   const [minPrice, setMinPrice] = useState('');
   const [maxPrice, setMaxPrice] = useState('');
+  const [skillDomain, setSkillDomain] = useState('');
   const [isSearching, setIsSearching] = useState(false);
 
   // Debounce search query
@@ -213,6 +281,7 @@ export default function MarketplacePage(): JSX.Element {
     showActiveOnly: true,
     minPrice: '',
     maxPrice: '',
+    skillDomain: '',
   });
 
   // Update search filter immediately when debounced value changes
@@ -222,6 +291,14 @@ export default function MarketplacePage(): JSX.Element {
       searchQuery: debouncedSearchQuery,
     }));
   }, [debouncedSearchQuery]);
+
+  // Update skill domain filter immediately when changed
+  useEffect(() => {
+    setAppliedFilters(prev => ({
+      ...prev,
+      skillDomain,
+    }));
+  }, [skillDomain]);
 
   // URL-based sorting
   const sortBy = searchParams.get('sort') || 'newest';
@@ -238,7 +315,11 @@ export default function MarketplacePage(): JSX.Element {
   );
 
   const hasActiveFilters =
-    searchQuery !== '' || !showActiveOnly || minPrice !== '' || maxPrice !== '';
+    searchQuery !== '' ||
+    !showActiveOnly ||
+    minPrice !== '' ||
+    maxPrice !== '' ||
+    skillDomain !== '';
 
   const handleApplyFilters = () => {
     setAppliedFilters({
@@ -246,6 +327,7 @@ export default function MarketplacePage(): JSX.Element {
       showActiveOnly,
       minPrice,
       maxPrice,
+      skillDomain,
     });
   };
 
@@ -284,6 +366,8 @@ export default function MarketplacePage(): JSX.Element {
         setMinPrice={setMinPrice}
         maxPrice={maxPrice}
         setMaxPrice={setMaxPrice}
+        skillDomain={skillDomain}
+        setSkillDomain={setSkillDomain}
         onApplyFilters={handleApplyFilters}
         hasActiveFilters={hasActiveFilters}
         isSearching={isSearching}
@@ -317,6 +401,7 @@ export default function MarketplacePage(): JSX.Element {
         showActiveOnly={appliedFilters.showActiveOnly}
         minPrice={appliedFilters.minPrice}
         maxPrice={appliedFilters.maxPrice}
+        skillDomain={appliedFilters.skillDomain}
         sortBy={sortBy}
         sortOrder={sortOrder}
       />

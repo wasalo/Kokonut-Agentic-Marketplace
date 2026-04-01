@@ -547,12 +547,15 @@ export const AGENT_SKILL_REGISTRY_ABI = [
     outputs: [
       {
         components: [
+          { name: 'agentId', type: 'uint256' },
           { name: 'name', type: 'string' },
           { name: 'version', type: 'string' },
           { name: 'description', type: 'string' },
           { name: 'endpoint', type: 'string' },
           { name: 'domains', type: 'string[]' },
           { name: 'isActive', type: 'bool' },
+          { name: 'registeredBy', type: 'address' },
+          { name: 'registeredAt', type: 'uint256' },
         ],
         name: '',
         type: 'tuple',
@@ -582,6 +585,20 @@ export const AGENT_SKILL_REGISTRY_ABI = [
       },
     ],
     stateMutability: 'view',
+    type: 'function',
+  },
+  {
+    inputs: [
+      { name: 'skillId', type: 'uint256' },
+      { name: 'name', type: 'string' },
+      { name: 'version', type: 'string' },
+      { name: 'description', type: 'string' },
+      { name: 'endpoint', type: 'string' },
+      { name: 'domains', type: 'string[]' },
+    ],
+    name: 'updateSkill',
+    outputs: [],
+    stateMutability: 'nonpayable',
     type: 'function',
   },
   {
