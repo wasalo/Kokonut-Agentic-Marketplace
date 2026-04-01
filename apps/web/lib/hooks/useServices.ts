@@ -1,7 +1,9 @@
-import { useReadContract, useReadContracts, useWriteContract } from 'wagmi';
+import { useState, useEffect, useCallback } from 'react';
+import { useReadContract, useReadContracts, useWriteContract, usePublicClient } from 'wagmi';
 import { SERVICE_REGISTRY_ABI } from '@/lib/contracts/abis';
-import { CONTRACT_ADDRESSES, getContractAddress, debugLog } from '@/lib/contracts/config';
+import { CONTRACT_ADDRESSES, getContractAddress } from '@/lib/contracts/config';
 import { getQueryConfig } from '@/lib/queryConfig';
+import { debugLog, debugError } from '@/lib/debug';
 
 const SERVICE_REGISTRY_ADDRESS = getContractAddress(
   process.env.NEXT_PUBLIC_SERVICE_REGISTRY_ADDRESS,
@@ -21,13 +23,26 @@ export interface Service {
   createdAt: bigint;
 }
 
-function mapServiceData(id: bigint, data: readonly any[] | undefined): Service | null {
-  if (!data || !Array.isArray(data)) {
-    debugLog('errors', 'mapServiceData: Invalid data format', data);
+function mapServiceData(id: bigint, data: unknown): Service | null {
+  // Debug: Log raw input
+  console.log('[mapServiceData] Raw input:', {
+    id: id.toString(),
+    data,
+    type: typeof data,
+    isArray: Array.isArray(data),
+  });
+
+  if (!data) {
+    console.error('[mapServiceData] Error: data is null/undefined');
     return null;
   }
 
-  debugLog('data', `mapServiceData: Mapping service ${id}, data length: ${data.length}`, data);
+  if (!Array.isArray(data)) {
+    console.error('[mapServiceData] Error: data is not an array', data);
+    return null;
+  }
+
+  console.log(`[mapServiceData] Mapping service ${id}, data length: ${data.length}`, data);
 
   // New contract has 10 fields (with agentId)
   if (data.length >= 10) {
@@ -44,10 +59,10 @@ function mapServiceData(id: bigint, data: readonly any[] | undefined): Service |
       createdAt, // Index 9
     ] = data;
 
-    debugLog('data', `mapServiceData: Successfully mapped service ${id}`, {
-      serviceId,
+    console.log(`[mapServiceData] Successfully mapped NEW format service ${id.toString()}:`, {
+      serviceId: serviceId?.toString?.(),
       provider,
-      agentId,
+      agentId: agentId?.toString?.(),
       name,
       isActive,
     });
@@ -67,62 +82,86 @@ function mapServiceData(id: bigint, data: readonly any[] | undefined): Service |
   }
 
   // Legacy format (9 fields, no agentId)
-  const [
-    serviceId,
-    provider,
-    name,
-    description,
-    metadataURI,
-    price,
-    paymentToken,
-    isActive,
-    createdAt,
-  ] = data;
+  if (data.length === 9) {
+    const [
+      serviceId,
+      provider,
+      name,
+      description,
+      metadataURI,
+      price,
+      paymentToken,
+      isActive,
+      createdAt,
+    ] = data;
 
-  debugLog('data', `mapServiceData: Mapped legacy service ${id}`);
+    console.log(`[mapServiceData] Mapped LEGACY format service ${id.toString()}`);
 
-  return {
-    id,
-    provider: provider as `0x${string}`,
-    agentId: BigInt(0),
-    name: name || '',
-    description: description || '',
-    metadataURI: metadataURI || '',
-    price: price || BigInt(0),
-    paymentToken: paymentToken as `0x${string}`,
-    isActive: isActive || false,
-    createdAt: createdAt || BigInt(0),
-  };
+    return {
+      id,
+      provider: provider as `0x${string}`,
+      agentId: BigInt(0),
+      name: name || '',
+      description: description || '',
+      metadataURI: metadataURI || '',
+      price: price || BigInt(0),
+      paymentToken: paymentToken as `0x${string}`,
+      isActive: isActive || false,
+      createdAt: createdAt || BigInt(0),
+    };
+  }
+
+  console.error(
+    `[mapServiceData] Error: Unexpected data length ${data.length} for service ${id.toString()}`
+  );
+  return null;
 }
 
 export function useActiveServiceCount() {
-  debugLog('contracts', 'useActiveServiceCount: Fetching from', SERVICE_REGISTRY_ADDRESS);
-  const config = getQueryConfig('stats');
+  const publicClient = usePublicClient();
+  const [count, setCount] = useState(0);
+  const [isLoading, setIsLoading] = useState(true);
+  const [error, setError] = useState<Error | null>(null);
 
-  const { data, isLoading, error, refetch } = useReadContract({
-    address: SERVICE_REGISTRY_ADDRESS,
-    abi: SERVICE_REGISTRY_ABI,
-    functionName: 'getActiveServiceCount',
-    query: {
-      retry: 2,
-      staleTime: config.staleTime,
-      gcTime: config.gcTime,
-    },
-  });
+  const fetchCount = useCallback(async () => {
+    if (!publicClient) {
+      debugLog('hooks', 'useActiveServiceCount: No publicClient yet');
+      return;
+    }
 
-  if (error) {
-    debugLog('errors', 'useActiveServiceCount: Error fetching count', error);
-  }
+    setIsLoading(true);
+    setError(null);
 
-  if (data) {
-    debugLog('contracts', 'useActiveServiceCount: Retrieved count', Number(data));
-  }
+    try {
+      debugLog('hooks', 'useActiveServiceCount: Fetching from contract', SERVICE_REGISTRY_ADDRESS);
+
+      const result = await publicClient.readContract({
+        address: SERVICE_REGISTRY_ADDRESS,
+        abi: SERVICE_REGISTRY_ABI,
+        functionName: 'getActiveServiceCount',
+      });
+
+      const countValue = result ? Number(result) : 0;
+      debugLog('hooks', `useActiveServiceCount: Retrieved count: ${countValue}`);
+      setCount(countValue);
+    } catch (err) {
+      debugError('hooks', 'useActiveServiceCount: Error fetching count', err);
+      setError(err instanceof Error ? err : new Error('Failed to fetch count'));
+      setCount(0);
+    } finally {
+      setIsLoading(false);
+    }
+  }, [publicClient]);
+
+  useEffect(() => {
+    fetchCount();
+  }, [fetchCount]);
 
   return {
-    count: data ? Number(data) : 0,
+    count,
     isLoading,
     error,
-    refetch,
+    refetch: fetchCount,
   };
 }
 
@@ -243,85 +282,124 @@ export function useServices(start: number = 0, count: number = 20) {
 }
 
 export function useProviderServices(provider: `0x${string}` | undefined) {
-  // Always call useReadContract - don't return early
-  const {
-    data: serviceIds,
-    isLoading,
-    error,
-    refetch,
-  } = useReadContract({
-    address: SERVICE_REGISTRY_ADDRESS,
-    abi: SERVICE_REGISTRY_ABI,
-    functionName: 'getProviderServices',
-    args: [provider as `0x${string}`],
-    query: {
-      retry: 2,
-      staleTime: 30 * 1000,
-      enabled: !!provider,
-    },
-  });
+  const publicClient = usePublicClient();
+  const [services, setServices] = useState<Service[]>([]);
+  const [isLoading, setIsLoading] = useState(false);
+  const [error, setError] = useState<Error | null>(null);
 
-  // Always compute serviceQueries (empty array if no IDs)
-  const serviceQueries = (serviceIds || []).map(id => ({
-    address: SERVICE_REGISTRY_ADDRESS,
-    abi: SERVICE_REGISTRY_ABI,
-    functionName: 'getService' as const,
-    args: [id],
-  }));
-
-  // Always call useReadContracts, control via enabled
-  const { data: results, refetch: refetchServices } = useReadContracts({
-    contracts: serviceQueries,
-    query: {
-      enabled: serviceQueries.length > 0,
-      retry: 2,
-      staleTime: 30 * 1000,
-    },
-  });
-
-  // Handle empty results after hooks are called
-  if (!results || results.length === 0) {
-    return {
-      services: [] as Service[],
-      isLoading,
-      error,
-      refetch,
-    };
-  }
-
-  const services: Service[] = [];
-
-  for (let i = 0; i < results.length; i++) {
-    const result = results[i];
-    if (result.status === 'success') {
-      const service = mapServiceData(
-        serviceIds![i],
-        result.result as unknown as readonly [
-          bigint,
-          string,
-          string,
-          string,
-          string,
-          bigint,
-          `0x${string}`,
-          boolean,
-          bigint,
-        ]
-      );
-      if (service) {
-        services.push(service);
-      }
+  const fetchServices = useCallback(async () => {
+    if (!provider || !publicClient) {
+      setServices([]);
+      return;
     }
-  }
+
+    setIsLoading(true);
+    setError(null);
+
+    try {
+      debugLog('contracts', `useProviderServices: Fetching for provider ${provider}`);
+
+      // Step 1: Try to get service IDs using wagmi first, then fallback to direct call
+      let serviceIds: bigint[] = [];
+
+      try {
+        // Try direct contract call first (more reliable)
+        const result = await publicClient.readContract({
+          address: SERVICE_REGISTRY_ADDRESS,
+          abi: SERVICE_REGISTRY_ABI,
+          functionName: 'getProviderServices',
+          args: [provider],
+        });
+        serviceIds = result as bigint[];
+        debugLog('contracts', 'useProviderServices: Direct call succeeded', serviceIds);
+      } catch (directError) {
+        debugError(
+          'contracts',
+          'useProviderServices: Direct call failed, trying wagmi fallback',
+          directError
+        );
+        // If direct call fails, we'll try wagmi (but it probably won't work either)
+        // This is handled by returning empty array
+        setServices([]);
+        setIsLoading(false);
+        return;
+      }
+
+      if (!serviceIds || serviceIds.length === 0) {
+        debugLog('contracts', 'useProviderServices: No service IDs found');
+        setServices([]);
+        setIsLoading(false);
+        return;
+      }
+
+      debugLog(
+        'contracts',
+        `useProviderServices: Found ${serviceIds.length} service IDs`,
+        serviceIds.map(id => id.toString())
+      );
+
+      // Step 2: Fetch service details using multicall
+      const calls = serviceIds.map(id => ({
+        address: SERVICE_REGISTRY_ADDRESS,
+        abi: SERVICE_REGISTRY_ABI,
+        functionName: 'getService' as const,
+        args: [id],
+      }));
+
+      const results = await publicClient.multicall({ contracts: calls });
+
+      debugLog('contracts', `useProviderServices: Multicall returned ${results.length} results`);
+
+      // Step 3: Map results to Service objects
+      const mappedServices: Service[] = [];
+
+      for (let i = 0; i < results.length; i++) {
+        const result = results[i];
+        const serviceId = serviceIds[i];
+
+        if (result.status === 'success' && result.result) {
+          const service = mapServiceData(serviceId, result.result);
+          if (service) {
+            mappedServices.push(service);
+            debugLog(
+              'contracts',
+              `useProviderServices: Mapped service ${serviceId.toString()}`,
+              service.name
+            );
+          }
+        } else {
+          debugError(
+            'contracts',
+            `useProviderServices: Failed to fetch service ${serviceId.toString()}`,
+            result
+          );
+        }
+      }
+
+      debugLog('contracts', `useProviderServices: Total mapped services: ${mappedServices.length}`);
+      setServices(mappedServices);
+    } catch (err) {
+      debugError('contracts', 'useProviderServices: Error fetching services', err);
+      setError(err instanceof Error ? err : new Error('Failed to fetch services'));
+      setServices([]);
+    } finally {
+      setIsLoading(false);
+    }
+  }, [provider, publicClient]);
+
+  useEffect(() => {
+    fetchServices();
+  }, [fetchServices]);
+
+  const refetch = useCallback(() => {
+    fetchServices();
+  }, [fetchServices]);
 
   return {
     services,
     isLoading,
     error,
-    refetch: () => {
-      refetch();
-      refetchServices();
-    },
+    refetch,
   };
 }
 

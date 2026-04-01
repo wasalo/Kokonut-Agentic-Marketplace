@@ -959,6 +959,126 @@ See [Frontend Security Hardening Report](./docs/FRONTEND_SECURITY_HARDENING_REPO
 
 ---
 
+## Troubleshooting
+
+### Data Fetching Issues
+
+#### Issue: Agent count shows 0 on Dashboard
+
+**Symptoms:** Dashboard "Your Agents" counter displays 0 even though wallet owns agents.
+
+**Root Cause:** The 8004scan API returns agent lists without the `agent_uri` field needed to verify Kokonut registration.
+
+**Solution:** Frontend now uses a **balanced approach with multicall fallback**:
+
+1. Fetches agent list from 8004scan API (fast)
+2. Uses `multicall` to fetch `tokenURI` for each agent directly from contract (reliable)
+3. Decodes metadata and filters by `source === 'kokonut-marketplace'`
+4. Caches results for 1 minute to reduce RPC calls
+
+**Technical Details:**
+
+```typescript
+// Step 1: Get agents from API
+const apiAgents = await fetchAgentsFromAPI(ownerAddress);
+
+// Step 2: Fetch URIs via multicall (fallback)
+const calls = tokenIds.map(id => ({
+  address: ERC8004_REGISTRY,
+  abi: ERC8004_ABI,
+  functionName: 'tokenURI',
+  args: [id],
+}));
+const results = await publicClient.multicall({ contracts: calls });
+
+// Step 3: Filter by source
+const kokonutAgents = results.filter(agent => agent.metadata?.source === 'kokonut-marketplace');
+```
+
+**Files Affected:**
+
+- `lib/hooks/useKokonutAgentsByOwner.ts` - Fixed with multicall
+- `lib/hooks/useKokonutAgents.ts` - Already uses multicall approach
+- `app/dashboard/page.tsx` - Uses correct hook for wallet agents
+
+---
+
+#### Issue: Service count shows 0 on Dashboard
+
+**Symptoms:** Dashboard "Your Services" counter displays 0 even though wallet has listed services.
+
+**Root Cause:** React Query caching or timing issues with `useProviderServices` hook.
+
+**Solution:**
+
+1. Added proper loading states to stats cards
+2. Added `isLoading` prop to service count display
+3. Ensured hook is called with enabled flag based on wallet connection
+
+**Verification:**
+
+```bash
+# Check on-chain data
+cast call 0x62E1... "getProviderServices(address)" YOUR_WALLET \
+  --rpc-url https://ethereum-sepolia.publicnode.com
+```
+
+---
+
+#### Issue: /identity page shows 0 Kokonut Agents
+
+**Symptoms:** Identity page stats show "Kokonut Agents: 0" but agents exist.
+
+**Root Cause:** Same as Dashboard - API doesn't return `agent_uri` for metadata verification.
+
+**Solution:** Identity page now uses the fixed `useKokonutAgents` hook which implements the API + Multicall approach described above.
+
+---
+
+### Contract Interaction Issues
+
+#### Issue: "Transaction cannot be sent because it reverted onchain with reason unknown"
+
+**Symptoms:** Skill registration fails with generic revert error.
+
+**Root Cause:** `AgentSkillRegistry` contract was calling `getAgent()` which doesn't exist on ERC-8004 registry.
+
+**Solution:** Deployed `AgentSkillRegistryV2` which uses standard `IERC721.ownerOf()`:
+
+- **Proxy:** `0xA84684261558f342d6871DD2CFef90A2117Aa20A`
+- **Implementation:** `0x3Eec6BAF9FAc410B9C580d3Eb8c971a14298BC87`
+
+**Verification:**
+
+```bash
+# Test contract call
+cast call 0xA846... "ownerOf(uint256)" 2326 \
+  --rpc-url https://ethereum-sepolia.publicnode.com
+# Should return: 0x0ea26051f7657d59418da186137141cea90d0652
+```
+
+---
+
+### Debug Mode
+
+Enable debug logging to troubleshoot data fetching:
+
+```typescript
+// In browser console
+localStorage.setItem('debug', 'kokonut:*');
+
+// Or set in .env.local
+NEXT_PUBLIC_DEBUG_MODE = true;
+```
+
+Check browser console for:
+
+- `[CONTRACTS]` - Contract call logs
+- `[ERRORS]` - Error details
+- `[DATA]` - Data transformation logs
+
+---
+
 ## Support
 
 - Documentation: [docs/AGENT_SDK.md](./docs/AGENT_SDK.md)

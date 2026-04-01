@@ -18,7 +18,8 @@ import {
   Code,
 } from 'lucide-react';
 import NextLink from 'next/link';
-import { useKokonutAgentsByOwner } from '@/lib/hooks/useKokonutAgentsByOwner';
+import { useReadContracts } from 'wagmi';
+import { useWalletAgentsWithDetails } from '@/lib/hooks/useWalletAgentsWithDetails';
 import { useActiveServiceCount, useProviderServices } from '@/lib/hooks/useServices';
 import {
   useJobCount,
@@ -28,7 +29,9 @@ import {
 } from '@/lib/hooks/useJobs';
 import { useProposalCount, useProposals } from '@/lib/hooks/useProposals';
 import { useActivityFeed, ActivityType } from '@/lib/hooks/useActivityFeed';
-import { useAgentSkills } from '@/lib/hooks/useSkills';
+import { CONTRACT_ADDRESSES } from '@/lib/contracts/config';
+import { AGENT_SKILL_REGISTRY_ABI } from '@/lib/contracts/abis';
+import { debugLog, debugError } from '@/lib/debug';
 
 interface StatCardProps {
   label: string;
@@ -171,18 +174,34 @@ function UserProposalsList({ user }: { user: `0x${string}` }) {
 }
 
 function QuickStats({ user }: { user: `0x${string}` }) {
-  const { agents: userAgentsList, isLoading: isAgentsLoading } = useKokonutAgentsByOwner(user);
+  debugLog('dashboard', 'QuickStats: Rendering for user', user);
+
+  // Use the same hook as Skills Management for accurate agent count
+  const { agents: userAgentsList, isLoading: isAgentsLoading } = useWalletAgentsWithDetails(user);
   const { count: serviceCount } = useActiveServiceCount();
   const { count: jobCount } = useJobCount();
   const { count: proposalCount } = useProposalCount();
 
-  const { services } = useProviderServices(user);
+  const {
+    services,
+    isLoading: isServicesLoading,
+    error: servicesError,
+  } = useProviderServices(user);
   const { jobs } = useUserJobs(user, 'all');
   const { proposals } = useProposals(0, 50);
+
+  debugLog('dashboard', 'QuickStats: Data state', {
+    agents: userAgentsList?.length,
+    agentsLoading: isAgentsLoading,
+    services: services?.length,
+    servicesLoading: isServicesLoading,
+    servicesError: servicesError?.message,
+  });
 
   const userAgents = userAgentsList?.length || 0;
 
   const userServices = useMemo(() => {
+    debugLog('dashboard', 'QuickStats: Calculating userServices', { services: services?.length });
     if (!services) return 0;
     return services.length;
   }, [services]);
@@ -198,31 +217,89 @@ function QuickStats({ user }: { user: `0x${string}` }) {
   }, [proposals, user]);
 
   // Calculate total skills across all user agents
-  const totalSkills = useMemo(() => {
-    if (!userAgentsList || userAgentsList.length === 0) return 0;
-    // For now, return 0 - in a real implementation, we'd fetch skills for each agent
-    return 0;
+  const agentIds = useMemo(() => {
+    const ids = userAgentsList?.map(agent => BigInt(agent.id)) || [];
+    debugLog(
+      'dashboard',
+      'QuickStats: Agent IDs for skills',
+      ids.map(id => id.toString())
+    );
+    return ids;
   }, [userAgentsList]);
 
+  // Log skill registry address
+  const skillRegistryAddress = CONTRACT_ADDRESSES.sepolia.skillRegistry;
+  debugLog('dashboard', 'QuickStats: Skill Registry Address', skillRegistryAddress);
+
+  // Fetch skill counts for each agent
+  const skillContracts = useMemo(() => {
+    if (agentIds.length === 0) return [];
+    return agentIds.map(agentId => ({
+      address: skillRegistryAddress as `0x${string}`,
+      abi: AGENT_SKILL_REGISTRY_ABI,
+      functionName: 'getAgentSkillCount' as const,
+      args: [agentId] as const,
+    }));
+  }, [agentIds, skillRegistryAddress]);
+
+  debugLog('dashboard', 'QuickStats: Skill contracts count', skillContracts.length);
+
+  const {
+    data: skillCounts,
+    isLoading: isSkillsLoading,
+    error: skillsError,
+  } = useReadContracts({
+    contracts: skillContracts,
+    query: {
+      enabled: agentIds.length > 0 && !!skillRegistryAddress,
+    },
+  });
+
+  debugLog('dashboard', 'QuickStats: Skill counts state', {
+    skillCounts: skillCounts?.length,
+    skillsError: skillsError?.message,
+  });
+
+  const totalSkills = useMemo(() => {
+    if (!skillCounts || skillCounts.length === 0) return 0;
+    const total = skillCounts.reduce((acc: number, result: { status: string; result?: bigint }) => {
+      if (result.status === 'success' && result.result) {
+        return acc + Number(result.result);
+      }
+      return acc;
+    }, 0);
+    debugLog('dashboard', 'QuickStats: Total skills calculated', total);
+    return total;
+  }, [skillCounts]);
+
   const stats = [
-    { label: 'Your Agents', value: userAgents.toString(), icon: Wallet, href: '/identity' },
+    {
+      label: 'Your Agents',
+      value: userAgents.toString(),
+      icon: Wallet,
+      href: '/identity',
+      isLoading: isAgentsLoading,
+    },
     {
       label: 'Your Services',
       value: userServices.toString(),
       icon: ShoppingBag,
       href: `/marketplace?provider=${user}`,
+      isLoading: isServicesLoading,
     },
     {
       label: 'Your Skills',
       value: totalSkills.toString(),
       icon: Code,
       href: '/dashboard/skills',
+      isLoading: isSkillsLoading,
     },
     {
       label: 'Active Jobs',
       value: activeJobs.toString(),
       icon: Briefcase,
       href: '/jobs?status=active',
+      isLoading: false,
     },
   ];
 
@@ -230,7 +307,7 @@ function QuickStats({ user }: { user: `0x${string}` }) {
     <div className="grid grid-cols-2 md:grid-cols-4 gap-4 mb-8">
       {stats.map(stat => (
         <NextLink key={stat.label} href={stat.href} className="block">
-          <StatCard {...stat} isLoading={isAgentsLoading && stat.label === 'Your Agents'} />
+          <StatCard {...stat} />
         </NextLink>
       ))}
     </div>

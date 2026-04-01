@@ -5,8 +5,8 @@ import { usePublicClient, useReadContract } from 'wagmi';
 import { parseAbiItem } from 'viem';
 import { ERC8004_ABI } from '@/lib/8004contracts';
 import { decodeAgentMetadata } from '@/lib/metadata';
-import { CONTRACT_ADDRESSES, getContractAddress, debugLog } from '@/lib/contracts/config';
-import { useDebug } from '@/contexts/DebugContext';
+import { CONTRACT_ADDRESSES, getContractAddress } from '@/lib/contracts/config';
+import { debugLog, debugError } from '@/lib/debug';
 
 const ERC8004_ADDRESS = getContractAddress(
   process.env.NEXT_PUBLIC_8004_REGISTRY_ADDRESS,
@@ -40,7 +40,6 @@ export function useWalletAgentsWithDetails(
   ownerAddress: `0x${string}` | undefined
 ): UseWalletAgentsWithDetailsReturn {
   const publicClient = usePublicClient();
-  const { addLog } = useDebug();
   const [agents, setAgents] = useState<AgentWithDetails[]>([]);
   const [isLoading, setIsLoading] = useState(false);
   const [error, setError] = useState<Error | null>(null);
@@ -57,7 +56,14 @@ export function useWalletAgentsWithDetails(
   });
 
   const fetchAgents = useCallback(async () => {
+    debugLog('hooks', 'useWalletAgentsWithDetails: fetchAgents called', {
+      hasPublicClient: !!publicClient,
+      hasOwnerAddress: !!ownerAddress,
+      balance: balance?.toString(),
+    });
+
     if (!publicClient || !ownerAddress || !balance || balance === BigInt(0)) {
+      debugLog('hooks', 'useWalletAgentsWithDetails: Missing dependencies, returning empty');
       setAgents([]);
       return;
     }
@@ -65,11 +71,14 @@ export function useWalletAgentsWithDetails(
     setIsLoading(true);
     setError(null);
 
-    addLog('contract', `Fetching agents for ${ownerAddress}`, { balance: balance.toString() });
-
     try {
+      debugLog(
+        'hooks',
+        `useWalletAgentsWithDetails: Fetching agents for ${ownerAddress}, balance: ${balance.toString()}`
+      );
+
       // Step 2: Query Registered events to find agent IDs owned by this address
-      addLog('contract', 'Querying Registered events...');
+      debugLog('hooks', 'useWalletAgentsWithDetails: Querying Registered events...');
 
       const logs = await publicClient.getLogs({
         address: ERC8004_ADDRESS,
@@ -83,13 +92,14 @@ export function useWalletAgentsWithDetails(
         },
       });
 
-      addLog(
-        'contract',
-        `Found ${logs.length} Registered events`,
+      debugLog(
+        'hooks',
+        `useWalletAgentsWithDetails: Found ${logs.length} Registered events`,
         logs.map(l => ({ agentId: l.args.agentId?.toString() }))
       );
 
       if (logs.length === 0) {
+        debugLog('hooks', 'useWalletAgentsWithDetails: No logs found, returning empty');
         setAgents([]);
         setIsLoading(false);
         return;
@@ -98,9 +108,9 @@ export function useWalletAgentsWithDetails(
       // Step 3: Fetch tokenURI for each agent
       const agentIds = logs.map(log => log.args.agentId).filter(Boolean) as bigint[];
 
-      addLog(
-        'contract',
-        `Fetching tokenURI for ${agentIds.length} agents`,
+      debugLog(
+        'hooks',
+        `useWalletAgentsWithDetails: Fetching tokenURI for ${agentIds.length} agents:`,
         agentIds.map(id => id.toString())
       );
 
@@ -112,6 +122,8 @@ export function useWalletAgentsWithDetails(
       }));
 
       const results = await publicClient.multicall({ contracts: calls });
+
+      debugLog('hooks', `useWalletAgentsWithDetails: Multicall returned ${results.length} results`);
 
       // Step 4: Decode metadata and check for Kokonut tag
       const fetchedAgents: AgentWithDetails[] = [];
@@ -125,7 +137,7 @@ export function useWalletAgentsWithDetails(
           const metadata = decodeAgentMetadata(uri);
           const hasKokonutTag = metadata?.source === 'kokonut-marketplace';
 
-          addLog('contract', `Agent ${agentId} metadata check`, {
+          debugLog('hooks', `useWalletAgentsWithDetails: Agent ${agentId}:`, {
             hasMetadata: !!metadata,
             source: metadata?.source,
             hasKokonutTag,
@@ -139,28 +151,39 @@ export function useWalletAgentsWithDetails(
             hasKokonutTag,
           });
         } else {
-          addLog('error', `Failed to fetch tokenURI for agent ${agentId}`, result);
+          debugError(
+            'hooks',
+            `useWalletAgentsWithDetails: Failed to fetch tokenURI for agent ${agentId}`,
+            result
+          );
         }
       }
 
-      addLog(
-        'contract',
-        `Total agents: ${fetchedAgents.length}, Tagged: ${fetchedAgents.filter(a => a.hasKokonutTag).length}`
+      debugLog(
+        'hooks',
+        `useWalletAgentsWithDetails: Total agents: ${fetchedAgents.length}, Tagged: ${fetchedAgents.filter(a => a.hasKokonutTag).length}`
       );
 
       setAgents(fetchedAgents);
     } catch (err) {
-      console.error('Error fetching agents:', err);
-      addLog('error', 'Error fetching agents', err);
+      debugError('hooks', 'useWalletAgentsWithDetails: Error', err);
       setError(err instanceof Error ? err : new Error('Failed to fetch agents'));
     } finally {
       setIsLoading(false);
     }
-  }, [publicClient, ownerAddress, balance, addLog]);
+  }, [publicClient, ownerAddress, balance]);
 
   useEffect(() => {
-    fetchAgents();
-  }, [fetchAgents]);
+    debugLog('hooks', 'useWalletAgentsWithDetails: useEffect triggered', {
+      hasPublicClient: !!publicClient,
+      hasOwnerAddress: !!ownerAddress,
+      balance: balance?.toString(),
+    });
+
+    if (publicClient && ownerAddress && balance !== undefined) {
+      fetchAgents();
+    }
+  }, [publicClient, ownerAddress, balance, fetchAgents]);
 
   const taggedAgents = agents.filter(a => a.hasKokonutTag);
   const untaggedAgents = agents.filter(a => !a.hasKokonutTag);
