@@ -55,6 +55,7 @@ broadcast/
 *.tar.gz
 *.zip
 *.jar
+*.obsidian
 
 # Cache
 .eslintcache
