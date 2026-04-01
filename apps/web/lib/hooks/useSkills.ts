@@ -1,0 +1,142 @@
+import { useReadContract, useWriteContract } from 'wagmi';
+import { AGENT_SKILL_REGISTRY_ABI } from '@/lib/contracts/abis';
+import { CONTRACT_ADDRESSES, getContractAddress, debugLog } from '@/lib/contracts/config';
+
+const SKILL_REGISTRY_ADDRESS = getContractAddress(
+  process.env.NEXT_PUBLIC_SKILL_REGISTRY_ADDRESS,
+  CONTRACT_ADDRESSES.sepolia.skillRegistry
+);
+
+export interface Skill {
+  agentId: bigint;
+  name: string;
+  version: string;
+  description: string;
+  endpoint: string;
+  domains: string[];
+  isActive: boolean;
+  registeredBy: `0x${string}`;
+  registeredAt: bigint;
+}
+
+export function useAgentSkills(agentId: bigint | undefined) {
+  const {
+    data: skillIds,
+    isLoading,
+    error,
+    refetch,
+  } = useReadContract({
+    address: SKILL_REGISTRY_ADDRESS,
+    abi: AGENT_SKILL_REGISTRY_ABI,
+    functionName: 'getAgentSkills',
+    args: agentId ? [agentId] : undefined,
+    query: {
+      enabled: !!agentId,
+      retry: 2,
+      staleTime: 30 * 1000,
+    },
+  });
+
+  return { skillIds: skillIds as bigint[] | undefined, isLoading, error, refetch };
+}
+
+export function useSkill(skillId: bigint | undefined) {
+  const { data, isLoading, error, refetch } = useReadContract({
+    address: SKILL_REGISTRY_ADDRESS,
+    abi: AGENT_SKILL_REGISTRY_ABI,
+    functionName: 'getSkill',
+    args: skillId ? [skillId] : undefined,
+    query: {
+      enabled: !!skillId,
+      retry: 2,
+      staleTime: 30 * 1000,
+    },
+  });
+
+  if (!data) {
+    return { skill: undefined, isLoading, error, refetch };
+  }
+
+  const skillData = data as unknown as [
+    bigint,
+    string,
+    string,
+    string,
+    string,
+    string[],
+    boolean,
+    `0x${string}`,
+    bigint,
+  ];
+
+  const skill: Skill = {
+    agentId: skillData[0],
+    name: skillData[1],
+    version: skillData[2],
+    description: skillData[3],
+    endpoint: skillData[4],
+    domains: skillData[5],
+    isActive: skillData[6],
+    registeredBy: skillData[7],
+    registeredAt: skillData[8],
+  };
+
+  return { skill, isLoading, error, refetch };
+}
+
+export function useRegisterSkill() {
+  const { writeContract, data, isPending, error, reset } = useWriteContract();
+  return {
+    registerSkill: (
+      agentId: bigint,
+      name: string,
+      version: string,
+      description: string,
+      endpoint: string,
+      domains: string[]
+    ) =>
+      writeContract({
+        address: SKILL_REGISTRY_ADDRESS,
+        abi: AGENT_SKILL_REGISTRY_ABI,
+        functionName: 'registerSkill',
+        args: [agentId, name, version, description, endpoint, domains],
+      }),
+    hash: data,
+    isPending,
+    error,
+    reset,
+  };
+}
+
+export function useDeactivateSkill() {
+  const { writeContract, data, isPending, error, reset } = useWriteContract();
+  return {
+    deactivateSkill: (skillId: bigint) =>
+      writeContract({
+        address: SKILL_REGISTRY_ADDRESS,
+        abi: AGENT_SKILL_REGISTRY_ABI,
+        functionName: 'deactivateSkill',
+        args: [skillId],
+      }),
+    hash: data,
+    isPending,
+    error,
+    reset,
+  };
+}
+
+export function useFindSkillsByDomain(domain: string) {
+  const { data, isLoading, error, refetch } = useReadContract({
+    address: SKILL_REGISTRY_ADDRESS,
+    abi: AGENT_SKILL_REGISTRY_ABI,
+    functionName: 'findSkillsByDomain',
+    args: [domain],
+    query: {
+      enabled: !!domain,
+      retry: 2,
+      staleTime: 30 * 1000,
+    },
+  });
+
+  return { skillIds: data as bigint[] | undefined, isLoading, error, refetch };
+}

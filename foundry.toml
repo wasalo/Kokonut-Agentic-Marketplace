@@ -1,0 +1,66 @@
+[profile.default]
+src = "contracts"
+out = "out"
+libs = ["lib"]
+test = "contracts/test"
+cache_path = "cache"
+
+solc = "0.8.22"
+optimizer = true
+optimizer_runs = 200
+
+# Phase 4: Fuzzing configuration
+[fuzz]
+runs = 1000
+max_test_rejects = 65536
+seed = '0x3e8'
+dictionary_weight = 40
+include_storage = true
+include_push_bytes = true
+
+# Phase 4: Invariant testing configuration
+[invariant]
+runs = 256
+depth = 32
+fail_on_revert = false
+
+[profile.very_opt]
+via_ir = true
+
+# Phase 4: Gas reporting for all contracts
+gas_reports = [
+    "AgenticCommerceV4",
+    "AgentReviewV4",
+    "ServiceRegistryV2",
+    "SlashManager",
+    "AgentSkillRegistry"
+]
+
+# Phase 4: CI profile with stricter settings
+[profile.ci]
+fuzz = { runs = 10_000 }
+invariant = { runs = 512 }
+
+remappings = [
+    "@openzeppelin/contracts/=lib/openzeppelin-contracts/contracts/",
+    "@openzeppelin/contracts-upgradeable/=lib/openzeppelin-contracts-upgradeable/contracts/",
+    "openzeppelin-contracts/=lib/openzeppelin-contracts/contracts/",
+    "openzeppelin/=lib/openzeppelin-contracts/contracts/",
+    "forge-std/=lib/forge-std/src/",
+    "ds-test/=lib/forge-std/lib/ds-test/src/"
+]
+
+auto_detect_remappings = false
+
+etherscan_api_key = "${ETHERSCAN_API_KEY}"
+
+[rpc_endpoints]
+ethereum = "https://eth.llamarpc.com"
+mainnet = "https://eth.llamarpc.com"
+sepolia = "https://ethereum-sepolia.publicnode.com"
+sepolia2 = "https://rpc.sepolia.io"
+
+[etherscan]
+ethereum = { chain = 1, key = "${ETHERSCAN_API_KEY}", api_version = "v2" }
+mainnet = { chain = 1, key = "${ETHERSCAN_API_KEY}", api_version = "v2" }
+sepolia = { chain = 11155111, key = "${ETHERSCAN_API_KEY}", api_version = "v2" }

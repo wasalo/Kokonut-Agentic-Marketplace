@@ -1,0 +1,82 @@
+version: 2
+
+updates:
+  # Root package.json
+  - package-ecosystem: 'npm'
+    directory: '/'
+    schedule:
+      interval: 'weekly'
+      day: 'monday'
+      time: '09:00'
+      timezone: 'UTC'
+    open-pull-requests-limit: 10
+    reviewers:
+      - 'wasalo'
+    assignees:
+      - 'wasalo'
+    labels:
+      - 'dependencies'
+      - 'security'
+    commit-message:
+      prefix: 'deps'
+      prefix-development: 'deps(dev)'
+      include: 'scope'
+    # Allow updates for all dependencies
+    allow:
+      - dependency-type: 'direct'
+      - dependency-type: 'indirect'
+    # Group certain updates together
+    groups:
+      # Group all patch updates
+      patch-updates:
+        patterns:
+          - '*'
+        update-types:
+          - 'patch'
+      # Group minor updates for dev dependencies
+      dev-minor-updates:
+        patterns:
+          - '*'
+        update-types:
+          - 'minor'
+        dependency-type: 'development'
+
+  # Frontend app
+  - package-ecosystem: 'npm'
+    directory: '/apps/web'
+    schedule:
+      interval: 'weekly'
+      day: 'monday'
+      time: '09:00'
+      timezone: 'UTC'
+    open-pull-requests-limit: 10
+    reviewers:
+      - 'wasalo'
+    labels:
+      - 'dependencies'
+      - 'frontend'
+    commit-message:
+      prefix: 'deps(web)'
+      include: 'scope'
+
+  # GitHub Actions
+  - package-ecosystem: 'github-actions'
+    directory: '/'
+    schedule:
+      interval: 'weekly'
+      day: 'monday'
+      time: '09:00'
+      timezone: 'UTC'
+    open-pull-requests-limit: 5
+    reviewers:
+      - 'wasalo'
+    labels:
+      - 'dependencies'
+      - 'ci/cd'
+    commit-message:
+      prefix: 'ci'
+      include: 'scope'
+
+# Configure vulnerability alerts
+vulnerability-alerts:
+  enabled: true

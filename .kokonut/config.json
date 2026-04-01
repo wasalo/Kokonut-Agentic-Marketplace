@@ -1,0 +1,38 @@
+{
+  "version": "1.0.0",
+  "team": {
+    "id": "73e9ec23c0b0438d86a6de6371d2570d",
+    "name": "Kokonut Team",
+    "role": "admin"
+  },
+  "participant": {
+    "id": "1867636363fd414fbd1ed92c94951568",
+    "name": "Wasabi",
+    "wallet": "0x0ea26051F7657d59418da186137141CeA90D0652"
+  },
+  "projects": [
+    {
+      "id": "01-passport",
+      "name": "Passport",
+      "status": "active",
+      "prD": "PRD 1"
+    },
+    {
+      "id": "02-marketplace",
+      "name": "Marketplace",
+      "status": "pending",
+      "prD": "PRD 2"
+    },
+    {
+      "id": "03-review",
+      "name": "Review",
+      "status": "pending",
+      "prD": "PRD 3"
+    }
+  ],
+  "settings": {
+    "network": "ethereum",
+    "autoDeploy": false,
+    "testCoverage": 80
+  }
+}

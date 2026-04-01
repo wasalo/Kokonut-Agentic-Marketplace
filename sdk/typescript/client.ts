@@ -1,0 +1,1018 @@
+/**
+ * Kokonut Agent SDK - Main Client
+ * Type-safe client for interacting with the Kokonut Agent Economy Stack
+ */
+
+import { ethers } from 'ethers';
+import type {
+  SDKConfig,
+  NetworkName,
+  ContractAddresses,
+  AgentRegistrationParams,
+  FeedbackParams,
+  ReputationData,
+  ServiceParams,
+  Service,
+  JobParams,
+  Job,
+  JobStatus,
+  ProposalParams,
+  EvaluationParams,
+  Proposal,
+  Evaluation,
+  AgentMetadata,
+  SDKEventName,
+  SDKEventHandler,
+  SDKEventMap,
+  TransactionResult,
+  Address,
+} from './types';
+import { NETWORKS } from './types';
+
+// ============================================================================
+// Network Configurations (imported from types)
+// ============================================================================
+
+// ============================================================================
+// ABIs (Minimal for SDK operations)
+// ============================================================================
+
+const IDENTITY_REGISTRY_ABI = [
+  'function register(string agentURI) external returns (uint256 agentId)',
+  'function getAgent(uint256 agentId) external view returns (address owner, string memory agentURI, address agentWallet, bool isActive)',
+  'function isAgent(address agentAddress) external view returns (bool)',
+  'function getCurrentAgentId() external view returns (uint256)',
+  'event Registered(uint256 indexed agentId, string agentURI, address indexed owner)',
+] as const;
+
+const LEGACY_REPUTATION_ABI = [
+  'function submitFeedback(address agent, uint256 taskId, int256 rating, string calldata metadataURI) external returns (uint256)',
+  'function getAgentReputation(address agent) external view returns (int256 average, uint256 total, uint256 providers)',
+] as const;
+
+const SERVICE_REGISTRY_ABI = [
+  'function createService(uint256 agentId, string calldata name, string calldata description, string calldata metadataURI, uint256 price, address paymentToken) external returns (uint256 serviceId)',
+  'function updateService(uint256 serviceId, string calldata name, string calldata description, string calldata metadataURI, uint256 price) external',
+  'function deactivateService(uint256 serviceId) external',
+  'function getService(uint256 serviceId) external view returns (tuple(uint256 id, address provider, uint256 agentId, string name, string description, string metadataURI, uint256 price, address paymentToken, bool isActive, uint256 createdAt))',
+  'function getServices(uint256 start, uint256 count) external view returns (uint256[] memory)',
+  'function getActiveServiceCount() external view returns (uint256)',
+  'function getProviderServices(address provider) external view returns (uint256[] memory)',
+  'function getServicesByAgent(uint256 agentId) external view returns (uint256[] memory)',
+  'event ServiceCreated(uint256 indexed serviceId, address indexed provider, uint256 indexed agentId, string name, uint256 price)',
+  'event ServiceUpdated(uint256 indexed serviceId)',
+] as const;
+
+const AGENTIC_COMMERCE_ABI = [
+  'function createJob(address provider, address evaluator, uint256 expiredAt, string calldata description, address hook) external returns (uint256 jobId)',
+  'function createJobFromService(uint256 serviceId, address evaluator, uint256 expiredAt, string calldata description) external returns (uint256 jobId)',
+  'function fundJob(uint256 jobId) external',
+  'function submitJob(uint256 jobId) external',
+  'function completeJob(uint256 jobId) external',
+  'function rejectJob(uint256 jobId, string calldata reason) external',
+  'function claimRefund(uint256 jobId) external',
+  'function getJob(uint256 jobId) external view returns (tuple(uint256 id, address client, address provider, address evaluator, string description, uint256 budget, uint256 expiredAt, uint8 status, address hook, bytes32 deliverable))',
+  'function getCurrentJobId() external view returns (uint256)',
+  'function getClientJobs(address client) external view returns (uint256[] memory)',
+  'event JobCreated(uint256 indexed jobId, address indexed client, address indexed provider)',
+  'event JobFunded(uint256 indexed jobId, uint256 amount)',
+  'event JobSubmitted(uint256 indexed jobId)',
+  'event JobCompleted(uint256 indexed jobId, uint256 payment)',
+] as const;
+
+const AGENT_REVIEW_ABI = [
+  'function createProposal(string calldata title, string calldata description, string calldata criteriaURI, uint256 reward, uint256 decisionDeadline) external payable returns (uint256 proposalId)',
+  'function submitEvaluation(uint256 proposalId, int256 confidenceScore, string calldata reasoningURI) external payable',
+  'function attestDecision(uint256 proposalId, address winningEvaluator) external',
+  'function getProposal(uint256 proposalId) external view returns (tuple(uint256 id, address proposer, string title, string description, string criteriaURI, uint256 reward, uint8 status, uint256 createdAt, uint256 decisionDeadline, address winningEvaluator))',
+  'function getProposalCount() external view returns (uint256)',
+  'function getEvaluation(uint256 proposalId, address evaluator) external view returns (tuple(uint256 proposalId, address evaluator, int256 confidenceScore, string reasoningURI, uint256 stakeAmount, bool isFinal, uint256 submittedAt))',
+  'event ProposalCreated(uint256 indexed proposalId, address indexed proposer, string title, uint256 reward)',
+  'event EvaluationSubmitted(uint256 indexed proposalId, address indexed evaluator, int256 confidenceScore, uint256 stakeAmount)',
+] as const;
+
+const USDC_ABI = [
+  'function approve(address spender, uint256 amount) external returns (bool)',
+  'function balanceOf(address account) external view returns (uint256)',
+  'function allowance(address owner, address spender) external view returns (uint256)',
+] as const;
+
+// ============================================================================
+// KokonutClient
+// ============================================================================
+
+export class KokonutClient {
+  private provider: ethers.JsonRpcProvider;
+  private wallet: ethers.Wallet;
+  private network: NetworkName;
+  private contracts: ContractAddresses;
+  private eventHandlers: Map<SDKEventName, Set<SDKEventHandler>> = new Map();
+
+  // Contract instances
+  public identity: IdentityModule;
+  public reputation: ReputationModule;
+  public services: ServicesModule;
+  public commerce: CommerceModule;
+  public review: ReviewModule;
+  public skills: SkillsModule;
+  public priceOracle: PriceOracleModule;
+  public commitReveal: CommitRevealModule;
+  public slashManager: SlashManagerModule;
+
+  constructor(config: SDKConfig) {
+    // Setup network
+    this.network = config.network || 'sepolia';
+    const networkConfig = NETWORKS[this.network];
+    this.contracts = { ...networkConfig.contracts, ...config.contracts };
+
+    // Setup provider and wallet
+    const rpcUrl = config.rpcUrl || networkConfig.rpcUrl;
+    this.provider = new ethers.JsonRpcProvider(rpcUrl);
+
+    if (typeof config.wallet === 'string') {
+      this.wallet = new ethers.Wallet(config.wallet, this.provider);
+    } else {
+      this.wallet = config.wallet as ethers.Wallet;
+      if (this.wallet.provider === undefined) {
+        this.wallet = this.wallet.connect(this.provider);
+      }
+    }
+
+    // Initialize modules
+    this.identity = new IdentityModule(this.wallet, this.contracts);
+    this.reputation = new ReputationModule(this.wallet, this.contracts);
+    this.services = new ServicesModule(this.wallet, this.contracts);
+    this.commerce = new CommerceModule(this.wallet, this.contracts);
+    this.review = new ReviewModule(this.wallet, this.contracts);
+    this.skills = new SkillsModule(this.wallet, this.contracts);
+    this.priceOracle = new PriceOracleModule(this.provider, this.contracts);
+    this.commitReveal = new CommitRevealModule(this.wallet, this.contracts);
+    this.slashManager = new SlashManagerModule(this.wallet, this.contracts);
+
+    // Setup event listeners
+    this.setupEventListeners();
+  }
+
+  private setupEventListeners() {
+    // Listen to contract events and forward to handlers
+    this.identity.on('AgentRegistered', data => this.emit('AgentRegistered', data));
+    this.services.on('ServiceCreated', data => this.emit('ServiceCreated', data));
+    this.commerce.on('JobCreated', data => this.emit('JobCreated', data));
+    this.commerce.on('JobFunded', data => this.emit('JobFunded', data));
+    this.commerce.on('JobSubmitted', data => this.emit('JobSubmitted', data));
+    this.commerce.on('PaymentReleased', data => this.emit('PaymentReleased', data));
+    this.review.on('ProposalCreated', data => this.emit('ProposalCreated', data));
+    this.review.on('EvaluationSubmitted', data => this.emit('EvaluationSubmitted', data));
+    this.review.on('DecisionAttested', data => this.emit('DecisionAttested', data));
+  }
+
+  // Event emitter methods
+  on(event: SDKEventName, handler: SDKEventHandler): void {
+    if (!this.eventHandlers.has(event)) {
+      this.eventHandlers.set(event, new Set());
+    }
+    this.eventHandlers.get(event)!.add(handler);
+  }
+
+  off(event: SDKEventName, handler: SDKEventHandler): void {
+    this.eventHandlers.get(event)?.delete(handler);
+  }
+
+  private emit(event: SDKEventName, data: unknown): void {
+    this.eventHandlers.get(event)?.forEach(handler => handler(data as SDKEventMap[typeof event]));
+  }
+
+  // Utility methods
+  get address(): Address {
+    return this.wallet.address as Address;
+  }
+
+  get networkName(): NetworkName {
+    return this.network;
+  }
+
+  get explorerUrl(): string {
+    return NETWORKS[this.network].explorerUrl;
+  }
+
+  async getBalance(): Promise<bigint> {
+    return this.provider.getBalance(this.wallet.address);
+  }
+
+  async getUSDCBalance(): Promise<bigint> {
+    const usdc = new ethers.Contract(this.contracts.usdc, USDC_ABI, this.provider);
+    return usdc.balanceOf(this.wallet.address) as Promise<bigint>;
+  }
+}
+
+// ============================================================================
+// Identity Module
+// ============================================================================
+
+class IdentityModule {
+  private wallet: ethers.Wallet;
+  private contracts: ContractAddresses;
+
+  constructor(wallet: ethers.Wallet, contracts: ContractAddresses) {
+    this.wallet = wallet;
+    this.contracts = contracts;
+  }
+
+  private get contract() {
+    return new ethers.Contract(this.contracts.erc8004Registry, IDENTITY_REGISTRY_ABI, this.wallet);
+  }
+
+  async register(params: AgentRegistrationParams): Promise<TransactionResult> {
+    const metadata: AgentMetadata = {
+      name: params.name,
+      description: params.description,
+      capabilities: params.capabilities,
+      endpoints: params.endpoints,
+      social: params.social,
+      createdAt: new Date().toISOString(),
+    };
+
+    const metadataURI = this.encodeMetadata(metadata);
+    const tx = await this.contract.register(metadataURI);
+
+    return {
+      hash: tx.hash,
+      wait: () => tx.wait(),
+    };
+  }
+
+  async getAgent(agentId: number | bigint): Promise<{
+    owner: Address;
+    agentURI: string;
+    agentWallet: Address;
+    isActive: boolean;
+  }> {
+    const agent = await this.contract.getAgent(agentId);
+    return {
+      owner: agent[0] as Address,
+      agentURI: agent[1],
+      agentWallet: agent[2] as Address,
+      isActive: agent[3],
+    };
+  }
+
+  async isAgent(address: Address): Promise<boolean> {
+    return this.contract.isAgent(address);
+  }
+
+  async getAgentCount(): Promise<bigint> {
+    return this.contract.getCurrentAgentId();
+  }
+
+  async isRegistered(): Promise<boolean> {
+    return this.isAgent(this.wallet.address as Address);
+  }
+
+  on<K extends 'AgentRegistered'>(event: K, handler: SDKEventHandler<SDKEventMap[K]>): void {
+    this.contract.on(event, (agentId, _agentURI, owner) => {
+      handler({ agentId, owner: owner as Address });
+    });
+  }
+
+  private encodeMetadata(data: AgentMetadata): string {
+    const json = JSON.stringify(data);
+    const base64 = Buffer.from(json).toString('base64');
+    return `data:application/json;base64,${base64}`;
+  }
+
+  decodeMetadata(uri: string): AgentMetadata | null {
+    try {
+      if (uri.startsWith('data:')) {
+        const parts = uri.split(',');
+        if (parts.length === 2 && parts[0].includes('base64')) {
+          return JSON.parse(Buffer.from(parts[1], 'base64').toString());
+        }
+      }
+      return null;
+    } catch {
+      return null;
+    }
+  }
+}
+
+// ============================================================================
+// Reputation Module
+// ============================================================================
+
+class ReputationModule {
+  private wallet: ethers.Wallet;
+  private contracts: ContractAddresses;
+
+  constructor(wallet: ethers.Wallet, contracts: ContractAddresses) {
+    this.wallet = wallet;
+    this.contracts = contracts;
+  }
+
+  private get contract() {
+    return new ethers.Contract(
+      this.contracts.erc8004Reputation,
+      LEGACY_REPUTATION_ABI,
+      this.wallet
+    );
+  }
+
+  async submitFeedback(params: FeedbackParams): Promise<TransactionResult> {
+    const metadataURI = params.comment || '';
+    const tx = await this.contract.submitFeedback(
+      params.agent,
+      params.taskId || 0,
+      params.rating,
+      metadataURI
+    );
+
+    return {
+      hash: tx.hash,
+      wait: () => tx.wait(),
+    };
+  }
+
+  async getReputation(agent: Address): Promise<ReputationData> {
+    const [avg, total, providers] = await this.contract.getAgentReputation(agent);
+    const avgNum = Number(avg);
+    return {
+      averageRating: avgNum,
+      totalFeedbacks: Number(total),
+      providers: Number(providers),
+      score: avgNum / 10, // Convert to percentage
+    };
+  }
+}
+
+// ============================================================================
+// Services Module
+// ============================================================================
+
+class ServicesModule {
+  private wallet: ethers.Wallet;
+  private contracts: ContractAddresses;
+
+  constructor(wallet: ethers.Wallet, contracts: ContractAddresses) {
+    this.wallet = wallet;
+    this.contracts = contracts;
+  }
+
+  private get contract() {
+    return new ethers.Contract(this.contracts.serviceRegistry, SERVICE_REGISTRY_ABI, this.wallet);
+  }
+
+  async create(params: ServiceParams): Promise<TransactionResult> {
+    const tx = await this.contract.createService(
+      params.agentId,
+      params.name,
+      params.description,
+      params.metadataURI || '',
+      params.price,
+      params.paymentToken || this.contracts.usdc
+    );
+
+    return {
+      hash: tx.hash,
+      wait: () => tx.wait(),
+    };
+  }
+
+  async getService(serviceId: number | bigint): Promise<Service> {
+    const service = await this.contract.getService(serviceId);
+    return {
+      id: service.id,
+      provider: service.provider as Address,
+      agentId: service.agentId,
+      name: service.name,
+      description: service.description,
+      metadataURI: service.metadataURI,
+      price: service.price,
+      paymentToken: service.paymentToken as Address,
+      isActive: service.isActive,
+      createdAt: service.createdAt,
+    };
+  }
+
+  async list(page = 0, pageSize = 20): Promise<Service[]> {
+    const serviceIds = await this.contract.getServices(page * pageSize, pageSize);
+    const services: Service[] = [];
+
+    for (const id of serviceIds) {
+      try {
+        const service = await this.getService(id);
+        services.push(service);
+      } catch {
+        // Skip invalid services
+      }
+    }
+
+    return services;
+  }
+
+  async getActiveCount(): Promise<number> {
+    return Number(await this.contract.getActiveServiceCount());
+  }
+
+  async getProviderServices(provider: Address): Promise<Service[]> {
+    const serviceIds = await this.contract.getProviderServices(provider);
+    const services: Service[] = [];
+
+    for (const id of serviceIds) {
+      try {
+        const service = await this.getService(id);
+        services.push(service);
+      } catch {
+        // Skip invalid services
+      }
+    }
+
+    return services;
+  }
+
+  async getServicesByAgent(agentId: bigint): Promise<Service[]> {
+    const serviceIds = await this.contract.getServicesByAgent(agentId);
+    const services: Service[] = [];
+
+    for (const id of serviceIds) {
+      try {
+        const service = await this.getService(id);
+        services.push(service);
+      } catch {
+        // Skip invalid services
+      }
+    }
+
+    return services;
+  }
+
+  async updateService(
+    serviceId: bigint,
+    name: string,
+    description: string,
+    metadataURI: string,
+    price: bigint
+  ): Promise<TransactionResult> {
+    const tx = await this.contract.updateService(serviceId, name, description, metadataURI, price);
+    return {
+      hash: tx.hash,
+      wait: () => tx.wait(),
+    };
+  }
+
+  async deactivateService(serviceId: bigint): Promise<TransactionResult> {
+    const tx = await this.contract.deactivateService(serviceId);
+    return {
+      hash: tx.hash,
+      wait: () => tx.wait(),
+    };
+  }
+
+  on<K extends 'ServiceCreated'>(event: K, handler: SDKEventHandler<SDKEventMap[K]>): void {
+    this.contract.on(event, (serviceId, provider, agentId) => {
+      handler({ serviceId, provider: provider as Address, agentId });
+    });
+  }
+}
+
+// ============================================================================
+// Commerce Module
+// ============================================================================
+
+class CommerceModule {
+  private wallet: ethers.Wallet;
+  private contracts: ContractAddresses;
+  private usdc: ethers.Contract;
+
+  constructor(wallet: ethers.Wallet, contracts: ContractAddresses) {
+    this.wallet = wallet;
+    this.contracts = contracts;
+    this.usdc = new ethers.Contract(contracts.usdc, USDC_ABI, wallet);
+  }
+
+  private get contract() {
+    return new ethers.Contract(this.contracts.agenticCommerce, AGENTIC_COMMERCE_ABI, this.wallet);
+  }
+
+  async createJob(params: JobParams): Promise<TransactionResult> {
+    const tx = await this.contract.createJob(
+      params.provider,
+      params.evaluator || params.provider,
+      params.expiredAt || Math.floor(Date.now() / 1000) + 7 * 24 * 60 * 60, // 7 days
+      params.description,
+      params.hook || '0x0000000000000000000000000000000000000000'
+    );
+
+    return {
+      hash: tx.hash,
+      wait: () => tx.wait(),
+    };
+  }
+
+  async fundJob(jobId: number | bigint, amount: bigint): Promise<TransactionResult> {
+    // Approve USDC first
+    const allowance = (await this.usdc.allowance(
+      this.wallet.address,
+      this.contracts.agenticCommerce
+    )) as bigint;
+
+    if (allowance < amount) {
+      const approveTx = await this.usdc.approve(this.contracts.agenticCommerce, ethers.MaxUint256);
+      await approveTx.wait();
+    }
+
+    const tx = await this.contract.fundJob(jobId);
+    return {
+      hash: tx.hash,
+      wait: () => tx.wait(),
+    };
+  }
+
+  async submitJob(jobId: number | bigint): Promise<TransactionResult> {
+    const tx = await this.contract.submitJob(jobId);
+    return {
+      hash: tx.hash,
+      wait: () => tx.wait(),
+    };
+  }
+
+  async completeJob(jobId: number | bigint): Promise<TransactionResult> {
+    const tx = await this.contract.completeJob(jobId);
+    return {
+      hash: tx.hash,
+      wait: () => tx.wait(),
+    };
+  }
+
+  async rejectJob(jobId: number | bigint, reason: string): Promise<TransactionResult> {
+    const tx = await this.contract.rejectJob(jobId, reason);
+    return {
+      hash: tx.hash,
+      wait: () => tx.wait(),
+    };
+  }
+
+  async getJob(jobId: number | bigint): Promise<Job> {
+    const job = await this.contract.getJob(jobId);
+    return {
+      id: job.id,
+      client: job.client as Address,
+      provider: job.provider as Address,
+      evaluator: job.evaluator as Address,
+      description: job.description,
+      budget: job.budget,
+      expiredAt: job.expiredAt,
+      status: job.status as JobStatus,
+      hook: job.hook as Address,
+      deliverable: ethers.toBeHex(job.deliverable) as Address,
+    };
+  }
+
+  async getMyJobs(): Promise<Job[]> {
+    const jobIds = await this.contract.getClientJobs(this.wallet.address);
+    const jobs: Job[] = [];
+
+    for (const id of jobIds) {
+      try {
+        const job = await this.getJob(id);
+        jobs.push(job);
+      } catch {
+        // Skip invalid jobs
+      }
+    }
+
+    return jobs;
+  }
+
+  async approveUSDC(spender: Address, amount: bigint): Promise<TransactionResult> {
+    const tx = await this.usdc.approve(spender, amount);
+    return {
+      hash: tx.hash,
+      wait: () => tx.wait(),
+    };
+  }
+
+  async createJobFromService(
+    serviceId: bigint,
+    evaluator: Address,
+    expiredAt: bigint,
+    description: string
+  ): Promise<TransactionResult> {
+    const tx = await this.contract.createJobFromService(
+      serviceId,
+      evaluator,
+      expiredAt,
+      description
+    );
+    return {
+      hash: tx.hash,
+      wait: () => tx.wait(),
+    };
+  }
+
+  async claimRefund(jobId: bigint): Promise<TransactionResult> {
+    const tx = await this.contract.claimRefund(jobId);
+    return {
+      hash: tx.hash,
+      wait: () => tx.wait(),
+    };
+  }
+
+  on<K extends 'JobCreated' | 'JobFunded' | 'JobSubmitted' | 'PaymentReleased'>(
+    event: K,
+    handler: SDKEventHandler<SDKEventMap[K]>
+  ): void {
+    this.contract.on(event, (...args: unknown[]) => {
+      // Map event data based on type
+      if (event === 'JobCreated') {
+        handler({
+          jobId: args[0] as bigint,
+          client: args[1] as Address,
+          provider: args[2] as Address,
+        } as SDKEventMap[K]);
+      } else if (event === 'JobFunded') {
+        handler({ jobId: args[0] as bigint, budget: args[1] as bigint } as SDKEventMap[K]);
+      } else if (event === 'JobSubmitted') {
+        handler({ jobId: args[0] as bigint } as SDKEventMap[K]);
+      } else if (event === 'PaymentReleased') {
+        handler({
+          jobId: args[0] as bigint,
+          amount: args[1] as bigint,
+          recipient: args[2] as Address,
+        } as SDKEventMap[K]);
+      }
+    });
+  }
+}
+
+// ============================================================================
+// Review Module
+// ============================================================================
+
+class ReviewModule {
+  private wallet: ethers.Wallet;
+  private contracts: ContractAddresses;
+
+  constructor(wallet: ethers.Wallet, contracts: ContractAddresses) {
+    this.wallet = wallet;
+    this.contracts = contracts;
+  }
+
+  private get contract() {
+    return new ethers.Contract(this.contracts.agentReview, AGENT_REVIEW_ABI, this.wallet);
+  }
+
+  async createProposal(params: ProposalParams): Promise<TransactionResult> {
+    const tx = await this.contract.createProposal(
+      params.title,
+      params.description,
+      params.criteriaURI || '',
+      params.reward,
+      params.decisionDeadline
+    );
+
+    return {
+      hash: tx.hash,
+      wait: () => tx.wait(),
+    };
+  }
+
+  async submitEvaluation(params: EvaluationParams): Promise<TransactionResult> {
+    const minStake = ethers.parseEther('0.01');
+    const tx = await this.contract.submitEvaluation(
+      params.proposalId,
+      params.confidenceScore,
+      params.reasoningURI || '',
+      { value: minStake }
+    );
+
+    return {
+      hash: tx.hash,
+      wait: () => tx.wait(),
+    };
+  }
+
+  async attestDecision(proposalId: number | bigint, winner: Address): Promise<TransactionResult> {
+    const tx = await this.contract.attestDecision(proposalId, winner);
+    return {
+      hash: tx.hash,
+      wait: () => tx.wait(),
+    };
+  }
+
+  async getProposal(proposalId: number | bigint): Promise<Proposal> {
+    const proposal = await this.contract.getProposal(proposalId);
+    return {
+      id: proposal.id,
+      proposer: proposal.proposer as Address,
+      title: proposal.title,
+      description: proposal.description,
+      criteriaURI: proposal.criteriaURI,
+      reward: proposal.reward,
+      status: proposal.status,
+      createdAt: proposal.createdAt,
+      decisionDeadline: proposal.decisionDeadline,
+      winningEvaluator: proposal.winningEvaluator as Address,
+    };
+  }
+
+  async getEvaluation(proposalId: number | bigint, evaluator: Address): Promise<Evaluation> {
+    const eval_ = await this.contract.getEvaluation(proposalId, evaluator);
+    return {
+      proposalId: eval_.proposalId,
+      evaluator: eval_.evaluator as Address,
+      confidenceScore: eval_.confidenceScore,
+      reasoningURI: eval_.reasoningURI,
+      stakeAmount: eval_.stakeAmount,
+      isFinal: eval_.isFinal,
+      submittedAt: eval_.submittedAt,
+    };
+  }
+
+  async getProposalCount(): Promise<number> {
+    return Number(await this.contract.getProposalCount());
+  }
+
+  on<K extends 'ProposalCreated' | 'EvaluationSubmitted' | 'DecisionAttested'>(
+    event: K,
+    handler: SDKEventHandler<SDKEventMap[K]>
+  ): void {
+    this.contract.on(event, (...args: unknown[]) => {
+      if (event === 'ProposalCreated') {
+        handler({ proposalId: args[0] as bigint, proposer: args[1] as Address } as SDKEventMap[K]);
+      } else if (event === 'EvaluationSubmitted') {
+        handler({
+          proposalId: args[0] as bigint,
+          evaluator: args[1] as Address,
+          score: args[2] as bigint,
+        } as SDKEventMap[K]);
+      } else if (event === 'DecisionAttested') {
+        handler({ proposalId: args[0] as bigint, winner: args[1] as Address } as SDKEventMap[K]);
+      }
+    });
+  }
+}
+
+// ============================================================================
+// AgentSkillRegistry Module
+// ============================================================================
+
+interface Skill {
+  id: bigint;
+  agentId: bigint;
+  name: string;
+  version: string;
+  description: string;
+  endpoint: string;
+  domains: string[];
+  isActive: boolean;
+  registeredBy: Address;
+  registeredAt: bigint;
+}
+
+const AGENT_SKILL_REGISTRY_ABI = [
+  'function registerSkill(uint256 agentId, string calldata name, string calldata version, string calldata description, string calldata endpoint, string[] calldata domains) external returns (uint256 skillId)',
+  'function getAgentSkills(uint256 agentId) external view returns (uint256[] memory)',
+  'function getSkill(uint256 skillId) external view returns (tuple(uint256 agentId, string name, string version, string description, string endpoint, string[] domains, bool isActive, address registeredBy, uint256 registeredAt))',
+  'function deactivateSkill(uint256 skillId) external',
+  'event SkillRegistered(uint256 indexed agentId, uint256 indexed skillId, string name, string version, address indexed registeredBy)',
+  'event SkillDeactivated(uint256 indexed skillId, address indexed deactivatedBy)',
+] as const;
+
+class SkillsModule {
+  private wallet: ethers.Wallet;
+  private contracts: ContractAddresses;
+
+  constructor(wallet: ethers.Wallet, contracts: ContractAddresses) {
+    this.wallet = wallet;
+    this.contracts = contracts;
+  }
+
+  private get contract() {
+    return new ethers.Contract(this.contracts.skillRegistry, AGENT_SKILL_REGISTRY_ABI, this.wallet);
+  }
+
+  async registerSkill(
+    agentId: bigint,
+    name: string,
+    version: string,
+    description: string,
+    endpoint: string,
+    domains: string[]
+  ): Promise<TransactionResult> {
+    const tx = await this.contract.registerSkill(
+      agentId,
+      name,
+      version,
+      description,
+      endpoint,
+      domains
+    );
+    return {
+      hash: tx.hash,
+      wait: () => tx.wait(),
+    };
+  }
+
+  async getAgentSkills(agentId: bigint): Promise<bigint[]> {
+    return this.contract.getAgentSkills(agentId);
+  }
+
+  async getSkill(skillId: bigint): Promise<Skill> {
+    const skill = await this.contract.getSkill(skillId);
+    return {
+      id: skillId,
+      agentId: skill[0],
+      name: skill[1],
+      version: skill[2],
+      description: skill[3],
+      endpoint: skill[4],
+      domains: skill[5],
+      isActive: skill[6],
+      registeredBy: skill[7],
+      registeredAt: skill[8],
+    };
+  }
+
+  async deactivateSkill(skillId: bigint): Promise<TransactionResult> {
+    const tx = await this.contract.deactivateSkill(skillId);
+    return {
+      hash: tx.hash,
+      wait: () => tx.wait(),
+    };
+  }
+}
+
+// ============================================================================
+// PriceOracle Module
+// ============================================================================
+
+const PRICE_ORACLE_ABI = [
+  'function getUSDCPrice() external view returns (uint256)',
+  'function getETHRate() external view returns (uint256)',
+  'function isStale() external view returns (bool)',
+] as const;
+
+class PriceOracleModule {
+  private provider: ethers.JsonRpcProvider;
+  private contracts: ContractAddresses;
+
+  constructor(provider: ethers.JsonRpcProvider, contracts: ContractAddresses) {
+    this.provider = provider;
+    this.contracts = contracts;
+  }
+
+  private get contract() {
+    return new ethers.Contract(this.contracts.priceOracle, PRICE_ORACLE_ABI, this.provider);
+  }
+
+  async getUSDCPrice(): Promise<bigint> {
+    return this.contract.getUSDCPrice();
+  }
+
+  async getETHRate(): Promise<bigint> {
+    return this.contract.getETHRate();
+  }
+
+  async isStale(): Promise<boolean> {
+    return this.contract.isStale();
+  }
+}
+
+// ============================================================================
+// CommitReveal Module
+// ============================================================================
+
+const COMMIT_REVEAL_ABI = [
+  'function commit(bytes32 commitment) external',
+  'function reveal(string calldata data, uint256 nonce, uint256 serviceId) external',
+  'function getCommitment(address user, uint256 nonce) external view returns (bytes32)',
+] as const;
+
+class CommitRevealModule {
+  private wallet: ethers.Wallet;
+  private contracts: ContractAddresses;
+
+  constructor(wallet: ethers.Wallet, contracts: ContractAddresses) {
+    this.wallet = wallet;
+    this.contracts = contracts;
+  }
+
+  private get contract() {
+    return new ethers.Contract(this.contracts.commitReveal, COMMIT_REVEAL_ABI, this.wallet);
+  }
+
+  async commit(commitment: string): Promise<TransactionResult> {
+    const tx = await this.contract.commit(commitment);
+    return {
+      hash: tx.hash,
+      wait: () => tx.wait(),
+    };
+  }
+
+  async reveal(data: string, nonce: bigint, serviceId: bigint): Promise<TransactionResult> {
+    const tx = await this.contract.reveal(data, nonce, serviceId);
+    return {
+      hash: tx.hash,
+      wait: () => tx.wait(),
+    };
+  }
+
+  async getCommitment(user: Address, nonce: bigint): Promise<string> {
+    return this.contract.getCommitment(user, nonce);
+  }
+}
+
+// ============================================================================
+// SlashManager Module
+// ============================================================================
+
+interface SlashProposal {
+  evaluator: Address;
+  amount: bigint;
+  reason: string;
+  confirmations: number;
+  execAfter: bigint;
+  isExecuted: boolean;
+}
+
+const SLASH_MANAGER_ABI = [
+  'function createProposal(address evaluator, uint256 proposalId, uint256 amount, string calldata reason) external returns (bytes32)',
+  'function confirmProposal(bytes32 proposalId) external',
+  'function executeProposal(bytes32 proposalId) external',
+  'function cancelProposal(bytes32 proposalId) external',
+  'function getProposal(bytes32 proposalId) external view returns (address evaluator, uint256 amount, string reason, uint256 confirmations, uint256 execAfter, bool isExecuted)',
+  'function isSigner(address account) external view returns (bool)',
+] as const;
+
+class SlashManagerModule {
+  private wallet: ethers.Wallet;
+  private contracts: ContractAddresses;
+
+  constructor(wallet: ethers.Wallet, contracts: ContractAddresses) {
+    this.wallet = wallet;
+    this.contracts = contracts;
+  }
+
+  private get contract() {
+    return new ethers.Contract(this.contracts.slashManager, SLASH_MANAGER_ABI, this.wallet);
+  }
+
+  async createProposal(
+    evaluator: Address,
+    proposalId: bigint,
+    amount: bigint,
+    reason: string
+  ): Promise<TransactionResult> {
+    const tx = await this.contract.createProposal(evaluator, proposalId, amount, reason);
+    return {
+      hash: tx.hash,
+      wait: () => tx.wait(),
+    };
+  }
+
+  async confirmProposal(proposalId: string): Promise<TransactionResult> {
+    const tx = await this.contract.confirmProposal(proposalId);
+    return {
+      hash: tx.hash,
+      wait: () => tx.wait(),
+    };
+  }
+
+  async executeProposal(proposalId: string): Promise<TransactionResult> {
+    const tx = await this.contract.executeProposal(proposalId);
+    return {
+      hash: tx.hash,
+      wait: () => tx.wait(),
+    };
+  }
+
+  async cancelProposal(proposalId: string): Promise<TransactionResult> {
+    const tx = await this.contract.cancelProposal(proposalId);
+    return {
+      hash: tx.hash,
+      wait: () => tx.wait(),
+    };
+  }
+
+  async getProposal(proposalId: string): Promise<SlashProposal> {
+    const proposal = await this.contract.getProposal(proposalId);
+    return {
+      evaluator: proposal[0],
+      amount: proposal[1],
+      reason: proposal[2],
+      confirmations: Number(proposal[3]),
+      execAfter: proposal[4],
+      isExecuted: proposal[5],
+    };
+  }
+
+  async isSigner(account: Address): Promise<boolean> {
+    return this.contract.isSigner(account);
+  }
+}
+
+// ============================================================================
+// Exports
+// ============================================================================
+
+export { NETWORKS } from './types';
+export * from './types';

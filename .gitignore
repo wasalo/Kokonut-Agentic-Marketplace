@@ -1,0 +1,64 @@
+# TypeScript
+dist/
+*.tsbuildinfo
+
+# Node
+node_modules/
+.npm/
+.yarn/
+.pnp.*
+
+# Environment
+.env
+.env.local
+.env.production
+.env.development.*
+
+# Logs
+logs/
+*.log
+npm-debug.log*
+yarn-debug.log*
+yarn-error.log*
+lerna-debug.log*
+
+# Testing
+coverage/
+.nyc_output/
+
+# IDE
+.vscode/
+.idea/
+*.swp
+*.swo
+*~
+
+# OS
+.DS_Store
+Thumbs.db
+
+# Build
+build/
+dist/
+out/
+
+# Foundry
+cache/
+out/
+broadcast/
+
+# Next.js
+.next/
+
+# Misc
+*.tgz
+*.tar.gz
+*.zip
+*.jar
+
+# Cache
+.eslintcache
+.stylelintcache
+*.pid
+server.pid
+cache/*.json

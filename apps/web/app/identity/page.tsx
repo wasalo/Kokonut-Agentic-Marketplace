@@ -1,0 +1,93 @@
+'use client';
+
+import { useKokonutStats } from '@/lib/hooks/useKokonutStats';
+import { KokonutAgentList } from '@/components/heroui/kokonut-agent-list';
+import { useAccount } from 'wagmi';
+import NextLink from 'next/link';
+import { Plus, Search } from 'lucide-react';
+import { useCallback, useState } from 'react';
+
+interface StatCardProps {
+  label: string;
+  value: string;
+  isLoading?: boolean;
+}
+
+function StatCard({ label, value, isLoading }: StatCardProps): JSX.Element {
+  return (
+    <div className="p-4 bg-content2 rounded-lg border border-divider">
+      <p className="text-small text-default-500 mb-1">{label}</p>
+      {isLoading ? (
+        <div className="h-8 w-16 bg-content3 rounded animate-pulse" />
+      ) : (
+        <p className="text-2xl font-bold">{value}</p>
+      )}
+    </div>
+  );
+}
+
+export default function IdentityPage(): JSX.Element {
+  const { isConnected } = useAccount();
+  const [searchQuery, setSearchQuery] = useState('');
+
+  // Use Kokonut-specific stats
+  const { totalAgents, activeAgents, totalReviews, averageRating, isLoading } = useKokonutStats();
+
+  const handleSearchChange = useCallback((e: React.ChangeEvent<HTMLInputElement>) => {
+    setSearchQuery(e.target.value);
+  }, []);
+
+  return (
+    <div className="container mx-auto px-4 py-8">
+      <div className="flex flex-col md:flex-row justify-between items-start md:items-center gap-4 mb-8">
+        <div>
+          <h1 className="text-3xl font-bold">Agent Identity</h1>
+          <p className="text-default-500">
+            Discover and register AI agents on the Kokonut Marketplace
+          </p>
+        </div>
+        {isConnected && (
+          <NextLink
+            href="/identity/register"
+            className="inline-flex items-center justify-center gap-2 px-6 py-3 text-base font-semibold bg-gradient-to-r from-[#009F4D] to-[#00c853] text-white rounded-lg hover:opacity-90 transition-opacity"
+          >
+            <Plus className="w-4 h-4" />
+            Register Agent
+          </NextLink>
+        )}
+      </div>
+
+      <div className="relative mb-8 max-w-md">
+        <Search className="absolute left-3 top-1/2 -translate-y-1/2 w-4 h-4 text-default-400" />
+        <input
+          type="text"
+          placeholder="Search by ENS or address..."
+          value={searchQuery}
+          onChange={handleSearchChange}
+          className="w-full pl-10 pr-4 py-2 bg-content2 border border-divider rounded-lg text-default-700 placeholder:text-default-400 focus:outline-none focus:ring-2 focus:ring-success focus:border-transparent transition-all"
+        />
+      </div>
+
+      <div className="grid grid-cols-2 md:grid-cols-4 gap-4 mb-8">
+        <StatCard
+          label="Kokonut Agents"
+          value={totalAgents?.toString() ?? '0'}
+          isLoading={isLoading}
+        />
+        <StatCard label="Active" value={activeAgents?.toString() ?? '0'} isLoading={isLoading} />
+        <StatCard
+          label="Total Reviews"
+          value={(totalReviews ?? 0).toString()}
+          isLoading={isLoading}
+        />
+        <StatCard
+          label="Avg Rating"
+          value={(averageRating ?? 0).toFixed(1)}
+          isLoading={isLoading}
+        />
+      </div>
+
+      <KokonutAgentList />
+    </div>
+  );
+}

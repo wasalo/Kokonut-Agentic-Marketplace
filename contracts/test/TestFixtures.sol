@@ -1,0 +1,265 @@
+// SPDX-License-Identifier: MIT
+pragma solidity ^0.8.20;
+
+import "forge-std/Test.sol";
+import {AgenticCommerceV4} from "../shared/AgenticCommerceV4.sol";
+import {AgentReviewV4} from "../shared/AgentReviewV4.sol";
+import {ServiceRegistryV2} from "../shared/ServiceRegistryV2.sol";
+import {ERC1967Proxy} from "@openzeppelin/contracts/proxy/ERC1967/ERC1967Proxy.sol";
+
+/**
+ * @title TestFixtures
+ * @dev Standard test fixtures for Kokonut contracts
+ * Provides consistent setup for all test suites
+ */
+contract TestFixtures is Test {
+    // Contract instances
+    AgenticCommerceV4 public agenticCommerce;
+    AgentReviewV4 public agentReview;
+    ServiceRegistryV2 public serviceRegistry;
+    ServiceRegistryV2 public serviceRegistryImpl;
+    
+    // Mock USDC
+    MockERC20 public usdc;
+    
+    // Test accounts
+    address public owner;
+    address public treasury;
+    address public client;
+    address public provider;
+    address public evaluator;
+    address public proposer;
+    address public evaluator1;
+    address public evaluator2;
+    address public evaluator3;
+    address public evaluator4;
+    address public evaluator5;
+    address public evaluator6;
+    
+    // Test constants
+    uint256 constant INITIAL_ETH = 100 ether;
+    uint256 constant INITIAL_USDC = 1_000_000_000; // 1000 USDC (6 decimals)
+    uint256 constant MIN_STAKE = 0.001 ether;
+    
+    function setUp() public virtual {
+        // Create test accounts
+        owner = makeAddr("owner");
+        treasury = makeAddr("treasury");
+        client = makeAddr("client");
+        provider = makeAddr("provider");
+        evaluator = makeAddr("evaluator");
+        proposer = makeAddr("proposer");
+        evaluator1 = makeAddr("evaluator1");
+        evaluator2 = makeAddr("evaluator2");
+        evaluator3 = makeAddr("evaluator3");
+        evaluator4 = makeAddr("evaluator4");
+        evaluator5 = makeAddr("evaluator5");
+        evaluator6 = makeAddr("evaluator6");
+        
+        // Fund accounts
+        vm.deal(owner, INITIAL_ETH);
+        vm.deal(treasury, INITIAL_ETH);
+        vm.deal(client, INITIAL_ETH);
+        vm.deal(provider, INITIAL_ETH);
+        vm.deal(evaluator, INITIAL_ETH);
+        vm.deal(proposer, INITIAL_ETH);
+        vm.deal(evaluator1, INITIAL_ETH);
+        vm.deal(evaluator2, INITIAL_ETH);
+        vm.deal(evaluator3, INITIAL_ETH);
+        vm.deal(evaluator4, INITIAL_ETH);
+        vm.deal(evaluator5, INITIAL_ETH);
+        vm.deal(evaluator6, INITIAL_ETH);
+        
+        // Deploy contracts as owner
+        vm.startPrank(owner);
+        
+        // Deploy Mock USDC
+        usdc = new MockERC20("USD Coin", "USDC", 6);
+        
+        // Deploy AgenticCommerceV4
+        agenticCommerce = new AgenticCommerceV4(treasury);
+        
+        // Deploy AgentReviewV4
+        agentReview = new AgentReviewV4();
+        
+        // Deploy ServiceRegistryV2 with proxy
+        serviceRegistryImpl = new ServiceRegistryV2();
+        ERC1967Proxy proxy = new ERC1967Proxy(
+            address(serviceRegistryImpl),
+            abi.encodeWithSelector(ServiceRegistryV2.initialize.selector, owner)
+        );
+        serviceRegistry = ServiceRegistryV2(address(proxy));
+        
+        // Configure ServiceRegistry to use AgenticCommerce
+        serviceRegistry.setAgenticCommerce(address(agenticCommerce));
+        
+        // Configure AgenticCommerce to use ServiceRegistry
+        agenticCommerce.setServiceRegistry(address(serviceRegistry));
+        
+        vm.stopPrank();
+        
+        // Fund client with USDC
+        usdc.mint(client, INITIAL_USDC);
+    }
+    
+    // Helper: Create a service
+    function createTestService(
+        address serviceProvider,
+        string memory name,
+        uint256 price
+    ) internal returns (uint256 serviceId) {
+        vm.prank(serviceProvider);
+        serviceId = serviceRegistry.createService(
+            1, // agentId
+            name,
+            "Test service description",
+            "",
+            price,
+            address(usdc)
+        );
+    }
+    
+    // Helper: Create a job
+    function createTestJob(
+        address jobClient,
+        address jobProvider,
+        address jobEvaluator
+    ) internal returns (uint256 jobId) {
+        vm.prank(jobClient);
+        jobId = agenticCommerce.createJob(
+            jobProvider,
+            jobEvaluator,
+            block.timestamp + 7 days,
+            "Test job description",
+            address(0)
+        );
+    }
+    
+    // Helper: Fund a job
+    function fundTestJob(
+        address jobClient,
+        uint256 jobId,
+        uint256 amount
+    ) internal {
+        vm.startPrank(jobClient);
+        usdc.approve(address(agenticCommerce), amount);
+        agenticCommerce.setBudget(jobId, amount);
+        agenticCommerce.setPaymentToken(jobId, address(usdc));
+        agenticCommerce.fund(jobId);
+        vm.stopPrank();
+    }
+    
+    // Helper: Create a proposal
+    function createTestProposal(
+        address proposalProposer,
+        uint256 reward,
+        uint256 deadlineOffset
+    ) internal returns (uint256 proposalId) {
+        vm.prank(proposalProposer);
+        proposalId = agentReview.createProposal{value: reward}(
+            "Test Proposal",
+            "Test description",
+            "criteria",
+            reward,
+            block.timestamp + deadlineOffset
+        );
+    }
+    
+    // Helper: Submit evaluation
+    function submitTestEvaluation(
+        address evalAddr,
+        uint256 proposalId,
+        int256 score
+    ) internal {
+        vm.prank(evalAddr);
+        agentReview.submitEvaluation{value: MIN_STAKE}(
+            proposalId,
+            score,
+            "reasoning"
+        );
+    }
+}
+
+/**
+ * @title MockERC20
+ * @dev Simple ERC20 mock for testing
+ */
+contract MockERC20 {
+    string public name;
+    string public symbol;
+    uint8 public decimals;
+    uint256 public totalSupply;
+    
+    mapping(address => uint256) public balanceOf;
+    mapping(address => mapping(address => uint256)) public allowance;
+    
+    event Transfer(address indexed from, address indexed to, uint256 value);
+    event Approval(address indexed owner, address indexed spender, uint256 value);
+    
+    constructor(string memory _name, string memory _symbol, uint8 _decimals) {
+        name = _name;
+        symbol = _symbol;
+        decimals = _decimals;
+    }
+    
+    function mint(address to, uint256 amount) external {
+        balanceOf[to] += amount;
+        totalSupply += amount;
+        emit Transfer(address(0), to, amount);
+    }
+    
+    function transfer(address to, uint256 amount) external returns (bool) {
+        require(balanceOf[msg.sender] >= amount, "Insufficient balance");
+        balanceOf[msg.sender] -= amount;
+        balanceOf[to] += amount;
+        emit Transfer(msg.sender, to, amount);
+        return true;
+    }
+    
+    function approve(address spender, uint256 amount) external returns (bool) {
+        allowance[msg.sender][spender] = amount;
+        emit Approval(msg.sender, spender, amount);
+        return true;
+    }
+    
+    function transferFrom(address from, address to, uint256 amount) external returns (bool) {
+        require(balanceOf[from] >= amount, "Insufficient balance");
+        require(allowance[from][msg.sender] >= amount, "Insufficient allowance");
+        balanceOf[from] -= amount;
+        balanceOf[to] += amount;
+        allowance[from][msg.sender] -= amount;
+        emit Transfer(from, to, amount);
+        return true;
+    }
+}
+
+/**
+ * @title MockERC721
+ * @dev Simple ERC721 mock for testing
+ */
+contract MockERC721 {
+    string public name;
+    string public symbol;
+
+    mapping(uint256 => address) private _owners;
+    mapping(address => uint256) private _balances;
+
+    constructor(string memory _name, string memory _symbol) {
+        name = _name;
+        symbol = _symbol;
+    }
+
+    function mint(address to, uint256 tokenId) external {
+        require(_owners[tokenId] == address(0), "Token already minted");
+        _owners[tokenId] = to;
+        _balances[to]++;
+    }
+
+    function ownerOf(uint256 tokenId) external view returns (address) {
+        return _owners[tokenId];
+    }
+
+    function balanceOf(address owner) external view returns (uint256) {
+        return _balances[owner];
+    }
+}

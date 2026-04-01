@@ -1,0 +1,215 @@
+name: Test Suite
+
+on:
+  push:
+    branches: [main, develop]
+  pull_request:
+    branches: [main, develop]
+
+env:
+  FOUNDRY_PROFILE: ci
+
+jobs:
+  # Smart Contract Tests
+  contract-tests:
+    name: Smart Contract Tests
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+        with:
+          submodules: recursive
+
+      - name: Install Foundry
+        uses: foundry-rs/foundry-toolchain@v1
+        with:
+          version: nightly
+
+      - name: Run Forge build
+        run: |
+          forge --version
+          forge build --sizes
+        id: build
+
+      - name: Run Forge tests
+        run: |
+          forge test -vvv
+        id: test
+
+      - name: Run coverage
+        run: |
+          forge coverage --report summary --report lcov
+        id: coverage
+
+      - name: Upload coverage to Codecov
+        uses: codecov/codecov-action@v3
+        with:
+          files: ./lcov.info
+          flags: contracts
+          name: contract-coverage
+
+      - name: Check coverage threshold
+        run: |
+          COVERAGE=$(forge coverage --report summary | grep "Total" | awk '{print $4}' | sed 's/%//')
+          echo "Total coverage: $COVERAGE%"
+          if (( $(echo "$COVERAGE < 80" | bc -l) )); then
+            echo "Error: Coverage $COVERAGE% is below threshold of 80%"
+            exit 1
+          fi
+        shell: bash
+
+  # Gas Benchmarking
+  gas-benchmark:
+    name: Gas Benchmarking
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+        with:
+          submodules: recursive
+
+      - name: Install Foundry
+        uses: foundry-rs/foundry-toolchain@v1
+        with:
+          version: nightly
+
+      - name: Run gas benchmarks
+        run: |
+          forge test --match-contract GasBenchmark -vvv
+
+      - name: Check gas snapshots
+        run: |
+          forge snapshot --check || echo "Gas snapshots changed - run 'forge snapshot' locally to update"
+        continue-on-error: true
+
+  # Fuzzing Tests
+  fuzz-tests:
+    name: Fuzzing Tests
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+        with:
+          submodules: recursive
+
+      - name: Install Foundry
+        uses: foundry-rs/foundry-toolchain@v1
+        with:
+          version: nightly
+
+      - name: Run fuzz tests
+        run: |
+          forge test --match-contract Fuzz -vvv --fuzz-runs 10000
+
+  # Invariant Tests
+  invariant-tests:
+    name: Invariant Tests
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+        with:
+          submodules: recursive
+
+      - name: Install Foundry
+        uses: foundry-rs/foundry-toolchain@v1
+        with:
+          version: nightly
+
+      - name: Run invariant tests
+        run: |
+          forge test --match-contract Invariant -vvv
+
+  # TypeScript SDK Tests
+  sdk-tests:
+    name: TypeScript SDK Tests
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+
+      - name: Setup Node.js
+        uses: actions/setup-node@v4
+        with:
+          node-version: '20'
+          cache: 'npm'
+
+      - name: Install dependencies
+        run: |
+          cd sdk/typescript
+          npm ci
+
+      - name: Run tests
+        run: |
+          cd sdk/typescript
+          npm test -- --coverage
+
+      - name: Check coverage threshold
+        run: |
+          cd sdk/typescript
+          npm run test:coverage:check || true
+
+  # E2E Tests
+  e2e-tests:
+    name: E2E Tests
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+
+      - name: Setup Node.js
+        uses: actions/setup-node@v4
+        with:
+          node-version: '20'
+          cache: 'npm'
+
+      - name: Install dependencies
+        run: |
+          cd apps/web
+          npm ci
+
+      - name: Install Playwright
+        run: |
+          cd apps/web
+          npx playwright install chromium
+
+      - name: Build application
+        run: |
+          cd apps/web
+          npm run build
+
+      - name: Run E2E tests
+        run: |
+          cd apps/web
+          npm run test:e2e:ci
+        env:
+          CI: true
+
+      - name: Upload E2E artifacts
+        uses: actions/upload-artifact@v3
+        if: failure()
+        with:
+          name: e2e-artifacts
+          path: |
+            apps/web/test-results/
+            apps/web/playwright-report/
+
+  # Linting
+  lint:
+    name: Lint
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+
+      - name: Setup Node.js
+        uses: actions/setup-node@v4
+        with:
+          node-version: '20'
+          cache: 'npm'
+
+      - name: Install dependencies
+        run: npm ci
+
+      - name: Run ESLint
+        run: npm run lint
+
+      - name: Run TypeScript check
+        run: npm run typecheck
+
+      - name: Run Foundry fmt
+        run: |
+          forge fmt --check
