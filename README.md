@@ -13,7 +13,7 @@
 
 **New Features:**
 
-- ✅ **Network Access** - Works on both localhost and network IPs
+- ✅ **Network Access** - Works on localhost by default; LAN hosts are opt-in via env config
 - ✅ **Health Check** - Service status at `/api/health`
 - ✅ **Next.js 16** - Turbopack for 2-5x faster builds
 - ✅ **React 19.2.4** - Critical security patches applied
@@ -125,6 +125,11 @@ NEXT_PUBLIC_SLASH_MANAGER_ADDRESS=0x7Cf955900FD7a12680E90D834eAf19346f5DBcf9
 
 # RPC URLs
 NEXT_PUBLIC_SEPOLIA_RPC_URL=https://ethereum-sepolia.publicnode.com
+
+# Optional (development only): comma-separated LAN/dev hosts for CSP connect-src
+# Examples:
+# NEXT_PUBLIC_DEV_HOST=10.108.1.215:3000
+# NEXT_PUBLIC_DEV_HOST=10.108.1.215:3000,192.168.1.25:3000
 ```
 
 **Note:** The frontend uses Tailwind CSS v4 with CSS-based configuration. All theme settings are in `apps/web/app/globals.css`.
@@ -142,7 +147,7 @@ cd apps/web && npm run dev
 Frontend available at:
 
 - **Local:** http://localhost:3000
-- **Network:** http://<your-ip>:3000 (e.g., http://10.108.1.215:3000)
+- **Network/LAN:** http://<your-ip>:3000 (requires `NEXT_PUBLIC_DEV_HOST=<your-ip>:3000`)
 
 **Health Check:** http://localhost:3000/api/health
 

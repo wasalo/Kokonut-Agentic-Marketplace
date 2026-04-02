@@ -25,11 +25,46 @@ const nextConfig = {
   async headers() {
     const isProd = process.env.NODE_ENV === 'production';
     const isDev = !isProd;
+    const devHostEnv = process.env.NEXT_PUBLIC_DEV_HOST || '';
 
-    // Development CSP: Allow HTTP, include network IPs, report-only mode
+    const parseDevHosts = hosts =>
+      hosts
+        .split(',')
+        .map(host => host.trim())
+        .filter(Boolean)
+        .map(host => host.replace(/^https?:\/\//, '').replace(/^wss?:\/\//, '').replace(/\/$/, ''))
+        .filter(Boolean);
+
+    const devHosts = parseDevHosts(devHostEnv);
+    const devHttpSources = [
+      'http://localhost:*',
+      'http://127.0.0.1:*',
+      'http://0.0.0.0:*',
+      ...devHosts.map(host => `http://${host}`),
+    ];
+    const devWsSources = [
+      'ws://localhost:*',
+      'ws://127.0.0.1:*',
+      'ws://0.0.0.0:*',
+      ...devHosts.map(host => `ws://${host}`),
+    ];
+
+    // Development CSP: Allow HTTP, include localhost + explicitly configured LAN/dev hosts, report-only mode
     // Production CSP: Enforce HTTPS, upgrade-insecure-requests, enforce mode
+    // Note: localhost is always allowed in dev for local tooling; LAN hosts must be opt-in via NEXT_PUBLIC_DEV_HOST.
     const connectSrc = isDev
-      ? "'self' http://localhost:* http://10.108.1.215:* http://127.0.0.1:* http://0.0.0.0:* https://ethereum-sepolia-rpc.publicnode.com https://ethereum-sepolia.publicnode.com https://ethereum.publicnode.com https://eth.llamarpc.com https://8004scan.io wss://*.walletconnect.com https://*.rpc.walletconnect.com ws://localhost:* ws://10.108.1.215:* ws://127.0.0.1:* ws://0.0.0.0:*"
+      ? [
+          "'self'",
+          ...devHttpSources,
+          'https://ethereum-sepolia-rpc.publicnode.com',
+          'https://ethereum-sepolia.publicnode.com',
+          'https://ethereum.publicnode.com',
+          'https://eth.llamarpc.com',
+          'https://8004scan.io',
+          'wss://*.walletconnect.com',
+          'https://*.rpc.walletconnect.com',
+          ...devWsSources,
+        ].join(' ')
       : "'self' https://ethereum-sepolia-rpc.publicnode.com https://ethereum-sepolia.publicnode.com https://ethereum.publicnode.com https://eth.llamarpc.com https://8004scan.io wss://*.walletconnect.com https://*.rpc.walletconnect.com";
 
     const cspDirectives = [
