@@ -20,7 +20,10 @@ import { formatUnits } from 'viem';
 import { useUpdateService, useDeactivateService } from '@/lib/hooks/useServices';
 import { useServiceContract } from '@/lib/hooks/useServicesContract';
 import { useAgentReputation } from '@/lib/hooks/useReputation';
+import { useTokenPriceConversion } from '@/lib/hooks/useTokenConversion';
 import { showToast, getTransactionError } from '@/lib/toast';
+
+const ZERO_ADDRESS = '0x0000000000000000000000000000000000000000';
 
 export default function ServiceDetailPage({
   params,
@@ -33,6 +36,12 @@ export default function ServiceDetailPage({
 
   const { service, isLoading, refetch } = useServiceContract(serviceId);
   const { reputation } = useAgentReputation(service?.agentId);
+  const { ethToUsdcRate } = useTokenPriceConversion();
+
+  const isEth =
+    service?.paymentToken && service.paymentToken.toLowerCase() === ZERO_ADDRESS.toLowerCase();
+  const tokenDecimals = isEth ? 18 : 6;
+  const tokenSymbol = isEth ? 'ETH' : 'USDC';
 
   // Edit mode state
   const [isEditing, setIsEditing] = useState(false);
@@ -110,8 +119,21 @@ export default function ServiceDetailPage({
                   </p>
                 </div>
                 <div className="text-right">
-                  <p className="text-2xl font-bold text-success">${formattedPrice}</p>
-                  <p className="text-xs text-default-400">USDC</p>
+                  <p className="text-2xl font-bold text-success">
+                    {tokenSymbol === 'USDC' && `$${formattedPrice}`}
+                    {tokenSymbol === 'ETH' && `${formattedPrice} ETH`}
+                  </p>
+                  <p className="text-xs text-default-400">{tokenSymbol}</p>
+                  {isEth && ethToUsdcRate && (
+                    <p className="text-xs text-default-400">
+                      ~$
+                      {(parseFloat(formattedPrice) * ethToUsdcRate).toLocaleString('en-US', {
+                        minimumFractionDigits: 2,
+                        maximumFractionDigits: 2,
+                      })}{' '}
+                      USD
+                    </p>
+                  )}
                 </div>
               </div>
 

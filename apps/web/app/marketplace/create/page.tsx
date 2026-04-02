@@ -3,7 +3,15 @@
 import { useState, useCallback, useEffect } from 'react';
 import { useAccount, useWriteContract, useWaitForTransactionReceipt } from 'wagmi';
 import { useRouter } from 'next/navigation';
-import { ArrowLeft, Loader2, ShieldCheck, AlertCircle, CheckCircle2, Tag } from 'lucide-react';
+import {
+  ArrowLeft,
+  Loader2,
+  ShieldCheck,
+  AlertCircle,
+  CheckCircle2,
+  Tag,
+  Coins,
+} from 'lucide-react';
 import NextLink from 'next/link';
 import { Card, Button } from '@heroui/react';
 import { parseUnits } from 'viem';
@@ -19,17 +27,28 @@ import {
 } from '@/lib/hooks/useValidation';
 import { useFormSubmit, formatTimeRemaining } from '@/lib/hooks/useDebounce';
 import { getTransactionError } from '@/lib/toast';
+import {
+  useTokenPriceConversion,
+  USDC_TOKEN,
+  ETH_TOKEN,
+  SUPPORTED_PAYMENT_TOKENS,
+  Token,
+} from '@/lib/hooks/useTokenConversion';
 
 const USDC_DECIMALS = 6;
 const MAX_SERVICE_NAME_LENGTH = 100;
 const MAX_DESCRIPTION_LENGTH = 500;
 const MAX_METADATA_URI_LENGTH = 2000;
+const MIN_PRICE_USD = 0.01;
+
+const ZERO_ADDRESS = '0x0000000000000000000000000000000000000000' as const;
 
 interface FormData {
   name: string;
   description: string;
   metadataURI: string;
   price: string;
+  paymentToken: Token;
 }
 
 const initialFormData: FormData = {
@@ -37,6 +56,7 @@ const initialFormData: FormData = {
   description: '',
   metadataURI: '',
   price: '',
+  paymentToken: USDC_TOKEN,
 };
 
 interface FormErrors {
@@ -54,6 +74,87 @@ const initialFormErrors: FormErrors = {
 };
 
 type Step = 'checking' | 'no-agents' | 'untagged' | 'ready' | 'creating' | 'done';
+
+function PaymentTokenSelector({
+  selectedToken,
+  onSelect,
+  disabled,
+}: {
+  selectedToken: Token;
+  onSelect: (token: Token) => void;
+  disabled?: boolean;
+}) {
+  const { ethToUsdcRate, isLoading: isRateLoading } = useTokenPriceConversion();
+
+  return (
+    <div className="space-y-2">
+      <label className="text-sm font-medium">Payment Token</label>
+      <div className="grid grid-cols-2 gap-3">
+        {SUPPORTED_PAYMENT_TOKENS.map(token => (
+          <button
+            key={token.symbol}
+            type="button"
+            onClick={() => onSelect(token)}
+            disabled={disabled}
+            className={`p-4 rounded-lg border-2 transition-all ${
+              selectedToken.symbol === token.symbol
+                ? 'border-success bg-success/5'
+                : 'border-divider hover:border-default-300'
+            } ${disabled ? 'opacity-50 cursor-not-allowed' : 'cursor-pointer'}`}
+          >
+            <div className="flex items-center gap-3">
+              <div
+                className={`w-10 h-10 rounded-full flex items-center justify-center ${
+                  token.symbol === 'USDC' ? 'bg-[#2775CA]' : 'bg-[#627EEA]'
+                }`}
+              >
+                <Coins className="w-5 h-5 text-white" />
+              </div>
+              <div className="text-left">
+                <p className="font-medium">{token.symbol}</p>
+                <p className="text-xs text-default-500">{token.name}</p>
+              </div>
+            </div>
+            {isRateLoading && token.symbol === 'ETH' && (
+              <p className="text-xs text-default-400 mt-2">Loading rate...</p>
+            )}
+            {ethToUsdcRate && token.symbol === 'ETH' && (
+              <p className="text-xs text-default-400 mt-2">
+                1 ETH ≈ ${ethToUsdcRate.toLocaleString('en-US', { maximumFractionDigits: 2 })}
+              </p>
+            )}
+          </button>
+        ))}
+      </div>
+    </div>
+  );
+}
+
+function PriceConversionDisplay({ price }: { price: string }) {
+  const { ethToUsdcRate, isLoading } = useTokenPriceConversion();
+
+  if (!price || parseFloat(price) <= 0) {
+    return <p className="text-xs text-default-400 mt-1">Enter ETH amount to see USD value</p>;
+  }
+
+  if (isLoading) {
+    return <p className="text-xs text-default-400 mt-1">Loading USD value...</p>;
+  }
+
+  if (!ethToUsdcRate) {
+    return <p className="text-xs text-warning mt-1">Price feed unavailable</p>;
+  }
+
+  const ethAmount = parseFloat(price);
+  const usdValue = ethAmount * ethToUsdcRate;
+
+  return (
+    <p className="text-xs text-default-400 mt-1">
+      ≈ ${usdValue.toLocaleString('en-US', { minimumFractionDigits: 2, maximumFractionDigits: 2 })}{' '}
+      USD
+    </p>
+  );
+}
 
 export default function CreateServicePage() {
   const router = useRouter();
@@ -127,9 +228,13 @@ export default function CreateServicePage() {
       if (isNaN(priceNum) || priceNum <= 0) {
         return 'Price must be greater than 0';
       }
-      // Max 1 million USDC (reasonable upper limit)
+      // Min price check (in USD equivalent)
+      if (priceNum < MIN_PRICE_USD) {
+        return `Minimum price is $${MIN_PRICE_USD} USD`;
+      }
+      // Max price check (in USD equivalent) - 1 million USD
       if (priceNum > 1000000) {
-        return 'Price must be less than 1,000,000 USDC';
+        return 'Price must be less than 1,000,000 USD';
       }
       return null;
     } catch {
@@ -212,15 +317,22 @@ export default function CreateServicePage() {
       addLog('info', 'Submitting service creation', { agentId: agent.id, formData });
 
       setStep('creating');
-      const priceInUsdc = parseUnits(formData.price || '0', USDC_DECIMALS);
+
+      // Convert price to proper decimals based on token
+      const priceInToken = parseUnits(formData.price || '0', formData.paymentToken.decimals);
+
+      // For ETH, we also store the USD equivalent for display (8 decimals for Chainlink)
+      // The contract stores the raw token amount, and we convert for display in UI
 
       createService(
         BigInt(agent.id),
         formData.name,
         formData.description,
         formData.metadataURI || '',
-        priceInUsdc,
-        process.env.NEXT_PUBLIC_USDC_ADDRESS as `0x${string}`
+        priceInToken,
+        formData.paymentToken.address === ZERO_ADDRESS
+          ? ZERO_ADDRESS
+          : formData.paymentToken.address
       );
     },
     [
@@ -459,6 +571,13 @@ export default function CreateServicePage() {
                 </div>
               )}
 
+              {/* Payment Token Selector */}
+              <PaymentTokenSelector
+                selectedToken={formData.paymentToken}
+                onSelect={token => setFormData(prev => ({ ...prev, paymentToken: token }))}
+                disabled={isServicePending || isServiceConfirming}
+              />
+
               {/* Service Name */}
               <div>
                 <label className="block text-sm font-medium mb-2">
@@ -521,25 +640,29 @@ export default function CreateServicePage() {
               {/* Price */}
               <div>
                 <label className="block text-sm font-medium mb-2">
-                  Price (USDC) <span className="text-danger">*</span>
+                  Price ({formData.paymentToken.symbol}) <span className="text-danger">*</span>
                 </label>
-                <input
-                  type="number"
-                  value={formData.price}
-                  onChange={e => handleInputChange('price', e.target.value)}
-                  onBlur={() => handleInputChange('price', formData.price)}
-                  className={`w-full px-3 py-2 border rounded-lg bg-content2 ${
-                    formErrors.price ? 'border-danger' : 'border-divider'
-                  }`}
-                  placeholder="100"
-                  min="0.01"
-                  step="0.01"
-                />
+                <div className="relative">
+                  <input
+                    type="number"
+                    value={formData.price}
+                    onChange={e => handleInputChange('price', e.target.value)}
+                    onBlur={() => handleInputChange('price', formData.price)}
+                    className={`w-full px-3 py-2 border rounded-lg bg-content2 ${
+                      formErrors.price ? 'border-danger' : 'border-divider'
+                    }`}
+                    placeholder={formData.paymentToken.symbol === 'ETH' ? '0.05' : '100'}
+                    min={formData.paymentToken.symbol === 'ETH' ? '0.0001' : '0.01'}
+                    step={formData.paymentToken.symbol === 'ETH' ? '0.001' : '0.01'}
+                  />
+                </div>
                 {formErrors.price ? (
                   <p className="text-xs text-danger mt-1">{formErrors.price}</p>
+                ) : formData.paymentToken.symbol === 'ETH' ? (
+                  <PriceConversionDisplay price={formData.price} />
                 ) : (
                   <p className="text-xs text-default-400 mt-1">
-                    Price in USDC (minimum 0.01, maximum 1,000,000)
+                    Minimum ${MIN_PRICE_USD}, maximum $1,000,000
                   </p>
                 )}
               </div>

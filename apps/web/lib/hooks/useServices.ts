@@ -167,12 +167,16 @@ export function useService(serviceId: number | bigint) {
   const id = typeof serviceId === 'bigint' ? serviceId : BigInt(serviceId);
   const config = getQueryConfig('services');
 
+  // Skip contract call for invalid service IDs (e.g., direct jobs with serviceId = 0)
+  const isValidId = id > BigInt(0);
+
   const { data, isLoading, error, refetch } = useReadContract({
     address: SERVICE_REGISTRY_ADDRESS,
     abi: SERVICE_REGISTRY_ABI,
     functionName: 'getService',
     args: [id],
     query: {
+      enabled: isValidId,
       retry: 2,
       staleTime: config.staleTime,
       gcTime: config.gcTime,
@@ -180,14 +184,9 @@ export function useService(serviceId: number | bigint) {
   });
 
   return {
-    service: mapServiceData(
-      id,
-      data as unknown as
-        | readonly [bigint, string, string, string, string, bigint, `0x${string}`, boolean, bigint]
-        | undefined
-    ),
-    isLoading,
-    error,
+    service: isValidId && data ? mapServiceData(id, data) : null,
+    isLoading: isValidId ? isLoading : false,
+    error: isValidId ? error : null,
     refetch,
   };
 }

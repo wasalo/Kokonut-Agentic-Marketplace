@@ -3,7 +3,7 @@
 import { useState, useCallback, Suspense, useEffect } from 'react';
 import { useAccount, useWaitForTransactionReceipt } from 'wagmi';
 import { useRouter, useSearchParams } from 'next/navigation';
-import { ArrowLeft, Loader2, CheckCircle2, ShieldCheck, AlertTriangle } from 'lucide-react';
+import { ArrowLeft, Loader2, CheckCircle2, ShieldCheck, AlertTriangle, Coins } from 'lucide-react';
 import NextLink from 'next/link';
 import { Card } from '@heroui/react';
 import { isAddress } from 'viem';
@@ -18,12 +18,73 @@ import {
 import { getTransactionError } from '@/lib/toast';
 import { useFormSubmit, formatTimeRemaining } from '@/lib/hooks/useDebounce';
 import { useClientJobCount, MAX_JOBS_PER_CLIENT } from '@/lib/hooks/useClientJobCount';
+import {
+  useTokenPriceConversion,
+  USDC_TOKEN,
+  ETH_TOKEN,
+  SUPPORTED_PAYMENT_TOKENS,
+  Token,
+} from '@/lib/hooks/useTokenConversion';
+import { showToast } from '@/lib/toast';
 
 const USDC_ADDRESS = process.env.NEXT_PUBLIC_USDC_ADDRESS as `0x${string}`;
 
-// Contract constants from AgenticCommerceV4 (Phase 3 with comprehensive events)
 const MAX_DESCRIPTION_LENGTH = 1000;
-const MIN_EXPIRY_DURATION = 5 * 60 * 1000; // 5 minutes in ms
+const MIN_EXPIRY_DURATION = 5 * 60 * 1000;
+const MIN_BUDGET_USDC = 0.01;
+
+function PaymentTokenSelector({
+  selectedToken,
+  onSelect,
+  disabled,
+}: {
+  selectedToken: Token;
+  onSelect: (token: Token) => void;
+  disabled?: boolean;
+}) {
+  const { ethToUsdcRate, isLoading: isRateLoading } = useTokenPriceConversion();
+
+  return (
+    <div className="space-y-2">
+      <label className="text-sm font-medium">Payment Token</label>
+      <div className="grid grid-cols-2 gap-3">
+        {SUPPORTED_PAYMENT_TOKENS.map(token => (
+          <button
+            key={token.symbol}
+            type="button"
+            onClick={() => onSelect(token)}
+            disabled={disabled}
+            className={`p-4 rounded-lg border-2 transition-all ${
+              selectedToken.symbol === token.symbol
+                ? 'border-success bg-success/5'
+                : 'border-divider hover:border-default-300'
+            } ${disabled ? 'opacity-50 cursor-not-allowed' : 'cursor-pointer'}`}
+          >
+            <div className="flex items-center gap-3">
+              <div
+                className={`w-10 h-10 rounded-full flex items-center justify-center ${
+                  token.symbol === 'USDC' ? 'bg-[#2775CA]' : 'bg-[#627EEA]'
+                }`}
+              >
+                <Coins className="w-5 h-5 text-white" />
+              </div>
+              <div className="text-left">
+                <p className="font-medium">{token.symbol}</p>
+                <p className="text-xs text-default-500">{token.name}</p>
+              </div>
+            </div>
+            {isRateLoading && token.symbol === 'ETH' && (
+              <p className="text-xs text-default-400 mt-2">Loading rate...</p>
+            )}
+            {ethToUsdcRate && token.symbol === 'ETH' && (
+              <p className="text-xs text-default-400 mt-2">1 ETH ≈ ${ethToUsdcRate.toFixed(2)}</p>
+            )}
+          </button>
+        ))}
+      </div>
+    </div>
+  );
+}
 
 function CreateJobContent() {
   const router = useRouter();
@@ -35,7 +96,8 @@ function CreateJobContent() {
   const serviceId = serviceIdParam ? BigInt(serviceIdParam) : undefined;
   const { service, isLoading: isLoadingService } = useService(serviceId ?? BigInt(0));
 
-  // Job count tracking
+  const { formatUsdValue } = useTokenPriceConversion();
+
   const {
     count: jobCount,
     isAtLimit,
@@ -44,13 +106,13 @@ function CreateJobContent() {
     remainingJobs,
   } = useClientJobCount(address);
 
-  // Form state - auto-fill provider from URL param or service data
   const [provider, setProvider] = useState('');
   const [evaluator, setEvaluator] = useState('');
   const [deadline, setDeadline] = useState('');
   const [description, setDescription] = useState('');
+  const [budget, setBudget] = useState('');
+  const [paymentToken, setPaymentToken] = useState<Token>(USDC_TOKEN);
 
-  // Auto-fill provider when service loads or from URL param
   useEffect(() => {
     if (providerParam) {
       setProvider(providerParam);
@@ -59,13 +121,12 @@ function CreateJobContent() {
     }
   }, [providerParam, service?.provider, provider]);
 
-  // Validation state
   const [providerError, setProviderError] = useState<string | null>(null);
   const [evaluatorError, setEvaluatorError] = useState<string | null>(null);
   const [deadlineError, setDeadlineError] = useState<string | null>(null);
   const [descriptionError, setDescriptionError] = useState<string | null>(null);
+  const [budgetError, setBudgetError] = useState<string | null>(null);
 
-  // Default evaluator to connected address
   const effectiveEvaluator = evaluator || address || '0x0000000000000000000000000000000000000000';
 
   const {
@@ -87,7 +148,13 @@ function CreateJobContent() {
     hash: txHash,
   });
 
-  // Real-time validation handlers
+  useEffect(() => {
+    if (isConfirmed && txHash) {
+      showToast.success('Job Created!', 'Redirecting to your jobs...');
+      router.push('/jobs');
+    }
+  }, [isConfirmed, txHash, router]);
+
   const validateProvider = useCallback(
     (value: string) => {
       if (!serviceId && value) {
@@ -130,15 +197,32 @@ function CreateJobContent() {
     return !error;
   }, []);
 
+  const validateBudgetField = useCallback(
+    (value: string) => {
+      if (!serviceId && !value) {
+        setBudgetError('Budget is required for direct jobs');
+        return false;
+      }
+      if (value) {
+        const numValue = parseFloat(value);
+        if (isNaN(numValue) || numValue < MIN_BUDGET_USDC) {
+          setBudgetError(`Minimum budget is $${MIN_BUDGET_USDC} USDC`);
+          return false;
+        }
+      }
+      setBudgetError(null);
+      return true;
+    },
+    [serviceId]
+  );
+
   const performSubmit = useCallback(
     (e: React.FormEvent) => {
       e.preventDefault();
       if (!isConnected || !address) return;
 
-      // Validate all fields before submission
       let isValid = true;
 
-      // Validate provider (only for direct job creation)
       if (!serviceId) {
         if (!provider) {
           setProviderError('Provider address is required');
@@ -146,19 +230,20 @@ function CreateJobContent() {
         } else {
           isValid = validateProvider(provider) && isValid;
         }
+
+        if (!validateBudgetField(budget)) {
+          isValid = false;
+        }
       }
 
-      // Validate deadline
       if (deadline) {
         isValid = validateDeadlineField(deadline) && isValid;
       }
 
-      // Validate description
       if (description) {
         isValid = validateDescriptionField(description) && isValid;
       }
 
-      // Validate service budget (prevent zero-budget jobs)
       if (serviceId && service && Number(service.price) === 0) {
         setProviderError('Service has a price of 0. Cannot create job.');
         isValid = false;
@@ -168,17 +253,16 @@ function CreateJobContent() {
         return;
       }
 
-      // Clear validation errors
       setProviderError(null);
       setEvaluatorError(null);
       setDeadlineError(null);
       setDescriptionError(null);
+      setBudgetError(null);
 
       if (serviceId && service) {
-        // Job from service
         const deadlineTs = deadline
           ? BigInt(Math.floor(new Date(deadline).getTime() / 1000))
-          : BigInt(Math.floor(Date.now() / 1000) + 86400 * 7); // default 7 days
+          : BigInt(Math.floor(Date.now() / 1000) + 86400 * 7);
 
         createJobFromService(
           serviceId,
@@ -187,7 +271,6 @@ function CreateJobContent() {
           description || `Job for ${service.name}`
         );
       } else {
-        // Direct job creation
         const deadlineTs = deadline
           ? BigInt(Math.floor(new Date(deadline).getTime() / 1000))
           : BigInt(Math.floor(Date.now() / 1000) + 86400 * 7);
@@ -209,43 +292,36 @@ function CreateJobContent() {
       description,
       effectiveEvaluator,
       provider,
+      budget,
       validateProvider,
       validateDeadlineField,
       validateDescriptionField,
+      validateBudgetField,
       createJobFromService,
       createJob,
     ]
   );
 
-  // Apply form submission debouncing (2 second cooldown)
   const { handleSubmit, isSubmitting, timeUntilNextSubmit } = useFormSubmit(performSubmit, 2000);
 
   const isLoading = isServicePending || isDirectPending || isConfirming;
   const error = serviceError || directError;
 
-  // Check if form is valid for submission
-  const isFormValid = !providerError && !evaluatorError && !deadlineError && !descriptionError;
+  const isFormValid =
+    !providerError &&
+    !evaluatorError &&
+    !deadlineError &&
+    !descriptionError &&
+    !budgetError &&
+    (!!serviceId || (!!budget && parseFloat(budget) >= MIN_BUDGET_USDC));
 
-  if (isConfirmed && txHash) {
-    return (
-      <div className="container mx-auto px-4 py-8">
-        <Card className="max-w-md mx-auto text-center p-6 border border-divider">
-          <CheckCircle2 className="w-12 h-12 text-success mx-auto mb-4" />
-          <h2 className="text-xl font-semibold mb-2">Job Created!</h2>
-          <p className="text-sm text-default-500 mb-4">
-            The job has been created. Fund it to start the escrow process.
-          </p>
-          <p className="text-xs text-default-400 font-mono break-all mb-6">TX: {txHash}</p>
-          <NextLink
-            href="/jobs"
-            className="inline-flex items-center justify-center w-full px-6 py-3 bg-gradient-to-r from-[#009F4D] to-[#00c853] text-white rounded-lg font-medium hover:opacity-90 transition-opacity"
-          >
-            View Jobs
-          </NextLink>
-        </Card>
-      </div>
-    );
-  }
+  const budgetInUsdc =
+    budget && parseFloat(budget) > 0
+      ? formatUsdValue(
+          BigInt(Math.floor(parseFloat(budget) * 10 ** paymentToken.decimals)),
+          paymentToken
+        )
+      : null;
 
   return (
     <div className="container mx-auto px-4 py-8">
@@ -265,7 +341,6 @@ function CreateJobContent() {
             : 'Create a direct job between you and a provider.'}
         </p>
 
-        {/* Service Summary (if from service) */}
         {service && (
           <Card className="border border-divider mb-6 p-5">
             <div className="flex items-start justify-between">
@@ -295,7 +370,6 @@ function CreateJobContent() {
           </Card>
         )}
 
-        {/* Job Count Warning */}
         {address && (
           <Card
             className={`border mb-6 p-4 ${isAtLimit ? 'border-danger bg-danger-50' : isNearLimit ? 'border-warning bg-warning-50' : 'border-divider'}`}
@@ -340,7 +414,14 @@ function CreateJobContent() {
 
         <Card className="border border-divider p-6">
           <form onSubmit={handleSubmit} className="space-y-6">
-            {/* Evaluator */}
+            {!serviceId && (
+              <PaymentTokenSelector
+                selectedToken={paymentToken}
+                onSelect={setPaymentToken}
+                disabled={isLoading}
+              />
+            )}
+
             <div className="space-y-2">
               <label htmlFor="evaluator" className="text-sm font-medium">
                 Evaluator Address
@@ -368,7 +449,6 @@ function CreateJobContent() {
               )}
             </div>
 
-            {/* Provider (only for direct job creation) */}
             {!serviceId && (
               <div className="space-y-2">
                 <label htmlFor="provider" className="text-sm font-medium">
@@ -393,7 +473,42 @@ function CreateJobContent() {
               </div>
             )}
 
-            {/* Deadline */}
+            {!serviceId && (
+              <div className="space-y-2">
+                <label htmlFor="budget" className="text-sm font-medium">
+                  Budget ({paymentToken.symbol}) <span className="text-danger">*</span>
+                </label>
+                <div className="relative">
+                  <input
+                    id="budget"
+                    type="number"
+                    step={paymentToken.symbol === 'USDC' ? '0.01' : '0.001'}
+                    min={MIN_BUDGET_USDC}
+                    placeholder={`0.00`}
+                    value={budget}
+                    onChange={e => {
+                      setBudget(e.target.value);
+                      validateBudgetField(e.target.value);
+                    }}
+                    onBlur={() => validateBudgetField(budget)}
+                    required
+                    className={`w-full px-3 py-2 bg-content2 border rounded-lg text-default-700 placeholder:text-default-400 focus:outline-none focus:ring-2 focus:ring-success focus:border-transparent ${
+                      budgetError ? 'border-danger' : 'border-divider'
+                    }`}
+                  />
+                </div>
+                {budgetError ? (
+                  <p className="text-xs text-danger">{budgetError}</p>
+                ) : budgetInUsdc ? (
+                  <p className="text-xs text-default-400">≈ {budgetInUsdc} USD</p>
+                ) : (
+                  <p className="text-xs text-default-400">
+                    Minimum ${MIN_BUDGET_USDC} USD equivalent
+                  </p>
+                )}
+              </div>
+            )}
+
             <div className="space-y-2">
               <label htmlFor="deadline" className="text-sm font-medium">
                 Deadline
@@ -421,7 +536,6 @@ function CreateJobContent() {
               )}
             </div>
 
-            {/* Description */}
             <div className="space-y-2">
               <label htmlFor="description" className="text-sm font-medium">
                 Job Description
@@ -453,7 +567,6 @@ function CreateJobContent() {
               </div>
             </div>
 
-            {/* T&C Notice */}
             <div className="p-4 bg-content2 rounded-lg flex items-start gap-3">
               <ShieldCheck className="w-5 h-5 text-primary mt-0.5 shrink-0" />
               <div className="text-sm">
@@ -465,14 +578,12 @@ function CreateJobContent() {
               </div>
             </div>
 
-            {/* Error */}
             {error && (
               <div className="p-4 bg-danger-50 border border-danger-200 rounded-lg text-danger text-sm">
                 {getTransactionError(error)}
               </div>
             )}
 
-            {/* Submit */}
             <div className="flex gap-4">
               <button
                 type="submit"

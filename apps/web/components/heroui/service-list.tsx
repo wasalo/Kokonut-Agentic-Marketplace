@@ -1,12 +1,14 @@
 'use client';
 
 import { useAllServices, Service } from '@/lib/hooks/useServicesContract';
-import { useUSDCPrice } from '@/lib/hooks/usePriceOracle';
+import { useTokenPriceConversion } from '@/lib/hooks/useTokenConversion';
 import { Card, Button } from '@heroui/react';
 import NextLink from 'next/link';
 import { ShoppingBag, DollarSign, ChevronLeft, ChevronRight, List, LayoutGrid } from 'lucide-react';
 import { useViewportPagination, usePagination } from '@/lib/hooks/useViewportPagination';
 import { StatusBadge, getServiceStatusBadgeType } from '@/components/StatusBadge';
+
+const ZERO_ADDRESS = '0x0000000000000000000000000000000000000000';
 
 function ServiceListSkeleton() {
   return (
@@ -39,9 +41,16 @@ function EmptyState() {
 }
 
 function ServiceCard({ service }: { service: Service }) {
-  const { priceInUsd } = useUSDCPrice();
-  const usdcAmount = Number(service.price) / 1e6;
-  const usdValue = priceInUsd ? usdcAmount * (Number(priceInUsd) / 1e8) : null;
+  const { ethToUsdcRate } = useTokenPriceConversion();
+
+  const isEth =
+    service.paymentToken && service.paymentToken.toLowerCase() === ZERO_ADDRESS.toLowerCase();
+  const tokenDecimals = isEth ? 18 : 6;
+  const tokenAmount = Number(service.price) / 10 ** tokenDecimals;
+  const tokenSymbol = isEth ? 'ETH' : 'USDC';
+
+  const usdValue =
+    isEth && ethToUsdcRate ? tokenAmount * ethToUsdcRate : isEth ? null : tokenAmount;
 
   const handlePurchase = (e: React.MouseEvent) => {
     e.stopPropagation();
@@ -53,7 +62,16 @@ function ServiceCard({ service }: { service: Service }) {
       <NextLink href={`/marketplace/${service.id.toString()}`} className="block">
         <div className="flex justify-between items-start mb-3">
           <h3 className="font-semibold text-lg">{service.name}</h3>
-          <StatusBadge status={getServiceStatusBadgeType(service.isActive)} size="sm" />
+          <div className="flex items-center gap-2">
+            <StatusBadge status={getServiceStatusBadgeType(service.isActive)} size="sm" />
+            <span
+              className={`text-xs px-2 py-0.5 rounded ${
+                isEth ? 'bg-[#627EEA]/10 text-[#627EEA]' : 'bg-[#2775CA]/10 text-[#2775CA]'
+              }`}
+            >
+              {tokenSymbol}
+            </span>
+          </div>
         </div>
         <p className="text-default-500 text-sm mb-4 line-clamp-2">{service.description}</p>
         <div className="flex justify-between items-center text-sm">
@@ -64,10 +82,17 @@ function ServiceCard({ service }: { service: Service }) {
           <div className="text-right">
             <span className="font-semibold text-success flex items-center gap-1">
               <DollarSign className="w-3 h-3" />
-              {usdcAmount.toFixed(2)}
+              {tokenAmount.toFixed(2)} {tokenSymbol}
             </span>
-            {usdValue && (
-              <span className="text-xs text-default-400">~${usdValue.toFixed(2)} USD</span>
+            {usdValue !== null && (
+              <span className="text-xs text-default-400 block">
+                ~$
+                {usdValue.toLocaleString('en-US', {
+                  minimumFractionDigits: 2,
+                  maximumFractionDigits: 2,
+                })}{' '}
+                USD
+              </span>
             )}
           </div>
         </div>
