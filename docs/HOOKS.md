@@ -486,11 +486,95 @@ const { deactivateSkill, hash, isPending, error, reset } = useDeactivateSkill();
 deactivateSkill(skillId); // bigint
 ```
 
-### Proposal Hooks
+### Proposal Hooks (AgentReview Contract Integration)
+
+These hooks provide complete contract integration with the AgentReview contract for creating, evaluating, and managing proposals.
+
+#### `useProposalCount()`
+
+Returns the total count of proposals.
+
+```typescript
+const { count, isLoading, error, refetch } = useProposalCount();
+
+// Returns: number (total proposal count)
+```
+
+#### `useReviewStats()`
+
+Fetches comprehensive proposal statistics from the AgentReview contract.
+
+```typescript
+const { stats, isLoading, error, refetch } = useReviewStats();
+
+// Returns:
+interface ReviewStats {
+  totalProposals: number;
+  activeProposals: number;
+  completedProposals: number;
+  totalRewards: bigint;
+  totalEvaluations: number;
+}
+
+// Usage:
+const { stats } = useReviewStats();
+console.log(`Active: ${stats.activeProposals}`);
+console.log(`Completed: ${stats.completedProposals}`);
+console.log(`Total Rewards: ${Number(stats.totalRewards) / 1e18} ETH`);
+console.log(`Total Evaluations: ${stats.totalEvaluations}`);
+```
+
+**How it works:**
+
+1. Fetches proposal count
+2. Uses multicall to fetch all proposals
+3. Calculates active/completed counts
+4. Fetches evaluations for each proposal via separate multicall
+5. Sums up evaluator counts
+
+#### `useProposals(offset?: number, limit?: number)`
+
+Returns a paginated list of proposals.
+
+```typescript
+const { proposals, totalCount, isLoading, error, refetch } = useProposals(0, 20);
+
+// Returns: Proposal[]
+interface Proposal {
+  id: bigint;
+  proposer: `0x${string}`;
+  title: string;
+  description: string;
+  criteriaURI: string;
+  reward: bigint;
+  status: number; // 0=Open, 1=UnderReview, 2=Decided, 3=Cancelled
+  createdAt: bigint;
+  decisionDeadline: bigint;
+  winningEvaluator: `0x${string}`;
+}
+
+// Usage:
+const { proposals, totalCount } = useProposals(0, 10);
+proposals.forEach(p => console.log(p.title, p.reward));
+```
+
+#### `useProposal(id: bigint | undefined)`
+
+Returns details for a specific proposal.
+
+```typescript
+const { proposal, isLoading, error, refetch } = useProposal(1n);
+
+// Usage:
+const { proposal } = useProposal(proposalId);
+if (proposal) {
+  console.log(proposal.title, proposal.status);
+}
+```
 
 #### `useCreateProposal()`
 
-Write hook to create a new evaluation proposal.
+Write hook to create a new evaluation proposal with ETH reward staking.
 
 ```typescript
 const { createProposal, hash, isPending, error, reset } = useCreateProposal();
@@ -500,9 +584,146 @@ createProposal(
   title, // string
   description, // string
   criteriaURI, // string
-  reward, // bigint (ETH amount)
+  reward, // bigint (ETH amount - must send equal ETH value)
   decisionDeadline // bigint (Unix timestamp)
 );
+
+// Example:
+createProposal(
+  'Agent Evaluation',
+  'Evaluate trading agent performance',
+  'ipfs://criteria-hash',
+  ethers.parseEther('0.1'), // 0.1 ETH reward
+  BigInt(Math.floor(Date.now() / 1000) + 86400) // 24 hours deadline
+);
+```
+
+#### `useSubmitEvaluation()`
+
+Write hook to submit an evaluation for a proposal with ETH staking.
+
+```typescript
+const { submitEvaluation, hash, isPending, error, reset } = useSubmitEvaluation();
+
+// Usage:
+submitEvaluation(
+  proposalId, // bigint
+  confidenceScore, // bigint (-100 to 100)
+  reasoningURI, // string (IPFS/HTTPS URI with reasoning)
+  stakeAmount // bigint (ETH amount to stake)
+);
+
+// Example:
+submitEvaluation(
+  1n,
+  85n, // 85% confidence
+  'ipfs://reasoning-hash',
+  ethers.parseEther('0.05') // 0.05 ETH stake
+);
+```
+
+#### `useAttestDecision()`
+
+Write hook to attest the final decision for a proposal.
+
+```typescript
+const { attestDecision, hash, isPending, error, reset } = useAttestDecision();
+
+// Usage:
+attestDecision(
+  proposalId, // bigint
+  winningEvaluator // `0x${string}` - address of winning evaluator
+);
+```
+
+#### `useClaimReward()`
+
+Write hook to claim rewards from a decided proposal.
+
+```typescript
+const { claimReward, hash, isPending, error, reset } = useClaimReward();
+
+// Usage:
+claimReward(proposalId); // bigint
+```
+
+#### `useReleaseStake()`
+
+Write hook to release stake from an evaluation.
+
+```typescript
+const { releaseStake, hash, isPending, error, reset } = useReleaseStake();
+
+// Usage:
+releaseStake(proposalId); // bigint
+```
+
+#### `useProposalEvaluations(proposalId: bigint | undefined)`
+
+Returns all evaluations for a specific proposal.
+
+```typescript
+const { evaluators, isLoading, error, refetch } = useProposalEvaluations(1n);
+
+// Returns: `0x${string}`[] (array of evaluator addresses)
+
+// Usage:
+const { evaluators } = useProposalEvaluations(proposalId);
+console.log(`${evaluators.length} evaluators submitted`);
+evaluators.forEach(addr => console.log(addr));
+```
+
+#### `useEvaluation(proposalId: bigint | undefined, evaluator: \`0x${string}\` | undefined)`
+
+Returns details for a specific evaluation.
+
+```typescript
+const { evaluation, isLoading, error, refetch } = useEvaluation(1n, evaluatorAddress);
+
+// Returns:
+interface Evaluation {
+  proposalId: bigint;
+  evaluator: `0x${string}`;
+  confidenceScore: bigint;
+  reasoningURI: string;
+  stakeAmount: bigint;
+  isFinal: boolean;
+  submittedAt: bigint;
+}
+
+// Usage:
+const { evaluation } = useEvaluation(proposalId, evaluatorAddress);
+if (evaluation) {
+  console.log(`Confidence: ${evaluation.confidenceScore}%`);
+  console.log(`Stake: ${Number(evaluation.stakeAmount) / 1e18} ETH`);
+}
+```
+
+#### Proposal Status Constants
+
+```typescript
+import {
+  ProposalStatus,
+  getProposalStatusLabel,
+  getProposalStatusColor,
+} from '@/lib/hooks/useProposals';
+
+// Status enum
+ProposalStatus.Open; // 0
+ProposalStatus.UnderReview; // 1
+ProposalStatus.Decided; // 2
+ProposalStatus.Cancelled; // 3
+
+// Helper functions
+getProposalStatusLabel(0); // 'Open'
+getProposalStatusLabel(1); // 'Under Review'
+getProposalStatusLabel(2); // 'Decided'
+getProposalStatusLabel(3); // 'Cancelled'
+
+getProposalStatusColor(0); // 'success'
+getProposalStatusColor(1); // 'warning'
+getProposalStatusColor(2); // 'primary'
+getProposalStatusColor(3); // 'danger'
 ```
 
 ### Token Hooks

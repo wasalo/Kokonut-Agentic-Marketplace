@@ -5,6 +5,154 @@ All notable changes to the Kokonut Agent Economy Stack are documented in this fi
 The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.0.0/),\
 and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0.html).
 
+## [Unreleased] - 2026-04-02
+
+### 🔧 Full Dependency Upgrade & Network Access Fixes
+
+#### Major Dependency Upgrades
+
+| Package                   | Before  | After       | Notes                                   |
+| ------------------------- | ------- | ----------- | --------------------------------------- |
+| **Next.js**               | 15.0.0  | **16.2.2**  | Turbopack default, 2-5x faster builds   |
+| **React**                 | 19.0.0  | **19.2.4**  | Critical security patches               |
+| **React DOM**             | 19.0.0  | **19.2.4**  | Security patches                        |
+| **Tailwind CSS**          | 3.4.0   | **4.2.2**   | CSS-based configuration, major rewrite  |
+| **TypeScript**            | 5.3.2   | **5.9.3**   | Improved type checking                  |
+| **lucide-react**          | 0.460.0 | **1.7.0**   | 32% smaller bundle, brand icons removed |
+| **@tanstack/react-query** | 5.60.0  | **5.96.1**  | Bug fixes, performance improvements     |
+| **framer-motion**         | 12.x    | **12.38.0** | Latest features                         |
+| **tailwind-merge**        | 2.5.0   | **3.5.0**   | Tailwind v4 support                     |
+| **viem**                  | 2.21.55 | **2.47.6**  | Synced across all packages              |
+| **@radix-ui/\***          | 1.1.x   | **1.2.x+**  | All packages updated                    |
+| **@types/react**          | 19.x    | **19.2.14** | Latest types                            |
+| **@types/react-dom**      | 19.x    | **19.2.3**  | Latest types                            |
+
+**Web3 Stack (Already Current):**
+
+- wagmi: 3.6.0 ✅
+- viem: 2.47.6 ✅
+- @rainbow-me/rainbowkit: 2.2.10 ✅
+- ethers: 6.16.0 ✅
+
+#### Network Access & Wallet Fixes
+
+- **Crypto Polyfill** - Added `/public/crypto-polyfill.js` for non-secure contexts
+  - Provides `crypto.randomUUID()` for HTTP/IP access (non-secure contexts)
+  - Provides `crypto.subtle` minimal fallback for cryptographic operations
+  - Required for WalletConnect, wagmi, React Query, and RainbowKit on network IPs
+  - Loaded before any other JavaScript to prevent race conditions
+
+- **CSP Configuration** - Made `upgrade-insecure-requests` production-only
+  - Development CSP allows HTTP connections and network IPs
+  - Added HTTP origins to `connect-src`: `http://localhost:* http://10.108.1.215:* http://127.0.0.1:* http://0.0.0.0:*`
+  - Added WebSocket HTTP origins for HMR: `ws://localhost:* ws://10.108.1.215:*` etc.
+  - Production CSP enforces HTTPS with `upgrade-insecure-requests`
+  - CSP switches between Report-Only (dev) and Enforce (prod)
+
+- **WalletConnect Metadata** - Hardcoded URL to prevent origin mismatch
+  - Changed from dynamic `window.location.origin` to `https://kokonut.network`
+  - Prevents WalletConnect rejection on unregistered origins
+
+- **Hydration Fixes** - Fixed wallet connection state mismatches across all pages
+  - Added `suppressHydrationWarning` to `<html>` and `<body>` in layout
+  - Navbar: Always renders all links, uses CSS to show/hide Dashboard based on connection state
+  - Marketplace page: Added `mounted` state to prevent conditional rendering
+  - All pages: Prevents hydration mismatch between server (disconnected) and client (connected)
+
+- **Health Check Endpoint** - Added `/api/health` for service verification
+  - Checks WalletConnect project ID configuration
+  - Tests RPC connectivity
+  - Verifies all contract addresses are configured
+  - Confirms environment variables are set
+  - Returns status: `healthy`, `degraded`, or `error`
+
+#### UI/UX Improvements
+
+- **Nav Bar** - Added Activity & Analytics links to "More" dropdown
+- **Custom ConnectButton** - Created wrapper (`components/wallet/ConnectButton.tsx`) with:
+  - Client-side only rendering (prevents hydration mismatch)
+  - Error handling with fallback UI
+  - Loading state while RainbowKit initializes
+  - Proper props configuration
+- **Duplicate Files Cleanup** - Removed 13 duplicate/stub files:
+  - `navbar 2.tsx`, `footer 2.tsx`, `Navbar.tsx` (unused), `StatusBadge 2.tsx`
+  - `useJobs 2.ts`, `useServices 2.ts`, `useActivityFeed 2.ts`, `useKokonutAgentsByOwner 2.ts`
+  - `DebugContext 2.tsx`, `ClientErrorBoundary 2.tsx`, `wallet-shim 2.ts`, `globals 2.css`, `tsconfig 2.json`
+- **Lucide Icons** - Replaced removed brand icons:
+  - `Twitter` → `AtSign`
+  - `Github` → `Code2`
+
+#### Configuration Changes
+
+- **Tailwind v4 Migration** - Config moved from `tailwind.config.ts` to CSS `@theme` block
+  - Removed `tailwind.config.ts` (no longer needed)
+  - All theme configuration now in `globals.css` `@theme` block
+  - Added `@source` for HeroUI components
+  - Updated `postcss.config.js` to use `@tailwindcss/postcss`
+
+- **Next.js 16 Configuration** - Updated `next.config.js`:
+  - Removed deprecated `eslint` config key
+  - Added `allowedDevOrigins: ['*']` for network access
+  - Added `turbopack: {}` config
+  - Made `upgrade-insecure-requests` production-only
+
+- **Node.js Requirement** - Now requires **20.9+** (for Next.js 16)
+
+#### New Proposal Hooks (Complete Contract Integration)
+
+- **`useReviewStats`** - Fetches proposal statistics from AgentReview contract
+  - Returns: `totalProposals`, `activeProposals`, `completedProposals`, `totalRewards`, `totalEvaluations`
+  - Uses multicall for efficient batch fetching
+
+- **`useCreateProposal`** - Creates proposals via AgentReview contract
+  - Parameters: `title`, `description`, `criteriaURI`, `reward`, `decisionDeadline`
+  - Returns: `createProposal`, `hash`, `isPending`, `error`, `reset`
+  - Handles ETH value transfer for reward staking
+
+- **`useSubmitEvaluation`** - Submits evaluations for proposals
+  - Parameters: `proposalId`, `confidenceScore`, `reasoningURI`, `stakeAmount`
+  - Returns: `submitEvaluation`, `hash`, `isPending`, `error`, `reset`
+
+- **`useAttestDecision`** - Attests proposal decisions
+  - Parameters: `proposalId`, `winningEvaluator`
+  - Returns: `attestDecision`, `hash`, `isPending`, `error`, `reset`
+
+- **`useClaimReward`** - Claims rewards from decided proposals
+  - Parameters: `proposalId`
+  - Returns: `claimReward`, `hash`, `isPending`, `error`, `reset`
+
+- **`useReleaseStake`** - Releases stake from evaluations
+  - Parameters: `proposalId`
+  - Returns: `releaseStake`, `hash`, `isPending`, `error`, `reset`
+
+- **`useProposalEvaluations`** - Fetches evaluations for a proposal
+  - Parameters: `proposalId`
+  - Returns: `evaluators` array, `isLoading`, `error`, `refetch`
+
+- **`useEvaluation`** - Fetches specific evaluation details
+  - Parameters: `proposalId`, `evaluator`
+  - Returns: `evaluation` object, `isLoading`, `error`, `refetch`
+
+#### Breaking Changes
+
+- **Tailwind CSS v4** - Configuration format changed from JS to CSS
+  - `tailwind.config.ts` removed, config moved to `globals.css` `@theme` block
+  - PostCSS config updated to `@tailwindcss/postcss`
+  - Some utility class names changed (e.g., `shadow-sm` → `shadow-xs`)
+
+- **Lucide v1.0** - All brand icons removed
+  - `Twitter`, `Github`, and other brand icons no longer available
+  - Replaced with generic alternatives (`AtSign`, `Code2`)
+  - Use Simple Icons for brand icons if needed
+
+- **Next.js 16** - `middleware.ts` → `proxy.ts` (if applicable)
+  - No middleware file exists in this project, so no migration needed
+  - `eslint` config key deprecated in `next.config.js`
+
+- **Node.js** - Now requires **20.9+** (was 18+)
+
+---
+
 ## [Unreleased] - 2026-04-01
 
 ### 🛠️ Dashboard Management Fixes

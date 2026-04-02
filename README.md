@@ -5,13 +5,19 @@
 [![Coverage](https://img.shields.io/badge/coverage-87%25-brightgreen.svg)](./contracts/test)
 [![Frontend Security](https://img.shields.io/badge/frontend%20security-8.6%2F10-brightgreen.svg)](./docs/FRONTEND_SECURITY_HARDENING_REPORT.md)
 [![Phase 5](https://img.shields.io/badge/phase-5%20enhanced%20UX-blue.svg)](./AGENTS.md)
+[![Dependencies](https://img.shields.io/badge/dependencies-up%20to%20date-brightgreen.svg)](./CHANGELOG.md)
 
 ## Identity → Commerce → Coordination
 
-### 🎉 Latest: Phase 5 - Enhanced UX (April 2026)
+### 🎉 Latest: Full Dependency Upgrade & Network Access (April 2026)
 
 **New Features:**
 
+- ✅ **Network Access** - Works on both localhost and network IPs
+- ✅ **Health Check** - Service status at `/api/health`
+- ✅ **Next.js 16** - Turbopack for 2-5x faster builds
+- ✅ **React 19.2.4** - Critical security patches applied
+- ✅ **Tailwind CSS v4** - CSS-based configuration
 - ✅ **Activity Feed** - Platform-wide event tracking (`/activity`)
 - ✅ **Analytics Dashboard** - 7-day metrics with interactive charts (`/analytics`)
 - ✅ **Payment Token Switching** - USDC/ETH support for jobs
@@ -67,7 +73,7 @@ The **Kokonut Agent Economy Stack** is a complete onchain agent economy with thr
 
 ### Prerequisites
 
-- Node.js 18+
+- **Node.js 20.9+** (required for Next.js 16)
 - npm or pnpm
 - Foundry (for smart contracts)
 - Sepolia ETH (for transactions)
@@ -99,6 +105,7 @@ Update `apps/web/.env.local` with deployed contract addresses:
 
 ```env
 NEXT_PUBLIC_WALLETCONNECT_PROJECT_ID=your_walletconnect_project_id
+NEXT_PUBLIC_8004_API_KEY=your_8004scan_api_key
 
 # Sepolia Contract Addresses (Phase 4 - 201 Tests Passing, 87%+ Coverage)
 NEXT_PUBLIC_SKILL_REGISTRY_ADDRESS=0x7cf16C00ed4831EB9eE3a8765831968F0a28f53D
@@ -118,18 +125,26 @@ NEXT_PUBLIC_SLASH_MANAGER_ADDRESS=0x7Cf955900FD7a12680E90D834eAf19346f5DBcf9
 
 # RPC URLs
 NEXT_PUBLIC_SEPOLIA_RPC_URL=https://ethereum-sepolia.publicnode.com
-# Optional - for future mainnet support
-# NEXT_PUBLIC_MAINNET_RPC_URL=https://eth.llamarpc.com
 ```
+
+**Note:** The frontend uses Tailwind CSS v4 with CSS-based configuration. All theme settings are in `apps/web/app/globals.css`.
 
 ### 4. Run Frontend
 
 ```bash
-cd apps/web
-npm run dev
+# From root directory
+npm run dev:web
+
+# Or from apps/web directory
+cd apps/web && npm run dev
 ```
 
-Frontend available at: **http://localhost:3000**
+Frontend available at:
+
+- **Local:** http://localhost:3000
+- **Network:** http://<your-ip>:3000 (e.g., http://10.108.1.215:3000)
+
+**Health Check:** http://localhost:3000/api/health
 
 ---
 

@@ -1112,6 +1112,28 @@ cast call 0xA846... "ownerOf(uint256)" 2326 \
 
 ---
 
+#### Issue: Wallet and blockchain data not working on network IP
+
+**Symptoms:** App works on `http://localhost:3000` but fails on `http://<your-ip>:3000`. Wallet won't connect, no blockchain data loads.
+
+**Root Cause:** Browsers don't expose `crypto.randomUUID()` in non-secure contexts (HTTP with IP addresses). `localhost` is treated as a secure context, but network IPs are not. This breaks WalletConnect, wagmi, React Query, and RainbowKit.
+
+**Solution:** The app now includes a crypto polyfill (`/public/crypto-polyfill.js`) that provides `crypto.randomUUID()` and `crypto.subtle` for non-secure contexts. Additionally, the CSP configuration has been updated to allow HTTP connections in development mode.
+
+**Verification:**
+
+1. Check the health endpoint: `http://<your-ip>:3000/api/health`
+2. Check browser console for `[crypto-polyfill]` logs
+3. Verify CSP headers don't include `upgrade-insecure-requests` in development
+
+**Configuration:**
+
+- Development CSP: Allows HTTP, includes network IPs, Report-Only mode
+- Production CSP: Enforces HTTPS, `upgrade-insecure-requests`, Enforce mode
+- WalletConnect metadata URL: Hardcoded to `https://kokonut.network` to prevent origin mismatch
+
+---
+
 ### Debug Mode
 
 Enable debug logging to troubleshoot data fetching:
@@ -1127,6 +1149,9 @@ NEXT_PUBLIC_DEBUG_MODE = true;
 Check browser console for:
 
 - `[CONTRACTS]` - Contract call logs
+- `[ERRORS]` - Error details
+- `[DATA]` - Data transformation logs
+- `[crypto-polyfill]` - Polyfill initialization status
 - `[ERRORS]` - Error details
 - `[DATA]` - Data transformation logs
 
