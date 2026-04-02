@@ -1,43 +1,11 @@
 'use client';
 
 import { Menu, X, ChevronDown, Wallet } from 'lucide-react';
-import { useState, useCallback, Component, ReactNode } from 'react';
-import dynamic from 'next/dynamic';
+import { useState, useCallback } from 'react';
 import NextLink from 'next/link';
 import { useAccount } from 'wagmi';
 import { useUSDCBalance } from '@/lib/hooks/useUSDC';
-
-// Error boundary for wallet components
-class WalletErrorBoundary extends Component<{ children: ReactNode }, { hasError: boolean }> {
-  constructor(props: { children: ReactNode }) {
-    super(props);
-    this.state = { hasError: false };
-  }
-
-  static getDerivedStateFromError(): { hasError: boolean } {
-    return { hasError: true };
-  }
-
-  render() {
-    if (this.state.hasError) {
-      return (
-        <button
-          disabled
-          className="px-4 py-2 text-sm font-medium text-default-500 bg-content2 rounded-lg opacity-50 cursor-not-allowed"
-        >
-          Wallet Unavailable
-        </button>
-      );
-    }
-
-    return this.props.children;
-  }
-}
-
-const ConnectButton = dynamic(
-  () => import('@rainbow-me/rainbowkit').then(mod => mod.ConnectButton),
-  { ssr: false }
-);
+import { ConnectButton } from '@/components/wallet/ConnectButton';
 
 function USDCBalance() {
   const { address } = useAccount();
@@ -129,9 +97,7 @@ export function NavbarComponent(): JSX.Element {
           <div className="flex items-center gap-2">
             <USDCBalance />
             <div className="hidden sm:block">
-              <WalletErrorBoundary>
-                <ConnectButton />
-              </WalletErrorBoundary>
+              <ConnectButton />
             </div>
 
             <button
@@ -166,9 +132,7 @@ export function NavbarComponent(): JSX.Element {
               </NextLink>
             ))}
             <div className="pt-4 px-4">
-              <WalletErrorBoundary>
-                <ConnectButton />
-              </WalletErrorBoundary>
+              <ConnectButton />
             </div>
           </div>
         )}

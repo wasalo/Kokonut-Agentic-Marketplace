@@ -1,7 +1,6 @@
 import { http, createConfig, fallback } from 'wagmi';
 import { sepolia } from 'wagmi/chains';
 import { injected, walletConnect } from 'wagmi/connectors';
-import type { Chain } from 'wagmi/chains';
 
 const projectId = process.env.NEXT_PUBLIC_WALLETCONNECT_PROJECT_ID || 'demo';
 
@@ -22,12 +21,12 @@ const sepoliaRpcs = [
 ];
 
 export const config = createConfig({
-  chains: [sepolia as Chain],
-  connectors: [injected(), walletConnect({ projectId })],
+  chains: [sepolia] as const,
+  connectors: [injected(), walletConnect({ projectId, showQrModal: true })],
   transports: {
     [sepolia.id]: fallback(sepoliaRpcs.map(url => http(url))),
   },
-});
+} as any);
 
 export const CONTRACTS = {
   11155111: {
