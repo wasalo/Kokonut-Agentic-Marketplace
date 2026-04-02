@@ -61,6 +61,10 @@ export default function CreateProposalPage() {
     setFormData(prev => ({ ...prev, [field]: value }));
   }, []);
 
+  const togglePublicEvaluators = useCallback((isPublic: boolean) => {
+    setFormData(prev => ({ ...prev, isPublicEvaluators: isPublic }));
+  }, []);
+
   if (isConfirmed) {
     return (
       <div className="container mx-auto px-4 py-8">
@@ -199,7 +203,7 @@ export default function CreateProposalPage() {
                       type="radio"
                       name="evaluatorVisibility"
                       checked={formData.isPublicEvaluators}
-                      onChange={() => updateFormField('isPublicEvaluators', 'true')}
+                      onChange={() => togglePublicEvaluators(true)}
                       className="w-4 h-4 text-success"
                     />
                     <div>
@@ -214,7 +218,7 @@ export default function CreateProposalPage() {
                       type="radio"
                       name="evaluatorVisibility"
                       checked={!formData.isPublicEvaluators}
-                      onChange={() => updateFormField('isPublicEvaluators', 'false')}
+                      onChange={() => togglePublicEvaluators(false)}
                       className="w-4 h-4 text-success"
                     />
                     <div>
