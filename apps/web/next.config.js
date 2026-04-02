@@ -1,12 +1,11 @@
 /** @type {import('next').NextConfig} */
 const nextConfig = {
-  // Phase 3: Security - Temporarily ignoring during testnet build
-  eslint: {
-    ignoreDuringBuilds: true,
-  },
   typescript: {
     ignoreBuildErrors: true,
   },
+
+  // Use webpack for now (Turbopack migration can be done later)
+  turbopack: {},
 
   webpack: config => {
     config.ignoreWarnings = [
