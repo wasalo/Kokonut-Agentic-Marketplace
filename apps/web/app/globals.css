@@ -58,3 +58,14 @@
     @apply bg-background text-foreground;
   }
 }
+
+/* RainbowKit Wallet Button Styling Overrides */
+[data-rk] {
+  --rk-colors-accent: #009f4d;
+  --rk-colors-accentColor: #ffffff;
+}
+
+/* Ensure RainbowKit modal is properly styled */
+[data-rk='modal'] {
+  z-index: 9999 !important;
+}

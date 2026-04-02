@@ -24,15 +24,19 @@ function Web3Providers({ children }: { children: ReactNode }) {
   useEffect(() => {
     // Dynamically import browser-only modules
     const setupProviders = async () => {
-      const [{ QueryClient, QueryClientProvider }, { WagmiProvider }, { RainbowKitProvider, darkTheme }] = await Promise.all([
+      const [
+        { QueryClient, QueryClientProvider },
+        { WagmiProvider },
+        { RainbowKitProvider, darkTheme },
+      ] = await Promise.all([
         import('@tanstack/react-query'),
         import('wagmi'),
         import('@rainbow-me/rainbowkit'),
       ]);
-      
+
       const { config } = await import('@/lib/wagmi');
       const { DebugProvider } = await import('@/contexts/DebugContext');
-      
+
       const queryClient = new QueryClient({
         defaultOptions: {
           queries: {
@@ -50,16 +54,14 @@ function Web3Providers({ children }: { children: ReactNode }) {
       const kokonutTheme = {
         accentColor: '#009F4D',
         accentColorForeground: '#FFFFFF',
-        borderRadius: 'medium',
+        borderRadius: 'large' as const,
       };
 
       setProviders(
         <WagmiProvider config={config}>
           <QueryClientProvider client={queryClient}>
             <DebugProvider>
-              <RainbowKitProvider theme={darkTheme(kokonutTheme)}>
-                {children}
-              </RainbowKitProvider>
+              <RainbowKitProvider theme={darkTheme(kokonutTheme)}>{children}</RainbowKitProvider>
             </DebugProvider>
           </QueryClientProvider>
         </WagmiProvider>

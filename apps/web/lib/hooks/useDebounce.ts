@@ -1,6 +1,6 @@
 'use client';
 
-import { useCallback, useRef, useState } from 'react';
+import { useCallback, useEffect, useRef, useState } from 'react';
 
 /**
  * Hook to debounce a callback function
@@ -146,17 +146,14 @@ export function useFormSubmit<T extends (e: React.FormEvent) => void>(
   );
 
   // Cleanup on unmount
-  const cleanup = useCallback(() => {
-    if (intervalRef.current) {
-      clearInterval(intervalRef.current);
-      intervalRef.current = null;
-    }
+  useEffect(() => {
+    return () => {
+      if (intervalRef.current) {
+        clearInterval(intervalRef.current);
+        intervalRef.current = null;
+      }
+    };
   }, []);
-
-  // Attach cleanup to window unload
-  if (typeof window !== 'undefined') {
-    window.addEventListener('beforeunload', cleanup);
-  }
 
   return {
     handleSubmit,
