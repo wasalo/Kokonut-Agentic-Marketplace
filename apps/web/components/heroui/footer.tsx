@@ -1,6 +1,6 @@
 'use client';
 
-import { Twitter, Github, MessageCircle, Globe } from 'lucide-react';
+import { MessageCircle, Globe, AtSign, Code2 } from 'lucide-react';
 import NextLink from 'next/link';
 
 const footerLinks = {
@@ -30,8 +30,8 @@ const footerLinks = {
 };
 
 const socialLinks = [
-  { name: 'Twitter', icon: Twitter, href: '#' },
-  { name: 'GitHub', icon: Github, href: '#' },
+  { name: 'Twitter', icon: AtSign, href: '#' },
+  { name: 'GitHub', icon: Code2, href: '#' },
   { name: 'Discord', icon: MessageCircle, href: '#' },
   { name: 'Website', icon: Globe, href: '#' },
 ];
