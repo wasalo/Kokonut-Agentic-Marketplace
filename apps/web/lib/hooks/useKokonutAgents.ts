@@ -74,8 +74,11 @@ function setCachedAgents(agents: KokonutAgent[], totalCount: number) {
   }
 }
 
-// Fetch agents from 8004scan API
-async function fetchAgentsFromAPI(page: number, limit: number): Promise<any[]> {
+// Fetch agents from 8004scan API with pagination info
+async function fetchAgentsFromAPI(
+  page: number,
+  limit: number
+): Promise<{ agents: any[]; hasMore: boolean; total: number }> {
   try {
     const response = await fetch(
       `${API_BASE}/agents?chainId=11155111&page=${page}&limit=${limit}`,
@@ -92,10 +95,14 @@ async function fetchAgentsFromAPI(page: number, limit: number): Promise<any[]> {
     }
 
     const data = await response.json();
-    return data.data || [];
+    return {
+      agents: data.data || [],
+      hasMore: data.meta?.pagination?.hasMore || false,
+      total: data.meta?.pagination?.total || 0,
+    };
   } catch (error) {
     debugLog('errors', 'Failed to fetch agents from API', error);
-    return [];
+    return { agents: [], hasMore: false, total: 0 };
   }
 }
 
@@ -145,26 +152,45 @@ export function useKokonutAgents(
     setError(null);
 
     try {
-      // Step 1: Fetch agents from API
-      const apiAgents = await fetchAgentsFromAPI(1, 1000); // Get all agents
-      setTotalToScan(apiAgents.length);
+      // Step 1: Fetch ALL agents from API by paginating through all pages
+      const allApiAgents: any[] = [];
+      let currentPage = 1;
+      let hasMorePages = true;
 
-      if (apiAgents.length === 0) {
+      while (hasMorePages && currentPage <= 50) {
+        // Limit to 50 pages (5000 agents) to prevent infinite loops
+        const { agents, hasMore, total } = await fetchAgentsFromAPI(currentPage, 100);
+
+        if (currentPage === 1) {
+          setTotalToScan(total);
+        }
+
+        allApiAgents.push(...agents);
+        hasMorePages = hasMore;
+        currentPage++;
+
+        // Update scanned count to show progress
+        setScannedCount(allApiAgents.length);
+      }
+
+      if (allApiAgents.length === 0) {
         setAllKokonutAgents([]);
         setIsScanning(false);
         return;
       }
 
+      debugLog('contracts', `Fetched ${allApiAgents.length} total agents from API`);
+
       // Step 2: Batch fetch tokenURIs using multicall
       const batchSize = 50; // Process 50 at a time
       const kokonutAgents: KokonutAgent[] = [];
 
-      for (let i = 0; i < apiAgents.length; i += batchSize) {
-        const batch = apiAgents.slice(i, i + batchSize);
+      for (let i = 0; i < allApiAgents.length; i += batchSize) {
+        const batch = allApiAgents.slice(i, i + batchSize);
         const tokenIds = batch.map((agent: any) => BigInt(agent.token_id));
 
         // Create multicall for tokenURIs
-        const calls = tokenIds.map(id => ({
+        const calls = tokenIds.map((id: bigint) => ({
           address: '0x8004A818BFB912233c491871b3d84c89A494BD9e' as `0x${string}`,
           abi: ERC8004_ABI,
           functionName: 'tokenURI' as const,
@@ -200,7 +226,7 @@ export function useKokonutAgents(
           }
         }
 
-        setScannedCount(Math.min(i + batchSize, apiAgents.length));
+        setScannedCount(allApiAgents.length + Math.min(i + batchSize, allApiAgents.length));
       }
 
       setAllKokonutAgents(kokonutAgents);

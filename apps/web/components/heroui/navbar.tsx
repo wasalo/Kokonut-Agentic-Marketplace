@@ -64,6 +64,8 @@ const privateNavLinks = [{ name: 'Dashboard', href: '/dashboard' }];
 const moreLinks = [
   { name: 'Review', href: '/review' },
   { name: 'Skills', href: '/skills' },
+  { name: 'Activity', href: '/activity' },
+  { name: 'Analytics', href: '/analytics' },
   { name: 'About', href: '/about' },
 ];
 
@@ -128,7 +130,7 @@ export function NavbarComponent(): JSX.Element {
             <USDCBalance />
             <div className="hidden sm:block">
               <WalletErrorBoundary>
-                <ConnectButton showBalance={false} chainStatus="icon" accountStatus="avatar" />
+                <ConnectButton />
               </WalletErrorBoundary>
             </div>
 

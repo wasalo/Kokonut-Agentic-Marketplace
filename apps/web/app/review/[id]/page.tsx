@@ -19,13 +19,12 @@ import { Card } from '@heroui/react';
 import { formatEther } from 'viem';
 import {
   useProposal,
-  useProposalEvaluators,
+  useProposalEvaluations,
   useEvaluation,
   useSubmitEvaluation,
   useAttestDecision,
   useClaimReward,
   useReleaseStake,
-  useCancelProposal,
 } from '@/lib/hooks/useProposals';
 
 const PROPOSAL_STATUS: Record<number, string> = {
@@ -45,7 +44,7 @@ export default function ProposalDetailPage({
   const { address } = useAccount();
 
   const { proposal, isLoading, refetch } = useProposal(proposalId);
-  const { evaluators } = useProposalEvaluators(proposalId);
+  const { evaluators } = useProposalEvaluations(proposalId);
   const { evaluation: myEvaluation } = useEvaluation(
     proposalId,
     address ?? '0x0000000000000000000000000000000000000000'
@@ -81,14 +80,10 @@ export default function ProposalDetailPage({
     isPending: isReleasePending,
     error: releaseError,
   } = useReleaseStake();
-  const {
-    cancelProposal,
-    hash: cancelHash,
-    isPending: isCancelPending,
-    error: cancelError,
-  } = useCancelProposal();
+  // NOTE: cancelProposal is not available in current contract ABI
+  // const { cancelProposal, hash: cancelHash, isPending: isCancelPending, error: cancelError } = useCancelProposal();
 
-  const txHash = evalHash || attestHash || claimHash || releaseHash || cancelHash;
+  const txHash = evalHash || attestHash || claimHash || releaseHash;
   const { isSuccess: isTxConfirmed } = useWaitForTransactionReceipt({ hash: txHash });
 
   useEffect(() => {
@@ -98,9 +93,8 @@ export default function ProposalDetailPage({
     }
   }, [isTxConfirmed, txStep, refetch]);
 
-  const anyPending =
-    isEvalPending || isAttestPending || isClaimPending || isReleasePending || isCancelPending;
-  const currentError = evalError || attestError || claimError || releaseError || cancelError;
+  const anyPending = isEvalPending || isAttestPending || isClaimPending || isReleasePending;
+  const currentError = evalError || attestError || claimError || releaseError;
 
   const isProposer =
     proposal && address && proposal.proposer.toLowerCase() === address.toLowerCase();
@@ -157,12 +151,13 @@ export default function ProposalDetailPage({
     releaseStake(proposalId);
   }, [proposalId, releaseStake]);
 
-  const handleCancel = useCallback(() => {
-    if (confirm('Are you sure you want to cancel this proposal? This action cannot be undone.')) {
-      setTxStep('Cancelling proposal');
-      cancelProposal(proposalId);
-    }
-  }, [proposalId, cancelProposal]);
+  // NOTE: cancelProposal is not available in current contract ABI
+  // const handleCancel = useCallback(() => {
+  //   if (confirm('Are you sure you want to cancel this proposal? This action cannot be undone.')) {
+  //     setTxStep('Cancelling proposal');
+  //     cancelProposal(proposalId);
+  //   }
+  // }, [proposalId, cancelProposal]);
 
   return (
     <div className="container mx-auto px-4 py-8">
@@ -220,7 +215,8 @@ export default function ProposalDetailPage({
             </div>
           </div>
 
-          {/* Cancel Proposal (proposer only, Open status) */}
+          {/* Cancel Proposal (proposer only, Open status) - NOT AVAILABLE IN CURRENT CONTRACT */}
+          {/* NOTE: cancelProposal function is not in the current AgentReview ABI
           {isProposer && proposal.status === 0 && (
             <div className="mt-4 pt-4 border-t border-divider">
               <button
@@ -235,7 +231,7 @@ export default function ProposalDetailPage({
                 Cancel and refund your staked ETH
               </p>
             </div>
-          )}
+          )} */}
         </Card>
 
         {/* Transaction Status */}

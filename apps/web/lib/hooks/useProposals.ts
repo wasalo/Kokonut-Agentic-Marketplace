@@ -1,59 +1,572 @@
 'use client';
 
-import { useState, useEffect } from 'react';
+import { useState, useEffect, useCallback } from 'react';
+import { useReadContract, useWriteContract, usePublicClient } from 'wagmi';
+import { AGENT_REVIEW_ABI } from '@/lib/contracts/abis';
+import { CONTRACT_ADDRESSES, getContractAddress, debugLog } from '@/lib/contracts/config';
+import { debugError } from '@/lib/debug';
+import { getQueryConfig } from '@/lib/queryConfig';
+
+const AGENT_REVIEW_ADDRESS = getContractAddress(
+  process.env.NEXT_PUBLIC_AGENT_REVIEW_ADDRESS,
+  CONTRACT_ADDRESSES.sepolia.agentReview
+);
 
 export interface Proposal {
   id: bigint;
+  proposer: `0x${string}`;
   title: string;
   description: string;
-  proposer: string;
-  optionA: string;
-  optionB: string;
+  criteriaURI: string;
   reward: bigint;
-  deadline: bigint;
   status: number;
-  winningOption: number;
-  totalStake: bigint;
+  createdAt: bigint;
+  decisionDeadline: bigint;
+  winningEvaluator: `0x${string}`;
+}
+
+export interface ReviewStats {
+  totalProposals: number;
+  activeProposals: number;
+  completedProposals: number;
+  totalRewards: bigint;
+  totalEvaluations: number;
+}
+
+// Proposal Status Enum
+export const ProposalStatus = {
+  Open: 0,
+  UnderReview: 1,
+  Decided: 2,
+  Cancelled: 3,
+} as const;
+
+export function getProposalStatusLabel(status: number): string {
+  switch (status) {
+    case ProposalStatus.Open:
+      return 'Open';
+    case ProposalStatus.UnderReview:
+      return 'Under Review';
+    case ProposalStatus.Decided:
+      return 'Decided';
+    case ProposalStatus.Cancelled:
+      return 'Cancelled';
+    default:
+      return 'Unknown';
+  }
+}
+
+export function getProposalStatusColor(status: number): string {
+  switch (status) {
+    case ProposalStatus.Open:
+      return 'success';
+    case ProposalStatus.UnderReview:
+      return 'warning';
+    case ProposalStatus.Decided:
+      return 'primary';
+    case ProposalStatus.Cancelled:
+      return 'danger';
+    default:
+      return 'default';
+  }
+}
+
+function mapProposalData(id: bigint, data: unknown): Proposal | null {
+  if (!data) {
+    console.error('[mapProposalData] Error: data is null/undefined');
+    return null;
+  }
+
+  // Handle object format (viem returns object when ABI defines struct/tuple)
+  if (typeof data === 'object' && !Array.isArray(data)) {
+    const obj = data as Record<string, unknown>;
+
+    if ('proposer' in obj && 'title' in obj) {
+      return {
+        id,
+        proposer: obj.proposer as `0x${string}`,
+        title: (obj.title as string) || '',
+        description: (obj.description as string) || '',
+        criteriaURI: (obj.criteriaURI as string) || '',
+        reward: (obj.reward as bigint) || BigInt(0),
+        status: Number(obj.status || 0),
+        createdAt: (obj.createdAt as bigint) || BigInt(0),
+        decisionDeadline: (obj.decisionDeadline as bigint) || BigInt(0),
+        winningEvaluator: obj.winningEvaluator as `0x${string}`,
+      };
+    }
+
+    console.error('[mapProposalData] Error: Object format missing expected properties', obj);
+    return null;
+  }
+
+  // Handle array format
+  if (Array.isArray(data) && data.length >= 10) {
+    const [
+      proposalId,
+      proposer,
+      title,
+      description,
+      criteriaURI,
+      reward,
+      status,
+      createdAt,
+      decisionDeadline,
+      winningEvaluator,
+    ] = data;
+
+    return {
+      id,
+      proposer: proposer as `0x${string}`,
+      title: title || '',
+      description: description || '',
+      criteriaURI: criteriaURI || '',
+      reward: reward || BigInt(0),
+      status: Number(status || 0),
+      createdAt: createdAt || BigInt(0),
+      decisionDeadline: decisionDeadline || BigInt(0),
+      winningEvaluator: winningEvaluator as `0x${string}`,
+    };
+  }
+
+  console.error('[mapProposalData] Error: Unknown data format', data);
+  return null;
 }
 
 export function useProposalCount() {
-  const [count, setCount] = useState<number>(0);
+  const config = getQueryConfig('stats');
+
+  const { data, isLoading, error, refetch } = useReadContract({
+    address: AGENT_REVIEW_ADDRESS,
+    abi: AGENT_REVIEW_ABI,
+    functionName: 'getProposalCount',
+    query: {
+      retry: 2,
+      staleTime: config.staleTime,
+      gcTime: config.gcTime,
+    },
+  });
+
+  return {
+    count: data ? Number(data) : 0,
+    isLoading,
+    error,
+    refetch,
+  };
+}
+
+export function useReviewStats() {
+  const { count: totalProposals, isLoading: isCountLoading } = useProposalCount();
+  const publicClient = usePublicClient();
+  const [stats, setStats] = useState<ReviewStats>({
+    totalProposals: 0,
+    activeProposals: 0,
+    completedProposals: 0,
+    totalRewards: BigInt(0),
+    totalEvaluations: 0,
+  });
   const [isLoading, setIsLoading] = useState(true);
+  const [error, setError] = useState<Error | null>(null);
+
+  const fetchStats = useCallback(async () => {
+    if (!publicClient || totalProposals === 0) {
+      setStats({
+        totalProposals: 0,
+        activeProposals: 0,
+        completedProposals: 0,
+        totalRewards: BigInt(0),
+        totalEvaluations: 0,
+      });
+      setIsLoading(false);
+      return;
+    }
+
+    setIsLoading(true);
+    setError(null);
+
+    try {
+      debugLog('contracts', `useReviewStats: Fetching stats for ${totalProposals} proposals`);
+
+      // Fetch all proposals to calculate stats
+      const proposalCalls = Array.from({ length: Math.min(totalProposals, 100) }, (_, i) => ({
+        address: AGENT_REVIEW_ADDRESS,
+        abi: AGENT_REVIEW_ABI,
+        functionName: 'getProposal' as const,
+        args: [BigInt(i + 1)],
+      }));
+
+      const proposalResults = await publicClient.multicall({ contracts: proposalCalls });
+
+      let activeCount = 0;
+      let completedCount = 0;
+      let totalRewards = BigInt(0);
+
+      proposalResults.forEach((result, index) => {
+        if (result.status === 'success' && result.result) {
+          const proposal = mapProposalData(BigInt(index + 1), result.result);
+          if (proposal) {
+            totalRewards += proposal.reward;
+            if (
+              proposal.status === ProposalStatus.Open ||
+              proposal.status === ProposalStatus.UnderReview
+            ) {
+              activeCount++;
+            } else if (proposal.status === ProposalStatus.Decided) {
+              completedCount++;
+            }
+          }
+        }
+      });
+
+      // Fetch evaluations count for each proposal
+      const evaluationCalls = Array.from({ length: Math.min(totalProposals, 100) }, (_, i) => ({
+        address: AGENT_REVIEW_ADDRESS,
+        abi: AGENT_REVIEW_ABI,
+        functionName: 'getProposalEvaluations' as const,
+        args: [BigInt(i + 1)],
+      }));
+
+      const evaluationResults = await publicClient.multicall({ contracts: evaluationCalls });
+
+      let totalEvaluations = 0;
+      evaluationResults.forEach(result => {
+        if (result.status === 'success' && result.result) {
+          const evaluators = result.result as `0x${string}`[];
+          totalEvaluations += evaluators.length;
+        }
+      });
+
+      const statsData = {
+        totalProposals,
+        activeProposals: activeCount,
+        completedProposals: completedCount,
+        totalRewards,
+        totalEvaluations,
+      };
+
+      debugLog('contracts', 'useReviewStats: Stats calculated', statsData);
+      setStats(statsData);
+    } catch (err) {
+      debugError('contracts', 'useReviewStats: Error fetching stats', err);
+      setError(err instanceof Error ? err : new Error('Failed to fetch stats'));
+    } finally {
+      setIsLoading(false);
+    }
+  }, [totalProposals, publicClient]);
 
   useEffect(() => {
-    setCount(0);
-    setIsLoading(false);
-  }, []);
+    fetchStats();
+  }, [fetchStats]);
 
-  return { count, isLoading };
+  return {
+    stats,
+    isLoading: isLoading || isCountLoading,
+    error,
+    refetch: fetchStats,
+  };
 }
 
 export function useProposals(offset: number = 0, limit: number = 20) {
+  const { count: totalCount, isLoading: isCountLoading } = useProposalCount();
+  const publicClient = usePublicClient();
   const [proposals, setProposals] = useState<Proposal[]>([]);
   const [isLoading, setIsLoading] = useState(true);
   const [error, setError] = useState<Error | null>(null);
 
-  useEffect(() => {
-    setProposals([]);
-    setIsLoading(false);
-  }, [offset, limit]);
-
-  return { proposals, isLoading, error };
-}
-
-export function useProposal(id: bigint | undefined) {
-  const [proposal, setProposal] = useState<Proposal | null>(null);
-  const [isLoading, setIsLoading] = useState(true);
-  const [error, setError] = useState<Error | null>(null);
-
-  useEffect(() => {
-    if (!id) {
+  const fetchProposals = useCallback(async () => {
+    if (!publicClient || totalCount === 0) {
+      setProposals([]);
       setIsLoading(false);
       return;
     }
-    setProposal(null);
-    setIsLoading(false);
-  }, [id]);
 
-  return { proposal, isLoading, error };
+    setIsLoading(true);
+    setError(null);
+
+    try {
+      debugLog('contracts', `useProposals: Fetching proposals from ${offset} to ${offset + limit}`);
+
+      // Calculate actual range (proposals are 1-indexed)
+      const startId = Math.max(1, totalCount - offset);
+      const endId = Math.max(1, startId - limit + 1);
+
+      const calls = [];
+      for (let i = startId; i >= endId; i--) {
+        calls.push({
+          address: AGENT_REVIEW_ADDRESS,
+          abi: AGENT_REVIEW_ABI,
+          functionName: 'getProposal' as const,
+          args: [BigInt(i)],
+        });
+      }
+
+      const results = await publicClient.multicall({ contracts: calls });
+
+      const mappedProposals: Proposal[] = [];
+      results.forEach((result, index) => {
+        if (result.status === 'success' && result.result) {
+          const proposalId = BigInt(startId - index);
+          const proposal = mapProposalData(proposalId, result.result);
+          if (proposal) {
+            mappedProposals.push(proposal);
+          }
+        }
+      });
+
+      debugLog('contracts', `useProposals: Mapped ${mappedProposals.length} proposals`);
+      setProposals(mappedProposals);
+    } catch (err) {
+      debugError('contracts', 'useProposals: Error fetching proposals', err);
+      setError(err instanceof Error ? err : new Error('Failed to fetch proposals'));
+      setProposals([]);
+    } finally {
+      setIsLoading(false);
+    }
+  }, [totalCount, offset, limit, publicClient]);
+
+  useEffect(() => {
+    fetchProposals();
+  }, [fetchProposals]);
+
+  return {
+    proposals,
+    totalCount,
+    isLoading: isLoading || isCountLoading,
+    error,
+    refetch: fetchProposals,
+  };
+}
+
+export function useProposal(id: bigint | undefined) {
+  const { data, isLoading, error, refetch } = useReadContract({
+    address: AGENT_REVIEW_ADDRESS,
+    abi: AGENT_REVIEW_ABI,
+    functionName: 'getProposal',
+    args: id ? [id] : undefined,
+    query: {
+      enabled: !!id,
+      retry: 2,
+    },
+  });
+
+  const proposal = id && data ? mapProposalData(id, data) : null;
+
+  return {
+    proposal,
+    isLoading,
+    error,
+    refetch,
+  };
+}
+
+export function useCreateProposal() {
+  const { writeContract, isPending, error, reset, data: hash } = useWriteContract();
+
+  const createProposal = useCallback(
+    (
+      title: string,
+      description: string,
+      criteriaURI: string,
+      reward: bigint,
+      decisionDeadline: bigint
+    ) => {
+      debugLog('contracts', 'useCreateProposal: Creating proposal', {
+        title,
+        reward: reward.toString(),
+        decisionDeadline: decisionDeadline.toString(),
+      });
+
+      writeContract({
+        address: AGENT_REVIEW_ADDRESS,
+        abi: AGENT_REVIEW_ABI,
+        functionName: 'createProposal',
+        args: [title, description, criteriaURI, reward, decisionDeadline],
+        value: reward, // Must send ETH equal to reward
+      });
+    },
+    [writeContract]
+  );
+
+  return {
+    createProposal,
+    hash,
+    isPending,
+    error,
+    reset,
+  };
+}
+
+export function useSubmitEvaluation() {
+  const { writeContract, isPending, error, reset, data: hash } = useWriteContract();
+
+  const submitEvaluation = useCallback(
+    (proposalId: bigint, confidenceScore: bigint, reasoningURI: string, stakeAmount: bigint) => {
+      debugLog('contracts', 'useSubmitEvaluation: Submitting evaluation', {
+        proposalId: proposalId.toString(),
+        confidenceScore: confidenceScore.toString(),
+        stakeAmount: stakeAmount.toString(),
+      });
+
+      writeContract({
+        address: AGENT_REVIEW_ADDRESS,
+        abi: AGENT_REVIEW_ABI,
+        functionName: 'submitEvaluation',
+        args: [proposalId, confidenceScore, reasoningURI],
+        value: stakeAmount,
+      });
+    },
+    [writeContract]
+  );
+
+  return {
+    submitEvaluation,
+    hash,
+    isPending,
+    error,
+    reset,
+  };
+}
+
+export function useAttestDecision() {
+  const { writeContract, isPending, error, reset, data: hash } = useWriteContract();
+
+  const attestDecision = useCallback(
+    (proposalId: bigint, winningEvaluator: `0x${string}`) => {
+      debugLog('contracts', 'useAttestDecision: Attesting decision', {
+        proposalId: proposalId.toString(),
+        winningEvaluator,
+      });
+
+      writeContract({
+        address: AGENT_REVIEW_ADDRESS,
+        abi: AGENT_REVIEW_ABI,
+        functionName: 'attestDecision',
+        args: [proposalId, winningEvaluator],
+      });
+    },
+    [writeContract]
+  );
+
+  return {
+    attestDecision,
+    hash,
+    isPending,
+    error,
+    reset,
+  };
+}
+
+// NOTE: cancelProposal function is not available in the current contract ABI
+// This would need to be added to the AgentReview contract
+// export function useCancelProposal() { ... }
+
+export function useClaimReward() {
+  const { writeContract, isPending, error, reset, data: hash } = useWriteContract();
+
+  const claimReward = useCallback(
+    (proposalId: bigint) => {
+      debugLog('contracts', 'useClaimReward: Claiming reward', {
+        proposalId: proposalId.toString(),
+      });
+
+      writeContract({
+        address: AGENT_REVIEW_ADDRESS,
+        abi: AGENT_REVIEW_ABI,
+        functionName: 'claimReward',
+        args: [proposalId],
+      });
+    },
+    [writeContract]
+  );
+
+  return {
+    claimReward,
+    hash,
+    isPending,
+    error,
+    reset,
+  };
+}
+
+export function useReleaseStake() {
+  const { writeContract, isPending, error, reset, data: hash } = useWriteContract();
+
+  const releaseStake = useCallback(
+    (proposalId: bigint) => {
+      debugLog('contracts', 'useReleaseStake: Releasing stake', {
+        proposalId: proposalId.toString(),
+      });
+
+      writeContract({
+        address: AGENT_REVIEW_ADDRESS,
+        abi: AGENT_REVIEW_ABI,
+        functionName: 'releaseStake',
+        args: [proposalId],
+      });
+    },
+    [writeContract]
+  );
+
+  return {
+    releaseStake,
+    hash,
+    isPending,
+    error,
+    reset,
+  };
+}
+
+export function useProposalEvaluations(proposalId: bigint | undefined) {
+  const { data, isLoading, error, refetch } = useReadContract({
+    address: AGENT_REVIEW_ADDRESS,
+    abi: AGENT_REVIEW_ABI,
+    functionName: 'getProposalEvaluations',
+    args: proposalId ? [proposalId] : undefined,
+    query: {
+      enabled: !!proposalId,
+      retry: 2,
+    },
+  });
+
+  return {
+    evaluators: (data as `0x${string}`[]) || [],
+    isLoading,
+    error,
+    refetch,
+  };
+}
+
+export function useEvaluation(
+  proposalId: bigint | undefined,
+  evaluator: `0x${string}` | undefined
+) {
+  const { data, isLoading, error, refetch } = useReadContract({
+    address: AGENT_REVIEW_ADDRESS,
+    abi: AGENT_REVIEW_ABI,
+    functionName: 'getEvaluation',
+    args: proposalId && evaluator ? [proposalId, evaluator] : undefined,
+    query: {
+      enabled: !!proposalId && !!evaluator,
+      retry: 2,
+    },
+  });
+
+  const evaluation = data
+    ? {
+        proposalId: (data as any)[0],
+        evaluator: (data as any)[1],
+        confidenceScore: (data as any)[2],
+        reasoningURI: (data as any)[3],
+        stakeAmount: (data as any)[4],
+        isFinal: (data as any)[5],
+        submittedAt: (data as any)[6],
+      }
+    : null;
+
+  return {
+    evaluation,
+    isLoading,
+    error,
+    refetch,
+  };
 }
