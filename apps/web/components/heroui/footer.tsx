@@ -30,10 +30,10 @@ const footerLinks = {
 };
 
 const socialLinks = [
-  { name: 'Twitter', icon: AtSign, href: '#' },
-  { name: 'GitHub', icon: Code2, href: '#' },
-  { name: 'Discord', icon: MessageCircle, href: '#' },
-  { name: 'Website', icon: Globe, href: '#' },
+  { name: 'Website', icon: Globe, href: 'https://kokonut.network' },
+  { name: 'GitHub', icon: Code2, href: 'https://github.com/wasalo/Kokonut-Agentic-Marketplace' },
+  { name: 'Twitter', icon: AtSign, href: 'https://x.com/KokonutNetwork' },
+  { name: 'Discord', icon: MessageCircle, href: 'https://link.kokonut.network/discord' },
 ];
 
 export function Footer(): JSX.Element {
