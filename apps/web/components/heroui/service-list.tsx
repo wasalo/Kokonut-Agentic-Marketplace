@@ -43,9 +43,14 @@ function ServiceCard({ service }: { service: Service }) {
   const usdcAmount = Number(service.price) / 1e6;
   const usdValue = priceInUsd ? usdcAmount * (Number(priceInUsd) / 1e8) : null;
 
+  const handlePurchase = (e: React.MouseEvent) => {
+    e.stopPropagation();
+    window.location.href = `/jobs/create?serviceId=${service.id}&provider=${service.provider}`;
+  };
+
   return (
-    <NextLink href={`/marketplace/${service.id.toString()}`}>
-      <Card className="border border-divider p-6 hover:border-success transition-colors cursor-pointer h-full">
+    <Card className="border border-divider p-6 hover:border-success transition-colors cursor-pointer h-full relative group">
+      <NextLink href={`/marketplace/${service.id.toString()}`} className="block">
         <div className="flex justify-between items-start mb-3">
           <h3 className="font-semibold text-lg">{service.name}</h3>
           <StatusBadge status={getServiceStatusBadgeType(service.isActive)} size="sm" />
@@ -66,8 +71,16 @@ function ServiceCard({ service }: { service: Service }) {
             )}
           </div>
         </div>
-      </Card>
-    </NextLink>
+      </NextLink>
+      {service.isActive && (
+        <button
+          onClick={handlePurchase}
+          className="absolute bottom-4 right-4 inline-flex items-center gap-2 px-4 py-2 bg-gradient-to-r from-[#009F4D] to-[#00c853] text-white rounded-lg font-medium text-sm hover:opacity-90 transition-opacity opacity-0 group-hover:opacity-100"
+        >
+          Purchase
+        </button>
+      )}
+    </Card>
   );
 }
 

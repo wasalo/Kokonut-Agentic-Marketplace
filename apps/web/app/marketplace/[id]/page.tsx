@@ -20,6 +20,7 @@ import { formatUnits } from 'viem';
 import { useUpdateService, useDeactivateService } from '@/lib/hooks/useServices';
 import { useServiceContract } from '@/lib/hooks/useServicesContract';
 import { useAgentReputation } from '@/lib/hooks/useReputation';
+import { showToast, getTransactionError } from '@/lib/toast';
 
 export default function ServiceDetailPage({
   params,
@@ -160,8 +161,20 @@ export default function ServiceDetailPage({
                   </button>
                   <button
                     onClick={async () => {
-                      await deactivateService(serviceId);
-                      refetch();
+                      try {
+                        const toastId = showToast.loading('Deactivating service...');
+                        await deactivateService(serviceId);
+                        showToast.dismiss(toastId);
+                        showToast.success(
+                          'Service deactivated',
+                          'Your service has been deactivated.'
+                        );
+                        refetch();
+                      } catch (err) {
+                        const errorMessage = getTransactionError(err);
+                        showToast.error('Deactivation failed', errorMessage);
+                        console.error('[DeactivateService] Error:', err);
+                      }
                     }}
                     disabled={isDeactivatePending}
                     className="flex items-center gap-2 px-4 py-2 text-sm text-danger border border-danger/30 rounded-lg hover:bg-danger/5 disabled:opacity-50"
@@ -298,7 +311,7 @@ export default function ServiceDetailPage({
                 </p>
               </div>
               <NextLink
-                href={`/jobs/create?serviceId=${service.id}`}
+                href={`/jobs/create?serviceId=${service.id}&provider=${service.provider}`}
                 className="inline-flex items-center gap-2 px-6 py-3 bg-gradient-to-r from-[#009F4D] to-[#00c853] text-white rounded-lg font-medium hover:opacity-90 transition-opacity whitespace-nowrap"
               >
                 <ShieldCheck className="w-4 h-4" />

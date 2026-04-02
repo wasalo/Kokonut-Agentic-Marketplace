@@ -1,6 +1,6 @@
 'use client';
 
-import { useState, useCallback, Suspense } from 'react';
+import { useState, useCallback, Suspense, useEffect } from 'react';
 import { useAccount, useWaitForTransactionReceipt } from 'wagmi';
 import { useRouter, useSearchParams } from 'next/navigation';
 import { ArrowLeft, Loader2, CheckCircle2, ShieldCheck, AlertTriangle } from 'lucide-react';
@@ -29,6 +29,7 @@ function CreateJobContent() {
   const router = useRouter();
   const searchParams = useSearchParams();
   const serviceIdParam = searchParams.get('serviceId');
+  const providerParam = searchParams.get('provider');
   const { isConnected, address } = useAccount();
 
   const serviceId = serviceIdParam ? BigInt(serviceIdParam) : undefined;
@@ -43,11 +44,20 @@ function CreateJobContent() {
     remainingJobs,
   } = useClientJobCount(address);
 
-  // Form state
+  // Form state - auto-fill provider from URL param or service data
   const [provider, setProvider] = useState('');
   const [evaluator, setEvaluator] = useState('');
   const [deadline, setDeadline] = useState('');
   const [description, setDescription] = useState('');
+
+  // Auto-fill provider when service loads or from URL param
+  useEffect(() => {
+    if (providerParam) {
+      setProvider(providerParam);
+    } else if (service?.provider && !provider) {
+      setProvider(service.provider);
+    }
+  }, [providerParam, service?.provider, provider]);
 
   // Validation state
   const [providerError, setProviderError] = useState<string | null>(null);
@@ -146,6 +156,12 @@ function CreateJobContent() {
       // Validate description
       if (description) {
         isValid = validateDescriptionField(description) && isValid;
+      }
+
+      // Validate service budget (prevent zero-budget jobs)
+      if (serviceId && service && Number(service.price) === 0) {
+        setProviderError('Service has a price of 0. Cannot create job.');
+        isValid = false;
       }
 
       if (!isValid) {
@@ -258,6 +274,15 @@ function CreateJobContent() {
                 <p className="text-sm text-default-500 mt-0.5">{service.description}</p>
                 <p className="text-xs text-default-400 mt-1">
                   Provider: {service.provider.slice(0, 6)}...{service.provider.slice(-4)}
+                </p>
+                <p className="text-xs text-default-400 mt-1">
+                  Job Budget:{' '}
+                  <span className="text-success font-medium">
+                    ${(Number(service.price) / 1e6).toFixed(2)} USDC
+                  </span>
+                  {Number(service.price) === 0 && (
+                    <span className="text-danger ml-2">(Warning: Service price is 0)</span>
+                  )}
                 </p>
               </div>
               <div className="text-right">
