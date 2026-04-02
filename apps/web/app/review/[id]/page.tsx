@@ -80,11 +80,35 @@ export default function ProposalDetailPage({
     isPending: isReleasePending,
     error: releaseError,
   } = useReleaseStake();
-  // NOTE: cancelProposal is not available in current contract ABI
-  // const { cancelProposal, hash: cancelHash, isPending: isCancelPending, error: cancelError } = useCancelProposal();
 
   const txHash = evalHash || attestHash || claimHash || releaseHash;
   const { isSuccess: isTxConfirmed } = useWaitForTransactionReceipt({ hash: txHash });
+
+  const handleSubmitEvaluation = useCallback(() => {
+    setTxStep('Submitting evaluation');
+    submitEvaluation(
+      proposalId,
+      BigInt(score),
+      reasoning || '',
+      BigInt(Math.floor(parseFloat(stake) * 1e18))
+    );
+  }, [proposalId, score, reasoning, stake, submitEvaluation]);
+
+  const handleAttest = useCallback(() => {
+    if (!selectedWinner) return;
+    setTxStep('Attesting decision');
+    attestDecision(proposalId, selectedWinner as `0x${string}`);
+  }, [proposalId, selectedWinner, attestDecision]);
+
+  const handleClaim = useCallback(() => {
+    setTxStep('Claiming reward');
+    claimReward(proposalId);
+  }, [proposalId, claimReward]);
+
+  const handleRelease = useCallback(() => {
+    setTxStep('Releasing stake');
+    releaseStake(proposalId);
+  }, [proposalId, releaseStake]);
 
   useEffect(() => {
     if (isTxConfirmed && txStep) {
@@ -124,32 +148,6 @@ export default function ProposalDetailPage({
       </div>
     );
   }
-
-  const handleSubmitEvaluation = useCallback(() => {
-    setTxStep('Submitting evaluation');
-    submitEvaluation(
-      proposalId,
-      BigInt(score),
-      reasoning || '',
-      BigInt(Math.floor(parseFloat(stake) * 1e18))
-    );
-  }, [proposalId, score, reasoning, stake, submitEvaluation]);
-
-  const handleAttest = useCallback(() => {
-    if (!selectedWinner) return;
-    setTxStep('Attesting decision');
-    attestDecision(proposalId, selectedWinner as `0x${string}`);
-  }, [proposalId, selectedWinner, attestDecision]);
-
-  const handleClaim = useCallback(() => {
-    setTxStep('Claiming reward');
-    claimReward(proposalId);
-  }, [proposalId, claimReward]);
-
-  const handleRelease = useCallback(() => {
-    setTxStep('Releasing stake');
-    releaseStake(proposalId);
-  }, [proposalId, releaseStake]);
 
   // NOTE: cancelProposal is not available in current contract ABI
   // const handleCancel = useCallback(() => {

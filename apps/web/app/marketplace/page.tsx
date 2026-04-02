@@ -62,7 +62,6 @@ function FilterSection({
   setMaxPrice,
   skillDomain,
   setSkillDomain,
-  onApplyFilters,
   hasActiveFilters,
   isSearching,
 }: {
@@ -76,7 +75,6 @@ function FilterSection({
   setMaxPrice: (v: string) => void;
   skillDomain: string;
   setSkillDomain: (v: string) => void;
-  onApplyFilters: () => void;
   hasActiveFilters: boolean;
   isSearching: boolean;
 }) {
@@ -205,15 +203,6 @@ function FilterSection({
             >
               Reset
             </button>
-            <button
-              onClick={() => {
-                onApplyFilters();
-                setIsExpanded(false);
-              }}
-              className="px-4 py-2 bg-gradient-to-r from-[#009F4D] to-[#00c853] text-white rounded-lg font-medium hover:opacity-90 transition-opacity text-sm"
-            >
-              Apply Filters
-            </button>
           </div>
         </div>
       )}
@@ -260,7 +249,7 @@ export default function MarketplacePage(): JSX.Element {
   const { services: allServices, isLoading: isServicesLoading } = useAllServices();
   const activeServicesCount = allServices.length;
 
-  // Filter states (input values)
+  // Filter states (all reactive - filters apply immediately like review page)
   const [searchQuery, setSearchQuery] = useState('');
   const [debouncedSearchQuery, setDebouncedSearchQuery] = useState('');
   const [showActiveOnly, setShowActiveOnly] = useState(true);
@@ -279,31 +268,6 @@ export default function MarketplacePage(): JSX.Element {
     setIsSearching(true);
     debouncedSearch(searchQuery);
   }, [searchQuery, debouncedSearch]);
-
-  // Applied filters (only update when Apply Filters is clicked for price/status)
-  const [appliedFilters, setAppliedFilters] = useState({
-    searchQuery: '',
-    showActiveOnly: true,
-    minPrice: '',
-    maxPrice: '',
-    skillDomain: '',
-  });
-
-  // Update search filter immediately when debounced value changes
-  useEffect(() => {
-    setAppliedFilters(prev => ({
-      ...prev,
-      searchQuery: debouncedSearchQuery,
-    }));
-  }, [debouncedSearchQuery]);
-
-  // Update skill domain filter immediately when changed
-  useEffect(() => {
-    setAppliedFilters(prev => ({
-      ...prev,
-      skillDomain,
-    }));
-  }, [skillDomain]);
 
   // URL-based sorting
   const sortBy = searchParams.get('sort') || 'newest';
@@ -325,16 +289,6 @@ export default function MarketplacePage(): JSX.Element {
     minPrice !== '' ||
     maxPrice !== '' ||
     skillDomain !== '';
-
-  const handleApplyFilters = () => {
-    setAppliedFilters({
-      searchQuery,
-      showActiveOnly,
-      minPrice,
-      maxPrice,
-      skillDomain,
-    });
-  };
 
   return (
     <div className="container mx-auto px-4 py-8">
@@ -373,7 +327,6 @@ export default function MarketplacePage(): JSX.Element {
         setMaxPrice={setMaxPrice}
         skillDomain={skillDomain}
         setSkillDomain={setSkillDomain}
-        onApplyFilters={handleApplyFilters}
         hasActiveFilters={hasActiveFilters}
         isSearching={isSearching}
       />
@@ -402,11 +355,11 @@ export default function MarketplacePage(): JSX.Element {
       </div>
 
       <ServiceList
-        searchQuery={appliedFilters.searchQuery}
-        showActiveOnly={appliedFilters.showActiveOnly}
-        minPrice={appliedFilters.minPrice}
-        maxPrice={appliedFilters.maxPrice}
-        skillDomain={appliedFilters.skillDomain}
+        searchQuery={debouncedSearchQuery}
+        showActiveOnly={showActiveOnly}
+        minPrice={minPrice}
+        maxPrice={maxPrice}
+        skillDomain={skillDomain}
         sortBy={sortBy}
         sortOrder={sortOrder}
       />

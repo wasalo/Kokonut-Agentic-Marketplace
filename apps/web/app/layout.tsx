@@ -32,7 +32,7 @@ export default function RootLayout({
     <html lang="en" className="dark" suppressHydrationWarning>
       <head>
         {/* Crypto polyfill MUST run before any other JavaScript */}
-        <script src="/crypto-polyfill.js" />
+        <Script src="/crypto-polyfill.js" strategy="beforeInteractive" />
       </head>
       <body className={inter.className} suppressHydrationWarning>
         <ClientErrorBoundary>
