@@ -13,9 +13,9 @@ import {
   TrendingUp,
   Star,
   CheckCircle2,
+  Activity,
+  Plus,
 } from 'lucide-react';
-import { useKokonutStats } from '@/lib/hooks/useKokonutStats';
-import { useActiveServiceCount } from '@/lib/hooks/useServices';
 import { useJobCount } from '@/lib/hooks/useJobs';
 
 const features = [
@@ -61,50 +61,70 @@ const features = [
 ];
 
 function StatsSection() {
-  const { totalAgents, isLoading: isAgentsLoading } = useKokonutStats();
-  const { count: activeServices, isLoading: isServicesLoading } = useActiveServiceCount();
   const { count: totalJobs, isLoading: isJobsLoading } = useJobCount();
 
+  // Only show jobs count (working reliably), use CTAs for others
   const stats = [
     {
-      label: 'Agents Registered',
-      value: totalAgents ?? 0,
+      label: 'Browse Agents',
+      value: 'Explore',
       icon: Shield,
-      isLoading: isAgentsLoading,
+      href: '/identity',
+      isCta: true,
     },
     {
-      label: 'Services Listed',
-      value: activeServices ?? 0,
+      label: 'Find Services',
+      value: 'Discover',
       icon: DollarSign,
-      isLoading: isServicesLoading,
+      href: '/marketplace',
+      isCta: true,
     },
-    { label: 'Jobs Created', value: totalJobs ?? 0, icon: TrendingUp, isLoading: isJobsLoading },
-    { label: 'Network', value: 'Sepolia', icon: Globe, isLoading: false },
+    {
+      label: 'Jobs Created',
+      value: isJobsLoading ? '...' : (totalJobs ?? 0),
+      icon: TrendingUp,
+      href: '/jobs',
+      isLoading: isJobsLoading,
+    },
+    {
+      label: 'Network',
+      value: 'Sepolia',
+      icon: Globe,
+      href: 'https://sepolia.etherscan.io',
+      isExternal: true,
+    },
   ];
 
-  const links = ['/identity', '/marketplace', '/jobs', 'https://sepolia.etherscan.io'];
-
   return (
-    <div className="grid grid-cols-2 md:grid-cols-4 gap-6 max-w-3xl mx-auto">
-      {stats.map((stat, index) => {
-        const link = links[index];
-        const isExternal = link.startsWith('http');
-        const Wrapper = isExternal ? 'a' : NextLink;
-        const wrapperProps = isExternal
-          ? { href: link, target: '_blank', rel: 'noopener noreferrer' }
-          : { href: link };
+    <div className="grid grid-cols-2 md:grid-cols-4 gap-6 max-w-4xl mx-auto">
+      {stats.map(stat => {
+        const Wrapper = stat.isExternal ? 'a' : NextLink;
+        const wrapperProps = stat.isExternal
+          ? { href: stat.href, target: '_blank', rel: 'noopener noreferrer' }
+          : { href: stat.href };
 
         return (
-          <Wrapper key={stat.label} {...wrapperProps} className="text-center group cursor-pointer">
-            <stat.icon className="w-6 h-6 mx-auto mb-2 text-[#009F4D] group-hover:scale-110 transition-transform" />
+          <Wrapper
+            key={stat.label}
+            {...wrapperProps}
+            className="text-center group cursor-pointer bg-content border border-divider rounded-xl p-6 hover:border-success/50 hover:shadow-lg transition-all"
+          >
+            <div className="w-12 h-12 mx-auto mb-3 rounded-xl bg-gradient-to-br from-[#009F4D] to-[#00c853] flex items-center justify-center group-hover:scale-110 transition-transform">
+              <stat.icon className="w-6 h-6 text-white" />
+            </div>
             {stat.isLoading ? (
               <div className="h-8 w-16 bg-content3 rounded animate-pulse mx-auto" />
+            ) : stat.isCta ? (
+              <div className="flex items-center justify-center gap-2">
+                <span className="text-xl font-bold text-success">{stat.value}</span>
+                <ArrowRight className="w-4 h-4 text-success opacity-0 group-hover:opacity-100 transition-opacity" />
+              </div>
             ) : (
               <div className="text-2xl md:text-3xl font-bold text-foreground group-hover:text-[#009F4D] transition-colors">
-                {stat.value.toLocaleString()}
+                {typeof stat.value === 'number' ? stat.value.toLocaleString() : stat.value}
               </div>
             )}
-            <div className="text-sm text-default-500 group-hover:text-foreground transition-colors">
+            <div className="text-sm text-default-500 group-hover:text-foreground transition-colors mt-1">
               {stat.label}
             </div>
           </Wrapper>
@@ -217,6 +237,54 @@ export default function HomePage(): JSX.Element {
 
             {/* Stats */}
             <StatsSection />
+          </div>
+        </div>
+      </section>
+
+      {/* Quick Actions */}
+      <section className="py-16 px-4 bg-content2/30 border-y border-divider">
+        <div className="container mx-auto">
+          <div className="text-center mb-10">
+            <h2 className="text-2xl font-bold mb-2">Quick Actions</h2>
+            <p className="text-default-600">Get started with the most common tasks</p>
+          </div>
+          <div className="grid grid-cols-2 md:grid-cols-4 gap-4 max-w-4xl mx-auto">
+            <NextLink href="/identity/register" className="group">
+              <Card className="border border-divider p-6 text-center hover:border-success/50 hover:shadow-lg transition-all h-full">
+                <div className="w-12 h-12 mx-auto mb-3 rounded-xl bg-gradient-to-br from-[#009F4D] to-[#00c853] flex items-center justify-center group-hover:scale-110 transition-transform">
+                  <Plus className="w-6 h-6 text-white" />
+                </div>
+                <h3 className="font-semibold mb-1">Register Agent</h3>
+                <p className="text-sm text-default-500">Create your agent identity</p>
+              </Card>
+            </NextLink>
+            <NextLink href="/marketplace/create" className="group">
+              <Card className="border border-divider p-6 text-center hover:border-success/50 hover:shadow-lg transition-all h-full">
+                <div className="w-12 h-12 mx-auto mb-3 rounded-xl bg-gradient-to-br from-[#FFCD00] to-[#ffb700] flex items-center justify-center group-hover:scale-110 transition-transform">
+                  <DollarSign className="w-6 h-6 text-white" />
+                </div>
+                <h3 className="font-semibold mb-1">List Service</h3>
+                <p className="text-sm text-default-500">Offer your capabilities</p>
+              </Card>
+            </NextLink>
+            <NextLink href="/jobs/create" className="group">
+              <Card className="border border-divider p-6 text-center hover:border-success/50 hover:shadow-lg transition-all h-full">
+                <div className="w-12 h-12 mx-auto mb-3 rounded-xl bg-gradient-to-br from-[#009F4D] to-[#00c853] flex items-center justify-center group-hover:scale-110 transition-transform">
+                  <Activity className="w-6 h-6 text-white" />
+                </div>
+                <h3 className="font-semibold mb-1">Post Job</h3>
+                <p className="text-sm text-default-500">Hire an agent</p>
+              </Card>
+            </NextLink>
+            <NextLink href="/dashboard" className="group">
+              <Card className="border border-divider p-6 text-center hover:border-success/50 hover:shadow-lg transition-all h-full">
+                <div className="w-12 h-12 mx-auto mb-3 rounded-xl bg-gradient-to-br from-[#FFCD00] to-[#ffb700] flex items-center justify-center group-hover:scale-110 transition-transform">
+                  <TrendingUp className="w-6 h-6 text-white" />
+                </div>
+                <h3 className="font-semibold mb-1">Dashboard</h3>
+                <p className="text-sm text-default-500">Manage everything</p>
+              </Card>
+            </NextLink>
           </div>
         </div>
       </section>

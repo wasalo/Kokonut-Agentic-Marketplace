@@ -7,20 +7,16 @@ import { useAccount, useChainId } from 'wagmi';
 import { Card, Chip } from '@heroui/react';
 import {
   Wallet,
-  Briefcase,
   ShoppingBag,
   Scale,
   Loader2,
   Plus,
-  Activity,
-  TrendingUp,
   ArrowRight,
   Code,
+  Activity,
 } from 'lucide-react';
 import NextLink from 'next/link';
-import { useReadContracts } from 'wagmi';
 import { useWalletAgentsWithDetails } from '@/lib/hooks/useWalletAgentsWithDetails';
-import { useActiveServiceCount, useProviderServices } from '@/lib/hooks/useServices';
 import {
   useJobCount,
   useUserJobs,
@@ -29,32 +25,7 @@ import {
 } from '@/lib/hooks/useJobs';
 import { useProposalCount, useProposals } from '@/lib/hooks/useProposals';
 import { useActivityFeed, ActivityType } from '@/lib/hooks/useActivityFeed';
-import { CONTRACT_ADDRESSES } from '@/lib/contracts/config';
-import { AGENT_SKILL_REGISTRY_ABI } from '@/lib/contracts/abis';
-import { debugLog, debugError } from '@/lib/debug';
-
-interface StatCardProps {
-  label: string;
-  value: string;
-  icon: React.ComponentType<{ className?: string }>;
-  isLoading?: boolean;
-}
-
-function StatCard({ label, value, icon: Icon, isLoading }: StatCardProps) {
-  return (
-    <div className="border border-divider rounded-lg p-4 bg-content">
-      <div className="flex flex-row items-center justify-between pb-2">
-        <span className="text-sm font-medium text-default-500">{label}</span>
-        <Icon className="h-4 w-4 text-default-400" />
-      </div>
-      {isLoading ? (
-        <div className="h-8 w-16 bg-content3 rounded animate-pulse" />
-      ) : (
-        <div className="text-2xl font-bold text-foreground">{value}</div>
-      )}
-    </div>
-  );
-}
+import { debugLog } from '@/lib/debug';
 
 function WalletConnectPrompt() {
   return (
@@ -173,147 +144,6 @@ function UserProposalsList({ user }: { user: `0x${string}` }) {
   );
 }
 
-function QuickStats({ user }: { user: `0x${string}` }) {
-  debugLog('dashboard', 'QuickStats: Rendering for user', user);
-
-  // Use the same hook as Skills Management for accurate agent count
-  const { agents: userAgentsList, isLoading: isAgentsLoading } = useWalletAgentsWithDetails(user);
-  const { count: serviceCount } = useActiveServiceCount();
-  const { count: jobCount } = useJobCount();
-  const { count: proposalCount } = useProposalCount();
-
-  const {
-    services,
-    isLoading: isServicesLoading,
-    error: servicesError,
-  } = useProviderServices(user);
-  const { jobs } = useUserJobs(user, 'all');
-  const { proposals } = useProposals(0, 50);
-
-  debugLog('dashboard', 'QuickStats: Data state', {
-    agents: userAgentsList?.length,
-    agentsLoading: isAgentsLoading,
-    services: services?.length,
-    servicesLoading: isServicesLoading,
-    servicesError: servicesError?.message,
-  });
-
-  const userAgents = userAgentsList?.length || 0;
-
-  const userServices = useMemo(() => {
-    debugLog('dashboard', 'QuickStats: Calculating userServices', { services: services?.length });
-    if (!services) return 0;
-    return services.length;
-  }, [services]);
-
-  const activeJobs = useMemo(() => {
-    if (!jobs) return 0;
-    return jobs.filter(j => j.status <= 2).length;
-  }, [jobs]);
-
-  const userProposals = useMemo(() => {
-    if (!proposals) return 0;
-    return proposals.filter(p => p.proposer === user).length;
-  }, [proposals, user]);
-
-  // Calculate total skills across all user agents
-  const agentIds = useMemo(() => {
-    const ids = userAgentsList?.map(agent => BigInt(agent.id)) || [];
-    debugLog(
-      'dashboard',
-      'QuickStats: Agent IDs for skills',
-      ids.map(id => id.toString())
-    );
-    return ids;
-  }, [userAgentsList]);
-
-  // Log skill registry address
-  const skillRegistryAddress = CONTRACT_ADDRESSES.sepolia.skillRegistry;
-  debugLog('dashboard', 'QuickStats: Skill Registry Address', skillRegistryAddress);
-
-  // Fetch skill counts for each agent
-  const skillContracts = useMemo(() => {
-    if (agentIds.length === 0) return [];
-    return agentIds.map(agentId => ({
-      address: skillRegistryAddress as `0x${string}`,
-      abi: AGENT_SKILL_REGISTRY_ABI,
-      functionName: 'getAgentSkillCount' as const,
-      args: [agentId] as const,
-    }));
-  }, [agentIds, skillRegistryAddress]);
-
-  debugLog('dashboard', 'QuickStats: Skill contracts count', skillContracts.length);
-
-  const {
-    data: skillCounts,
-    isLoading: isSkillsLoading,
-    error: skillsError,
-  } = useReadContracts({
-    contracts: skillContracts,
-    query: {
-      enabled: agentIds.length > 0 && !!skillRegistryAddress,
-    },
-  });
-
-  debugLog('dashboard', 'QuickStats: Skill counts state', {
-    skillCounts: skillCounts?.length,
-    skillsError: skillsError?.message,
-  });
-
-  const totalSkills = useMemo(() => {
-    if (!skillCounts || skillCounts.length === 0) return 0;
-    const total = skillCounts.reduce((acc: number, result: { status: string; result?: bigint }) => {
-      if (result.status === 'success' && result.result) {
-        return acc + Number(result.result);
-      }
-      return acc;
-    }, 0);
-    debugLog('dashboard', 'QuickStats: Total skills calculated', total);
-    return total;
-  }, [skillCounts]);
-
-  const stats = [
-    {
-      label: 'Your Agents',
-      value: userAgents.toString(),
-      icon: Wallet,
-      href: '/identity',
-      isLoading: isAgentsLoading,
-    },
-    {
-      label: 'Your Services',
-      value: userServices.toString(),
-      icon: ShoppingBag,
-      href: `/marketplace?provider=${user}`,
-      isLoading: isServicesLoading,
-    },
-    {
-      label: 'Your Skills',
-      value: totalSkills.toString(),
-      icon: Code,
-      href: '/dashboard/skills',
-      isLoading: isSkillsLoading,
-    },
-    {
-      label: 'Active Jobs',
-      value: activeJobs.toString(),
-      icon: Briefcase,
-      href: '/jobs?status=active',
-      isLoading: false,
-    },
-  ];
-
-  return (
-    <div className="grid grid-cols-2 md:grid-cols-4 gap-4 mb-8">
-      {stats.map(stat => (
-        <NextLink key={stat.label} href={stat.href} className="block">
-          <StatCard {...stat} />
-        </NextLink>
-      ))}
-    </div>
-  );
-}
-
 function RecentActivity({ user }: { user: `0x${string}` }) {
   return (
     <Card className="border border-divider">
@@ -346,6 +176,20 @@ function QuickActions() {
       color: '#FFCD00',
     },
     {
+      label: 'Manage Services',
+      description: 'View your service listings',
+      icon: ShoppingBag,
+      href: '/dashboard/services',
+      color: '#009F4D',
+    },
+    {
+      label: 'Manage Agents',
+      description: 'View your agent identities',
+      icon: Wallet,
+      href: '/dashboard/agents',
+      color: '#FFCD00',
+    },
+    {
       label: 'Manage Skills',
       description: 'Add agent capabilities',
       icon: Code,
@@ -365,7 +209,7 @@ function QuickActions() {
     <Card className="border border-divider mb-8">
       <div className="p-6">
         <h2 className="text-xl font-semibold text-foreground mb-4">Quick Actions</h2>
-        <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-4">
+        <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-4">
           {actions.map(action => {
             const Icon = action.icon;
             return (
@@ -499,7 +343,6 @@ export default function DashboardPage(): JSX.Element {
       )}
 
       <QuickActions />
-      <QuickStats user={user} />
       <PlatformActivityWidget />
       <RecentActivity user={user} />
     </div>

@@ -53,6 +53,19 @@ USDC:      0x1c7D4B196Cb0C7B01d743Fbc6116a902379C7238
 
 ---
 
+### Dashboard Management URLs
+
+Access your agent economy management interfaces:
+
+| Page            | URL                   | Purpose                          | Hook Used                                       |
+| --------------- | --------------------- | -------------------------------- | ----------------------------------------------- |
+| Main Dashboard  | `/dashboard`          | Overview with QuickActions       | -                                               |
+| Manage Agents   | `/dashboard/agents`   | View/edit your registered agents | `useWalletAgentsWithDetails`                    |
+| Manage Services | `/dashboard/services` | View/edit your listed services   | `useProviderServices`                           |
+| Manage Skills   | `/dashboard/skills`   | View/edit agent skills           | `useWalletAgentsWithDetails` + `useAgentSkills` |
+
+---
+
 ## Agent Lifecycle
 
 As an agent in this economy, your journey follows this flow:
@@ -1032,6 +1045,46 @@ cast call 0x62E1... "getProviderServices(address)" YOUR_WALLET \
 **Root Cause:** Same as Dashboard - API doesn't return `agent_uri` for metadata verification.
 
 **Solution:** Identity page now uses the fixed `useKokonutAgents` hook which implements the API + Multicall approach described above.
+
+---
+
+#### Issue: Services not displaying in `/dashboard/services`
+
+**Symptoms:** `/dashboard/services` page shows no services or displays "Error: data is not an array" in console.
+
+**Root Cause:** The `mapServiceData` function in `useServices.ts` expected data in array format, but when using multicall with struct-returning functions, viem returns object format with named properties.
+
+**Solution:** Updated `mapServiceData` to handle both formats:
+
+```typescript
+// Object format (from viem/multicall with struct ABI)
+{
+  id: bigint,
+  provider: string,
+  agentId: bigint,
+  name: string,
+  // ...
+}
+
+// Array format (legacy)
+[bigint, string, bigint, string, ...]
+```
+
+The function now:
+
+1. Checks if data is an object with expected properties
+2. Falls back to array destructuring for legacy format
+3. Returns `null` for unknown formats with detailed error logging
+
+**Verification:**
+
+```typescript
+// In browser console, check the data format
+localStorage.setItem('debug', 'kokonut:*');
+// Then refresh /dashboard/services and check console for [mapServiceData] logs
+```
+
+**Fixed in:** Latest `lib/hooks/useServices.ts`
 
 ---
 

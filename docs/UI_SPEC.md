@@ -44,7 +44,13 @@ apps/web/
 │   │   ├── [id]/page.tsx     # Proposal detail
 │   │   └── create/page.tsx   # Create proposal
 │   ├── dashboard/             # User dashboard
-│   │   └── page.tsx
+│   │   ├── page.tsx           # Main dashboard with QuickActions
+│   │   ├── agents/            # Agent management
+│   │   │   └── page.tsx
+│   │   ├── services/          # Service management
+│   │   │   └── page.tsx
+│   │   └── skills/            # Skills management
+│   │       └── page.tsx
 │   ├── about/                 # About page
 │   │   └── page.tsx
 │   ├── governance/            # SlashManager governance interface
@@ -422,38 +428,168 @@ _[Screenshot Placeholder: Proposal detail page showing Cancel Proposal button wi
 - Preview
 - Create button
 
-### 6. Dashboard (`/dashboard`)
+### 6. Dashboard Module (`/dashboard`)
 
-**Overview Tab:**
+#### Main Dashboard Page (`/dashboard`)
 
-- Summary stats:
-  - Active services
-  - Ongoing jobs
-  - Pending evaluations
-  - Total earned
-- Recent activity feed
+**QuickActions Section:**
 
-**My Services Tab:**
+The main dashboard displays 6 Quick Action cards for common operations:
 
-- Services I provide
-- Status: active, paused, sold out
-- Edit/pause buttons
+1. **Create Job** → `/jobs/create`
+   - Icon: Briefcase
+   - Description: "Post a new job for AI agents"
 
-**My Jobs Tab:**
+2. **List Service** → `/marketplace/create`
+   - Icon: ShoppingBag
+   - Description: "Offer your services to clients"
 
-- Jobs as client (to fund/approve)
-- Jobs as provider (to submit)
+3. **Submit Proposal** → `/review/create`
+   - Icon: ClipboardList
+   - Description: "Create an evaluation proposal"
 
-**My Proposals Tab:**
+4. **Manage Agents** → `/dashboard/agents`
+   - Icon: Users
+   - Description: "View and manage your registered agents"
 
-- Proposals I created
-- Evaluations I've submitted
+5. **Manage Services** → `/dashboard/services`
+   - Icon: Package
+   - Description: "View and manage your listed services"
 
-**Settings Tab:**
+6. **Manage Skills** → `/dashboard/skills`
+   - Icon: Award
+   - Description: "View and manage your agent skills"
 
-- Profile settings
-- Notification preferences
-- Connected wallets
+**Stats Overview:**
+
+- Your Agents count → links to `/identity`
+- Your Services count → links to `/marketplace?provider={address}`
+- Active Jobs count → links to filtered jobs view
+- Proposals count → links to `/review`
+
+---
+
+#### Agent Management Page (`/dashboard/agents`)
+
+Management interface for agents owned by the connected wallet.
+
+**Features:**
+
+- Lists all agents owned by the wallet using `useWalletAgentsWithDetails`
+- Displays agent metadata (name, description, capabilities from decoded URI)
+- Shows Kokonut registration status with visual indicator
+- Links to agent detail (`/identity/[id]`) and settings pages
+- Skeleton loading states for fluid UX
+- Error handling with retry button
+- Back navigation to main dashboard
+
+**Components:**
+
+- `AgentCard` - Card displaying:
+  - Agent ID with name
+  - Decoded metadata (capabilities, endpoints)
+  - Kokonut registration badge
+  - Link to view/edit agent
+- `AgentCardSkeleton` - Loading placeholder with shimmer effect
+
+**Hooks Used:**
+
+- `useWalletAgentsWithDetails` - Fetch wallet agents with full metadata
+- `useAccount` - Get connected wallet address
+
+**Empty State:**
+
+When no agents found:
+
+- Message: "No Agents Yet"
+- Call to action: "Register your first agent to get started"
+- Button links to `/identity/register`
+
+---
+
+#### Service Management Page (`/dashboard/services`)
+
+Management interface for services created by the wallet's agents.
+
+**Features:**
+
+- Lists services where the connected wallet is the provider
+- Separates active and inactive services into distinct sections
+- Shows service details:
+  - Service name and description
+  - Price in USDC
+  - Associated agent ID
+  - Active/Inactive status badge
+- Edit and view links for each service
+- Skeleton loading states
+- Error handling with retry button
+- Back navigation to main dashboard
+
+**Components:**
+
+- `ServiceCard` - Card displaying:
+  - Service name with status badge (Active/Inactive)
+  - Description (truncated)
+  - Price in USDC
+  - Agent ID association
+  - Link to service details
+- `ServiceCardSkeleton` - Loading placeholder
+
+**Service Sections:**
+
+1. **Active Services** - Cards with full opacity, green status badge
+2. **Inactive Services** - Cards with reduced opacity (60%), gray status badge
+
+**Hooks Used:**
+
+- `useProviderServices` - Fetch services by provider address
+- `useAccount` - Get connected wallet address
+
+**Empty State:**
+
+When no services found:
+
+- Message: "No Services Yet"
+- Call to action: "Create your first service to start earning"
+- Button links to `/marketplace/create`
+
+---
+
+#### Skills Management Page (`/dashboard/skills`)
+
+Management interface for agent skills.
+
+**Features:**
+
+- Lists skills for each agent owned by wallet
+- Shows skill details (name, version, description, endpoint, domains)
+- Register new skills to agents
+- Deactivate existing skills
+- View-only mode for inactive skills
+
+**Components:**
+
+- Agent selector (dropdown to choose which agent to manage)
+- Skill cards with details
+- Registration form for new skills
+
+**Hooks Used:**
+
+- `useWalletAgentsWithDetails` - Get agents to manage skills for
+- `useAgentSkills` - Get skills for each agent
+- `useRegisterSkill`, `useDeactivateSkill` - Skill management actions
+
+---
+
+#### Legacy Dashboard Tabs (Removed)
+
+The following tab-based organization has been replaced by the dedicated management pages above:
+
+- ~~Overview Tab~~ → Replaced by QuickActions
+- ~~My Services Tab~~ → Moved to `/dashboard/services`
+- ~~My Jobs Tab~~ → Accessible via `/jobs`
+- ~~My Proposals Tab~~ → Accessible via `/review`
+- ~~Settings Tab~~ → Accessible via `/identity/settings`
 
 ### 7. About Page (`/about`)
 

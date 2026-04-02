@@ -37,83 +37,81 @@ function mapServiceData(id: bigint, data: unknown): Service | null {
     return null;
   }
 
-  if (!Array.isArray(data)) {
-    console.error('[mapServiceData] Error: data is not an array', data);
+  // Handle object format (viem returns object when ABI defines struct/tuple)
+  if (typeof data === 'object' && !Array.isArray(data)) {
+    const obj = data as Record<string, unknown>;
+
+    // Check if it has the expected properties
+    if ('provider' in obj && 'name' in obj) {
+      console.log(`[mapServiceData] Mapping OBJECT format service ${id.toString()}:`, obj);
+
+      return {
+        id,
+        provider: obj.provider as `0x${string}`,
+        agentId: (obj.agentId as bigint) || BigInt(0),
+        name: (obj.name as string) || '',
+        description: (obj.description as string) || '',
+        metadataURI: (obj.metadataURI as string) || '',
+        price: (obj.price as bigint) || BigInt(0),
+        paymentToken: obj.paymentToken as `0x${string}`,
+        isActive: (obj.isActive as boolean) || false,
+        createdAt: (obj.createdAt as bigint) || BigInt(0),
+      };
+    }
+
+    console.error('[mapServiceData] Error: Object format missing expected properties', obj);
     return null;
   }
 
-  console.log(`[mapServiceData] Mapping service ${id}, data length: ${data.length}`, data);
+  // Handle array format (legacy support)
+  if (Array.isArray(data)) {
+    console.log(
+      `[mapServiceData] Mapping ARRAY format service ${id}, length: ${data.length}`,
+      data
+    );
 
-  // New contract has 10 fields (with agentId)
-  if (data.length >= 10) {
-    const [
-      serviceId, // Index 0: id from contract
-      provider, // Index 1
-      agentId, // Index 2
-      name, // Index 3
-      description, // Index 4
-      metadataURI, // Index 5
-      price, // Index 6
-      paymentToken, // Index 7
-      isActive, // Index 8
-      createdAt, // Index 9
-    ] = data;
+    // New contract has 10 fields (with agentId)
+    if (data.length >= 10) {
+      const [
+        serviceId, // Index 0: id from contract
+        provider, // Index 1
+        agentId, // Index 2
+        name, // Index 3
+        description, // Index 4
+        metadataURI, // Index 5
+        price, // Index 6
+        paymentToken, // Index 7
+        isActive, // Index 8
+        createdAt, // Index 9
+      ] = data;
 
-    console.log(`[mapServiceData] Successfully mapped NEW format service ${id.toString()}:`, {
-      serviceId: serviceId?.toString?.(),
-      provider,
-      agentId: agentId?.toString?.(),
-      name,
-      isActive,
-    });
+      console.log(`[mapServiceData] Successfully mapped NEW format service ${id.toString()}:`, {
+        serviceId: serviceId?.toString?.(),
+        provider,
+        agentId: agentId?.toString?.(),
+        name,
+        isActive,
+      });
 
-    return {
-      id,
-      provider: provider as `0x${string}`,
-      agentId: agentId as bigint,
-      name: name || '',
-      description: description || '',
-      metadataURI: metadataURI || '',
-      price: price || BigInt(0),
-      paymentToken: paymentToken as `0x${string}`,
-      isActive: isActive || false,
-      createdAt: createdAt || BigInt(0),
-    };
+      return {
+        id,
+        provider: provider as `0x${string}`,
+        agentId: agentId as bigint,
+        name: name || '',
+        description: description || '',
+        metadataURI: metadataURI || '',
+        price: price || BigInt(0),
+        paymentToken: paymentToken as `0x${string}`,
+        isActive: isActive || false,
+        createdAt: createdAt || BigInt(0),
+      };
+    }
+
+    console.error(`[mapServiceData] Error: Unexpected array length (${data.length})`, data);
+    return null;
   }
 
-  // Legacy format (9 fields, no agentId)
-  if (data.length === 9) {
-    const [
-      serviceId,
-      provider,
-      name,
-      description,
-      metadataURI,
-      price,
-      paymentToken,
-      isActive,
-      createdAt,
-    ] = data;
-
-    console.log(`[mapServiceData] Mapped LEGACY format service ${id.toString()}`);
-
-    return {
-      id,
-      provider: provider as `0x${string}`,
-      agentId: BigInt(0),
-      name: name || '',
-      description: description || '',
-      metadataURI: metadataURI || '',
-      price: price || BigInt(0),
-      paymentToken: paymentToken as `0x${string}`,
-      isActive: isActive || false,
-      createdAt: createdAt || BigInt(0),
-    };
-  }
-
-  console.error(
-    `[mapServiceData] Error: Unexpected data length ${data.length} for service ${id.toString()}`
-  );
+  console.error('[mapServiceData] Error: Unknown data format', data);
   return null;
 }
 

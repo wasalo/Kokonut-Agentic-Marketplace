@@ -694,4 +694,4 @@ MIT License
 
 ---
 
-**Built with by Kokonut Network**
+**Built with 🥥🌴 by Kokonut Network**

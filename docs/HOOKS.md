@@ -184,6 +184,78 @@ if (hasKokonut) {
 }
 ```
 
+### Wallet Agent Management Hooks
+
+#### `useWalletAgentsWithDetails(ownerAddress: '0x${string}' | undefined)`
+
+Fetches all agents owned by a wallet with full metadata and Kokonut tag detection. Uses event logs and multicall for efficient fetching.
+
+```typescript
+import { useWalletAgentsWithDetails } from '@/lib/hooks/useWalletAgentsWithDetails';
+
+const {
+  agents, // AgentWithDetails[] - all agents owned by wallet
+  taggedAgents, // AgentWithDetails[] - agents with source === 'kokonut-marketplace'
+  untaggedAgents, // AgentWithDetails[] - agents without Kokonut tag
+  isLoading, // boolean
+  error, // Error | null
+  refetch, // () => void
+} = useWalletAgentsWithDetails(ownerAddress);
+```
+
+**Returns:**
+
+| Property         | Type                 | Description                                                                |
+| ---------------- | -------------------- | -------------------------------------------------------------------------- |
+| `agents`         | `AgentWithDetails[]` | All agents owned by the wallet with decoded metadata                       |
+| `taggedAgents`   | `AgentWithDetails[]` | Subset with `source === 'kokonut-marketplace'` (registered via Kokonut UI) |
+| `untaggedAgents` | `AgentWithDetails[]` | Subset without Kokonut tag (registered elsewhere)                          |
+| `isLoading`      | `boolean`            | Loading state                                                              |
+| `error`          | `Error \| null`      | Error object if fetch failed                                               |
+| `refetch`        | `() => void`         | Function to manually refetch data                                          |
+
+**AgentWithDetails Interface:**
+
+```typescript
+interface AgentWithDetails {
+  id: number; // Agent token ID
+  owner: `0x${string}`; // Owner address
+  agentURI: string; // Raw metadata URI
+  metadata: AgentMetadata8004 | null; // Decoded metadata
+  hasKokonutTag: boolean; // True if source === 'kokonut-marketplace'
+}
+```
+
+**How it works:**
+
+1. Uses `balanceOf()` to check agent count for the wallet
+2. Queries `Registered` events from block 9,989,393 to find agent IDs owned by this address
+3. Multicalls `tokenURI()` for each agent to fetch metadata URIs
+4. Decodes metadata and checks for `source` field
+5. Categorizes agents into `taggedAgents` (Kokonut-registered) and `untaggedAgents`
+
+**Usage Example:**
+
+```tsx
+function DashboardAgentsPage() {
+  const { address } = useAccount();
+  const { agents, taggedAgents, isLoading, error, refetch } = useWalletAgentsWithDetails(address);
+
+  if (isLoading) return <Skeleton />;
+  if (error) return <ErrorMessage error={error} onRetry={refetch} />;
+
+  return (
+    <div>
+      <h1>Your Agents ({agents.length})</h1>
+      <p>Kokonut Registered: {taggedAgents.length}</p>
+      {agents.map(agent => (
+        <AgentCard key={agent.id} agent={agent} />
+      ))}
+    </div>
+  );
+}
+```
+
 ### Service Hooks
 
 #### `useServices(start?: number, count?: number)`
