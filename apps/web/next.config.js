@@ -4,6 +4,9 @@ const nextConfig = {
     ignoreBuildErrors: true,
   },
 
+  // Allow dev server to be accessed from any network origin
+  allowedDevOrigins: ['*'],
+
   // Use webpack for now (Turbopack migration can be done later)
   turbopack: {},
 

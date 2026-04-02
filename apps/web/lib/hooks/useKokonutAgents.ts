@@ -131,7 +131,7 @@ export function useKokonutAgents(
   const [skipCache, setSkipCache] = useState(false);
 
   // Check cache on mount
-  const cachedAgents = useMemo(() => {
+  const cachedAgentsRef = useMemo(() => {
     if (skipCache) return null;
     return getCachedAgents();
   }, [skipCache]);
@@ -141,10 +141,10 @@ export function useKokonutAgents(
     if (!publicClient) return;
 
     // Use cache if available
-    if (cachedAgents && !skipCache) {
-      setAllKokonutAgents(cachedAgents.agents);
-      setTotalToScan(cachedAgents.totalCount);
-      setScannedCount(cachedAgents.totalCount);
+    if (cachedAgentsRef && !skipCache) {
+      setAllKokonutAgents(cachedAgentsRef.agents);
+      setTotalToScan(cachedAgentsRef.totalCount);
+      setScannedCount(cachedAgentsRef.totalCount);
       return;
     }
 
@@ -238,7 +238,7 @@ export function useKokonutAgents(
     } finally {
       setIsScanning(false);
     }
-  }, [publicClient, cachedAgents, skipCache]);
+  }, [publicClient, cachedAgentsRef, skipCache]);
 
   // Trigger fetch on mount
   useEffect(() => {

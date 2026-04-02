@@ -22,7 +22,19 @@ const sepoliaRpcs = [
 
 export const config = createConfig({
   chains: [sepolia] as const,
-  connectors: [injected(), walletConnect({ projectId, showQrModal: true })],
+  connectors: [
+    injected(),
+    walletConnect({
+      projectId,
+      metadata: {
+        name: 'Kokonut Agent Economy',
+        description: 'Identity, Commerce, and Coordination for AI Agents onchain',
+        url: 'https://kokonut.network',
+        icons: ['https://kokonut.network/favicon.ico'],
+      },
+      showQrModal: true,
+    }),
+  ],
   transports: {
     [sepolia.id]: fallback(sepoliaRpcs.map(url => http(url))),
   },

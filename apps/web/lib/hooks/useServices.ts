@@ -233,16 +233,6 @@ export function useServices(start: number = 0, count: number = 20) {
     },
   });
 
-  // Handle empty results after hooks are called
-  if (!results || results.length === 0) {
-    return {
-      services: [] as Service[],
-      isLoading: isIdsLoading,
-      error: idsError,
-      refetch: refetchIds,
-    };
-  }
-
   const services: Service[] = [];
 
   for (let i = 0; i < results.length; i++) {
