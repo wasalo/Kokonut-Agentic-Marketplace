@@ -23,32 +23,40 @@ const nextConfig = {
   // Phase 3: Security Headers
   // CSP is in report-only mode for testing phase
   async headers() {
-    // Force report-only mode for testing - change to false when ready for production
-    const isReportOnly = true;
+    const isProd = process.env.NODE_ENV === 'production';
+    const isDev = !isProd;
+
+    // Development CSP: Allow HTTP, include network IPs, report-only mode
+    // Production CSP: Enforce HTTPS, upgrade-insecure-requests, enforce mode
+    const connectSrc = isDev
+      ? "'self' http://localhost:* http://10.108.1.215:* http://127.0.0.1:* http://0.0.0.0:* https://ethereum-sepolia-rpc.publicnode.com https://ethereum-sepolia.publicnode.com https://ethereum.publicnode.com https://eth.llamarpc.com https://8004scan.io wss://*.walletconnect.com https://*.rpc.walletconnect.com ws://localhost:* ws://10.108.1.215:* ws://127.0.0.1:* ws://0.0.0.0:*"
+      : "'self' https://ethereum-sepolia-rpc.publicnode.com https://ethereum-sepolia.publicnode.com https://ethereum.publicnode.com https://eth.llamarpc.com https://8004scan.io wss://*.walletconnect.com https://*.rpc.walletconnect.com";
+
+    const cspDirectives = [
+      "default-src 'self'",
+      "script-src 'self' 'unsafe-inline' 'unsafe-eval' https://*.walletconnect.com https://*.rainbow.me",
+      "style-src 'self' 'unsafe-inline'",
+      "img-src 'self' data: https: blob:",
+      `connect-src ${connectSrc}`,
+      "font-src 'self'",
+      "frame-src 'self' https://*.walletconnect.com",
+      "media-src 'self'",
+      "object-src 'none'",
+      "base-uri 'self'",
+      "form-action 'self'",
+      "frame-ancestors 'none'",
+      ...(isProd ? ['upgrade-insecure-requests'] : []),
+      'report-uri /api/csp-report',
+    ].join('; ');
 
     return [
       {
         source: '/:path*',
         headers: [
-          // Content Security Policy - Report Only Mode (testing phase)
+          // Content Security Policy - Report Only in dev, Enforce in prod
           {
-            key: 'Content-Security-Policy-Report-Only',
-            value: [
-              "default-src 'self'",
-              "script-src 'self' 'unsafe-inline' 'unsafe-eval' https://*.walletconnect.com https://*.rainbow.me",
-              "style-src 'self' 'unsafe-inline'",
-              "img-src 'self' data: https: blob:",
-              "connect-src 'self' https://ethereum-sepolia-rpc.publicnode.com https://ethereum-sepolia.publicnode.com https://ethereum.publicnode.com https://eth.llamarpc.com https://8004scan.io wss://*.walletconnect.com https://*.rpc.walletconnect.com",
-              "font-src 'self'",
-              "frame-src 'self' https://*.walletconnect.com",
-              "media-src 'self'",
-              "object-src 'none'",
-              "base-uri 'self'",
-              "form-action 'self'",
-              "frame-ancestors 'none'",
-              'upgrade-insecure-requests',
-              'report-uri /api/csp-report',
-            ].join('; '),
+            key: isDev ? 'Content-Security-Policy-Report-Only' : 'Content-Security-Policy',
+            value: cspDirectives,
           },
 
           // Prevent clickjacking

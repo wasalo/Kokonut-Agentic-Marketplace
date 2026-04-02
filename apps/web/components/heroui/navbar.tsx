@@ -1,7 +1,7 @@
 'use client';
 
 import { Menu, X, ChevronDown, Wallet } from 'lucide-react';
-import { useState, useCallback } from 'react';
+import { useState, useCallback, useEffect } from 'react';
 import NextLink from 'next/link';
 import { useAccount } from 'wagmi';
 import { useUSDCBalance } from '@/lib/hooks/useUSDC';
@@ -40,6 +40,11 @@ const moreLinks = [
 export function NavbarComponent(): JSX.Element {
   const [isMenuOpen, setIsMenuOpen] = useState(false);
   const { isConnected } = useAccount();
+  const [mounted, setMounted] = useState(false);
+
+  useEffect(() => {
+    setMounted(true);
+  }, []);
 
   const toggleMenu = useCallback(() => {
     setIsMenuOpen(prev => !prev);
@@ -49,8 +54,9 @@ export function NavbarComponent(): JSX.Element {
     setIsMenuOpen(false);
   }, []);
 
-  // Combine public links with private links only when connected
-  const navLinks = isConnected ? [...publicNavLinks, ...privateNavLinks] : publicNavLinks;
+  // Always render all links to prevent hydration mismatch
+  // Use CSS to show/hide Dashboard link based on connection state
+  const allNavLinks = [...publicNavLinks, ...privateNavLinks];
 
   return (
     <header className="sticky top-0 z-50 backdrop-blur-xl bg-background/80 border-b border-divider">
@@ -64,11 +70,15 @@ export function NavbarComponent(): JSX.Element {
           </NextLink>
 
           <div className="hidden md:flex items-center gap-1">
-            {navLinks.map((link: { name: string; href: string }) => (
+            {allNavLinks.map((link: { name: string; href: string }) => (
               <NextLink
                 key={link.name}
                 href={link.href}
-                className="px-3 py-2 text-sm text-foreground hover:bg-content2 rounded-lg transition-colors"
+                className={
+                  link.href === '/dashboard' && (!mounted || !isConnected)
+                    ? 'hidden'
+                    : 'px-3 py-2 text-sm text-foreground hover:bg-content2 rounded-lg transition-colors'
+                }
               >
                 {link.name}
               </NextLink>
@@ -111,11 +121,15 @@ export function NavbarComponent(): JSX.Element {
 
         {isMenuOpen && (
           <div className="md:hidden border-t border-divider py-4 space-y-1">
-            {navLinks.map((link: { name: string; href: string }) => (
+            {allNavLinks.map((link: { name: string; href: string }) => (
               <NextLink
                 key={link.name}
                 href={link.href}
-                className="block px-4 py-2 text-foreground hover:bg-content2 rounded-lg transition-colors"
+                className={
+                  link.href === '/dashboard' && (!mounted || !isConnected)
+                    ? 'hidden'
+                    : 'block px-4 py-2 text-foreground hover:bg-content2 rounded-lg transition-colors'
+                }
                 onClick={closeMenu}
               >
                 {link.name}

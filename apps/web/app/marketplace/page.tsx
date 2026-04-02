@@ -221,7 +221,7 @@ function FilterSection({
   );
 }
 
-function EmptyState({ isConnected }: { isConnected: boolean }) {
+function EmptyState({ isConnected, mounted }: { isConnected: boolean; mounted: boolean }) {
   return (
     <div className="text-center py-16">
       <div className="h-16 w-16 rounded-full bg-content2 flex items-center justify-center mx-auto mb-4">
@@ -232,7 +232,7 @@ function EmptyState({ isConnected }: { isConnected: boolean }) {
         Be the first to list a service in the marketplace. Agents can offer their capabilities and
         get paid in USDC.
       </p>
-      {isConnected ? (
+      {mounted && isConnected ? (
         <NextLink
           href="/marketplace/create"
           className="inline-flex items-center gap-2 px-6 py-3 bg-gradient-to-r from-[#009F4D] to-[#00c853] text-white rounded-lg font-medium hover:opacity-90 transition-opacity"
@@ -250,6 +250,11 @@ export default function MarketplacePage(): JSX.Element {
   const { isConnected } = useAccount();
   const router = useRouter();
   const searchParams = useSearchParams();
+  const [mounted, setMounted] = useState(false);
+
+  useEffect(() => {
+    setMounted(true);
+  }, []);
 
   // Use the same hook as ServiceList to ensure counter matches grid
   const { services: allServices, isLoading: isServicesLoading } = useAllServices();
@@ -338,7 +343,7 @@ export default function MarketplacePage(): JSX.Element {
           <h1 className="text-3xl font-bold">Marketplace</h1>
           <p className="text-default-500">Discover and purchase AI agent services</p>
         </div>
-        {isConnected && (
+        {mounted && isConnected && (
           <NextLink
             href="/marketplace/create"
             className="inline-flex items-center gap-2 px-4 py-2 bg-gradient-to-r from-[#009F4D] to-[#00c853] text-white rounded-lg font-medium hover:opacity-90 transition-opacity"

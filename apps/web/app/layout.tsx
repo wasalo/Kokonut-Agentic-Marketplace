@@ -2,24 +2,11 @@
 export const dynamic = 'force-dynamic';
 export const revalidate = 0;
 
-// Polyfill for crypto.randomUUID in non-secure contexts (HTTP/IP access)
-if (typeof window !== 'undefined' && !window.crypto?.randomUUID) {
-  window.crypto = {
-    ...window.crypto,
-    randomUUID: () => {
-      return 'xxxxxxxx-xxxx-4xxx-yxxx-xxxxxxxxxxxx'.replace(/[xy]/g, c => {
-        const r = (Math.random() * 16) | 0;
-        const v = c === 'x' ? r : (r & 0x3) | 0x8;
-        return v.toString(16);
-      });
-    },
-  } as Crypto;
-}
-
 import '@/lib/wallet-shim';
 import * as React from 'react';
 import type { Metadata } from 'next';
 import { Inter } from 'next/font/google';
+import Script from 'next/script';
 import './globals.css';
 import { Providers } from './providers';
 import { NavbarComponent } from '@/components/heroui/navbar';
@@ -42,8 +29,12 @@ export default function RootLayout({
   children: React.ReactNode;
 }>): JSX.Element {
   return (
-    <html lang="en" className="dark">
-      <body className={inter.className}>
+    <html lang="en" className="dark" suppressHydrationWarning>
+      <head>
+        {/* Crypto polyfill MUST run before any other JavaScript */}
+        <script src="/crypto-polyfill.js" />
+      </head>
+      <body className={inter.className} suppressHydrationWarning>
         <ClientErrorBoundary>
           <Providers>
             <div className="min-h-screen flex flex-col bg-background">
