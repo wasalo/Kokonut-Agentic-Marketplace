@@ -210,11 +210,55 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ---
 
-## [Phase 5] - 2026-04-XX
+## [Phase 5] - 2026-04-02
 
-### 🎉 Phase 5: Enhanced User Experience
+### 🎉 Phase 5: AgenticCommerceV5 + Enhanced User Experience
 
-Phase 5 introduces major UX improvements across the platform, including enhanced directory features, missing functionality, and comprehensive analytics.
+Phase 5 introduces AgenticCommerceV5 with open job bidding and major UX improvements across the platform.
+
+#### AgenticCommerceV5 Deployment
+
+##### Deployed Contracts (2026-04-02)
+
+| Contract                    | Address                                      | Notes                   |
+| --------------------------- | -------------------------------------------- | ----------------------- |
+| **AgenticCommerce** (Proxy) | `0xe0006203ceb8bb20b29fa5324ad3fea356bbf858` | UUPS Proxy              |
+| **AgenticCommerce** (Impl)  | `0xfed5abbea703485e725be1b0e9db3772e4068ec5` | Implementation          |
+| **Contract Size**           | ~24KB                                        | Under 24,576 byte limit |
+
+##### New Features
+
+- **Open Job Bidding**: Create jobs that providers can bid on
+  - `createOpenJob()` - Create open job with max budget
+  - `commitBid()` - Commit sealed bid with 1% stake
+  - `revealBid()` - Reveal bid after deadline
+  - `acceptBid()` - Client accepts winning bid
+
+- **Sealed Bids (Commit-Reveal)**:
+  - Stake: 1% of max budget (in job's payment token)
+  - Reveal window: 1 hour after deadline
+  - Commitment: keccak256(abi.encode(amount, message, salt))
+
+- **Multi-Token Support**:
+  - Native ETH: address(0) marker
+  - ERC20: Any token via IERC20 interface
+  - Minimum ETH payment: 0.005 ETH
+
+- **UUPS Proxy**: Gas-efficient upgradeability
+
+##### Removed for Contract Size
+
+To stay under 24KB limit, removed:
+
+- `emergencyRefund()`, `migrateJob()`, `forfeitStaleBids()`
+- `withdrawBid()`, `createJobFromService()`, `setPaymentToken()`
+- `getJobType()`, `getMaxBudget()`, `getJobBids()` view functions
+- Duplicate helper functions
+
+##### Tests
+
+- **217 tests total** (201 V4 + 16 V5)
+- AgenticCommerceV5: 16 tests passing
 
 ---
 
@@ -392,12 +436,13 @@ Phase 5 introduces major UX improvements across the platform, including enhanced
 
 ### Comprehensive Test Suite
 
-- **201 tests passing** with 87%+ code coverage
+- **201 tests passing** (V4 contracts) with 87%+ code coverage
 - AgenticCommerceV4: 89.25% coverage (50 tests)
 - AgentReviewV4: 91.24% coverage (46 tests)
 - ServiceRegistryV2: 83.33% coverage (29 tests)
 - Fuzzing and invariant test suites
 - CI/CD integration with coverage thresholds
+- **Phase 5 adds**: 16 AgenticCommerceV5 tests (217 total)
 
 ---
 

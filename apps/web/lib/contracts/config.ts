@@ -13,7 +13,9 @@ export const CONTRACT_ADDRESSES = {
     skillRegistryImpl: '0x3Eec6BAF9FAc410B9C580d3Eb8c971a14298BC87',
     serviceRegistry: '0x62E1eeEa1A2Ab987004F35bDA430457Ed6077201',
     serviceRegistryImpl: '0x218340e07bEd7fD15058414388F2C82E0f3B04f9',
-    agenticCommerce: '0xA7E8F13AC8E659356333Bf3e579BF3f39334821e',
+    // Phase 5: V5 with bidding - UUPS proxy
+    agenticCommerce: '0xe0006203ceb8bb20b29fa5324ad3fea356bbf858',
+    agenticCommerceImpl: '0xfed5abbea703485e725be1b0e9db3772e4068ec5',
     agentReview: '0x716B02447b52Eab450e31bD77103B41bC2c7bE0b',
     priceOracle: '0x5C4AC3dAF76708DCd51911BA3B33027eAB1B4047',
     commitReveal: '0x6CEd1574A3dF7ec646e43DD8408300117c453Aa3',

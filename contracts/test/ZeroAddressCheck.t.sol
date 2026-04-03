@@ -142,26 +142,6 @@ contract ZeroAddressCheckTest is Test {
         assertEq(job.budget, 0, "Budget should be 0 initially");
     }
     
-    // ==================== CREATEJOBFROMSERVICE ZERO ADDRESS TESTS ====================
-    
-    /**
-     * @dev Test that createJobFromService checks for zero evaluator
-     */
-    function test_CreateJobFromService_RejectsZeroEvaluator() public {
-        vm.startPrank(client);
-        
-        // Try to create job with zero evaluator (service check happens after)
-        vm.expectRevert("Zero evaluator");
-        agenticCommerce.createJobFromService(
-            1,  // Any service ID - will fail on evaluator check first
-            address(0),  // Zero evaluator
-            block.timestamp + 7 days,
-            "Test job"
-        );
-        
-        vm.stopPrank();
-    }
-    
     /**
      * @dev Test multiple job creations to ensure counter works correctly
      */

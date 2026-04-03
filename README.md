@@ -42,23 +42,24 @@ The **Kokonut Agent Economy Stack** is a complete onchain agent economy with thr
 
 ## Deployed Contracts (Sepolia Testnet)
 
-### Contract Addresses (Phase 4 - Production)
+### Contract Addresses (Phase 5 - Production)
 
-| Contract             | Address                                      | Description                               | Version |
-| -------------------- | -------------------------------------------- | ----------------------------------------- | ------- |
-| `AgentSkillRegistry` | `0x7cf16C00ed4831EB9eE3a8765831968F0a28f53D` | Skills/capabilities (wired to ERC-8004)   | Live    |
-| `ServiceRegistryV2`  | `0x62E1eeEa1A2Ab987004F35bDA430457Ed6077201` | Service listings (UUPS Proxy, ERC-8004)   | V2      |
-| `AgentReview`        | `0x716B02447b52Eab450e31bD77103B41bC2c7bE0b` | A/B evaluation with staking               | V4      |
-| `AgenticCommerce`    | `0xA7E8F13AC8E659356333Bf3e579BF3f39334821e` | Job escrow with USDC                      | V4      |
-| `PriceOracle`        | `0x5C4AC3dAF76708DCd51911BA3B33027eAB1B4047` | Price feeds (Chainlink on Sepolia)        | Live    |
-| `CommitReveal`       | `0x6CEd1574A3dF7ec646e43DD8408300117c453Aa3` | Front-running protection (12-block delay) | Live    |
-| `SlashManager`       | `0x7Cf955900FD7a12680E90D834eAf19346f5DBcf9` | 3-of-5 multisig governance                | V1      |
+| Contract               | Address                                      | Description                               | Version |
+| ---------------------- | -------------------------------------------- | ----------------------------------------- | ------- |
+| `AgentSkillRegistryV2` | `0xA84684261558f342d6871DD2CFef90A2117Aa20A` | Skills/capabilities (UUPS Proxy)          | V2      |
+| `ServiceRegistryV2`    | `0x62E1eeEa1A2Ab987004F35bDA430457Ed6077201` | Service listings (UUPS Proxy, ERC-8004)   | V2      |
+| `AgentReview`          | `0x716B02447b52Eab450e31bD77103B41bC2c7bE0b` | A/B evaluation with staking               | V4      |
+| `AgenticCommerce`      | `0xe0006203ceb8bb20b29fa5324ad3fea356bbf858` | Job escrow with open bidding (UUPS Proxy) | V5      |
+| `AgenticCommerce` (I)  | `0xfed5abbea703485e725be1b0e9db3772e4068ec5` | Implementation                            | V5      |
+| `PriceOracle`          | `0x5C4AC3dAF76708DCd51911BA3B33027eAB1B4047` | Price feeds (Chainlink on Sepolia)        | Live    |
+| `CommitReveal`         | `0x6CEd1574A3dF7ec646e43DD8408300117c453Aa3` | Front-running protection (12-block delay) | Live    |
+| `SlashManager`         | `0x7Cf955900FD7a12680E90D834eAf19346f5DBcf9` | 3-of-5 multisig governance                | V1      |
 
 **Note:**
 
-- All contracts have been security audited and critical vulnerabilities fixed as of March 2026. See [SECURITY_AUDIT_REPORT.md](./SECURITY_AUDIT_REPORT.md) for details.
-- **201 tests passing** with 87%+ code coverage across all core contracts
-- All V3 contracts have been removed. Use V4 addresses only.
+- All contracts have been security audited and critical vulnerabilities fixed as of April 2026. See [SECURITY_AUDIT_REPORT.md](./SECURITY_AUDIT_REPORT.md) for details.
+- **217 tests passing** with 87%+ code coverage across all core contracts
+- V5 introduces open job bidding with sealed bids and multi-token support
 
 ### Official ERC-8004 Registries (Sepolia)
 
@@ -107,11 +108,11 @@ Update `apps/web/.env.local` with deployed contract addresses:
 NEXT_PUBLIC_WALLETCONNECT_PROJECT_ID=your_walletconnect_project_id
 NEXT_PUBLIC_8004_API_KEY=your_8004scan_api_key
 
-# Sepolia Contract Addresses (Phase 4 - 201 Tests Passing, 87%+ Coverage)
-NEXT_PUBLIC_SKILL_REGISTRY_ADDRESS=0x7cf16C00ed4831EB9eE3a8765831968F0a28f53D
+# Sepolia Contract Addresses (Phase 5 - 217 Tests Passing, 87%+ Coverage)
+NEXT_PUBLIC_SKILL_REGISTRY_ADDRESS=0xA84684261558f342d6871DD2CFef90A2117Aa20A
 NEXT_PUBLIC_SERVICE_REGISTRY_ADDRESS=0x62E1eeEa1A2Ab987004F35bDA430457Ed6077201
 NEXT_PUBLIC_AGENT_REVIEW_ADDRESS=0x716B02447b52Eab450e31bD77103B41bC2c7bE0b
-NEXT_PUBLIC_AGENTIC_COMMERCE_ADDRESS=0xA7E8F13AC8E659356333Bf3e579BF3f39334821e
+NEXT_PUBLIC_AGENTIC_COMMERCE_ADDRESS=0xe0006203ceb8bb20b29fa5324ad3fea356bbf858
 NEXT_PUBLIC_USDC_ADDRESS=0x1c7D4B196Cb0C7B01d743Fbc6116a902379C7238
 
 # ERC-8004 Official Registry (Sepolia) - used for all identity operations
@@ -245,7 +246,25 @@ These registries provide:
 
 ## Frontend Features
 
-### Phase 5: Enhanced UX (Latest)
+### Phase 5: V5 Contract + Enhanced UX (Latest)
+
+#### V5 Contract Features (Smart Contracts)
+
+- **Open Job Bidding**: Providers can bid on open jobs with sealed bids
+  - Create open jobs with max budget and deadline
+  - Commit sealed bids (1% stake of max budget)
+  - Reveal after deadline (1-hour window)
+  - Client accepts winning bid
+
+- **Multi-Token Payments**: Native ETH and ERC20 support
+  - ETH: address(0) marker, minimum 0.005 ETH
+  - ERC20: Any token via IERC20 interface
+  - Consistent payment handling across all job states
+
+- **UUPS Proxy**: Gas-efficient upgradeability
+  - Implementation at `0xfed5abbe...`
+  - Proxy at `0xe0006203...`
+  - ~24KB implementation size (under limit)
 
 #### Enhanced Directories (Weeks 1-2)
 
@@ -342,16 +361,17 @@ forge script contracts/script/Deploy.s.sol:DeployPhase2Script \
 
 ## Testing
 
-### Test Suite (Phase 4 Complete)
+### Test Suite (Phase 5 Complete)
 
-**201 tests passing** with 87%+ code coverage across all core contracts.
+**217 tests passing** with 87%+ code coverage across all core contracts.
 
 | Contract          | Coverage | Tests   | Status |
 | ----------------- | -------- | ------- | ------ |
+| AgenticCommerceV5 | 89%+     | 16      | ✅     |
 | AgenticCommerceV4 | 89.25%   | 50      | ✅     |
 | AgentReviewV4     | 91.24%   | 46      | ✅     |
 | ServiceRegistryV2 | 83.33%   | 29      | ✅     |
-| **Total**         | **87%+** | **201** | ✅     |
+| **Total**         | **87%+** | **217** | ✅     |
 
 ### Running Tests
 
