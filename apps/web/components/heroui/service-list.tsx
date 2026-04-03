@@ -1,14 +1,41 @@
 'use client';
 
+import { useState, useEffect, useMemo } from 'react';
+import { usePublicClient } from 'wagmi';
 import { useAllServices, Service } from '@/lib/hooks/useServicesContract';
+import { useFindSkillsByDomain } from '@/lib/hooks/useSkills';
 import { useTokenPriceConversion } from '@/lib/hooks/useTokenConversion';
 import { Card, Button } from '@heroui/react';
 import NextLink from 'next/link';
 import { ShoppingBag, DollarSign, ChevronLeft, ChevronRight, List, LayoutGrid } from 'lucide-react';
 import { useViewportPagination, usePagination } from '@/lib/hooks/useViewportPagination';
 import { StatusBadge, getServiceStatusBadgeType } from '@/components/StatusBadge';
+import { CONTRACTS } from '@/lib/wagmi';
+import { AGENT_SKILL_REGISTRY_ABI } from '@/lib/contracts/abis';
 
 const ZERO_ADDRESS = '0x0000000000000000000000000000000000000000';
+const SKILL_REGISTRY_ADDRESS = CONTRACTS[11155111].skillRegistry;
+
+// Helper function to convert price to USD equivalent (USDC = 6 decimals, ETH = 18 decimals)
+function priceToUsdEquivalent(
+  price: bigint,
+  paymentToken: `0x${string}`,
+  ethToUsdcRate: number | null
+): number {
+  const isEth = paymentToken.toLowerCase() === ZERO_ADDRESS.toLowerCase();
+
+  if (isEth && ethToUsdcRate) {
+    // ETH: convert from 18 decimals to USD equivalent
+    const ethAmount = Number(price) / 1e18;
+    return ethAmount * ethToUsdcRate;
+  } else if (isEth) {
+    // ETH but no rate available - return price in ETH terms (will be excluded from filter)
+    return Number(price) / 1e18;
+  } else {
+    // USDC: already in 6 decimals
+    return Number(price) / 1e6;
+  }
+}
 
 function ServiceListSkeleton() {
   return (
@@ -130,32 +157,92 @@ export function ServiceList({
 }: ServiceListProps) {
   const { itemsPerPage } = useViewportPagination();
   const [{ page, showAll }, { setPage, toggleShowAll }] = usePagination(itemsPerPage);
+  const publicClient = usePublicClient();
+  const { ethToUsdcRate } = useTokenPriceConversion();
+
   // Use contract-based services
   const { services, isLoading, error, refetch } = useAllServices();
 
+  // Skill domain filtering
+  const { skillIds, isLoading: isLoadingSkills } = useFindSkillsByDomain(skillDomain || undefined);
+  const [agentIdsBySkill, setAgentIdsBySkill] = useState<Set<string>>(new Set());
+
+  // Fetch agent IDs for skills matching the domain
+  useEffect(() => {
+    if (!publicClient || !skillIds || skillIds.length === 0) {
+      setAgentIdsBySkill(new Set());
+      return;
+    }
+
+    const fetchAgentIds = async () => {
+      const calls = skillIds.map(skillId => ({
+        address: SKILL_REGISTRY_ADDRESS as `0x${string}`,
+        abi: AGENT_SKILL_REGISTRY_ABI,
+        functionName: 'getSkillData' as const,
+        args: [skillId],
+      }));
+
+      try {
+        const results = await publicClient.multicall({ contracts: calls });
+        const agentIdSet = new Set<string>();
+        for (const result of results) {
+          if (result.status === 'success' && result.result) {
+            const skillData = result.result as { agentId: bigint };
+            agentIdSet.add(skillData.agentId.toString());
+          }
+        }
+        setAgentIdsBySkill(agentIdSet);
+      } catch (err) {
+        console.error('Error fetching agent IDs for skill domain:', err);
+        setAgentIdsBySkill(new Set());
+      }
+    };
+
+    void fetchAgentIds();
+  }, [publicClient, skillIds]);
+
   // Apply filters
-  let filteredServices = services.filter((service: Service) => {
-    // Search query filter
-    if (searchQuery && !service.name.toLowerCase().includes(searchQuery.toLowerCase())) {
-      return false;
-    }
+  let filteredServices = useMemo(() => {
+    return services.filter((service: Service) => {
+      // Search query filter
+      if (searchQuery && !service.name.toLowerCase().includes(searchQuery.toLowerCase())) {
+        return false;
+      }
 
-    // Active only filter
-    if (showActiveOnly && !service.isActive) {
-      return false;
-    }
+      // Active only filter
+      if (showActiveOnly && !service.isActive) {
+        return false;
+      }
 
-    // Price range filters
-    const priceInUSDC = Number(service.price) / 1e6;
-    if (minPrice && priceInUSDC < Number(minPrice)) {
-      return false;
-    }
-    if (maxPrice && priceInUSDC > Number(maxPrice)) {
-      return false;
-    }
+      // Skill domain filter
+      if (skillDomain && agentIdsBySkill.size > 0) {
+        const serviceAgentId = service.agentId.toString();
+        if (!agentIdsBySkill.has(serviceAgentId)) {
+          return false;
+        }
+      }
 
-    return true;
-  });
+      // Price range filters - convert to USD equivalents for comparison
+      const priceInUsd = priceToUsdEquivalent(service.price, service.paymentToken, ethToUsdcRate);
+      if (minPrice && priceInUsd < Number(minPrice)) {
+        return false;
+      }
+      if (maxPrice && priceInUsd > Number(maxPrice)) {
+        return false;
+      }
+
+      return true;
+    });
+  }, [
+    services,
+    searchQuery,
+    showActiveOnly,
+    skillDomain,
+    agentIdsBySkill,
+    minPrice,
+    maxPrice,
+    ethToUsdcRate,
+  ]);
 
   // Apply sorting
   filteredServices.sort((a: Service, b: Service) => {
@@ -163,7 +250,10 @@ export function ServiceList({
 
     switch (sortBy) {
       case 'price':
-        return multiplier * (Number(a.price) - Number(b.price));
+        // Sort by USD equivalent price
+        const priceA = priceToUsdEquivalent(a.price, a.paymentToken, ethToUsdcRate);
+        const priceB = priceToUsdEquivalent(b.price, b.paymentToken, ethToUsdcRate);
+        return multiplier * (priceA - priceB);
       case 'name':
         return multiplier * a.name.localeCompare(b.name);
       case 'newest':
@@ -194,12 +284,24 @@ export function ServiceList({
     );
   }
 
-  if (isLoading) {
+  if (isLoading || isLoadingSkills) {
     return <ServiceListSkeleton />;
   }
 
   if (!displayServices || displayServices.length === 0) {
-    return <EmptyState />;
+    return skillDomain ? (
+      <div className="text-center py-16">
+        <div className="h-16 w-16 rounded-full bg-content2 flex items-center justify-center mx-auto mb-4">
+          <ShoppingBag className="h-8 w-8 text-default-500" />
+        </div>
+        <h3 className="text-lg font-semibold mb-2">No Services Found</h3>
+        <p className="text-default-500 max-w-md mx-auto">
+          No services match the skill domain "{skillDomain}". Try a different search term.
+        </p>
+      </div>
+    ) : (
+      <EmptyState />
+    );
   }
 
   return (

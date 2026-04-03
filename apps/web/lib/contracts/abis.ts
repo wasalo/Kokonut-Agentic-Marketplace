@@ -202,6 +202,13 @@ export const SERVICE_REGISTRY_ABI = [
   },
   {
     inputs: [{ name: 'serviceId', type: 'uint256' }],
+    name: 'activateService',
+    outputs: [],
+    stateMutability: 'nonpayable',
+    type: 'function',
+  },
+  {
+    inputs: [{ name: 'serviceId', type: 'uint256' }],
     name: 'getService',
     outputs: [
       {

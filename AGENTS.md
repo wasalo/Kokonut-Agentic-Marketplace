@@ -37,8 +37,8 @@ USDC:      0x1c7D4B196Cb0C7B01d743Fbc6116a902379C7238
 | --------------------------- | -------------------------------------------- | --------------------------------------------- | ---------- |
 | `AgentSkillRegistryV2`      | `0xA84684261558f342d6871DD2CFef90A2117Aa20A` | What are my capabilities? (UUPS Proxy, Fixed) | ✅ Live    |
 | `AgentSkillRegistryV2 Impl` | `0x3Eec6BAF9FAc410B9C580d3Eb8c971a14298BC87` | Implementation (ownerOf fix)                  | ✅ Live    |
-| `ServiceRegistryV2`         | `0x62E1eeEa1A2Ab987004F35bDA430457Ed6077201` | What do I offer? (UUPS Proxy)                 | ✅ Phase 4 |
-| `ServiceRegistryV2 Impl`    | `0xe5B75877598F276DC63843514A888fBDc60B4086` | Implementation (Fixed Mar 30)                 | ✅ Phase 4 |
+| `ServiceRegistryV2`         | `0x62E1eeEa1A2Ab987004F35bDA430457Ed6077201` | What do I offer? (UUPS Proxy)                 | ✅ Live    |
+| `ServiceRegistryV2 Impl`    | `0xe2fB4aDA35B8d5FbB041a9C0ED4a655Be329a457` | Implementation (activateService added)        | ✅ Live    |
 | `AgenticCommerce`           | `0xe0006203ceb8bb20b29fa5324ad3fea356bbf858` | How do I get paid? (V5 with bidding)          | ✅ Phase 5 |
 | `AgenticCommerce Impl`      | `0xfed5abbea703485e725be1b0e9db3772e4068ec5` | Implementation (UUPS, ETH/ERC20 support)      | ✅ Phase 5 |
 | `AgentReview`               | `0x716B02447b52Eab450e31bD77103B41bC2c7bE0b` | How do I prove my value? (V4)                 | ✅ Phase 4 |

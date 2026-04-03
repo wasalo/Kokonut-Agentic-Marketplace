@@ -1,6 +1,7 @@
 'use client';
 
-import { use, useState, useCallback, useEffect } from 'react';
+import { use, useState, useCallback, useEffect, useRef } from 'react';
+import { useQueryClient } from '@tanstack/react-query';
 import { Settings } from 'lucide-react';
 import { useAccount, useWaitForTransactionReceipt, useWriteContract, usePublicClient } from 'wagmi';
 import NextLink from 'next/link';
@@ -64,6 +65,7 @@ export default function JobDetailPage({
   const { id } = use(params);
   const jobId = BigInt(id);
   const { address } = useAccount();
+  const queryClient = useQueryClient();
 
   const { job, isLoading, refetch } = useJob(jobId);
   const { service } = useService(job?.serviceId ?? BigInt(0));
@@ -77,6 +79,10 @@ export default function JobDetailPage({
   );
   const { formattedBalance: usdcBalance, isLoading: balanceLoading } = useUSDCBalance(address);
   const { approve, hash: approveHash, isPending: isApprovePending } = useUSDCApprove();
+
+  // Optimistic approval state - immediately show "Fund Job" after approve is clicked
+  const [optimisticApprovalSent, setOptimisticApprovalSent] = useState(false);
+  const prevApproveHashRef = useRef<string | undefined>(undefined);
 
   // Payment token setup for direct jobs
   const {
@@ -178,12 +184,29 @@ export default function JobDetailPage({
     paymentTokenHash;
   const { isSuccess: isTxConfirmed } = useWaitForTransactionReceipt({ hash: txHash });
 
+  // Track when approval tx is sent to optimistically update UI
   useEffect(() => {
-    if (isTxConfirmed && txStep) {
+    if (approveHash && approveHash !== prevApproveHashRef.current) {
+      prevApproveHashRef.current = approveHash;
+      setOptimisticApprovalSent(true);
+    }
+  }, [approveHash]);
+
+  // After approval tx confirms, invalidate allowance query and clear optimistic state
+  useEffect(() => {
+    if (isTxConfirmed && txStep === 'Approving USDC') {
+      setTxStep(null);
+      setOptimisticApprovalSent(false);
+      // Immediately invalidate USDC allowance query so next read gets fresh value
+      queryClient.invalidateQueries({
+        queryKey: ['useReadContract', USDC_ADDRESS, 'allowance'],
+      });
+      void refetch();
+    } else if (isTxConfirmed && txStep) {
       setTxStep(null);
       void refetch();
     }
-  }, [isTxConfirmed, txStep, refetch]);
+  }, [isTxConfirmed, txStep, refetch, queryClient]);
 
   const handleAction = useCallback((action: string, fn: () => void) => {
     setTxStep(action);
@@ -194,8 +217,8 @@ export default function JobDetailPage({
   const isProvider = job && address && job.provider.toLowerCase() === address.toLowerCase();
   const isEvaluator = job && address && job.evaluator.toLowerCase() === address.toLowerCase();
 
-  // USDC approval check
-  const hasAllowance = allowance && job && allowance >= job.budget;
+  // USDC approval check - includes optimistic state
+  const hasAllowance = (allowance && job && allowance >= job.budget) || optimisticApprovalSent;
   const needsApproval = !hasAllowance && job?.status === JobStatus.Open && isClient;
   const isExpired = job && Date.now() / 1000 > Number(job.expiredAt);
 

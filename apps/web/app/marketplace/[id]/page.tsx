@@ -17,7 +17,11 @@ import {
 } from 'lucide-react';
 import { Card } from '@heroui/react';
 import { formatUnits } from 'viem';
-import { useUpdateService, useDeactivateService } from '@/lib/hooks/useServices';
+import {
+  useUpdateService,
+  useDeactivateService,
+  useActivateService,
+} from '@/lib/hooks/useServices';
 import { useServiceContract } from '@/lib/hooks/useServicesContract';
 import { useAgentReputation } from '@/lib/hooks/useReputation';
 import { useTokenPriceConversion } from '@/lib/hooks/useTokenConversion';
@@ -53,6 +57,7 @@ export default function ServiceDetailPage({
 
   const { updateService, isPending: isUpdatePending } = useUpdateService();
   const { deactivateService, isPending: isDeactivatePending } = useDeactivateService();
+  const { activateService, isPending: isActivatePending } = useActivateService();
 
   const isProvider = address && service && address.toLowerCase() === service.provider.toLowerCase();
 
@@ -165,49 +170,82 @@ export default function ServiceDetailPage({
               </div>
 
               {/* Provider Actions */}
-              {isProvider && service.isActive && (
+              {isProvider && (
                 <div className="flex gap-3 mt-4 pt-4 border-t border-divider">
-                  <button
-                    onClick={() => {
-                      setEditForm({
-                        name: service.name,
-                        description: service.description,
-                        price: formattedPrice,
-                      });
-                      setIsEditing(true);
-                    }}
-                    className="flex items-center gap-2 px-4 py-2 text-sm text-primary border border-primary/30 rounded-lg hover:bg-primary/5"
-                  >
-                    <Edit className="w-4 h-4" />
-                    Edit Service
-                  </button>
-                  <button
-                    onClick={async () => {
-                      try {
-                        const toastId = showToast.loading('Deactivating service...');
-                        await deactivateService(serviceId);
-                        showToast.dismiss(toastId);
-                        showToast.success(
-                          'Service deactivated',
-                          'Your service has been deactivated.'
-                        );
-                        refetch();
-                      } catch (err) {
-                        const errorMessage = getTransactionError(err);
-                        showToast.error('Deactivation failed', errorMessage);
-                        console.error('[DeactivateService] Error:', err);
-                      }
-                    }}
-                    disabled={isDeactivatePending}
-                    className="flex items-center gap-2 px-4 py-2 text-sm text-danger border border-danger/30 rounded-lg hover:bg-danger/5 disabled:opacity-50"
-                  >
-                    {isDeactivatePending ? (
-                      <Loader2 className="w-4 h-4 animate-spin" />
-                    ) : (
-                      <Power className="w-4 h-4" />
-                    )}
-                    Deactivate
-                  </button>
+                  {service.isActive && (
+                    <>
+                      <button
+                        onClick={() => {
+                          setEditForm({
+                            name: service.name,
+                            description: service.description,
+                            price: formattedPrice,
+                          });
+                          setIsEditing(true);
+                        }}
+                        className="flex items-center gap-2 px-4 py-2 text-sm text-primary border border-primary/30 rounded-lg hover:bg-primary/5"
+                      >
+                        <Edit className="w-4 h-4" />
+                        Edit Service
+                      </button>
+                      <button
+                        onClick={async () => {
+                          try {
+                            const toastId = showToast.loading('Deactivating service...');
+                            await deactivateService(serviceId);
+                            showToast.dismiss(toastId);
+                            showToast.success(
+                              'Service deactivated',
+                              'Your service has been deactivated.'
+                            );
+                            refetch();
+                          } catch (err) {
+                            const errorMessage = getTransactionError(err);
+                            showToast.error('Deactivation failed', errorMessage);
+                            console.error('[DeactivateService] Error:', err);
+                          }
+                        }}
+                        disabled={isDeactivatePending}
+                        className="flex items-center gap-2 px-4 py-2 text-sm text-danger border border-danger/30 rounded-lg hover:bg-danger/5 disabled:opacity-50"
+                      >
+                        {isDeactivatePending ? (
+                          <Loader2 className="w-4 h-4 animate-spin" />
+                        ) : (
+                          <Power className="w-4 h-4" />
+                        )}
+                        Deactivate
+                      </button>
+                    </>
+                  )}
+                  {!service.isActive && (
+                    <button
+                      onClick={async () => {
+                        try {
+                          const toastId = showToast.loading('Activating service...');
+                          await activateService(serviceId);
+                          showToast.dismiss(toastId);
+                          showToast.success(
+                            'Service activated',
+                            'Your service is now visible in the marketplace.'
+                          );
+                          refetch();
+                        } catch (err) {
+                          const errorMessage = getTransactionError(err);
+                          showToast.error('Activation failed', errorMessage);
+                          console.error('[ActivateService] Error:', err);
+                        }
+                      }}
+                      disabled={isActivatePending}
+                      className="flex items-center gap-2 px-4 py-2 text-sm text-success border border-success/30 rounded-lg hover:bg-success/5 disabled:opacity-50"
+                    >
+                      {isActivatePending ? (
+                        <Loader2 className="w-4 h-4 animate-spin" />
+                      ) : (
+                        <Power className="w-4 h-4" />
+                      )}
+                      Activate Service
+                    </button>
+                  )}
                 </div>
               )}
             </>

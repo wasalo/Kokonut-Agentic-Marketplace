@@ -16,6 +16,7 @@ contract ServiceRegistryV2Test is TestFixtures {
     event ServiceCreated(uint256 indexed serviceId, address indexed provider, uint256 indexed agentId, string name, uint256 price);
     event ServiceUpdated(uint256 indexed serviceId);
     event ServiceDeactivated(uint256 indexed serviceId);
+    event ServiceActivated(uint256 indexed serviceId);
     event IdentityRegistryUpdated(address newRegistry);
     
     // Mock ERC721 for agent registry
@@ -217,6 +218,88 @@ contract ServiceRegistryV2Test is TestFixtures {
         vm.prank(provider);
         vm.expectRevert("Already inactive");
         serviceRegistry.deactivateService(serviceId);
+    }
+    
+    // =====================================================
+    // ACTIVATE SERVICE TESTS
+    // =====================================================
+    
+    function test_ActivateService_Success() public {
+        vm.prank(provider);
+        uint256 serviceId = serviceRegistry.createService(1, "Service", "Desc", "", 100, address(usdc));
+        
+        // Deactivate first
+        vm.prank(provider);
+        serviceRegistry.deactivateService(serviceId);
+        
+        // Verify inactive
+        ServiceRegistryV2.Service memory service = serviceRegistry.getService(serviceId);
+        assertFalse(service.isActive);
+        
+        // Activate
+        vm.prank(provider);
+        serviceRegistry.activateService(serviceId);
+        
+        // Verify active again
+        service = serviceRegistry.getService(serviceId);
+        assertTrue(service.isActive);
+    }
+    
+    function test_ActivateService_UpdatesActiveCount() public {
+        vm.prank(provider);
+        uint256 serviceId = serviceRegistry.createService(1, "Service", "Desc", "", 100, address(usdc));
+        
+        assertEq(serviceRegistry.getActiveServiceCount(), 1);
+        
+        vm.prank(provider);
+        serviceRegistry.deactivateService(serviceId);
+        
+        assertEq(serviceRegistry.getActiveServiceCount(), 0);
+        
+        vm.prank(provider);
+        serviceRegistry.activateService(serviceId);
+        
+        assertEq(serviceRegistry.getActiveServiceCount(), 1);
+    }
+    
+    function test_ActivateService_EmitsEvent() public {
+        vm.prank(provider);
+        uint256 serviceId = serviceRegistry.createService(1, "Service", "Desc", "", 100, address(usdc));
+        
+        vm.prank(provider);
+        serviceRegistry.deactivateService(serviceId);
+        
+        vm.prank(provider);
+        vm.expectEmit(true, true, true, true);
+        emit ServiceActivated(serviceId);
+        serviceRegistry.activateService(serviceId);
+    }
+    
+    function test_ActivateService_NotProvider_Reverts() public {
+        vm.prank(provider);
+        uint256 serviceId = serviceRegistry.createService(1, "Service", "Desc", "", 100, address(usdc));
+        
+        vm.prank(provider);
+        serviceRegistry.deactivateService(serviceId);
+        
+        vm.prank(client);
+        vm.expectRevert("Not owner");
+        serviceRegistry.activateService(serviceId);
+    }
+    
+    function test_ActivateService_AlreadyActive_Reverts() public {
+        vm.prank(provider);
+        uint256 serviceId = serviceRegistry.createService(1, "Service", "Desc", "", 100, address(usdc));
+        
+        vm.prank(provider);
+        vm.expectRevert("Already active");
+        serviceRegistry.activateService(serviceId);
+    }
+    
+    function test_ActivateService_InvalidServiceId_Reverts() public {
+        vm.prank(provider);
+        vm.expectRevert();
+        serviceRegistry.activateService(999);
     }
     
     // =====================================================

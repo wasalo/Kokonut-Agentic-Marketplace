@@ -33,7 +33,7 @@ contract UpgradeServiceRegistryV2 is Script {
         address deployer = vm.addr(deployerPrivateKey);
         
         console.log("=============================================");
-        console.log("ServiceRegistryV2 Upgrade (Phase 2)");
+        console.log("ServiceRegistryV2 Upgrade - Activate Service");
         console.log("=============================================");
         console.log("Deployer:", deployer);
         console.log("Proxy Address:", PROXY_ADDRESS);
@@ -102,9 +102,10 @@ contract UpgradeServiceRegistryV2 is Script {
         console.log("Upgrade Successful!");
         console.log("=============================================");
         console.log("");
-        console.log("Phase 2 Features Activated:");
+        console.log("New Features Activated:");
+        console.log("  - activateService() - Reactivate deactivated services");
         console.log("  - O(1) getActiveServiceCount()");
-        console.log("  - Automatic counter updates in create/deactivate");
+        console.log("  - Automatic counter updates in create/deactivate/activate");
         console.log("");
         console.log("New Implementation:", newImplementation);
         console.log("Proxy (unchanged):", PROXY_ADDRESS);

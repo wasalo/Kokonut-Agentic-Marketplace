@@ -5,6 +5,59 @@ All notable changes to the Kokonut Agent Economy Stack are documented in this fi
 The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.0.0/),\
 and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0.html).
 
+## [Unreleased] - 2026-04-03
+
+### 🚀 Marketplace & Service Improvements
+
+#### Frontend Optimizations
+
+- **Optimistic USDC Approval** - "Fund Job" button appears immediately after clicking "Approve"
+  - No more waiting for 30-second cache expiration
+  - Query invalidation after tx confirmation for immediate state refresh
+- **Skill Domain Filter** - Filter services by agent skill domain in marketplace
+  - Uses multicall for efficient batch fetching of agent IDs
+  - Filters services by matching skill domains
+- **USD Price Standardization** - All prices normalized to USD equivalents
+  - ETH services properly filtered by USD value using Chainlink oracle
+  - Price sorting uses USD equivalents for accurate comparison
+
+#### Contract Updates
+
+- **ServiceRegistryV2** - Added `activateService()` function
+  - Reactivate previously deactivated services without recreation
+  - O(1) counter updates (increments active count on activation)
+  - Emits `ServiceActivated` event for event-driven UI updates
+- **Bidding UI** - Full open job bidding lifecycle in job detail page
+  - CommitBidForm, RevealBidForm, AcceptBidForm components
+  - BidStatusCard for provider bid tracking
+  - Client bid overview panel with count and status
+
+#### UI Improvements
+
+- **Activate Service Button** - Added to service detail page (`/marketplace/[id]`)
+  - Visible when service is inactive
+  - One-click reactivation for providers
+  - Success/error toast notifications
+
+#### Testing
+
+- **ServiceRegistryV2 Tests** - 6 new tests for activateService (35 total)
+  - `test_ActivateService_Success`
+  - `test_ActivateService_UpdatesActiveCount`
+  - `test_ActivateService_EmitsEvent`
+  - `test_ActivateService_NotProvider_Reverts`
+  - `test_ActivateService_AlreadyActive_Reverts`
+  - `test_ActivateService_InvalidServiceId_Reverts`
+
+### Deployment
+
+- **ServiceRegistryV2** implementation upgraded on Sepolia
+  - Proxy: `0x62E1eeEa1A2Ab987004F35bDA430457Ed6077201`
+  - New Implementation: `0xe2fB4aDA35B8d5FbB041a9C0ED4a655Be329a457`
+  - Activate service function now live
+
+---
+
 ## [Unreleased] - 2026-04-02
 
 ### 🔧 Full Dependency Upgrade & Network Access Fixes

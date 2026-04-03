@@ -455,3 +455,20 @@ export function useDeactivateService() {
     reset,
   };
 }
+
+export function useActivateService() {
+  const { writeContract, data, isPending, error, reset } = useWriteContract();
+  return {
+    activateService: (serviceId: bigint) =>
+      writeContract({
+        address: SERVICE_REGISTRY_ADDRESS,
+        abi: SERVICE_REGISTRY_ABI,
+        functionName: 'activateService',
+        args: [serviceId],
+      }),
+    hash: data,
+    isPending,
+    error,
+    reset,
+  };
+}

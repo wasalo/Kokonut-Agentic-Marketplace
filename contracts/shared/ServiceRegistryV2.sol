@@ -41,6 +41,7 @@ interface IServiceRegistryV2 {
     ) external;
     
     function deactivateService(uint256 serviceId) external;
+    function activateService(uint256 serviceId) external;
     function getService(uint256 serviceId) external view returns (Service memory);
     function getProviderServices(address provider) external view returns (uint256[] memory);
     function getServicesByAgent(uint256 agentId) external view returns (uint256[] memory);
@@ -56,6 +57,7 @@ interface IServiceRegistryV2 {
     );
     event ServiceUpdated(uint256 indexed serviceId);
     event ServiceDeactivated(uint256 indexed serviceId);
+    event ServiceActivated(uint256 indexed serviceId);
 }
 
 /**
@@ -223,6 +225,22 @@ contract ServiceRegistryV2 is
         _activeServiceCount--;
 
         emit ServiceDeactivated(serviceId);
+    }
+    
+    /**
+     * @dev Activate a previously deactivated service
+     */
+    function activateService(uint256 serviceId) external {
+        require(serviceId < _serviceCounter, "Invalid serviceId");
+        require(_services[serviceId].provider == msg.sender, "Not owner");
+        require(!_services[serviceId].isActive, "Already active");
+
+        _services[serviceId].isActive = true;
+        
+        // O(1) update: increment active service count
+        _activeServiceCount++;
+
+        emit ServiceActivated(serviceId);
     }
     
     // ============ View Functions ============

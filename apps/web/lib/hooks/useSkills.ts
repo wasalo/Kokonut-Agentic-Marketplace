@@ -165,3 +165,50 @@ export function useFindSkillsByDomain(domain: string | undefined) {
 
   return { skillIds: data as bigint[] | undefined, isLoading, error, refetch };
 }
+
+export function useAgentIdsBySkillDomain(domain: string | undefined) {
+  const {
+    skillIds,
+    isLoading: isLoadingSkills,
+    error: skillsError,
+    refetch: refetchSkills,
+  } = useFindSkillsByDomain(domain);
+
+  const {
+    data: skillDataList,
+    isLoading: isLoadingSkillData,
+    error: skillDataError,
+    refetch: refetchSkillData,
+  } = useReadContract({
+    address: SKILL_REGISTRY_ADDRESS,
+    abi: AGENT_SKILL_REGISTRY_ABI,
+    functionName: 'getSkillData',
+    args: skillIds && skillIds.length > 0 ? [skillIds[0]] : undefined,
+    query: {
+      enabled: !!skillIds && skillIds.length > 0,
+      retry: 2,
+      staleTime: 30 * 1000,
+    },
+  });
+
+  // Get unique agent IDs from matching skills
+  const agentIds =
+    skillIds
+      ?.map((_, idx) => {
+        if (skillDataList && typeof skillDataList === 'object' && 'agentId' in skillDataList) {
+          return (skillDataList as Skill).agentId;
+        }
+        return BigInt(0);
+      })
+      .filter((id, idx, arr) => arr.indexOf(id) === idx) || [];
+
+  return {
+    agentIds,
+    isLoading: isLoadingSkills || isLoadingSkillData,
+    error: skillsError || skillDataError,
+    refetch: () => {
+      void refetchSkills();
+      void refetchSkillData();
+    },
+  };
+}

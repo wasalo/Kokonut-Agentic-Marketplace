@@ -1,7 +1,7 @@
 # Kokonut Agent Economy Stack
 
 [![Security Audit](https://img.shields.io/badge/security-audited-brightgreen.svg)](./SECURITY_AUDIT_REPORT.md)
-[![Tests](https://img.shields.io/badge/tests-201%20passing-brightgreen.svg)](./contracts/test)
+[![Tests](https://img.shields.io/badge/tests-223%20passing-brightgreen.svg)](./contracts/test)
 [![Coverage](https://img.shields.io/badge/coverage-87%25-brightgreen.svg)](./contracts/test)
 [![Frontend Security](https://img.shields.io/badge/frontend%20security-8.6%2F10-brightgreen.svg)](./docs/FRONTEND_SECURITY_HARDENING_REPORT.md)
 [![Phase 5](https://img.shields.io/badge/phase-5%20enhanced%20UX-blue.svg)](./AGENTS.md)
@@ -44,22 +44,25 @@ The **Kokonut Agent Economy Stack** is a complete onchain agent economy with thr
 
 ### Contract Addresses (Phase 5 - Production)
 
-| Contract               | Address                                      | Description                               | Version |
-| ---------------------- | -------------------------------------------- | ----------------------------------------- | ------- |
-| `AgentSkillRegistryV2` | `0xA84684261558f342d6871DD2CFef90A2117Aa20A` | Skills/capabilities (UUPS Proxy)          | V2      |
-| `ServiceRegistryV2`    | `0x62E1eeEa1A2Ab987004F35bDA430457Ed6077201` | Service listings (UUPS Proxy, ERC-8004)   | V2      |
-| `AgentReview`          | `0x716B02447b52Eab450e31bD77103B41bC2c7bE0b` | A/B evaluation with staking               | V4      |
-| `AgenticCommerce`      | `0xe0006203ceb8bb20b29fa5324ad3fea356bbf858` | Job escrow with open bidding (UUPS Proxy) | V5      |
-| `AgenticCommerce` (I)  | `0xfed5abbea703485e725be1b0e9db3772e4068ec5` | Implementation                            | V5      |
-| `PriceOracle`          | `0x5C4AC3dAF76708DCd51911BA3B33027eAB1B4047` | Price feeds (Chainlink on Sepolia)        | Live    |
-| `CommitReveal`         | `0x6CEd1574A3dF7ec646e43DD8408300117c453Aa3` | Front-running protection (12-block delay) | Live    |
-| `SlashManager`         | `0x7Cf955900FD7a12680E90D834eAf19346f5DBcf9` | 3-of-5 multisig governance                | V1      |
+| Contract                   | Address                                      | Description                               | Version |
+| -------------------------- | -------------------------------------------- | ----------------------------------------- | ------- |
+| `AgentSkillRegistryV2`     | `0xA84684261558f342d6871DD2CFef90A2117Aa20A` | Skills/capabilities (UUPS Proxy)          | V2      |
+| `AgentSkillRegistryV2` (I) | `0x3Eec6BAF9FAc410B9C580d3Eb8c971a14298BC87` | Implementation                            | V2      |
+| `ServiceRegistryV2`        | `0x62E1eeEa1A2Ab987004F35bDA430457Ed6077201` | Service listings (UUPS Proxy, ERC-8004)   | V2      |
+| `ServiceRegistryV2` (I)    | `0xe2fB4aDA35B8d5FbB041a9C0ED4a655Be329a457` | Implementation (activateService)          | V2      |
+| `AgentReview`              | `0x716B02447b52Eab450e31bD77103B41bC2c7bE0b` | A/B evaluation with staking               | V4      |
+| `AgenticCommerce`          | `0xe0006203ceb8bb20b29fa5324ad3fea356bbf858` | Job escrow with open bidding (UUPS Proxy) | V5      |
+| `AgenticCommerce` (I)      | `0xfed5abbea703485e725be1b0e9db3772e4068ec5` | Implementation                            | V5      |
+| `PriceOracle`              | `0x5C4AC3dAF76708DCd51911BA3B33027eAB1B4047` | Price feeds (Chainlink on Sepolia)        | Live    |
+| `CommitReveal`             | `0x6CEd1574A3dF7ec646e43DD8408300117c453Aa3` | Front-running protection (12-block delay) | Live    |
+| `SlashManager`             | `0x7Cf955900FD7a12680E90D834eAf19346f5DBcf9` | 3-of-5 multisig governance                | V1      |
 
 **Note:**
 
 - All contracts have been security audited and critical vulnerabilities fixed as of April 2026. See [SECURITY_AUDIT_REPORT.md](./SECURITY_AUDIT_REPORT.md) for details.
-- **217 tests passing** with 87%+ code coverage across all core contracts
+- **223 tests passing** with 87%+ code coverage across all core contracts
 - V5 introduces open job bidding with sealed bids and multi-token support
+- ServiceRegistryV2 supports service reactivation via `activateService()`
 
 ### Official ERC-8004 Registries (Sepolia)
 

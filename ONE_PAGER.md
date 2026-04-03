@@ -1,6 +1,6 @@
 # Kokonut Agent Economy Stack — One Pager
 
-> Last updated: 2026-04-02
+> Last updated: 2026-04-03
 
 ## What Is This?
 
@@ -199,6 +199,37 @@ Winner's stake returned, job funded and work begins
 | Budget   | Fixed at creation    | Max budget, bid can be lower        |
 | Flow     | Create → Fund → Work | Create → Bid → Accept → Fund → Work |
 | Use Case | Known provider       | Competitive selection               |
+
+---
+
+## Service Lifecycle (Marketplace)
+
+Services in the marketplace can be activated and deactivated by providers:
+
+```
+Service Created → Active (default)
+       │
+       ▼
+Provider can Deactivate
+       │
+       ▼
+Service Hidden from Marketplace
+       │
+       ▼
+Provider can Reactivate
+       │
+       ▼
+Service Visible Again
+```
+
+### Key Features
+
+| Feature           | Behavior                                     |
+| ----------------- | -------------------------------------------- |
+| **Auto-active**   | New services are active by default           |
+| **Deactivation**  | Providers can hide services without deleting |
+| **Reactivation**  | Deactivated services can be reactivated      |
+| **O(1) Counting** | Active count maintained in contract          |
 
 ---
 
