@@ -38,6 +38,28 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
   - Increased cache duration to 5 minutes
   - Added `hooks` debug category
 
+### 🚀 Analytics Enhancements
+
+#### Time Range Toggle
+
+- **Time Range Selector** - Analytics page now supports multiple time ranges with URL persistence
+  - Options: 7D (7 days), 30D (30 days), 3M (90 days)
+  - Segmented button UI with active state highlighting
+  - URL parameter support (`?range=30D`) for shareable links
+- **useAnalytics Hook Updates**
+  - New `timeRange` parameter (default: '7D')
+  - Dynamic block constants for each range (50,400 / 216,000 / 648,000)
+  - Dynamic data points (max 14 for readability)
+  - Per-day calculations use selected range divisor
+
+### 🔧 Bug Fixes
+
+#### Job Detail Page
+
+- **Change Payment Token Button Disabled** - Temporarily disabled due to missing `setPaymentToken` function in AgenticCommerceV5
+  - V5 contract only accepts payment token during `createOpenJob()`
+  - Feature will be re-enabled when function is added to V5
+
 ### 🚀 Marketplace & Service Improvements
 
 #### Frontend Optimizations

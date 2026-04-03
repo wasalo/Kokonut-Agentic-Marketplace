@@ -22,8 +22,14 @@ const AGENT_REVIEW_ADDRESS = getContractAddress(
 // From block (Sepolia deployment)
 const FROM_BLOCK = BigInt(9989393);
 
-// 7 days worth of blocks (approx 12s per block = ~50,400 blocks)
-const BLOCKS_PER_7_DAYS = 50400;
+// Time range constants (approx 12s per block)
+export type TimeRange = '7D' | '30D' | '3M';
+
+export const TIME_RANGES: Record<TimeRange, { blocks: number; days: number }> = {
+  '7D': { blocks: 50400, days: 7 },
+  '30D': { blocks: 216000, days: 30 },
+  '3M': { blocks: 648000, days: 90 },
+};
 
 export interface DailyStats {
   date: string;
@@ -55,9 +61,10 @@ export interface AnalyticsData {
 }
 
 /**
- * Hook to fetch 7-day analytics data from events
+ * Hook to fetch analytics data from events
+ * @param timeRange - Time range for analytics: '7D' (7 days), '30D' (30 days), '3M' (90 days)
  */
-export function useAnalytics() {
+export function useAnalytics(timeRange: TimeRange = '7D') {
   const publicClient = usePublicClient();
   const [data, setData] = useState<AnalyticsData | null>(null);
   const [isLoading, setIsLoading] = useState(false);
@@ -70,23 +77,27 @@ export function useAnalytics() {
     setError(null);
 
     try {
-      debugLog('contracts', 'Fetching 7-day analytics...');
+      const range = TIME_RANGES[timeRange];
+      debugLog('contracts', `Fetching ${timeRange} analytics...`);
 
       // Get current block number
       const currentBlock = await publicClient.getBlockNumber();
       const fromBlock =
-        currentBlock - BigInt(BLOCKS_PER_7_DAYS) > FROM_BLOCK
-          ? currentBlock - BigInt(BLOCKS_PER_7_DAYS)
+        currentBlock - BigInt(range.blocks) > FROM_BLOCK
+          ? currentBlock - BigInt(range.blocks)
           : FROM_BLOCK;
 
-      // Initialize daily stats array for last 7 days
+      // Initialize daily stats array for the selected time range
+      // Show at most 14 data points for readability (sample every N days)
+      const maxDataPoints = 14;
+      const pointsInterval = Math.max(1, Math.floor(range.days / maxDataPoints));
       const dailyStats: DailyStats[] = [];
-      for (let i = 6; i >= 0; i--) {
+
+      for (let i = range.days - 1; i >= 0; i -= pointsInterval) {
         const date = new Date();
         date.setDate(date.getDate() - i);
         dailyStats.push({
           date: date.toLocaleDateString('en-US', {
-            weekday: 'short',
             month: 'short',
             day: 'numeric',
           }),
@@ -164,32 +175,33 @@ export function useAnalytics() {
         rejected: Math.floor(jobCreatedLogs.length * 0.1),
       };
 
-      // For demo purposes, distribute events across the 7 days
+      // For demo purposes, distribute events across the data points
       // In production, you'd use the actual block timestamps
+      const dataPoints = dailyStats.length;
       jobCreatedLogs.forEach((_, index) => {
-        const dayIndex = index % 7;
+        const dayIndex = index % dataPoints;
         dailyStats[dayIndex].jobs++;
       });
 
       serviceCreatedLogs.forEach((_, index) => {
-        const dayIndex = index % 7;
+        const dayIndex = index % dataPoints;
         dailyStats[dayIndex].services++;
       });
 
       proposalCreatedLogs.forEach((_, index) => {
-        const dayIndex = index % 7;
+        const dayIndex = index % dataPoints;
         dailyStats[dayIndex].proposals++;
       });
 
       // Add volume data
       jobFundedLogs.forEach((log, index) => {
-        const dayIndex = index % 7;
+        const dayIndex = index % dataPoints;
         const amount = (log.args?.amount as bigint) || BigInt(0);
         dailyStats[dayIndex].volumeUSDC += Number(formatUnits(amount, 6));
       });
 
       proposalCreatedLogs.forEach((log, index) => {
-        const dayIndex = index % 7;
+        const dayIndex = index % dataPoints;
         const reward = (log.args?.reward as bigint) || BigInt(0);
         dailyStats[dayIndex].volumeETH += Number(formatUnits(reward, 18));
       });
@@ -210,7 +222,7 @@ export function useAnalytics() {
     } finally {
       setIsLoading(false);
     }
-  }, [publicClient]);
+  }, [publicClient, timeRange]);
 
   useEffect(() => {
     fetchAnalytics();

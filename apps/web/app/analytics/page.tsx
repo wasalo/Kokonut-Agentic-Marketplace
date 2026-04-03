@@ -1,5 +1,7 @@
 'use client';
 
+import { useSearchParams, useRouter, usePathname } from 'next/navigation';
+import { useCallback, useMemo, Suspense } from 'react';
 import { Card } from '@heroui/react';
 import {
   BarChart,
@@ -24,9 +26,41 @@ import {
   RefreshCw,
   DollarSign,
 } from 'lucide-react';
-import { useAnalytics } from '@/lib/hooks/useAnalytics';
+import { useAnalytics, TIME_RANGES, type TimeRange } from '@/lib/hooks/useAnalytics';
 
 const COLORS = ['#009F4D', '#00c853', '#FFCD00', '#FFB800', '#FF6B6B'];
+
+const TIME_RANGE_OPTIONS: { value: TimeRange; label: string }[] = [
+  { value: '7D', label: '7D' },
+  { value: '30D', label: '30D' },
+  { value: '3M', label: '3M' },
+];
+
+function TimeRangeSelector({
+  value,
+  onChange,
+}: {
+  value: TimeRange;
+  onChange: (range: TimeRange) => void;
+}) {
+  return (
+    <div className="flex items-center gap-1 p-1 bg-content2 rounded-lg">
+      {TIME_RANGE_OPTIONS.map(option => (
+        <button
+          key={option.value}
+          onClick={() => onChange(option.value)}
+          className={`px-3 py-1.5 text-sm font-medium rounded-md transition-all ${
+            value === option.value
+              ? 'bg-primary text-white shadow-sm'
+              : 'text-default-500 hover:text-foreground hover:bg-content3'
+          }`}
+        >
+          {option.label}
+        </button>
+      ))}
+    </div>
+  );
+}
 
 function StatCard({
   label,
@@ -62,7 +96,48 @@ function StatCard({
 }
 
 export default function AnalyticsPage(): JSX.Element {
-  const { data, isLoading, error, refetch } = useAnalytics();
+  return (
+    <Suspense fallback={<AnalyticsContent timeRange="7D" />}>
+      <AnalyticsPageWithParams />
+    </Suspense>
+  );
+}
+
+function AnalyticsPageWithParams(): JSX.Element {
+  const searchParams = useSearchParams();
+  const router = useRouter();
+  const pathname = usePathname();
+
+  const timeRange = useMemo(() => {
+    const param = searchParams.get('range');
+    if (param && (param === '7D' || param === '30D' || param === '3M')) {
+      return param as TimeRange;
+    }
+    return '7D' as TimeRange;
+  }, [searchParams]);
+
+  const handleTimeRangeChange = useCallback(
+    (newRange: TimeRange) => {
+      const params = new URLSearchParams(searchParams.toString());
+      params.set('range', newRange);
+      router.push(`${pathname}?${params.toString()}`);
+    },
+    [router, pathname, searchParams]
+  );
+
+  return <AnalyticsContent timeRange={timeRange} onTimeRangeChange={handleTimeRangeChange} />;
+}
+
+function AnalyticsContent({
+  timeRange,
+  onTimeRangeChange,
+}: {
+  timeRange: TimeRange;
+  onTimeRangeChange?: (range: TimeRange) => void;
+}): JSX.Element {
+  const { data, isLoading, error, refetch } = useAnalytics(timeRange);
+  const rangeDays = TIME_RANGES[timeRange].days;
+  const rangeLabel = timeRange === '7D' ? '7 days' : timeRange === '30D' ? '30 days' : '90 days';
 
   return (
     <div className="container mx-auto px-4 py-8">
@@ -70,16 +145,21 @@ export default function AnalyticsPage(): JSX.Element {
       <div className="flex flex-col md:flex-row justify-between items-start md:items-center gap-4 mb-8">
         <div>
           <h1 className="text-3xl font-bold">Analytics</h1>
-          <p className="text-default-500">Platform metrics and trends (Last 7 Days)</p>
+          <p className="text-default-500">Platform metrics and trends ({rangeLabel})</p>
         </div>
-        <button
-          onClick={() => refetch()}
-          disabled={isLoading}
-          className="flex items-center gap-2 px-4 py-2 border border-divider rounded-lg hover:bg-content2 transition-colors disabled:opacity-50"
-        >
-          <RefreshCw className={`w-4 h-4 ${isLoading ? 'animate-spin' : ''}`} />
-          Refresh
-        </button>
+        <div className="flex items-center gap-3">
+          {onTimeRangeChange && (
+            <TimeRangeSelector value={timeRange} onChange={onTimeRangeChange} />
+          )}
+          <button
+            onClick={() => refetch()}
+            disabled={isLoading}
+            className="flex items-center gap-2 px-4 py-2 border border-divider rounded-lg hover:bg-content2 transition-colors disabled:opacity-50"
+          >
+            <RefreshCw className={`w-4 h-4 ${isLoading ? 'animate-spin' : ''}`} />
+            Refresh
+          </button>
+        </div>
       </div>
 
       {error ? (
@@ -103,7 +183,7 @@ export default function AnalyticsPage(): JSX.Element {
             <StatCard
               label="Jobs Created"
               value={data?.totals.totalJobs.toString() || '0'}
-              subtext="Last 7 days"
+              subtext={`Last ${rangeLabel}`}
               icon={Briefcase}
               isLoading={isLoading}
             />
@@ -288,14 +368,16 @@ export default function AnalyticsPage(): JSX.Element {
                 <div className="p-4 bg-content2 rounded-lg">
                   <p className="text-sm text-default-500">Jobs per Day</p>
                   <p className="text-xl font-bold text-foreground mt-1">
-                    {data?.totals.totalJobs ? (data.totals.totalJobs / 7).toFixed(1) : '0.0'}
+                    {data?.totals.totalJobs
+                      ? (data.totals.totalJobs / rangeDays).toFixed(1)
+                      : '0.0'}
                   </p>
                 </div>
                 <div className="p-4 bg-content2 rounded-lg">
                   <p className="text-sm text-default-500">Services per Day</p>
                   <p className="text-xl font-bold text-foreground mt-1">
                     {data?.totals.totalServices
-                      ? (data.totals.totalServices / 7).toFixed(1)
+                      ? (data.totals.totalServices / rangeDays).toFixed(1)
                       : '0.0'}
                   </p>
                 </div>
@@ -305,8 +387,8 @@ export default function AnalyticsPage(): JSX.Element {
 
           {/* Info */}
           <p className="text-center text-xs text-default-400 mt-8">
-            Analytics data is fetched from onchain events on Sepolia testnet. Data reflects the last
-            7 days of activity.
+            Analytics data is fetched from onchain events on Sepolia testnet. Data reflects the last{' '}
+            {rangeLabel} of activity.
           </p>
         </>
       )}

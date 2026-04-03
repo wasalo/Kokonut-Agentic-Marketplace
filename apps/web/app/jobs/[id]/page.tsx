@@ -448,8 +448,9 @@ export default function JobDetailPage({
                   </button>
                 )}
 
-                {/* Change Payment Token - only for Open jobs with payment token already set */}
-                {job.paymentToken &&
+                {/* Change Payment Token - DISABLED: AgenticCommerceV5 does not support setPaymentToken */}
+                {false &&
+                  job.paymentToken &&
                   job.paymentToken !== '0x0000000000000000000000000000000000000000' && (
                     <button
                       onClick={() => setShowPaymentTokenModal(true)}
