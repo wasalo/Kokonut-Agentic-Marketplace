@@ -258,6 +258,19 @@ export const SERVICE_REGISTRY_ABI = [
 ] as const;
 
 export const AGENTIC_COMMERCE_ABI = [
+  // === Initialization ===
+  {
+    inputs: [
+      { name: 'treasury_', type: 'address' },
+      { name: 'serviceRegistry_', type: 'address' },
+    ],
+    name: 'initialize',
+    outputs: [],
+    stateMutability: 'nonpayable',
+    type: 'function',
+  },
+
+  // === Job Creation ===
   {
     inputs: [
       { name: 'provider', type: 'address' },
@@ -273,16 +286,121 @@ export const AGENTIC_COMMERCE_ABI = [
   },
   {
     inputs: [
-      { name: 'serviceId', type: 'uint256' },
+      { name: 'maxBudget', type: 'uint256' },
       { name: 'evaluator', type: 'address' },
       { name: 'expiredAt', type: 'uint256' },
       { name: 'description', type: 'string' },
+      { name: 'paymentToken', type: 'address' },
     ],
-    name: 'createJobFromService',
+    name: 'createOpenJob',
     outputs: [{ name: 'jobId', type: 'uint256' }],
     stateMutability: 'nonpayable',
     type: 'function',
   },
+
+  // === Job Updates ===
+  {
+    inputs: [
+      { name: 'jobId', type: 'uint256' },
+      { name: 'provider', type: 'address' },
+    ],
+    name: 'setProvider',
+    outputs: [],
+    stateMutability: 'nonpayable',
+    type: 'function',
+  },
+  {
+    inputs: [
+      { name: 'jobId', type: 'uint256' },
+      { name: 'amount', type: 'uint256' },
+    ],
+    name: 'setBudget',
+    outputs: [],
+    stateMutability: 'nonpayable',
+    type: 'function',
+  },
+
+  // === Job Lifecycle (Payable for ETH) ===
+  {
+    inputs: [{ name: 'jobId', type: 'uint256' }],
+    name: 'fund',
+    outputs: [],
+    stateMutability: 'payable',
+    type: 'function',
+  },
+  {
+    inputs: [
+      { name: 'jobId', type: 'uint256' },
+      { name: 'deliverable', type: 'bytes32' },
+    ],
+    name: 'submit',
+    outputs: [],
+    stateMutability: 'nonpayable',
+    type: 'function',
+  },
+  {
+    inputs: [
+      { name: 'jobId', type: 'uint256' },
+      { name: 'reason', type: 'bytes32' },
+    ],
+    name: 'complete',
+    outputs: [],
+    stateMutability: 'nonpayable',
+    type: 'function',
+  },
+  {
+    inputs: [
+      { name: 'jobId', type: 'uint256' },
+      { name: 'reason', type: 'bytes32' },
+    ],
+    name: 'reject',
+    outputs: [],
+    stateMutability: 'nonpayable',
+    type: 'function',
+  },
+  {
+    inputs: [{ name: 'jobId', type: 'uint256' }],
+    name: 'claimRefund',
+    outputs: [],
+    stateMutability: 'nonpayable',
+    type: 'function',
+  },
+
+  // === Bidding Functions ===
+  {
+    inputs: [
+      { name: 'jobId', type: 'uint256' },
+      { name: 'commitHash', type: 'bytes32' },
+    ],
+    name: 'commitBid',
+    outputs: [],
+    stateMutability: 'payable',
+    type: 'function',
+  },
+  {
+    inputs: [
+      { name: 'jobId', type: 'uint256' },
+      { name: 'amount', type: 'uint256' },
+      { name: 'message', type: 'string' },
+      { name: 'salt', type: 'bytes32' },
+    ],
+    name: 'revealBid',
+    outputs: [],
+    stateMutability: 'nonpayable',
+    type: 'function',
+  },
+  {
+    inputs: [
+      { name: 'jobId', type: 'uint256' },
+      { name: 'bidId', type: 'uint256' },
+    ],
+    name: 'acceptBid',
+    outputs: [],
+    stateMutability: 'nonpayable',
+    type: 'function',
+  },
+
+  // === View Functions ===
   {
     inputs: [{ name: 'jobId', type: 'uint256' }],
     name: 'getJob',
@@ -310,66 +428,146 @@ export const AGENTIC_COMMERCE_ABI = [
     type: 'function',
   },
   {
-    inputs: [{ name: 'jobId', type: 'uint256' }],
-    name: 'fund',
-    outputs: [],
-    stateMutability: 'nonpayable',
+    inputs: [{ name: 'client', type: 'address' }],
+    name: 'getClientJobCount',
+    outputs: [{ name: '', type: 'uint256' }],
+    stateMutability: 'view',
     type: 'function',
   },
   {
     inputs: [
       { name: 'jobId', type: 'uint256' },
-      { name: 'deliverable', type: 'bytes32' },
+      { name: 'user', type: 'address' },
     ],
-    name: 'submit',
-    outputs: [],
-    stateMutability: 'nonpayable',
+    name: 'getUserBid',
+    outputs: [
+      {
+        components: [
+          { name: 'bidId', type: 'uint256' },
+          { name: 'bidder', type: 'address' },
+          { name: 'proposedAmount', type: 'uint256' },
+          { name: 'stake', type: 'uint256' },
+          { name: 'message', type: 'string' },
+          { name: 'commitHash', type: 'bytes32' },
+          { name: 'revealed', type: 'bool' },
+          { name: 'accepted', type: 'bool' },
+          { name: 'timestamp', type: 'uint256' },
+        ],
+        name: '',
+        type: 'tuple',
+      },
+    ],
+    stateMutability: 'view',
     type: 'function',
   },
   {
-    inputs: [
-      { name: 'jobId', type: 'uint256' },
-      { name: 'reason', type: 'bytes32' },
-    ],
-    name: 'complete',
-    outputs: [],
-    stateMutability: 'nonpayable',
+    inputs: [{ name: 'maxBudget', type: 'uint256' }],
+    name: 'calculateStake',
+    outputs: [{ name: '', type: 'uint256' }],
+    stateMutability: 'pure',
     type: 'function',
   },
-  {
-    inputs: [
-      { name: 'jobId', type: 'uint256' },
-      { name: 'amount', type: 'uint256' },
-    ],
-    name: 'setBudget',
-    outputs: [],
-    stateMutability: 'nonpayable',
-    type: 'function',
-  },
-  {
-    inputs: [
-      { name: 'jobId', type: 'uint256' },
-      { name: 'reason', type: 'bytes32' },
-    ],
-    name: 'reject',
-    outputs: [],
-    stateMutability: 'nonpayable',
-    type: 'function',
-  },
+  // === Bid Functions ===
   {
     inputs: [{ name: 'jobId', type: 'uint256' }],
-    name: 'claimRefund',
+    name: 'jobBidCount',
+    outputs: [{ name: '', type: 'uint256' }],
+    stateMutability: 'view',
+    type: 'function',
+  },
+  {
+    inputs: [
+      { name: 'jobId', type: 'uint256' },
+      { name: '', type: 'uint256' },
+    ],
+    name: 'jobBids',
+    outputs: [
+      {
+        components: [
+          { name: 'bidId', type: 'uint256' },
+          { name: 'bidder', type: 'address' },
+          { name: 'proposedAmount', type: 'uint256' },
+          { name: 'stake', type: 'uint256' },
+          { name: 'message', type: 'string' },
+          { name: 'commitHash', type: 'bytes32' },
+          { name: 'revealed', type: 'bool' },
+          { name: 'accepted', type: 'bool' },
+          { name: 'timestamp', type: 'uint256' },
+        ],
+        name: '',
+        type: 'tuple',
+      },
+    ],
+    stateMutability: 'view',
+    type: 'function',
+  },
+
+  // === Constants ===
+  {
+    inputs: [],
+    name: 'jobCounter',
+    outputs: [{ name: '', type: 'uint256' }],
+    stateMutability: 'view',
+    type: 'function',
+  },
+  {
+    inputs: [],
+    name: 'REVEAL_WINDOW',
+    outputs: [{ name: '', type: 'uint256' }],
+    stateMutability: 'view',
+    type: 'function',
+  },
+  {
+    inputs: [],
+    name: 'MIN_ETH_PAYMENT',
+    outputs: [{ name: '', type: 'uint256' }],
+    stateMutability: 'view',
+    type: 'function',
+  },
+  {
+    inputs: [],
+    name: 'platformTreasury',
+    outputs: [{ name: '', type: 'address' }],
+    stateMutability: 'view',
+    type: 'function',
+  },
+  {
+    inputs: [],
+    name: 'platformFeeBP',
+    outputs: [{ name: '', type: 'uint256' }],
+    stateMutability: 'view',
+    type: 'function',
+  },
+
+  // === Admin ===
+  {
+    inputs: [{ name: 'serviceRegistry', type: 'address' }],
+    name: 'setServiceRegistry',
     outputs: [],
     stateMutability: 'nonpayable',
     type: 'function',
   },
   {
     inputs: [
-      { name: 'jobId', type: 'uint256' },
-      { name: 'provider', type: 'address' },
+      { name: 'feeBP', type: 'uint256' },
+      { name: 'treasury', type: 'address' },
     ],
-    name: 'setProvider',
+    name: 'setPlatformFee',
     outputs: [],
+    stateMutability: 'nonpayable',
+    type: 'function',
+  },
+
+  // === Legacy (Still supported) ===
+  {
+    inputs: [
+      { name: 'serviceId', type: 'uint256' },
+      { name: 'evaluator', type: 'address' },
+      { name: 'expiredAt', type: 'uint256' },
+      { name: 'description', type: 'string' },
+    ],
+    name: 'createJobFromService',
+    outputs: [{ name: 'jobId', type: 'uint256' }],
     stateMutability: 'nonpayable',
     type: 'function',
   },
@@ -383,26 +581,187 @@ export const AGENTIC_COMMERCE_ABI = [
     stateMutability: 'nonpayable',
     type: 'function',
   },
+] as const;
+
+// === V5 Events (for useWatchContractEvents) ===
+export const AGENTIC_COMMERCE_EVENTS = [
+  // Core Job Events
   {
-    inputs: [{ name: 'serviceRegistry', type: 'address' }],
-    name: 'setServiceRegistry',
-    outputs: [],
-    stateMutability: 'nonpayable',
-    type: 'function',
+    anonymous: false,
+    inputs: [
+      { indexed: true, name: 'jobId', type: 'uint256' },
+      { indexed: true, name: 'client', type: 'address' },
+      { indexed: true, name: 'provider', type: 'address' },
+      { indexed: false, name: 'evaluator', type: 'address' },
+      { indexed: false, name: 'serviceId', type: 'uint256' },
+      { indexed: false, name: 'expiredAt', type: 'uint256' },
+    ],
+    name: 'JobCreated',
+    type: 'event',
   },
   {
-    inputs: [],
-    name: 'jobCounter',
-    outputs: [{ name: '', type: 'uint256' }],
-    stateMutability: 'view',
-    type: 'function',
+    anonymous: false,
+    inputs: [
+      { indexed: true, name: 'jobId', type: 'uint256' },
+      { indexed: true, name: 'client', type: 'address' },
+      { indexed: false, name: 'maxBudget', type: 'uint256' },
+      { indexed: false, name: 'evaluator', type: 'address' },
+      { indexed: false, name: 'expiredAt', type: 'uint256' },
+    ],
+    name: 'OpenJobCreated',
+    type: 'event',
   },
   {
-    inputs: [],
-    name: 'serviceRegistry',
-    outputs: [{ name: '', type: 'address' }],
-    stateMutability: 'view',
-    type: 'function',
+    anonymous: false,
+    inputs: [
+      { indexed: true, name: 'jobId', type: 'uint256' },
+      { indexed: true, name: 'provider', type: 'address' },
+    ],
+    name: 'ProviderSet',
+    type: 'event',
+  },
+  {
+    anonymous: false,
+    inputs: [
+      { indexed: true, name: 'jobId', type: 'uint256' },
+      { indexed: false, name: 'amount', type: 'uint256' },
+    ],
+    name: 'BudgetSet',
+    type: 'event',
+  },
+  {
+    anonymous: false,
+    inputs: [
+      { indexed: true, name: 'jobId', type: 'uint256' },
+      { indexed: true, name: 'client', type: 'address' },
+      { indexed: false, name: 'amount', type: 'uint256' },
+    ],
+    name: 'JobFunded',
+    type: 'event',
+  },
+  {
+    anonymous: false,
+    inputs: [
+      { indexed: true, name: 'jobId', type: 'uint256' },
+      { indexed: true, name: 'provider', type: 'address' },
+      { indexed: false, name: 'deliverable', type: 'bytes32' },
+    ],
+    name: 'JobSubmitted',
+    type: 'event',
+  },
+  {
+    anonymous: false,
+    inputs: [
+      { indexed: true, name: 'jobId', type: 'uint256' },
+      { indexed: true, name: 'evaluator', type: 'address' },
+      { indexed: false, name: 'reason', type: 'bytes32' },
+    ],
+    name: 'JobCompleted',
+    type: 'event',
+  },
+  {
+    anonymous: false,
+    inputs: [
+      { indexed: true, name: 'jobId', type: 'uint256' },
+      { indexed: true, name: 'rejector', type: 'address' },
+      { indexed: false, name: 'reason', type: 'bytes32' },
+    ],
+    name: 'JobRejected',
+    type: 'event',
+  },
+  {
+    anonymous: false,
+    inputs: [{ indexed: true, name: 'jobId', type: 'uint256' }],
+    name: 'JobExpired',
+    type: 'event',
+  },
+  {
+    anonymous: false,
+    inputs: [
+      { indexed: true, name: 'jobId', type: 'uint256' },
+      { indexed: true, name: 'provider', type: 'address' },
+      { indexed: false, name: 'amount', type: 'uint256' },
+    ],
+    name: 'PaymentReleased',
+    type: 'event',
+  },
+  {
+    anonymous: false,
+    inputs: [
+      { indexed: true, name: 'jobId', type: 'uint256' },
+      { indexed: true, name: 'client', type: 'address' },
+      { indexed: false, name: 'amount', type: 'uint256' },
+    ],
+    name: 'Refunded',
+    type: 'event',
+  },
+
+  // Enhanced Events
+  {
+    anonymous: false,
+    inputs: [
+      { indexed: true, name: 'jobId', type: 'uint256' },
+      { indexed: true, name: 'oldStatus', type: 'uint8' },
+      { indexed: true, name: 'newStatus', type: 'uint8' },
+      { indexed: false, name: 'timestamp', type: 'uint256' },
+    ],
+    name: 'JobStatusChanged',
+    type: 'event',
+  },
+  {
+    anonymous: false,
+    inputs: [
+      { indexed: true, name: 'client', type: 'address' },
+      { indexed: false, name: 'attemptedCount', type: 'uint256' },
+      { indexed: false, name: 'maxAllowed', type: 'uint256' },
+    ],
+    name: 'JobLimitExceeded',
+    type: 'event',
+  },
+
+  // Bidding Events
+  {
+    anonymous: false,
+    inputs: [
+      { indexed: true, name: 'jobId', type: 'uint256' },
+      { indexed: true, name: 'bidder', type: 'address' },
+      { indexed: false, name: 'stakeAmount', type: 'uint256' },
+      { indexed: false, name: 'commitHash', type: 'bytes32' },
+    ],
+    name: 'BidCommitted',
+    type: 'event',
+  },
+  {
+    anonymous: false,
+    inputs: [
+      { indexed: true, name: 'jobId', type: 'uint256' },
+      { indexed: true, name: 'bidder', type: 'address' },
+      { indexed: false, name: 'proposedAmount', type: 'uint256' },
+      { indexed: false, name: 'message', type: 'string' },
+    ],
+    name: 'BidRevealed',
+    type: 'event',
+  },
+  {
+    anonymous: false,
+    inputs: [
+      { indexed: true, name: 'jobId', type: 'uint256' },
+      { indexed: true, name: 'bidder', type: 'address' },
+      { indexed: false, name: 'bidId', type: 'uint256' },
+      { indexed: false, name: 'acceptedAmount', type: 'uint256' },
+    ],
+    name: 'BidAccepted',
+    type: 'event',
+  },
+  {
+    anonymous: false,
+    inputs: [
+      { indexed: true, name: 'jobId', type: 'uint256' },
+      { indexed: true, name: 'recipient', type: 'address' },
+      { indexed: false, name: 'amount', type: 'uint256' },
+    ],
+    name: 'StakesReturned',
+    type: 'event',
   },
 ] as const;
 

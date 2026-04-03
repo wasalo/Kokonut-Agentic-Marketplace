@@ -2,7 +2,7 @@
 
 import { use, useState, useCallback, useEffect } from 'react';
 import { Settings } from 'lucide-react';
-import { useAccount, useWaitForTransactionReceipt, useWriteContract } from 'wagmi';
+import { useAccount, useWaitForTransactionReceipt, useWriteContract, usePublicClient } from 'wagmi';
 import NextLink from 'next/link';
 import {
   ArrowLeft,
@@ -28,20 +28,33 @@ import {
   useSetProvider,
   useSetBudget,
   useSetPaymentToken,
+  useJobBidCount,
+  useJobBid,
+  useUserBid,
   getJobStatusLabel,
   getJobStatusColor,
   JobStatus,
+  isOpenJob,
+  Job,
+  Bid,
 } from '@/lib/hooks/useJobs';
 import { useService } from '@/lib/hooks/useServices';
 import { useUSDCAllowance, useUSDCApprove, useUSDCBalance } from '@/lib/hooks/useUSDC';
 import { ERC8004_ABI } from '@/lib/8004contracts';
 import { CONTRACTS } from '@/lib/wagmi';
+import { AGENTIC_COMMERCE_ABI } from '@/lib/contracts/abis';
 import {
   PaymentTokenSelector,
   SUPPORTED_TOKENS,
   Token,
   PaymentTokenBadge,
 } from '@/components/PaymentTokenSelector';
+import {
+  CommitBidForm,
+  RevealBidForm,
+  AcceptBidForm,
+  BidStatusCard,
+} from '@/components/BiddingForms';
 
 export default function JobDetailPage({
   params,
@@ -107,7 +120,49 @@ export default function JobDetailPage({
 
   const { setBudget, hash: budgetHash, isPending: isBudgetPending } = useSetBudget();
 
-  // Form states for job settings
+  // Bidding hooks for open jobs
+  const { count: bidCount } = useJobBidCount(job?.id);
+
+  // Fetch bids using useReadContracts
+  const publicClient = usePublicClient();
+  const [bids, setBids] = useState<Bid[]>([]);
+  const [isLoadingBids, setIsLoadingBids] = useState(false);
+  const jobIsOpen = job ? isOpenJob(job) : false;
+
+  useEffect(() => {
+    if (!publicClient || !job?.id || !jobIsOpen || bidCount === 0) {
+      setBids([]);
+      return;
+    }
+
+    const fetchBids = async () => {
+      setIsLoadingBids(true);
+      try {
+        const calls = Array.from({ length: bidCount }, (_, i) => ({
+          address: AGENTIC_COMMERCE_ADDRESS,
+          abi: AGENTIC_COMMERCE_ABI,
+          functionName: 'jobBids' as const,
+          args: [job.id, BigInt(i)],
+        }));
+
+        const results = await publicClient.multicall({ contracts: calls });
+        const fetchedBids = results
+          .filter(
+            (r): r is { status: 'success'; result: Bid } => r.status === 'success' && !!r.result
+          )
+          .map(r => r.result);
+        setBids(fetchedBids);
+      } catch (err) {
+        console.error('Error fetching bids:', err);
+        setBids([]);
+      } finally {
+        setIsLoadingBids(false);
+      }
+    };
+
+    void fetchBids();
+  }, [publicClient, job?.id, bidCount, jobIsOpen]);
+
   const [newProvider, setNewProvider] = useState('');
   const [newBudget, setNewBudget] = useState('');
 
@@ -475,7 +530,77 @@ export default function JobDetailPage({
           </div>
         </Card>
 
-        {/* Job Settings - Only for client before funding */}
+        {/* Open Job Bidding Section */}
+        {jobIsOpen && (
+          <>
+            {/* Bid Status for Providers */}
+            {!isClient && address && (
+              <BiddingSectionForProvider job={job} address={address} refetch={refetch} />
+            )}
+
+            {/* Client: Show bid count and Accept Bid Form */}
+            {isClient && (
+              <>
+                {/* Bid Overview */}
+                <Card className="border border-divider p-6">
+                  <div className="flex items-center justify-between mb-4">
+                    <h2 className="text-base font-semibold">Bids Received</h2>
+                    <span className="px-3 py-1 bg-primary/10 text-primary rounded-full text-sm">
+                      {bidCount} bid{bidCount !== 1 ? 's' : ''}
+                    </span>
+                  </div>
+
+                  {isLoadingBids ? (
+                    <div className="flex items-center justify-center py-8">
+                      <Loader2 className="w-6 h-6 animate-spin text-primary" />
+                    </div>
+                  ) : bids.length === 0 ? (
+                    <p className="text-sm text-default-500 text-center py-4">
+                      No bids yet. Providers will commit their bids before the deadline.
+                    </p>
+                  ) : (
+                    <div className="space-y-3">
+                      {bids.map((bid, idx) => (
+                        <div key={bid.bidId.toString()} className="p-3 bg-content2 rounded-lg">
+                          <div className="flex items-center justify-between">
+                            <div>
+                              <p className="text-xs text-default-500">Bidder {idx + 1}</p>
+                              <p className="font-mono text-sm">
+                                {bid.bidder.slice(0, 6)}...{bid.bidder.slice(-4)}
+                              </p>
+                            </div>
+                            <div className="text-right">
+                              <span
+                                className={`px-2 py-0.5 text-xs rounded-full ${
+                                  bid.accepted
+                                    ? 'bg-success/20 text-success'
+                                    : bid.revealed
+                                      ? 'bg-primary/20 text-primary'
+                                      : 'bg-warning/20 text-warning'
+                                }`}
+                              >
+                                {bid.accepted
+                                  ? 'Accepted'
+                                  : bid.revealed
+                                    ? 'Revealed'
+                                    : 'Committed'}
+                              </span>
+                            </div>
+                          </div>
+                        </div>
+                      ))}
+                    </div>
+                  )}
+                </Card>
+
+                {/* Accept Bid Form */}
+                <AcceptBidForm job={job} bids={bids} onSuccess={() => void refetch()} />
+              </>
+            )}
+          </>
+        )}
+
+        {/* Job Settings - Only for client before funding (not for open jobs) */}
         {job.status === JobStatus.Open && isClient && (
           <Card className="border border-divider p-6">
             <h2 className="text-base font-semibold mb-4 flex items-center gap-2">
@@ -711,5 +836,39 @@ function FeedbackCard({ agentId, jobId }: { agentId: bigint; jobId: bigint }) {
         </button>
       </div>
     </Card>
+  );
+}
+
+interface BiddingSectionForProviderProps {
+  job: Job;
+  address: `0x${string}`;
+  refetch: () => void;
+}
+
+function BiddingSectionForProvider({ job, address, refetch }: BiddingSectionForProviderProps) {
+  const { bid: userBid } = useUserBid(job.id, address);
+
+  return (
+    <div className="space-y-4">
+      {/* User's Bid Status */}
+      {userBid && userBid.bidId > BigInt(0) && <BidStatusCard bid={userBid} />}
+
+      {/* Commit or Reveal Form */}
+      {!userBid?.revealed ? (
+        <CommitBidForm job={job} onSuccess={refetch} />
+      ) : !userBid?.accepted ? (
+        <RevealBidForm job={job} onSuccess={refetch} />
+      ) : (
+        <Card className="border border-success/30 p-6">
+          <div className="flex items-center gap-2 text-success">
+            <CheckCircle2 className="w-5 h-5" />
+            <p className="font-medium">Your bid was accepted!</p>
+          </div>
+          <p className="text-sm text-default-500 mt-2">
+            The client has accepted your bid. Check the Actions section to submit your deliverable.
+          </p>
+        </Card>
+      )}
+    </div>
   );
 }

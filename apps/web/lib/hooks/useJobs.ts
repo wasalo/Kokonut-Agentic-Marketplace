@@ -33,6 +33,25 @@ export const JobStatus = {
 
 export type JobStatusType = (typeof JobStatus)[keyof typeof JobStatus];
 
+export const JobType = {
+  Direct: 0,
+  Open: 1,
+} as const;
+
+export type JobTypeType = (typeof JobType)[keyof typeof JobType];
+
+export interface Bid {
+  bidId: bigint;
+  bidder: `0x${string}`;
+  proposedAmount: bigint;
+  stake: bigint;
+  message: string;
+  commitHash: `0x${string}`;
+  revealed: boolean;
+  accepted: boolean;
+  timestamp: bigint;
+}
+
 // ============ Read Hooks ============
 
 export function useJobCount() {
@@ -420,4 +439,231 @@ export function getJobStatusColor(
     default:
       return 'default';
   }
+}
+
+// ============ V5 Open Job & Bidding Hooks ============
+
+export function useJobConstants() {
+  const { data: revealWindow, isLoading: isRevealLoading } = useReadContract({
+    address: AGENTIC_COMMERCE_ADDRESS,
+    abi: AGENTIC_COMMERCE_ABI,
+    functionName: 'REVEAL_WINDOW',
+    query: { staleTime: 60 * 60 * 1000 },
+  });
+
+  const { data: minEthPayment, isLoading: isMinEthLoading } = useReadContract({
+    address: AGENTIC_COMMERCE_ADDRESS,
+    abi: AGENTIC_COMMERCE_ABI,
+    functionName: 'MIN_ETH_PAYMENT',
+    query: { staleTime: 60 * 60 * 1000 },
+  });
+
+  return {
+    revealWindow: revealWindow ? Number(revealWindow) : 3600, // Default 1 hour
+    minEthPayment: minEthPayment ?? BigInt(5000000000000000), // Default 0.005 ETH
+    isLoading: isRevealLoading || isMinEthLoading,
+  };
+}
+
+export function useCalculateStake() {
+  const { data, isLoading, error } = useReadContract({
+    address: AGENTIC_COMMERCE_ADDRESS,
+    abi: AGENTIC_COMMERCE_ABI,
+    functionName: 'calculateStake',
+    query: { staleTime: 60 * 60 * 1000 },
+  });
+
+  return {
+    calculateStake: (maxBudget: bigint) => data ?? BigInt(0),
+    stakeAmount: data ?? BigInt(0),
+    isLoading,
+    error,
+  };
+}
+
+export function useCreateOpenJob() {
+  const { writeContract, data, isPending, error, reset } = useWriteContract();
+
+  return {
+    createOpenJob: (
+      maxBudget: bigint,
+      evaluator: `0x${string}`,
+      expiredAt: bigint,
+      description: string,
+      paymentToken: `0x${string}`
+    ) =>
+      writeContract({
+        address: AGENTIC_COMMERCE_ADDRESS,
+        abi: AGENTIC_COMMERCE_ABI,
+        functionName: 'createOpenJob',
+        args: [maxBudget, evaluator, expiredAt, description, paymentToken],
+      }),
+    hash: data,
+    isPending,
+    error,
+    reset,
+  };
+}
+
+export function useCommitBid() {
+  const { writeContract, data, isPending, error, reset } = useWriteContract();
+
+  return {
+    commitBid: (jobId: bigint, commitHash: `0x${string}`, value?: bigint) =>
+      writeContract({
+        address: AGENTIC_COMMERCE_ADDRESS,
+        abi: AGENTIC_COMMERCE_ABI,
+        functionName: 'commitBid',
+        args: [jobId, commitHash],
+        value,
+      }),
+    hash: data,
+    isPending,
+    error,
+    reset,
+  };
+}
+
+export function useRevealBid() {
+  const { writeContract, data, isPending, error, reset } = useWriteContract();
+
+  return {
+    revealBid: (jobId: bigint, amount: bigint, message: string, salt: `0x${string}`) =>
+      writeContract({
+        address: AGENTIC_COMMERCE_ADDRESS,
+        abi: AGENTIC_COMMERCE_ABI,
+        functionName: 'revealBid',
+        args: [jobId, amount, message, salt],
+      }),
+    hash: data,
+    isPending,
+    error,
+    reset,
+  };
+}
+
+export function useAcceptBid() {
+  const { writeContract, data, isPending, error, reset } = useWriteContract();
+
+  return {
+    acceptBid: (jobId: bigint, bidId: bigint) =>
+      writeContract({
+        address: AGENTIC_COMMERCE_ADDRESS,
+        abi: AGENTIC_COMMERCE_ABI,
+        functionName: 'acceptBid',
+        args: [jobId, bidId],
+      }),
+    hash: data,
+    isPending,
+    error,
+    reset,
+  };
+}
+
+export function useUserBid(jobId: number | bigint | undefined, user: `0x${string}` | undefined) {
+  const id = jobId !== undefined ? (typeof jobId === 'bigint' ? jobId : BigInt(jobId)) : undefined;
+
+  const { data, isLoading, error, refetch } = useReadContract({
+    address: AGENTIC_COMMERCE_ADDRESS,
+    abi: AGENTIC_COMMERCE_ABI,
+    functionName: 'getUserBid',
+    args: id !== undefined && user !== undefined ? [id, user] : undefined,
+    query: {
+      enabled: id !== undefined && user !== undefined,
+      retry: 2,
+      staleTime: 10 * 1000,
+    },
+  });
+
+  return {
+    bid: data as Bid | undefined,
+    hasBid: data && data.bidId > BigInt(0),
+    isLoading,
+    error,
+    refetch,
+  };
+}
+
+export function useFundJobWithETH() {
+  const { writeContract, data, isPending, error, reset } = useWriteContract();
+
+  return {
+    fundJob: (jobId: bigint, value: bigint) =>
+      writeContract({
+        address: AGENTIC_COMMERCE_ADDRESS,
+        abi: AGENTIC_COMMERCE_ABI,
+        functionName: 'fund',
+        args: [jobId],
+        value,
+      }),
+    hash: data,
+    isPending,
+    error,
+    reset,
+  };
+}
+
+export function useJobBidCount(jobId: bigint | undefined) {
+  const { data, isLoading, error, refetch } = useReadContract({
+    address: AGENTIC_COMMERCE_ADDRESS,
+    abi: AGENTIC_COMMERCE_ABI,
+    functionName: 'jobBidCount',
+    args: jobId !== undefined ? [jobId] : undefined,
+    query: {
+      enabled: jobId !== undefined,
+      retry: 2,
+      staleTime: 10 * 1000,
+    },
+  });
+
+  return {
+    count: data ? Number(data) : 0,
+    isLoading,
+    error,
+    refetch,
+  };
+}
+
+export function useJobBid(jobId: bigint | undefined, index: number) {
+  const { data, isLoading, error, refetch } = useReadContract({
+    address: AGENTIC_COMMERCE_ADDRESS,
+    abi: AGENTIC_COMMERCE_ABI,
+    functionName: 'jobBids',
+    args: jobId !== undefined ? [jobId, BigInt(index)] : undefined,
+    query: {
+      enabled: jobId !== undefined,
+      retry: 2,
+      staleTime: 10 * 1000,
+    },
+  });
+
+  return {
+    bid: data as Bid | undefined,
+    isLoading,
+    error,
+    refetch,
+  };
+}
+
+// ============ Utility Functions ============
+
+export function isOpenJob(job: Job): boolean {
+  return job.provider === '0x0000000000000000000000000000000000000000';
+}
+
+export function getJobTypeLabel(jobType: number): string {
+  return jobType === JobType.Open ? 'Open (Bidding)' : 'Direct';
+}
+
+export function formatStake(maxBudget: bigint): string {
+  const stake = (maxBudget * BigInt(100)) / BigInt(10000); // 1%
+  return formatAmount(stake, 6); // Assumes USDC decimals
+}
+
+export function formatAmount(amount: bigint, decimals: number = 6): string {
+  const divisor = BigInt(10 ** decimals);
+  const wholePart = amount / divisor;
+  const fractionalPart = amount % divisor;
+  const fractionalStr = fractionalPart.toString().padStart(decimals, '0');
+  return `${wholePart}.${fractionalStr.slice(0, 2)}`;
 }

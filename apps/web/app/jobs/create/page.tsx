@@ -3,12 +3,26 @@
 import { useState, useCallback, Suspense, useEffect } from 'react';
 import { useAccount, useWaitForTransactionReceipt } from 'wagmi';
 import { useRouter, useSearchParams } from 'next/navigation';
-import { ArrowLeft, Loader2, CheckCircle2, ShieldCheck, AlertTriangle, Coins } from 'lucide-react';
+import {
+  ArrowLeft,
+  Loader2,
+  CheckCircle2,
+  ShieldCheck,
+  AlertTriangle,
+  Coins,
+  Users,
+} from 'lucide-react';
 import NextLink from 'next/link';
-import { Card } from '@heroui/react';
+import { Card, Switch } from '@heroui/react';
 import { isAddress } from 'viem';
 import { useService } from '@/lib/hooks/useServices';
-import { useCreateJobFromService, useCreateJob } from '@/lib/hooks/useJobs';
+import {
+  useCreateJobFromService,
+  useCreateJob,
+  useCreateOpenJob,
+  useJobConstants,
+  useCalculateStake,
+} from '@/lib/hooks/useJobs';
 import {
   useValidation,
   validateAddress,
@@ -112,6 +126,8 @@ function CreateJobContent() {
   const [description, setDescription] = useState('');
   const [budget, setBudget] = useState('');
   const [paymentToken, setPaymentToken] = useState<Token>(USDC_TOKEN);
+  const [isOpenJob, setIsOpenJob] = useState(false);
+  const [maxBudget, setMaxBudget] = useState('');
 
   useEffect(() => {
     if (providerParam) {
@@ -126,6 +142,7 @@ function CreateJobContent() {
   const [deadlineError, setDeadlineError] = useState<string | null>(null);
   const [descriptionError, setDescriptionError] = useState<string | null>(null);
   const [budgetError, setBudgetError] = useState<string | null>(null);
+  const [maxBudgetError, setMaxBudgetError] = useState<string | null>(null);
 
   const effectiveEvaluator = evaluator || address || '0x0000000000000000000000000000000000000000';
 
@@ -143,7 +160,17 @@ function CreateJobContent() {
     error: directError,
   } = useCreateJob();
 
-  const txHash = serviceHash || directHash;
+  const {
+    createOpenJob,
+    hash: openHash,
+    isPending: isOpenPending,
+    error: openError,
+  } = useCreateOpenJob();
+
+  const { revealWindow } = useJobConstants();
+  const { stakeAmount } = useCalculateStake();
+
+  const txHash = serviceHash || directHash || openHash;
   const { isLoading: isConfirming, isSuccess: isConfirmed } = useWaitForTransactionReceipt({
     hash: txHash,
   });
@@ -199,11 +226,11 @@ function CreateJobContent() {
 
   const validateBudgetField = useCallback(
     (value: string) => {
-      if (!serviceId && !value) {
+      if (!serviceId && !value && !isOpenJob) {
         setBudgetError('Budget is required for direct jobs');
         return false;
       }
-      if (value) {
+      if (value && !isOpenJob) {
         const numValue = parseFloat(value);
         if (isNaN(numValue) || numValue < MIN_BUDGET_USDC) {
           setBudgetError(`Minimum budget is $${MIN_BUDGET_USDC} USDC`);
@@ -213,7 +240,30 @@ function CreateJobContent() {
       setBudgetError(null);
       return true;
     },
-    [serviceId]
+    [serviceId, isOpenJob]
+  );
+
+  const validateMaxBudgetField = useCallback(
+    (value: string) => {
+      if (isOpenJob && !value) {
+        setMaxBudgetError('Maximum budget is required for open jobs');
+        return false;
+      }
+      if (value && isOpenJob) {
+        const numValue = parseFloat(value);
+        if (isNaN(numValue) || numValue < MIN_BUDGET_USDC) {
+          setMaxBudgetError(`Minimum max budget is $${MIN_BUDGET_USDC} USDC`);
+          return false;
+        }
+        if (numValue > 1000000) {
+          setMaxBudgetError('Maximum budget cannot exceed $1,000,000 USDC');
+          return false;
+        }
+      }
+      setMaxBudgetError(null);
+      return true;
+    },
+    [isOpenJob]
   );
 
   const performSubmit = useCallback(
@@ -258,12 +308,22 @@ function CreateJobContent() {
       setDeadlineError(null);
       setDescriptionError(null);
       setBudgetError(null);
+      setMaxBudgetError(null);
 
-      if (serviceId && service) {
-        const deadlineTs = deadline
-          ? BigInt(Math.floor(new Date(deadline).getTime() / 1000))
-          : BigInt(Math.floor(Date.now() / 1000) + 86400 * 7);
+      const deadlineTs = deadline
+        ? BigInt(Math.floor(new Date(deadline).getTime() / 1000))
+        : BigInt(Math.floor(Date.now() / 1000) + 86400 * 7);
 
+      if (isOpenJob) {
+        const maxBudgetUsdc = Math.floor(parseFloat(maxBudget) * 1e6);
+        createOpenJob(
+          BigInt(maxBudgetUsdc),
+          effectiveEvaluator as `0x${string}`,
+          deadlineTs,
+          description || 'Open job - bid for this work',
+          paymentToken.address
+        );
+      } else if (serviceId && service) {
         createJobFromService(
           serviceId,
           effectiveEvaluator as `0x${string}`,
@@ -271,10 +331,7 @@ function CreateJobContent() {
           description || `Job for ${service.name}`
         );
       } else {
-        const deadlineTs = deadline
-          ? BigInt(Math.floor(new Date(deadline).getTime() / 1000))
-          : BigInt(Math.floor(Date.now() / 1000) + 86400 * 7);
-
+        const budgetUsdc = Math.floor(parseFloat(budget) * 1e6);
         createJob(
           provider as `0x${string}`,
           effectiveEvaluator as `0x${string}`,
@@ -293,19 +350,24 @@ function CreateJobContent() {
       effectiveEvaluator,
       provider,
       budget,
+      maxBudget,
+      isOpenJob,
+      paymentToken,
       validateProvider,
       validateDeadlineField,
       validateDescriptionField,
       validateBudgetField,
+      validateMaxBudgetField,
       createJobFromService,
       createJob,
+      createOpenJob,
     ]
   );
 
   const { handleSubmit, isSubmitting, timeUntilNextSubmit } = useFormSubmit(performSubmit, 2000);
 
-  const isLoading = isServicePending || isDirectPending || isConfirming;
-  const error = serviceError || directError;
+  const isLoading = isServicePending || isDirectPending || isOpenPending || isConfirming;
+  const error = serviceError || directError || openError;
 
   const isFormValid =
     !providerError &&
@@ -313,7 +375,10 @@ function CreateJobContent() {
     !deadlineError &&
     !descriptionError &&
     !budgetError &&
-    (!!serviceId || (!!budget && parseFloat(budget) >= MIN_BUDGET_USDC));
+    !maxBudgetError &&
+    (!serviceId || isOpenJob
+      ? !!maxBudget && parseFloat(maxBudget) >= MIN_BUDGET_USDC
+      : !!budget && parseFloat(budget) >= MIN_BUDGET_USDC);
 
   const budgetInUsdc =
     budget && parseFloat(budget) > 0
@@ -338,7 +403,7 @@ function CreateJobContent() {
         <p className="text-default-500 mb-8">
           {serviceId
             ? 'Create an escrow job for this service. Payment will be held until work is approved.'
-            : 'Create a direct job between you and a provider.'}
+            : 'Create a direct job or open job for bidding.'}
         </p>
 
         {service && (
@@ -415,11 +480,43 @@ function CreateJobContent() {
         <Card className="border border-divider p-6">
           <form onSubmit={handleSubmit} className="space-y-6">
             {!serviceId && (
-              <PaymentTokenSelector
-                selectedToken={paymentToken}
-                onSelect={setPaymentToken}
-                disabled={isLoading}
-              />
+              <>
+                <div className="flex items-start gap-4 p-4 bg-content2 rounded-lg">
+                  <div className="flex-1">
+                    <div className="flex items-center gap-2">
+                      <Users className="w-5 h-5 text-primary" />
+                      <span className="font-medium">Open Job (Bidding)</span>
+                    </div>
+                    <p className="text-sm text-default-500 mt-1">
+                      Allow providers to bid on your job. You set a maximum budget and accept the
+                      best bid.
+                    </p>
+                  </div>
+                  <button
+                    type="button"
+                    onClick={() => {
+                      setIsOpenJob(!isOpenJob);
+                      if (isOpenJob) setMaxBudget('');
+                      else setBudget('');
+                    }}
+                    className={`relative inline-flex h-6 w-11 items-center rounded-full transition-colors ${
+                      isOpenJob ? 'bg-success' : 'bg-default-300'
+                    }`}
+                  >
+                    <span
+                      className={`inline-block h-4 w-4 transform rounded-full bg-white shadow-lg transition-transform ${
+                        isOpenJob ? 'translate-x-6' : 'translate-x-1'
+                      }`}
+                    />
+                  </button>
+                </div>
+
+                <PaymentTokenSelector
+                  selectedToken={paymentToken}
+                  onSelect={setPaymentToken}
+                  disabled={isLoading}
+                />
+              </>
             )}
 
             <div className="space-y-2">
@@ -449,7 +546,7 @@ function CreateJobContent() {
               )}
             </div>
 
-            {!serviceId && (
+            {!serviceId && !isOpenJob && (
               <div className="space-y-2">
                 <label htmlFor="provider" className="text-sm font-medium">
                   Provider Address <span className="text-danger">*</span>
@@ -473,7 +570,7 @@ function CreateJobContent() {
               </div>
             )}
 
-            {!serviceId && (
+            {!serviceId && !isOpenJob && (
               <div className="space-y-2">
                 <label htmlFor="budget" className="text-sm font-medium">
                   Budget ({paymentToken.symbol}) <span className="text-danger">*</span>
@@ -504,6 +601,50 @@ function CreateJobContent() {
                 ) : (
                   <p className="text-xs text-default-400">
                     Minimum ${MIN_BUDGET_USDC} USD equivalent
+                  </p>
+                )}
+              </div>
+            )}
+
+            {!serviceId && isOpenJob && (
+              <div className="space-y-2">
+                <label htmlFor="maxBudget" className="text-sm font-medium">
+                  Maximum Budget ({paymentToken.symbol}) <span className="text-danger">*</span>
+                </label>
+                <div className="relative">
+                  <input
+                    id="maxBudget"
+                    type="number"
+                    step={paymentToken.symbol === 'USDC' ? '0.01' : '0.001'}
+                    min={MIN_BUDGET_USDC}
+                    placeholder={`0.00`}
+                    value={maxBudget}
+                    onChange={e => {
+                      setMaxBudget(e.target.value);
+                      validateMaxBudgetField(e.target.value);
+                    }}
+                    onBlur={() => validateMaxBudgetField(maxBudget)}
+                    required
+                    className={`w-full px-3 py-2 bg-content2 border rounded-lg text-default-700 placeholder:text-default-400 focus:outline-none focus:ring-2 focus:ring-success focus:border-transparent ${
+                      maxBudgetError ? 'border-danger' : 'border-divider'
+                    }`}
+                  />
+                </div>
+                {maxBudgetError ? (
+                  <p className="text-xs text-danger">{maxBudgetError}</p>
+                ) : maxBudget && parseFloat(maxBudget) > 0 ? (
+                  <div className="space-y-2">
+                    <p className="text-xs text-default-400">
+                      ≈ ${parseFloat(maxBudget).toFixed(2)} USD max budget
+                    </p>
+                    <p className="text-xs text-primary">
+                      Providers will stake 1% (${(parseFloat(maxBudget) * 0.01).toFixed(2)}) to bid.
+                      Bid amount can be less than max.
+                    </p>
+                  </div>
+                ) : (
+                  <p className="text-xs text-default-400">
+                    The maximum you're willing to pay. Providers bid lower.
                   </p>
                 )}
               </div>
@@ -570,10 +711,13 @@ function CreateJobContent() {
             <div className="p-4 bg-content2 rounded-lg flex items-start gap-3">
               <ShieldCheck className="w-5 h-5 text-primary mt-0.5 shrink-0" />
               <div className="text-sm">
-                <p className="font-medium">Escrow Protection</p>
+                <p className="font-medium">
+                  {isOpenJob ? 'Open Job Protection' : 'Escrow Protection'}
+                </p>
                 <p className="text-default-500 mt-0.5">
-                  Funds are held by the smart contract until work is approved. If the provider
-                  doesn't deliver, you get a full refund after the deadline.
+                  {isOpenJob
+                    ? 'Providers stake 1% to bid. After deadline, you have 1 hour to review and accept bids. Funds held in escrow until work is approved.'
+                    : "Funds are held by the smart contract until work is approved. If the provider doesn't deliver, you get a full refund after the deadline."}
                 </p>
               </div>
             </div>
@@ -602,6 +746,8 @@ function CreateJobContent() {
                   </>
                 ) : isAtLimit ? (
                   'Job Limit Reached'
+                ) : isOpenJob ? (
+                  'Create Open Job'
                 ) : (
                   'Create Job'
                 )}

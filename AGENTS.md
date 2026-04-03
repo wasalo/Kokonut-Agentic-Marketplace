@@ -776,7 +776,42 @@ _[Screenshot Placeholder: Filter panel expanded showing multiple filter options]
 
 ---
 
-### Week 3: Missing Features
+### Week 3: Open Job Bidding & Missing Features
+
+**Open Job Bidding:**
+Open jobs allow multiple providers to compete by submitting sealed bids (commit-reveal pattern).
+
+**How It Works:**
+
+1. **Client creates open job** - Sets maximum budget, no provider selected
+2. **Providers commit bids** - Submit sealed bid with 1% stake
+3. **Reveal phase** - After deadline, providers reveal their bids
+4. **Client accepts** - Selects winning bid, job is funded
+
+**Usage:**
+
+1. Create job at `/jobs/create` and toggle "Open Job (Bidding)"
+2. Set maximum budget (not fixed price)
+3. View job at `/jobs/[id]` - Providers see CommitBidForm
+4. Providers commit sealed bids with stake
+5. After deadline, providers reveal bids
+6. Client accepts winning bid at `/jobs/[id]`
+
+**Components:**
+
+- `CommitBidForm` - Commit sealed bid with 1% stake
+- `RevealBidForm` - Reveal committed bid after deadline
+- `AcceptBidForm` - Client selects winning bid
+- `BidStatusCard` - Shows user's bid status
+
+**Technical Details:**
+
+- Stake: 1% of max budget (returned on reveal/acceptance)
+- Reveal window: 1 hour after deadline
+- Minimum ETH payment: 0.005 ETH
+- Uses `createOpenJob(jobId, maxBudget, paymentToken, evaluator, expiredAt, description, hook)`
+
+---
 
 **Cancel Proposal:**
 Proposers can now cancel Open proposals to recover their staked ETH.
