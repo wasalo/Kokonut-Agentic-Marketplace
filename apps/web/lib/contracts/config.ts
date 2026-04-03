@@ -39,6 +39,7 @@ export const DEBUG = {
   contracts: true,
   errors: true,
   data: false,
+  hooks: true,
 } as const;
 
 export function debugLog(category: keyof typeof DEBUG, message: string, data?: any) {

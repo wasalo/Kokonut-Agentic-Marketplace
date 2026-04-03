@@ -7,6 +7,37 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ## [Unreleased] - 2026-04-03
 
+### 🔧 Agent Identity & Management
+
+#### Agent Profile Improvements
+
+- **Agent Services Hook** - New `useAgentServices(agentId)` hook in `lib/hooks/useServices.ts`
+  - Uses `getServicesByAgent()` contract function for accurate service lookup
+  - Uses multicall for efficient batch fetching
+- **Owner Detection** - Agent profile page (`/identity/[id]`) now shows "Manage" button for owners
+  - Links to `/identity/settings?agentId=X`
+  - Uses `ownerOf()` from ERC-8004 registry for accurate ownership check
+- **Service Status Display** - Agent profile shows active/inactive badges and service descriptions
+- **Dashboard Agent Management** - Added "Manage" button on agent cards in `/dashboard/agents`
+- **Settings Page Enhancement** - Agent selector dropdown for multi-agent owners
+  - URL param support (`?agentId=X`) for direct linking
+  - Current agent info card with profile link
+
+### 🚀 API Rate Limiting Fixes
+
+#### React Query Caching
+
+- **useKokonutAgentsByOwner** - Refactored with:
+  - React Query `useQuery` wrapper with proper caching
+  - Exponential backoff retry (1s, 2s, 4s, max 30s) for 429 errors
+  - Environment variable `NEXT_PUBLIC_8004_API_KEY` instead of hardcoded value
+  - 5 min stale time, 30 min garbage collection
+- **useKokonutAgents** - Improved with:
+  - `fetchWithBackoff()` function for exponential backoff
+  - Environment variable for API key
+  - Increased cache duration to 5 minutes
+  - Added `hooks` debug category
+
 ### 🚀 Marketplace & Service Improvements
 
 #### Frontend Optimizations

@@ -2,12 +2,14 @@
 
 import { useState, useEffect, useCallback, useMemo } from 'react';
 import { usePublicClient } from 'wagmi';
+import { useQuery } from '@tanstack/react-query';
 import { decodeAgentMetadata, type AgentMetadata8004 } from '@/lib/metadata';
 import { debugLog } from '@/lib/contracts/config';
 import { ERC8004_ABI } from '@/lib/8004contracts';
 
 const API_KEY = process.env.NEXT_PUBLIC_8004_API_KEY || '';
 const API_BASE = 'https://8004scan.io/api/v1/public';
+const MAX_RETRIES = 3;
 
 // Validate API key is configured
 if (!API_KEY && process.env.NODE_ENV === 'production') {
@@ -16,7 +18,10 @@ if (!API_KEY && process.env.NODE_ENV === 'production') {
   );
 }
 const CACHE_KEY = 'kokonut_agents_cache_v2';
-const CACHE_DURATION = 1 * 60 * 1000; // 1 minute - reduced for faster updates
+const CACHE_DURATION = 5 * 60 * 1000; // 5 minutes
+
+const STALE_TIME = 5 * 60 * 1000; // 5 minutes
+const GC_TIME = 30 * 60 * 1000; // 30 minutes
 
 export interface KokonutAgent {
   id: number;
@@ -74,13 +79,41 @@ function setCachedAgents(agents: KokonutAgent[], totalCount: number) {
   }
 }
 
+async function fetchWithBackoff(
+  url: string,
+  options: RequestInit,
+  retries = MAX_RETRIES
+): Promise<Response> {
+  for (let i = 0; i < retries; i++) {
+    const response = await fetch(url, options);
+
+    if (response.ok) {
+      return response;
+    }
+
+    if (response.status === 429) {
+      const delay = Math.min(1000 * Math.pow(2, i), 30000);
+      debugLog(
+        'hooks',
+        `useKokonutAgents: Rate limited, retrying in ${delay}ms (attempt ${i + 1}/${retries})`
+      );
+      await new Promise(resolve => setTimeout(resolve, delay));
+      continue;
+    }
+
+    throw new Error(`API error: ${response.status}`);
+  }
+
+  throw new Error('Rate limited after maximum retries');
+}
+
 // Fetch agents from 8004scan API with pagination info
 async function fetchAgentsFromAPI(
   page: number,
   limit: number
 ): Promise<{ agents: any[]; hasMore: boolean; total: number }> {
   try {
-    const response = await fetch(
+    const response = await fetchWithBackoff(
       `${API_BASE}/agents?chainId=11155111&page=${page}&limit=${limit}`,
       {
         headers: {
@@ -89,10 +122,6 @@ async function fetchAgentsFromAPI(
         },
       }
     );
-
-    if (!response.ok) {
-      throw new Error(`API error: ${response.status}`);
-    }
 
     const data = await response.json();
     return {
@@ -117,6 +146,9 @@ interface UseKokonutAgentsReturn {
   refetch: () => void;
 }
 
+// Cache for API results (React Query handles the caching)
+let cachedApiResults: CacheEntry | null = null;
+
 export function useKokonutAgents(
   page = 0,
   itemsPerPage = 12,
@@ -133,8 +165,22 @@ export function useKokonutAgents(
   // Check cache on mount
   const cachedAgentsRef = useMemo(() => {
     if (skipCache) return null;
-    return getCachedAgents();
+    return cachedApiResults || getCachedAgents();
   }, [skipCache]);
+
+  // Use React Query for caching and retry logic
+  const { refetch: queryRefetch } = useQuery({
+    queryKey: ['kokonut-agents-scan'],
+    queryFn: async () => {
+      if (!publicClient) return null;
+      return cachedAgentsRef && !skipCache ? cachedAgentsRef : null;
+    },
+    enabled: false, // Manual trigger only
+    staleTime: STALE_TIME,
+    gcTime: GC_TIME,
+    retry: MAX_RETRIES,
+    retryDelay: attemptIndex => Math.min(1000 * Math.pow(2, attemptIndex), 30000),
+  });
 
   // Fetch and filter agents
   const fetchAndFilterAgents = useCallback(async () => {
@@ -229,6 +275,12 @@ export function useKokonutAgents(
         setScannedCount(allApiAgents.length + Math.min(i + batchSize, allApiAgents.length));
       }
 
+      // Cache the results
+      cachedApiResults = {
+        agents: kokonutAgents,
+        timestamp: Date.now(),
+        totalCount: kokonutAgents.length,
+      };
       setAllKokonutAgents(kokonutAgents);
       setCachedAgents(kokonutAgents, kokonutAgents.length);
       debugLog('contracts', `Found ${kokonutAgents.length} Kokonut agents`);
@@ -253,6 +305,7 @@ export function useKokonutAgents(
 
   const refetch = useCallback(() => {
     localStorage.removeItem(CACHE_KEY);
+    cachedApiResults = null;
     setSkipCache(true);
     setAllKokonutAgents([]);
     fetchAndFilterAgents();
