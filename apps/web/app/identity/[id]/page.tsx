@@ -2,14 +2,23 @@
 
 import { useParams } from 'next/navigation';
 import { useMemo } from 'react';
-import { useReadContract } from 'wagmi';
+import { useAccount, useReadContract } from 'wagmi';
 import NextLink from 'next/link';
-import { ArrowLeft, Shield, ExternalLink, MapPin, Globe, Star, Award } from 'lucide-react';
+import {
+  ArrowLeft,
+  Shield,
+  ExternalLink,
+  MapPin,
+  Globe,
+  Star,
+  Award,
+  Settings,
+} from 'lucide-react';
 import { Card } from '@heroui/react';
 import { ERC8004_ABI } from '@/lib/8004contracts';
 import { decodeAgentMetadata } from '@/lib/metadata';
 import { useAgentReputation } from '@/lib/hooks/useReputation';
-import { useProviderServicesFromEvents } from '@/lib/hooks/useServicesEvents';
+import { useAgentServices } from '@/lib/hooks/useServices';
 
 const formatAddress = (address: `0x${string}` | undefined): string => {
   if (!address) return 'N/A';
@@ -53,6 +62,7 @@ const ExternalLinkItem = ({ href, label }: { href: string; label: string }): JSX
 
 export default function AgentDetailPage(): JSX.Element | null {
   const params = useParams();
+  const { address: connectedAddress } = useAccount();
   const agentId = params.id as string;
   const agentIdBigInt = BigInt(agentId);
 
@@ -80,16 +90,20 @@ export default function AgentDetailPage(): JSX.Element | null {
     args: [agentIdBigInt],
   });
 
+  // Check if connected wallet is the owner
+  const isOwner = useMemo(() => {
+    if (!connectedAddress || !ownerAddress) return false;
+    return connectedAddress.toLowerCase() === ownerAddress.toLowerCase();
+  }, [connectedAddress, ownerAddress]);
+
   const { reputation } = useAgentReputation(agentIdBigInt);
 
   const metadata = useMemo(() => (tokenURI ? decodeAgentMetadata(tokenURI) : null), [tokenURI]);
 
   const isLoadingAgent = isLoadingOwner || isLoadingURI;
 
-  // Fetch agent's services
-  const { services: agentServices, isLoading: isLoadingServices } = useProviderServicesFromEvents(
-    ownerAddress as `0x${string}` | undefined
-  );
+  // Fetch agent's services by agentId (not by owner address)
+  const { services: agentServices, isLoading: isLoadingServices } = useAgentServices(agentIdBigInt);
 
   if (isLoadingAgent) {
     return (
@@ -146,13 +160,24 @@ export default function AgentDetailPage(): JSX.Element | null {
               </h2>
               <p className="text-sm text-default-500">Registered on Kokonut Identity Registry</p>
             </div>
-            <span
-              className={`px-3 py-1 text-xs font-medium rounded-full ${
-                isActive ? 'bg-success-100 text-success-700' : 'bg-danger-100 text-danger-700'
-              }`}
-            >
-              {isActive ? 'Active' : 'Inactive'}
-            </span>
+            <div className="flex items-center gap-3">
+              <span
+                className={`px-3 py-1 text-xs font-medium rounded-full ${
+                  isActive ? 'bg-success/10 text-success' : 'bg-danger/10 text-danger'
+                }`}
+              >
+                {isActive ? 'Active' : 'Inactive'}
+              </span>
+              {isOwner && (
+                <NextLink
+                  href={`/identity/settings?agentId=${agentId}`}
+                  className="flex items-center gap-2 px-3 py-1.5 text-sm bg-primary text-white rounded-lg hover:opacity-90 transition-opacity"
+                >
+                  <Settings className="w-4 h-4" />
+                  Manage
+                </NextLink>
+              )}
+            </div>
           </div>
 
           {metadata && (
@@ -299,10 +324,20 @@ export default function AgentDetailPage(): JSX.Element | null {
       {/* Agent Services Card */}
       <Card className="max-w-2xl mx-auto border border-divider mt-6">
         <div className="p-6">
-          <h3 className="text-base font-semibold mb-4 flex items-center gap-2">
-            <Star className="w-4 h-4 text-success" />
-            Services by this Agent
-          </h3>
+          <div className="flex items-center justify-between mb-4">
+            <h3 className="text-base font-semibold flex items-center gap-2">
+              <Star className="w-4 h-4 text-success" />
+              Services by this Agent
+            </h3>
+            {isOwner && (
+              <NextLink
+                href={`/marketplace/create`}
+                className="text-sm text-primary hover:underline"
+              >
+                + List New Service
+              </NextLink>
+            )}
+          </div>
 
           {isLoadingServices ? (
             <div className="animate-pulse space-y-3">
@@ -318,20 +353,46 @@ export default function AgentDetailPage(): JSX.Element | null {
                   className="block p-4 border border-divider rounded-lg hover:bg-content2/50 transition-colors"
                 >
                   <div className="flex items-center justify-between">
-                    <div>
-                      <p className="font-medium">
-                        {service.name || `Service #${service.id.toString()}`}
+                    <div className="flex-1">
+                      <div className="flex items-center gap-2">
+                        <p className="font-medium">
+                          {service.name || `Service #${service.id.toString()}`}
+                        </p>
+                        <span
+                          className={`px-2 py-0.5 text-xs rounded-full ${
+                            service.isActive
+                              ? 'bg-success/10 text-success'
+                              : 'bg-default-100 text-default-500'
+                          }`}
+                        >
+                          {service.isActive ? 'Active' : 'Inactive'}
+                        </span>
+                      </div>
+                      <p className="text-xs text-default-500 mt-1">
+                        {service.description?.slice(0, 80)}
+                        {service.description && service.description.length > 80 ? '...' : ''}
                       </p>
-                      <p className="text-xs text-default-500">View details →</p>
                     </div>
-                    <ExternalLink className="w-4 h-4 text-default-400" />
+                    <ExternalLink className="w-4 h-4 text-default-400 ml-4" />
                   </div>
                 </NextLink>
               ))}
             </div>
           ) : (
-            <div className="text-center py-4 text-default-400 text-sm">
-              No services listed yet. This agent hasn't created any service offerings.
+            <div className="text-center py-6 text-default-400 text-sm">
+              {isOwner ? (
+                <>
+                  <p>You haven't listed any services yet.</p>
+                  <NextLink
+                    href="/marketplace/create"
+                    className="text-primary hover:underline mt-2 inline-block"
+                  >
+                    List your first service →
+                  </NextLink>
+                </>
+              ) : (
+                <p>No services listed yet. This agent hasn't created any service offerings.</p>
+              )}
             </div>
           )}
         </div>

@@ -472,3 +472,89 @@ export function useActivateService() {
     reset,
   };
 }
+
+// ============ Agent Services Hook ============
+
+export function useAgentServices(agentId: bigint | undefined) {
+  const [services, setServices] = useState<Service[]>([]);
+  const [isLoading, setIsLoading] = useState(true);
+  const [error, setError] = useState<Error | null>(null);
+  const publicClient = usePublicClient();
+
+  const fetchServices = useCallback(async () => {
+    if (!publicClient || !agentId) {
+      setServices([]);
+      setIsLoading(false);
+      return;
+    }
+
+    setIsLoading(true);
+    setError(null);
+
+    try {
+      // Get service IDs for this agent
+      const serviceIds = await publicClient.readContract({
+        address: SERVICE_REGISTRY_ADDRESS,
+        abi: SERVICE_REGISTRY_ABI,
+        functionName: 'getServicesByAgent',
+        args: [agentId],
+      });
+
+      debugLog('contracts', `useAgentServices: Found ${serviceIds.length} service IDs`, serviceIds);
+
+      if (!serviceIds || serviceIds.length === 0) {
+        setServices([]);
+        setIsLoading(false);
+        return;
+      }
+
+      // Fetch service details using multicall
+      const calls = serviceIds.map(id => ({
+        address: SERVICE_REGISTRY_ADDRESS,
+        abi: SERVICE_REGISTRY_ABI,
+        functionName: 'getService' as const,
+        args: [id],
+      }));
+
+      const results = await publicClient.multicall({ contracts: calls });
+
+      // Map results to Service objects
+      const mappedServices: Service[] = [];
+      for (let i = 0; i < results.length; i++) {
+        const result = results[i];
+        const serviceId = serviceIds[i];
+
+        if (result.status === 'success' && result.result) {
+          const service = mapServiceData(serviceId, result.result);
+          if (service) {
+            mappedServices.push(service);
+          }
+        }
+      }
+
+      debugLog('contracts', `useAgentServices: Mapped ${mappedServices.length} services`);
+      setServices(mappedServices);
+    } catch (err) {
+      debugError('contracts', 'useAgentServices: Error fetching services', err);
+      setError(err instanceof Error ? err : new Error('Failed to fetch services'));
+      setServices([]);
+    } finally {
+      setIsLoading(false);
+    }
+  }, [publicClient, agentId]);
+
+  useEffect(() => {
+    fetchServices();
+  }, [fetchServices]);
+
+  const refetch = useCallback(() => {
+    fetchServices();
+  }, [fetchServices]);
+
+  return {
+    services,
+    isLoading,
+    error,
+    refetch,
+  };
+}

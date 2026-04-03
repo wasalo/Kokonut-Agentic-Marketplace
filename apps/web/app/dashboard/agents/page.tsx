@@ -2,7 +2,7 @@
 
 import { useAccount } from 'wagmi';
 import { Card, Skeleton } from '@heroui/react';
-import { Wallet, Plus, ArrowLeft, ExternalLink } from 'lucide-react';
+import { Wallet, Plus, ArrowLeft, ExternalLink, Settings } from 'lucide-react';
 import NextLink from 'next/link';
 import { useWalletAgentsWithDetails } from '@/lib/hooks/useWalletAgentsWithDetails';
 
@@ -48,12 +48,21 @@ function AgentCard({
       )}
 
       <div className="flex items-center justify-between mt-4 pt-4 border-t border-divider">
-        <span className="text-sm text-default-400">View Profile</span>
+        <div className="flex items-center gap-2">
+          <NextLink
+            href={`/identity/${agent.id}`}
+            className="flex items-center gap-1.5 text-sm text-default-500 hover:text-primary transition-colors"
+          >
+            <ExternalLink className="w-4 h-4" />
+            Profile
+          </NextLink>
+        </div>
         <NextLink
-          href={`/identity/${agent.id}`}
-          className="p-2 text-default-400 hover:text-primary hover:bg-content2 rounded-lg transition-colors"
+          href={`/identity/settings?agentId=${agent.id}`}
+          className="flex items-center gap-1.5 px-3 py-1.5 text-sm bg-primary text-white rounded-lg hover:opacity-90 transition-opacity"
         >
-          <ExternalLink className="w-4 h-4" />
+          <Settings className="w-4 h-4" />
+          Manage
         </NextLink>
       </div>
     </Card>

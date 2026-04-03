@@ -1,8 +1,19 @@
 'use client';
 
-import { useState, useCallback } from 'react';
+import { useState, useCallback, useEffect, useMemo } from 'react';
+import { useSearchParams } from 'next/navigation';
 import { useAccount } from 'wagmi';
-import { ArrowLeft, Save, Loader2, Wallet, FileText, Database, CheckCircle2 } from 'lucide-react';
+import {
+  ArrowLeft,
+  Save,
+  Loader2,
+  Wallet,
+  FileText,
+  Database,
+  CheckCircle2,
+  ChevronDown,
+  Shield,
+} from 'lucide-react';
 import NextLink from 'next/link';
 import { Card } from '@heroui/react';
 import { useWaitForTransactionReceipt } from 'wagmi';
@@ -16,12 +27,42 @@ import {
 import { useKokonutAgentsByOwner } from '@/lib/hooks/useKokonutAgentsByOwner';
 
 export default function AgentSettingsPage(): JSX.Element {
+  const searchParams = useSearchParams();
   const { address } = useAccount();
   const { agents, isLoading: isLoadingAgents } = useKokonutAgentsByOwner(address);
 
-  // Use the first agent found (users typically have one agent)
-  const agent = agents[0] || null;
+  // Check for agentId in URL params
+  const urlAgentId = searchParams.get('agentId');
+
+  // Selected agent state (for multi-agent owners)
+  const [selectedAgentIndex, setSelectedAgentIndex] = useState<number>(0);
+
+  // Determine which agent to show
+  const selectedAgent = useMemo(() => {
+    if (agents.length === 0) return null;
+
+    // If URL has agentId, find matching agent
+    if (urlAgentId) {
+      const idx = agents.findIndex(a => a.id.toString() === urlAgentId);
+      if (idx !== -1) {
+        setSelectedAgentIndex(idx);
+        return agents[idx];
+      }
+    }
+
+    // Otherwise use selected index
+    return agents[selectedAgentIndex] || null;
+  }, [agents, urlAgentId, selectedAgentIndex]);
+
+  const agent = selectedAgent;
   const agentId = agent?.id ? BigInt(agent.id) : undefined;
+
+  // Reset selected index if it's out of bounds
+  useEffect(() => {
+    if (selectedAgentIndex >= agents.length && agents.length > 0) {
+      setSelectedAgentIndex(0);
+    }
+  }, [agents.length, selectedAgentIndex]);
 
   // Fetch agent wallet separately
   const { wallet: agentWallet } = useAgentWallet(agentId);
@@ -94,6 +135,17 @@ export default function AgentSettingsPage(): JSX.Element {
     );
   }
 
+  if (isLoadingAgents) {
+    return (
+      <div className="container mx-auto px-4 py-8">
+        <Card className="max-w-2xl mx-auto border border-divider p-8 text-center">
+          <Loader2 className="w-8 h-8 animate-spin mx-auto text-primary mb-4" />
+          <p className="text-default-500">Loading your agents...</p>
+        </Card>
+      </div>
+    );
+  }
+
   if (!agentId) {
     return (
       <div className="container mx-auto px-4 py-8">
@@ -114,19 +166,61 @@ export default function AgentSettingsPage(): JSX.Element {
   return (
     <div className="container mx-auto px-4 py-8">
       <NextLink
-        href="/identity"
+        href="/dashboard/agents"
         className="inline-flex items-center text-sm text-default-500 hover:text-foreground mb-6"
       >
         <ArrowLeft className="h-4 w-4 mr-2" />
-        Back to Agents
+        Back to Dashboard
       </NextLink>
 
       <div className="max-w-2xl mx-auto space-y-6">
         <div className="mb-8">
-          <h1 className="text-3xl font-bold">Agent Settings</h1>
-          <p className="text-default-500 mt-1">
-            Manage your agent identity for Agent #{agentId?.toString()}
-          </p>
+          <div className="flex flex-col sm:flex-row sm:items-center sm:justify-between gap-4">
+            <div>
+              <h1 className="text-3xl font-bold flex items-center gap-2">
+                <Shield className="w-7 h-7 text-success" />
+                Agent Settings
+              </h1>
+              <p className="text-default-500 mt-1">Manage your agent identity</p>
+            </div>
+
+            {/* Agent Selector for multi-agent owners */}
+            {agents.length > 1 && (
+              <div className="relative">
+                <select
+                  value={selectedAgentIndex}
+                  onChange={e => setSelectedAgentIndex(Number(e.target.value))}
+                  className="appearance-none bg-content2 border border-divider rounded-lg px-4 py-2 pr-10 text-sm font-medium focus:outline-none focus:ring-2 focus:ring-primary cursor-pointer"
+                >
+                  {agents.map((a, idx) => (
+                    <option key={a.id} value={idx}>
+                      Agent #{a.id} - {a.name || 'Unnamed'}
+                    </option>
+                  ))}
+                </select>
+                <ChevronDown className="absolute right-3 top-1/2 -translate-y-1/2 w-4 h-4 text-default-400 pointer-events-none" />
+              </div>
+            )}
+          </div>
+
+          {/* Current agent info */}
+          <div className="mt-4 flex items-center gap-3 p-3 bg-content2 rounded-lg">
+            <div className="w-10 h-10 rounded-full bg-gradient-to-br from-[#009F4D] to-[#FFCD00] flex items-center justify-center text-white font-semibold text-sm">
+              #{agent?.id}
+            </div>
+            <div className="flex-1 min-w-0">
+              <p className="font-medium truncate">{agent?.name || `Agent #${agent?.id}`}</p>
+              {agent?.description && (
+                <p className="text-xs text-default-500 truncate">{agent.description}</p>
+              )}
+            </div>
+            <NextLink
+              href={`/identity/${agent?.id}`}
+              className="text-sm text-primary hover:underline"
+            >
+              View Profile →
+            </NextLink>
+          </div>
         </div>
 
         {/* Update Agent URI */}
