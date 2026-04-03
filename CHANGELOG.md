@@ -60,6 +60,13 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
   - V5 contract only accepts payment token during `createOpenJob()`
   - Feature will be re-enabled when function is added to V5
 
+#### Agent Discovery
+
+- **Empty TokenURI Handling** - Fixed noisy console errors for agents with empty `tokenURI`
+  - Agents with empty URI now included as "untagged" instead of error logging
+  - Distinguishes between empty string (not an error) vs actual errors
+  - Reduces false-positive error logs in dashboard and identity pages
+
 ### 🚀 Marketplace & Service Improvements
 
 #### Frontend Optimizations

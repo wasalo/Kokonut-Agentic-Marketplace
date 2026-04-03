@@ -132,13 +132,13 @@ export function useWalletAgentsWithDetails(
         const result = results[i];
         const agentId = Number(agentIds[i]);
 
-        if (result.status === 'success' && result.result) {
+        if (result.status === 'success' && result.result && result.result !== '') {
+          // Case 1: Valid URI with content
           const uri = result.result as string;
           const metadata = decodeAgentMetadata(uri);
           const hasKokonutTag = metadata?.source === 'kokonut-marketplace';
 
-          debugLog('hooks', `useWalletAgentsWithDetails: Agent ${agentId}:`, {
-            hasMetadata: !!metadata,
+          debugLog('hooks', `Agent ${agentId}:`, {
             source: metadata?.source,
             hasKokonutTag,
           });
@@ -150,18 +150,25 @@ export function useWalletAgentsWithDetails(
             metadata,
             hasKokonutTag,
           });
+        } else if (result.status === 'success' && result.result === '') {
+          // Case 2: Empty URI - include as untagged (not an error)
+          debugLog('hooks', `Agent ${agentId}: empty tokenURI (untagged)`);
+          fetchedAgents.push({
+            id: agentId,
+            owner: ownerAddress,
+            agentURI: '',
+            metadata: null,
+            hasKokonutTag: false,
+          });
         } else {
-          debugError(
-            'hooks',
-            `useWalletAgentsWithDetails: Failed to fetch tokenURI for agent ${agentId}`,
-            result
-          );
+          // Case 3: Actual error - log as error
+          debugError('hooks', `Agent ${agentId}: tokenURI failed`, result);
         }
       }
 
       debugLog(
         'hooks',
-        `useWalletAgentsWithDetails: Total agents: ${fetchedAgents.length}, Tagged: ${fetchedAgents.filter(a => a.hasKokonutTag).length}`
+        `Total agents: ${fetchedAgents.length}, Tagged: ${fetchedAgents.filter(a => a.hasKokonutTag).length}, Untagged: ${fetchedAgents.filter(a => !a.hasKokonutTag).length}`
       );
 
       setAgents(fetchedAgents);
