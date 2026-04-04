@@ -29,7 +29,7 @@ import {
   validateDeadline,
   validateStringLength,
 } from '@/lib/hooks/useValidation';
-import { getTransactionError } from '@/lib/toast';
+import { TransactionError } from '@/components/TransactionError';
 import { useFormSubmit, formatTimeRemaining } from '@/lib/hooks/useDebounce';
 import { useClientJobCount, MAX_JOBS_PER_CLIENT } from '@/lib/hooks/useClientJobCount';
 import {
@@ -722,11 +722,7 @@ function CreateJobContent() {
               </div>
             </div>
 
-            {error && (
-              <div className="p-4 bg-danger-50 border border-danger-200 rounded-lg text-danger text-sm">
-                {getTransactionError(error)}
-              </div>
-            )}
+            <TransactionError error={error} />
 
             <div className="flex gap-4">
               <button

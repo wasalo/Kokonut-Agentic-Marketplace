@@ -11,8 +11,8 @@ const AGENTIC_COMMERCE_ADDRESS = CONTRACTS[11155111].agenticCommerce as `0x${str
 
 export default function AdminPage(): JSX.Element {
   const { address, isConnected } = useAccount();
-  const [newTreasury, setNewTreasury] = useState('');
   const [treasuryInput, setTreasuryInput] = useState('');
+  const [feeInput, setFeeInput] = useState('');
 
   const { data: treasury, isLoading: treasuryLoading } = useReadContract({
     address: AGENTIC_COMMERCE_ADDRESS,
@@ -48,6 +48,21 @@ export default function AdminPage(): JSX.Element {
       args: [treasuryInput as `0x${string}`],
     });
     setTreasuryInput('');
+  };
+
+  const handleUpdateFee = () => {
+    const feePercent = parseFloat(feeInput);
+    if (isNaN(feePercent) || feePercent < 0 || feePercent > 10) {
+      return;
+    }
+    const feeBP = BigInt(Math.round(feePercent * 100));
+    writeContract({
+      address: AGENTIC_COMMERCE_ADDRESS,
+      abi: AGENTIC_COMMERCE_ABI,
+      functionName: 'setPlatformFee',
+      args: [feeBP, treasury as `0x${string}`],
+    });
+    setFeeInput('');
   };
 
   return (
@@ -86,6 +101,84 @@ export default function AdminPage(): JSX.Element {
                 <p className="text-sm text-default-400 mb-1">Platform Fee</p>
                 <p className="text-2xl font-bold text-success">{platformFeePercent}%</p>
               </div>
+            </div>
+          </Card>
+
+          {/* Platform Fee Settings */}
+          <Card className="border border-divider p-6">
+            <h2 className="text-lg font-semibold mb-4">Platform Fee Settings</h2>
+            <div className="space-y-4">
+              <div>
+                <label className="text-sm font-medium text-default-500 mb-2 block">
+                  Current Platform Fee
+                </label>
+                <div className="p-4 bg-content2 rounded-lg">
+                  <p className="text-2xl font-bold text-success">{platformFeePercent}%</p>
+                  <p className="text-xs text-default-400 mt-1">
+                    Fee is charged on job payments (in basis points)
+                  </p>
+                </div>
+              </div>
+
+              <div>
+                <label className="text-sm font-medium text-default-500 mb-2 block">
+                  Update Platform Fee (%)
+                </label>
+                <div className="flex gap-2">
+                  <div className="flex-1 relative">
+                    <input
+                      type="number"
+                      step="0.01"
+                      min="0"
+                      max="10"
+                      placeholder={`Current: ${platformFeePercent}%`}
+                      value={feeInput}
+                      onChange={e => setFeeInput(e.target.value)}
+                      className="w-full px-3 py-2 bg-content2 border border-divider rounded-lg focus:outline-none focus:ring-2 focus:ring-primary font-mono text-sm"
+                    />
+                    <span className="absolute right-3 top-1/2 -translate-y-1/2 text-default-400 text-sm">
+                      %
+                    </span>
+                  </div>
+                  <button
+                    onClick={handleUpdateFee}
+                    disabled={
+                      isPending ||
+                      !feeInput ||
+                      isNaN(parseFloat(feeInput)) ||
+                      parseFloat(feeInput) < 0 ||
+                      parseFloat(feeInput) > 10
+                    }
+                    className="px-4 py-2 bg-primary text-white rounded-lg font-medium hover:opacity-90 disabled:opacity-50 flex items-center gap-2"
+                  >
+                    {isPending || isConfirming ? (
+                      <>
+                        <Loader2 className="w-4 h-4 animate-spin" />
+                        {isConfirming ? 'Confirming...' : 'Waiting...'}
+                      </>
+                    ) : (
+                      'Update Fee'
+                    )}
+                  </button>
+                </div>
+                <p className="text-xs text-default-400 mt-1">
+                  Enter a value between 0% and 10%. Current: {platformFeePercent}%
+                </p>
+              </div>
+
+              {isSuccess && (
+                <div className="flex items-center gap-2 p-3 bg-success/10 rounded-lg text-success text-sm">
+                  <CheckCircle2 className="w-4 h-4" />
+                  Platform fee updated successfully!
+                </div>
+              )}
+
+              {writeError && (
+                <div className="flex items-start gap-2 p-3 bg-danger/10 rounded-lg text-danger text-sm">
+                  <AlertCircle className="w-4 h-4 shrink-0 mt-0.5" />
+                  <span>Transaction failed: {writeError.message}</span>
+                </div>
+              )}
             </div>
           </Card>
 
@@ -203,8 +296,8 @@ export default function AdminPage(): JSX.Element {
               <div>
                 <p className="font-medium text-warning">Admin Access Required</p>
                 <p className="text-sm text-default-500 mt-1">
-                  Only the contract owner can modify treasury settings. Owner-only functions will
-                  fail if called from a non-owner address.
+                  Only the contract owner can modify treasury and fee settings. Owner-only functions
+                  will fail if called from a non-owner address.
                 </p>
               </div>
             </div>

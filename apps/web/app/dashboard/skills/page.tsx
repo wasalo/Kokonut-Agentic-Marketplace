@@ -25,6 +25,7 @@ import NextLink from 'next/link';
 import { AGENT_SKILL_REGISTRY_ABI } from '@/lib/contracts/abis';
 import { useWalletAgentsWithDetails } from '@/lib/hooks/useWalletAgentsWithDetails';
 import { CONTRACT_ADDRESSES, getContractAddress } from '@/lib/contracts/config';
+import { TransactionError } from '@/components/TransactionError';
 
 const SKILL_REGISTRY_ADDRESS = getContractAddress(
   process.env.NEXT_PUBLIC_SKILL_REGISTRY_ADDRESS,
@@ -238,12 +239,7 @@ function SkillForm({
           />
         </div>
 
-        {(formError || error) && (
-          <div className="p-3 bg-danger-50 border border-danger-200 rounded-lg text-danger text-sm flex items-start gap-2">
-            <AlertCircle className="w-4 h-4 mt-0.5 flex-shrink-0" />
-            <div>{formError || (error as Error)?.message || 'An error occurred'}</div>
-          </div>
-        )}
+        <TransactionError error={error} />
 
         <div className="flex gap-3 pt-2">
           <button

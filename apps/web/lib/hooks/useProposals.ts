@@ -155,6 +155,27 @@ export function useProposalCount() {
   };
 }
 
+export function useEvaluatorCount(proposalId: bigint | undefined) {
+  const { data, isLoading, error, refetch } = useReadContract({
+    address: AGENT_REVIEW_ADDRESS,
+    abi: AGENT_REVIEW_ABI,
+    functionName: 'getEvaluatorCount',
+    args: proposalId ? [proposalId] : undefined,
+    query: {
+      enabled: !!proposalId,
+      retry: 2,
+      staleTime: 30000,
+    },
+  });
+
+  return {
+    count: data ? Number(data) : 0,
+    isLoading,
+    error,
+    refetch,
+  };
+}
+
 export function useReviewStats() {
   const { count: totalProposals, isLoading: isCountLoading } = useProposalCount();
   const publicClient = usePublicClient();

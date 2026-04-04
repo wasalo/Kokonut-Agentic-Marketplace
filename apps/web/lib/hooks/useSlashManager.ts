@@ -1,11 +1,10 @@
 import { useReadContract, useWriteContract } from 'wagmi';
-import { CONTRACTS } from '@/lib/wagmi';
+import { CONTRACT_ADDRESSES, getContractAddress } from '@/lib/contracts/config';
 import { SLASH_MANAGER_ABI } from '@/lib/contracts/abis';
-import { assertValidAddress } from '@/lib/utils/typeGuards';
 
-const SLASH_MANAGER_ADDRESS = assertValidAddress(
-  CONTRACTS[11155111].slashManager,
-  'SLASH_MANAGER_ADDRESS'
+const SLASH_MANAGER_ADDRESS = getContractAddress(
+  process.env.NEXT_PUBLIC_SLASH_MANAGER_ADDRESS,
+  CONTRACT_ADDRESSES.sepolia.slashManager
 );
 
 /**

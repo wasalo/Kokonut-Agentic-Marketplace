@@ -139,32 +139,6 @@ export const AGENT_IDENTITY_REGISTRY_ABI = [
   },
 ] as const;
 
-export const LEGACY_REPUTATION_REGISTRY_ABI = [
-  {
-    inputs: [
-      { name: 'agent', type: 'address' },
-      { name: 'providerId', type: 'uint256' },
-      { name: 'rating', type: 'int256' },
-      { name: 'uri', type: 'string' },
-    ],
-    name: 'submitFeedback',
-    outputs: [{ name: 'feedbackId', type: 'uint256' }],
-    stateMutability: 'nonpayable',
-    type: 'function',
-  },
-  {
-    inputs: [{ name: 'agent', type: 'address' }],
-    name: 'getAgentReputation',
-    outputs: [
-      { name: 'avg', type: 'int256' },
-      { name: 'total', type: 'uint256' },
-      { name: 'providers', type: 'uint256' },
-    ],
-    stateMutability: 'view',
-    type: 'function',
-  },
-] as const;
-
 export const SERVICE_REGISTRY_ABI = [
   {
     inputs: [

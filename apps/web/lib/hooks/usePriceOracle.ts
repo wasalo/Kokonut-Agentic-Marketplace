@@ -1,11 +1,10 @@
 import { useReadContract } from 'wagmi';
-import { CONTRACTS } from '@/lib/wagmi';
+import { CONTRACT_ADDRESSES, getContractAddress } from '@/lib/contracts/config';
 import { PRICE_ORACLE_ABI } from '@/lib/contracts/abis';
-import { assertValidAddress } from '@/lib/utils/typeGuards';
 
-const PRICE_ORACLE_ADDRESS = assertValidAddress(
-  CONTRACTS[11155111].priceOracle,
-  'PRICE_ORACLE_ADDRESS'
+const PRICE_ORACLE_ADDRESS = getContractAddress(
+  process.env.NEXT_PUBLIC_PRICE_ORACLE_ADDRESS,
+  CONTRACT_ADDRESSES.sepolia.priceOracle
 );
 
 /**

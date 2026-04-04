@@ -5,7 +5,95 @@ All notable changes to the Kokonut Agent Economy Stack are documented in this fi
 The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.0.0/),
 and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0.html).
 
-## [Unreleased] - 2026-04-04
+## [2026-04-04] - Phase 8: Event-Driven Updates, Bookmarks & Unified Error Handling
+
+### 🚀 Unified Error Handling System
+
+#### Reusable TransactionError Component
+
+Created `components/TransactionError.tsx` with:
+
+- Uses `getTransactionError()` internally for user-friendly messages
+- Handles user rejections with clear messaging
+- Sanitizes error messages (removes addresses, tx hashes)
+- Optional dismiss button support
+- Also exports `FormFieldError` for individual field errors
+
+#### Pages Updated to Use Unified Error Handling
+
+| Page                 | Change                                                                        |
+| -------------------- | ----------------------------------------------------------------------------- |
+| `marketplace/create` | Replaced inline error with TransactionError                                   |
+| `jobs/create`        | Replaced inline error with TransactionError                                   |
+| `identity/register`  | Replaced inline error with TransactionError                                   |
+| `review/create`      | **CRITICAL FIX** - Replaced raw `error.message` with TransactionError         |
+| `dashboard/skills`   | **CRITICAL FIX** - Replaced `(error as Error)?.message` with TransactionError |
+
+#### Create Service Button Bug Fix
+
+Fixed validation logic in `marketplace/create/page.tsx`:
+
+- Added `hasAttemptedSubmit` state to track form submission attempts
+- Fixed `handleInputChange` dependency array (was using wrong validation function)
+- Updated `isFormValid` to require `hasAttemptedSubmit` before enabling button
+- Button now properly enables after user fills all required fields
+
+---
+
+### 🚀 Contract Address Resilience Improvements
+
+#### Hook Migration to getContractAddress Pattern
+
+Migrated 4 hooks from fragile `CONTRACTS[11155111]` pattern to resilient `getContractAddress()` pattern with fallbacks:
+
+- **usePriceOracle.ts** - Now uses `getContractAddress(NEXT_PUBLIC_PRICE_ORACLE_ADDRESS, sepolia.priceOracle)`
+- **useUSDC.ts** - Now uses `getContractAddress(NEXT_PUBLIC_USDC_ADDRESS, sepolia.usdc)`
+- **useSlashManager.ts** - Now uses `getContractAddress(NEXT_PUBLIC_SLASH_MANAGER_ADDRESS, sepolia.slashManager)`
+- **useCommitReveal.ts** - Now uses `getContractAddress(NEXT_PUBLIC_COMMIT_REVEAL_ADDRESS, sepolia.commitReveal)`
+
+**Benefits:**
+
+- No longer crashes if env vars are missing
+- Falls back to hardcoded Sepolia addresses
+- Removed `assertValidAddress` dependency
+
+#### Code Cleanup
+
+- **Removed unused ABI**: `LEGACY_REPUTATION_REGISTRY_ABI` deleted from `lib/contracts/abis.ts`
+- Reputation hooks correctly use `ERC8004_ABI` instead
+
+---
+
+### 🚀 Contract-Hook-UI Alignment Audit
+
+#### Audit Summary
+
+- **AgenticCommerce**: 86% hook coverage, 66% UI coverage ✅
+- **ServiceRegistry**: 100% hook coverage, 78% UI coverage ✅
+- **AgentReview**: 100% hook coverage, 50% UI coverage (skills UI complete)
+- **SlashManager**: 100% hook coverage, 0% UI coverage (governance UI complete)
+
+#### New Features Added
+
+- **Admin Dashboard - Platform Fee Settings**
+  - New "Platform Fee Settings" card with current fee display
+  - Input field for fee percentage (0-10%)
+  - "Update Fee" button to call `setPlatformFee(feeBP, treasury)`
+  - Validation and error handling
+
+- **useEvaluatorCount Hook**
+  - New hook in `useProposals.ts`
+  - Wraps `getEvaluatorCount(proposalId)` contract function
+  - Returns `count`, `isLoading`, `error`, `refetch`
+  - Used for checking evaluator limits in proposals
+
+- **Client Job Count Integration Verified**
+  - `useClientJobCount` hook fully integrated in job creation page
+  - Visual progress bar showing job limit usage
+  - Color-coded warnings (green/yellow/red)
+  - Submit button disabled when at limit (100 jobs)
+
+---
 
 ### 🚀 Transaction Flow & Bookmark System
 

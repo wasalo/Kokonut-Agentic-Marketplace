@@ -26,7 +26,7 @@ import {
   validateMetadataURI,
 } from '@/lib/hooks/useValidation';
 import { useFormSubmit, formatTimeRemaining } from '@/lib/hooks/useDebounce';
-import { getTransactionError } from '@/lib/toast';
+import { TransactionError, FormFieldError } from '@/components/TransactionError';
 import {
   useTokenPriceConversion,
   USDC_TOKEN,
@@ -163,6 +163,7 @@ export default function CreateServicePage() {
   const [formData, setFormData] = useState<FormData>(initialFormData);
   const [formErrors, setFormErrors] = useState<FormErrors>(initialFormErrors);
   const [selectedAgentId, setSelectedAgentId] = useState<number | null>(null);
+  const [hasAttemptedSubmit, setHasAttemptedSubmit] = useState(false);
 
   // Step 1: Check wallet agents with full details
   const {
@@ -264,7 +265,7 @@ export default function CreateServicePage() {
       }
       setFormErrors(prev => ({ ...prev, [field]: error }));
     },
-    [validateName, validateDescription, validateMetadataURI, validatePrice]
+    [validateName, validateDescription, validateMetadataURIField, validatePrice]
   );
 
   // Service creation
@@ -296,6 +297,9 @@ export default function CreateServicePage() {
     (e: React.FormEvent) => {
       e.preventDefault();
       if (!isConnected || taggedAgents.length === 0) return;
+
+      // Mark as attempted submit to show validation errors
+      setHasAttemptedSubmit(true);
 
       // Validate all fields
       const errors: FormErrors = {
@@ -351,12 +355,15 @@ export default function CreateServicePage() {
   // Apply form submission debouncing (2 second cooldown)
   const { handleSubmit, isSubmitting, timeUntilNextSubmit } = useFormSubmit(performSubmit, 2000);
 
-  // Check if form is valid
+  // Check if form is valid - requires attempt + no errors + required fields filled
+  const formPrice = parseFloat(formData.price);
   const isFormValid =
+    hasAttemptedSubmit &&
     Object.values(formErrors).every(error => error === null) &&
-    formData.name &&
-    formData.description &&
-    formData.price;
+    formData.name.trim().length > 0 &&
+    formData.description.trim().length > 0 &&
+    !isNaN(formPrice) &&
+    formPrice > 0;
 
   // Debug panel component
   const DebugPanel = () => {
@@ -690,11 +697,7 @@ export default function CreateServicePage() {
                 )}
               </div>
 
-              {serviceError && (
-                <div className="p-4 bg-danger-50 border border-danger-200 rounded-lg">
-                  <p className="text-danger text-sm">{getTransactionError(serviceError)}</p>
-                </div>
-              )}
+              <TransactionError error={serviceError} />
 
               <Button
                 type="submit"

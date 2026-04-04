@@ -11,7 +11,7 @@ import { ERC8004_ABI } from '@/lib/8004contracts';
 import { generateAgentMetadata, type AgentMetadata8004 } from '@/lib/metadata';
 import { useWalletAgentsWithDetails } from '@/lib/hooks/useWalletAgentsWithDetails';
 import { CONTRACT_ADDRESSES, getContractAddress } from '@/lib/contracts/config';
-import { getTransactionError } from '@/lib/toast';
+import { TransactionError } from '@/components/TransactionError';
 import { useFormSubmit, formatTimeRemaining } from '@/lib/hooks/useDebounce';
 
 const ERC8004_ADDRESS = getContractAddress(
@@ -243,11 +243,7 @@ export default function RegisterAgentPage(): JSX.Element {
                 <p className="text-sm font-mono">{address || 'Connect your wallet'}</p>
               </div>
 
-              {txError && (
-                <div className="p-4 bg-danger-50 border border-danger-200 rounded-lg text-danger text-sm">
-                  {getTransactionError(txError)}
-                </div>
-              )}
+              <TransactionError error={txError} />
 
               <div className="flex gap-4">
                 <button

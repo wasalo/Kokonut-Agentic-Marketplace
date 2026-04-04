@@ -4,26 +4,23 @@
 [![Tests](https://img.shields.io/badge/tests-228%20passing-brightgreen.svg)](./contracts/test)
 [![Coverage](https://img.shields.io/badge/coverage-87%25-brightgreen.svg)](./contracts/test)
 [![Frontend Security](https://img.shields.io/badge/frontend%20security-8.6%2F10-brightgreen.svg)](./docs/FRONTEND_SECURITY_HARDENING_REPORT.md)
-[![Phase 7](https://img.shields.io/badge/phase-7%20complete-blue.svg)](./AGENTS.md)
+[![Phase 8](https://img.shields.io/badge/phase-8%20complete-blue.svg)](./AGENTS.md)
 [![Dependencies](https://img.shields.io/badge/dependencies-up%20to%20date-brightgreen.svg)](./CHANGELOG.md)
 
 ## Identity → Commerce → Coordination
 
-### 🎉 Latest: Phase 7 - ETH Funding, Admin UI & Evaluator Features (April 2026)
+### 🎉 Latest: Phase 8 - Event-Driven Updates, Bookmarks & Unified Error Handling (April 2026)
 
 **New Features:**
 
-- ✅ **Admin Dashboard** - Treasury management at `/admin`
-- ✅ **ETH Funding** - Native ETH payments for jobs
-- ✅ **Job Filters** - "My Jobs" and "Open for Bidding" filters
-- ✅ **Evaluator Conflict Warnings** - Detects client/evaluator conflicts
-- ✅ **Withdraw Stake** - Losing bidders can reclaim their stake
-- ✅ **Evaluator Fee Display** - +1% fee shown on job details
-- ✅ **Cancel Proposal** - Proposers can cancel open proposals
-- ✅ **Complete Hook Library** - All contract functions wired to frontend
-- ✅ **Network Access** - Works on localhost and LAN hosts
-- ✅ **Health Check** - Service status at `/api/health`
-- ✅ **Next.js 16 + React 19.2** - Latest stack with security patches
+- ✅ **Event-Driven Updates** - Real-time UI updates via 16 job events + 4 service events
+- ✅ **Bookmarks System** - localStorage-based bookmarks with public counters (no wallet required)
+- ✅ **Unified Error Handling** - Consistent error display across all pages
+- ✅ **Contract-Hook-UI Audit** - 100% hook coverage verification
+- ✅ **Platform Fee Settings** - Admin can update fees (0-10%) from dashboard
+- ✅ **useEvaluatorCount Hook** - New hook for proposal evaluator limits
+- ✅ **Contract Resilience** - Hooks use `getContractAddress()` with fallbacks
+- ✅ **Create Service Fix** - Fixed button enabling after form validation
 
 [📖 View Full Documentation](./AGENTS.md) | [🎨 UI Specification](./docs/UI_SPEC.md) | [⚛️ React Hooks](./docs/HOOKS.md)
 
@@ -110,11 +107,11 @@ Update `apps/web/.env.local` with deployed contract addresses:
 NEXT_PUBLIC_WALLETCONNECT_PROJECT_ID=your_walletconnect_project_id
 NEXT_PUBLIC_8004_API_KEY=your_8004scan_api_key
 
-# Sepolia Contract Addresses (Phase 5 - 217 Tests Passing, 87%+ Coverage)
+# Sepolia Contract Addresses (Phase 6-8 - 228 Tests Passing, 87%+ Coverage)
 NEXT_PUBLIC_SKILL_REGISTRY_ADDRESS=0xA84684261558f342d6871DD2CFef90A2117Aa20A
 NEXT_PUBLIC_SERVICE_REGISTRY_ADDRESS=0x62E1eeEa1A2Ab987004F35bDA430457Ed6077201
 NEXT_PUBLIC_AGENT_REVIEW_ADDRESS=0x716B02447b52Eab450e31bD77103B41bC2c7bE0b
-NEXT_PUBLIC_AGENTIC_COMMERCE_ADDRESS=0xe0006203ceb8bb20b29fa5324ad3fea356bbf858
+NEXT_PUBLIC_AGENTIC_COMMERCE_ADDRESS=0x948d97EA7F0c49796fB576ADff375C900627568E
 NEXT_PUBLIC_USDC_ADDRESS=0x1c7D4B196Cb0C7B01d743Fbc6116a902379C7238
 
 # ERC-8004 Official Registry (Sepolia) - used for all identity operations

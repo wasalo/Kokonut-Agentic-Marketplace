@@ -1,11 +1,10 @@
 import { useReadContract, useWriteContract } from 'wagmi';
-import { CONTRACTS } from '@/lib/wagmi';
+import { CONTRACT_ADDRESSES, getContractAddress } from '@/lib/contracts/config';
 import { COMMIT_REVEAL_ABI } from '@/lib/contracts/abis';
-import { assertValidAddress } from '@/lib/utils/typeGuards';
 
-const COMMIT_REVEAL_ADDRESS = assertValidAddress(
-  CONTRACTS[11155111].commitReveal,
-  'COMMIT_REVEAL_ADDRESS'
+const COMMIT_REVEAL_ADDRESS = getContractAddress(
+  process.env.NEXT_PUBLIC_COMMIT_REVEAL_ADDRESS,
+  CONTRACT_ADDRESSES.sepolia.commitReveal
 );
 
 /**

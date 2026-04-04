@@ -9,6 +9,7 @@ import { Card } from '@heroui/react';
 import { useWaitForTransactionReceipt } from 'wagmi';
 import { parseEther } from 'viem';
 import { useCreateProposal } from '@/lib/hooks/useProposals';
+import { TransactionError } from '@/components/TransactionError';
 
 export default function CreateProposalPage() {
   const router = useRouter();
@@ -231,11 +232,7 @@ export default function CreateProposalPage() {
                 </div>
               </div>
 
-              {error && (
-                <div className="p-4 bg-danger-50 border border-danger-200 rounded-lg text-danger text-sm">
-                  Error: {error.message}
-                </div>
-              )}
+              <TransactionError error={error} />
 
               <div className="flex gap-4">
                 <button
