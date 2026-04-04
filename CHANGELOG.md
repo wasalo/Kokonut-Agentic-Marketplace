@@ -7,6 +7,40 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ## [2026-04-04] - Phase 8: Event-Driven Updates, Bookmarks & Unified Error Handling
 
+### 🧪 CI/CD Fixes
+
+#### Consolidated CI Workflow
+
+Merged `test.yml` and `ci.yml` into a single `ci.yml` workflow:
+
+- **Fixed**: ESLint config extending non-existent "prettier" in `lib/openzeppelin-contracts/`
+- **Fixed**: Updated deprecated `actions/upload-artifact@v3` → `v4`
+- **Fixed**: Replaced `bc` dependency with pure bash arithmetic for coverage check
+- **Removed**: Redundant `npm install` after `npm ci`
+- **Removed**: Non-functional deploy step
+- **Removed**: Noisy `npm outdated` check
+
+#### Jobs in Consolidated Workflow
+
+| Job               | Description                                     |
+| ----------------- | ----------------------------------------------- |
+| `contracts`       | Forge build, tests, coverage with 80% threshold |
+| `gas-benchmark`   | Gas snapshot checks                             |
+| `fuzz-tests`      | Fuzzing with 10,000 runs                        |
+| `invariant-tests` | Invariant testing                               |
+| `frontend`        | TypeScript check, ESLint, Next.js build         |
+| `e2e`             | Playwright E2E tests                            |
+| `security`        | npm audit, lockfile integrity                   |
+
+#### ESLint Fix
+
+Fixed `lib/openzeppelin-contracts/.eslintrc`:
+
+- Removed `"prettier"` from extends (prettier not installed in subdirectory)
+- Kept minimal config required for OpenZeppelin files
+
+---
+
 ### 🚀 Unified Error Handling System
 
 #### Reusable TransactionError Component
