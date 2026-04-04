@@ -5,6 +5,73 @@ All notable changes to the Kokonut Agent Economy Stack are documented in this fi
 The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.0.0/),
 and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0.html).
 
+## [2026-04-04] - Phase 9: Leaderboard, Networks & Agent Profiles
+
+### 🆕 New Pages
+
+#### Leaderboard Page (`/leaderboard`)
+
+New leaderboard page showcasing top-performing Kokonut agents:
+
+- **Ranking System**: Agents ranked by health score (0-100)
+- **Tier Badges**: Gold (80+), Silver (60-79), Bronze (40-59), Standard (<40)
+- **Time Period Filters**: Daily, Weekly, Monthly, All Time views
+- **Trend Indicators**: Rising/Falling/Stable based on score changes
+- **Snapshot Storage**: Daily snapshots stored in localStorage for trend calculation
+- **Kokonut-only**: Only displays agents with `source === 'kokonut-marketplace'`
+
+#### Networks Page (`/networks`)
+
+New multi-chain overview page:
+
+- **25 Supported Chains**: Grid of all ERC-8004 compatible networks
+- **Network Stats**: Agent counts and feedback counts per chain
+- **Search Functionality**: Filter networks by name or chain ID
+- **Chain Details**: Color badges, testnet indicators, explorer links
+- **API Integration**: Uses 8004scan API with 5-minute caching
+
+### 🏗️ Infrastructure
+
+#### New Files
+
+| File                           | Purpose                                                    |
+| ------------------------------ | ---------------------------------------------------------- |
+| `lib/chains.ts`                | Chain configurations (id, name, color, registry addresses) |
+| `lib/healthScore.ts`           | Health score calculation logic with weights                |
+| `lib/hooks/useLeaderboard.ts`  | Leaderboard data with localStorage snapshots               |
+| `lib/hooks/useAgentHealth.ts`  | Health score calculation for single agent                  |
+| `lib/hooks/useNetworkStats.ts` | Multi-chain stats via 8004scan API                         |
+
+#### Chain Configuration (`lib/chains.ts`)
+
+Supports 25 blockchain networks including:
+
+- Ethereum, Base, Arbitrum, Optimism, Polygon
+- Celo, BNB Chain, Scroll, Linea, Avalanche
+- Monad, MegaETH, Abstract, and more
+
+#### Health Score Algorithm
+
+Score = (Rating×0.4) + (CompletionRate×0.35) + (Services×0.15) + (Recency×0.1)
+
+### 🎨 Enhanced Agent Profiles
+
+Updated `/identity/[id]` with:
+
+- **Health Score Card**: Score with tier badge, progress bar, factor breakdown
+- **Leaderboard Link**: Quick link to view all rankings
+- **x402 Badge**: Indicates HTTP 402 payment support
+- **Tier Display**: Gold/Silver/Bronze/Standard tier with color coding
+
+### 🧭 Navigation Updates
+
+Added new navigation items:
+
+- **Leaderboard** - Main nav (always visible)
+- **Networks** - Main nav (always visible)
+
+---
+
 ## [2026-04-04] - Phase 8: Event-Driven Updates, Bookmarks & Unified Error Handling
 
 ### ✨ UI/UX Enhancements

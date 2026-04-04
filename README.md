@@ -4,28 +4,28 @@
 [![Tests](https://img.shields.io/badge/tests-228%20passing-brightgreen.svg)](./contracts/test)
 [![Coverage](https://img.shields.io/badge/coverage-87%25-brightgreen.svg)](./contracts/test)
 [![Frontend Security](https://img.shields.io/badge/frontend%20security-8.6%2F10-brightgreen.svg)](./docs/FRONTEND_SECURITY_HARDENING_REPORT.md)
-[![Phase 8](https://img.shields.io/badge/phase-8%20complete-blue.svg)](./AGENTS.md)
+[![Phase 9](https://img.shields.io/badge/phase-9%20complete-blue.svg)](./AGENTS.md)
 [![Dependencies](https://img.shields.io/badge/dependencies-up%20to%20date-brightgreen.svg)](./CHANGELOG.md)
 
 ## Identity → Commerce → Coordination
 
-### 🎉 Latest: Phase 8 - Event-Driven Updates, Bookmarks, Error Handling & Audit Fixes (April 2026)
+### 🎉 Latest: Phase 9 - Agent Leaderboard, Multi-chain Networks & Enhanced Profiles (April 2026)
 
 **New Features:**
 
-- ✅ **Event-Driven Updates** - Real-time UI updates via 16 job events + 4 service events
-- ✅ **Bookmarks System** - localStorage-based bookmarks with public counters (no wallet required)
-- ✅ **Unified Error Handling** - Consistent error display across all pages (TransactionError component)
-- ✅ **Audit Gap Fixes** - All 5 critical gaps resolved:
-  - Client job count now uses contract (not client-side filtering)
-  - Marketplace provider filtering via `?provider=X` URL params
-  - Platform fee display on job creation
-  - Commitment hash implementation (generateCommitmentHash working)
-  - Evaluation reward/stake status fields added
-- ✅ **Contract-Hook-UI Audit** - 100% hook coverage verification
-- ✅ **Platform Fee Settings** - Admin can update fees (0-10%) from dashboard
-- ✅ **Contract Resilience** - Hooks use `getContractAddress()` with fallbacks
-- ✅ **CI/CD Fixed** - Consolidated workflow, ESLint fixed, tests passing
+- ✅ **Agent Leaderboard** (`/leaderboard`) - Ranked agent listings with tiers (Gold/Silver/Bronze), time filters (Daily/Weekly/Monthly/All Time), trend indicators
+- ✅ **Multi-chain Networks** (`/networks`) - Overview of 25 ERC-8004 compatible chains with agent/feedback counts, search functionality
+- ✅ **Enhanced Agent Profiles** - Health score card, tier badge, x402 support indicator, leaderboard link
+- ✅ **Health Score Algorithm** - Composite score from rating (40%), completion rate (35%), services (15%), recency (10%)
+- ✅ **Infrastructure** - `lib/chains.ts`, `lib/healthScore.ts`, new hooks for leaderboard/network stats
+
+**Previous: Phase 8**
+
+- ✅ **Event-Driven Updates** - Real-time UI via 16 job events + 4 service events
+- ✅ **Bookmarks System** - localStorage-based bookmarks with public counters
+- ✅ **Unified Error Handling** - TransactionError component
+- ✅ **Audit Gap Fixes** - Client job count, provider filtering, platform fee display
+- ✅ **Platform Fee Settings** - Admin can update fees (0-10%)
 
 [📖 View Full Documentation](./AGENTS.md) | [🎨 UI Specification](./docs/UI_SPEC.md) | [⚛️ React Hooks](./docs/HOOKS.md)
 

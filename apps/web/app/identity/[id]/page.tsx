@@ -13,12 +13,17 @@ import {
   Star,
   Award,
   Settings,
+  Trophy,
+  TrendingUp,
+  Zap,
 } from 'lucide-react';
 import { Card } from '@heroui/react';
 import { ERC8004_ABI } from '@/lib/8004contracts';
 import { decodeAgentMetadata } from '@/lib/metadata';
 import { useAgentReputation } from '@/lib/hooks/useReputation';
 import { useAgentServices } from '@/lib/hooks/useServices';
+import { useAgentHealth } from '@/lib/hooks/useAgentHealth';
+import { getTierColor, getTierLabel, formatScore, getScoreColor } from '@/lib/healthScore';
 
 const formatAddress = (address: `0x${string}` | undefined): string => {
   if (!address) return 'N/A';
@@ -97,8 +102,19 @@ export default function AgentDetailPage(): JSX.Element | null {
   }, [connectedAddress, ownerAddress]);
 
   const { reputation } = useAgentReputation(agentIdBigInt);
+  const { healthScore, isLoading: isLoadingHealth } = useAgentHealth(agentIdBigInt);
 
   const metadata = useMemo(() => (tokenURI ? decodeAgentMetadata(tokenURI) : null), [tokenURI]);
+
+  const hasX402Support = useMemo(() => {
+    if (!metadata) return false;
+    return metadata.capabilities?.some(
+      c =>
+        c.toLowerCase().includes('x402') ||
+        c.toLowerCase().includes('http 402') ||
+        c.toLowerCase().includes('payment')
+    );
+  }, [metadata]);
 
   const isLoadingAgent = isLoadingOwner || isLoadingURI;
 
@@ -320,6 +336,90 @@ export default function AgentDetailPage(): JSX.Element | null {
           </p>
         </div>
       </Card>
+
+      {/* Health Score Card */}
+      {healthScore && (
+        <Card className="max-w-2xl mx-auto border border-divider mt-6">
+          <div className="p-6">
+            <div className="flex items-center justify-between mb-4">
+              <h3 className="text-base font-semibold flex items-center gap-2">
+                <Trophy className="w-4 h-4 text-warning" />
+                Health Score
+              </h3>
+              <NextLink
+                href="/leaderboard"
+                className="text-sm text-primary hover:underline flex items-center gap-1"
+              >
+                View Leaderboard
+                <ExternalLink className="w-3 h-3" />
+              </NextLink>
+            </div>
+
+            <div className="flex items-center gap-6 mb-6">
+              <div
+                className="w-20 h-20 rounded-full flex items-center justify-center text-2xl font-bold"
+                style={{
+                  backgroundColor: `${getTierColor(healthScore.tier)}20`,
+                  color: getTierColor(healthScore.tier),
+                }}
+              >
+                {formatScore(healthScore.score)}
+              </div>
+              <div className="flex-1">
+                <p className="font-semibold mb-1">{getTierLabel(healthScore.tier)}</p>
+                <div className="w-full h-2 bg-content2 rounded-full overflow-hidden">
+                  <div
+                    className="h-full rounded-full transition-all"
+                    style={{
+                      width: `${healthScore.score}%`,
+                      backgroundColor: getScoreColor(healthScore.score),
+                    }}
+                  />
+                </div>
+              </div>
+            </div>
+
+            <div className="grid grid-cols-2 gap-4 text-sm">
+              <div className="flex justify-between">
+                <span className="text-default-500">Rating Factor</span>
+                <span className="font-medium">
+                  {healthScore.breakdown.ratingPoints.toFixed(1)} pts
+                </span>
+              </div>
+              <div className="flex justify-between">
+                <span className="text-default-500">Completion Factor</span>
+                <span className="font-medium">
+                  {healthScore.breakdown.completionPoints.toFixed(1)} pts
+                </span>
+              </div>
+              <div className="flex justify-between">
+                <span className="text-default-500">Services Factor</span>
+                <span className="font-medium">
+                  {healthScore.breakdown.servicePoints.toFixed(1)} pts
+                </span>
+              </div>
+              <div className="flex justify-between">
+                <span className="text-default-500">Activity Factor</span>
+                <span className="font-medium">
+                  {healthScore.breakdown.recencyPoints.toFixed(1)} pts
+                </span>
+              </div>
+            </div>
+
+            {hasX402Support && (
+              <div className="mt-4 pt-4 border-t border-divider flex items-center gap-2">
+                <div className="px-3 py-1 bg-success/10 text-success rounded-full text-xs font-medium flex items-center gap-1">
+                  <Zap className="w-3 h-3" />
+                  x402 Payment Supported
+                </div>
+                <span className="text-xs text-default-400">
+                  This agent supports HTTP 402 streaming payments
+                </span>
+              </div>
+            )}
+          </div>
+        </Card>
+      )}
 
       {/* Agent Services Card */}
       <Card className="max-w-2xl mx-auto border border-divider mt-6">

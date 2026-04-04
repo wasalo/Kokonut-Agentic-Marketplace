@@ -25,6 +25,8 @@ const publicNavLinks = [
   { name: 'Identity', href: '/identity' },
   { name: 'Marketplace', href: '/marketplace' },
   { name: 'Jobs', href: '/jobs' },
+  { name: 'Leaderboard', href: '/leaderboard' },
+  { name: 'Networks', href: '/networks' },
 ];
 
 const privateNavLinks = [{ name: 'Dashboard', href: '/dashboard' }];
