@@ -1,14 +1,22 @@
 import { useEffect, useRef, useCallback } from 'react';
 import { useWatchContractEvent } from 'wagmi';
 import { useQueryClient } from '@tanstack/react-query';
-import { AGENTIC_COMMERCE_ABI } from '@/lib/contracts/abis';
+import { AGENTIC_COMMERCE_ABI, AGENTIC_COMMERCE_EVENTS } from '@/lib/contracts/abis';
 import { CONTRACT_ADDRESSES } from '@/lib/contracts/config';
 
 const AGENTIC_COMMERCE_ADDRESS = CONTRACT_ADDRESSES.sepolia.agenticCommerce;
 
+function invalidateJobQueries(queryClient: any, jobId: bigint) {
+  if (jobId) {
+    queryClient.invalidateQueries({ queryKey: ['job', jobId.toString()] });
+  }
+  queryClient.invalidateQueries({ queryKey: ['jobs'] });
+  queryClient.invalidateQueries({ queryKey: ['userJobs'] });
+}
+
 /**
- * Hook to watch job events
- * Uses 30-second polling interval via wagmi's built-in polling
+ * Hook to watch all job events for real-time updates
+ * Watches 16 job lifecycle events including bids
  */
 export function useJobEvents(jobId?: bigint) {
   const queryClient = useQueryClient();
@@ -21,11 +29,22 @@ export function useJobEvents(jobId?: bigint) {
     onLogs: logs => {
       logs.forEach((log: any) => {
         const jobId = log.args?.jobId;
-        console.log('[Events] Job created:', jobId);
+        console.log('[Events] Job created:', jobId?.toString());
+        invalidateJobQueries(queryClient, jobId);
+      });
+    },
+  });
 
-        // Invalidate jobs list
-        queryClient.invalidateQueries({ queryKey: ['jobs'] });
-        queryClient.invalidateQueries({ queryKey: ['userJobs'] });
+  // Watch OpenJobCreated events
+  useWatchContractEvent({
+    address: AGENTIC_COMMERCE_ADDRESS,
+    abi: AGENTIC_COMMERCE_ABI,
+    eventName: 'OpenJobCreated',
+    onLogs: logs => {
+      logs.forEach((log: any) => {
+        const jobId = log.args?.jobId;
+        console.log('[Events] Open job created:', jobId?.toString());
+        invalidateJobQueries(queryClient, jobId);
       });
     },
   });
@@ -47,11 +66,7 @@ export function useJobEvents(jobId?: bigint) {
           newStatus,
         });
 
-        // Invalidate specific job and lists
-        if (jobId) {
-          queryClient.invalidateQueries({ queryKey: ['job', jobId.toString()] });
-        }
-        queryClient.invalidateQueries({ queryKey: ['jobs'] });
+        invalidateJobQueries(queryClient, jobId);
       });
     },
   });
@@ -64,16 +79,64 @@ export function useJobEvents(jobId?: bigint) {
     onLogs: logs => {
       logs.forEach((log: any) => {
         const jobId = log.args?.jobId;
-        const amount = log.args?.amount;
+        console.log('[Events] Job funded:', jobId?.toString());
+        invalidateJobQueries(queryClient, jobId);
+      });
+    },
+  });
 
-        console.log('[Events] Job funded:', {
-          jobId: jobId?.toString(),
-          amount: amount?.toString(),
-        });
+  // Watch JobSubmitted events
+  useWatchContractEvent({
+    address: AGENTIC_COMMERCE_ADDRESS,
+    abi: AGENTIC_COMMERCE_ABI,
+    eventName: 'JobSubmitted',
+    onLogs: logs => {
+      logs.forEach((log: any) => {
+        const jobId = log.args?.jobId;
+        console.log('[Events] Job submitted:', jobId?.toString());
+        invalidateJobQueries(queryClient, jobId);
+      });
+    },
+  });
 
-        if (jobId) {
-          queryClient.invalidateQueries({ queryKey: ['job', jobId.toString()] });
-        }
+  // Watch JobCompleted events
+  useWatchContractEvent({
+    address: AGENTIC_COMMERCE_ADDRESS,
+    abi: AGENTIC_COMMERCE_ABI,
+    eventName: 'JobCompleted',
+    onLogs: logs => {
+      logs.forEach((log: any) => {
+        const jobId = log.args?.jobId;
+        console.log('[Events] Job completed:', jobId?.toString());
+        invalidateJobQueries(queryClient, jobId);
+      });
+    },
+  });
+
+  // Watch JobRejected events
+  useWatchContractEvent({
+    address: AGENTIC_COMMERCE_ADDRESS,
+    abi: AGENTIC_COMMERCE_ABI,
+    eventName: 'JobRejected',
+    onLogs: logs => {
+      logs.forEach((log: any) => {
+        const jobId = log.args?.jobId;
+        console.log('[Events] Job rejected:', jobId?.toString());
+        invalidateJobQueries(queryClient, jobId);
+      });
+    },
+  });
+
+  // Watch JobExpired events
+  useWatchContractEvent({
+    address: AGENTIC_COMMERCE_ADDRESS,
+    abi: AGENTIC_COMMERCE_ABI,
+    eventName: 'JobExpired',
+    onLogs: logs => {
+      logs.forEach((log: any) => {
+        const jobId = log.args?.jobId;
+        console.log('[Events] Job expired:', jobId?.toString());
+        invalidateJobQueries(queryClient, jobId);
       });
     },
   });
@@ -86,17 +149,106 @@ export function useJobEvents(jobId?: bigint) {
     onLogs: logs => {
       logs.forEach((log: any) => {
         const jobId = log.args?.jobId;
-        const amount = log.args?.amount;
+        console.log('[Events] Payment released:', jobId?.toString());
+        invalidateJobQueries(queryClient, jobId);
+      });
+    },
+  });
 
-        console.log('[Events] Payment released:', {
-          jobId: jobId?.toString(),
-          amount: amount?.toString(),
-        });
+  // Watch Refunded events
+  useWatchContractEvent({
+    address: AGENTIC_COMMERCE_ADDRESS,
+    abi: AGENTIC_COMMERCE_ABI,
+    eventName: 'Refunded',
+    onLogs: logs => {
+      logs.forEach((log: any) => {
+        const jobId = log.args?.jobId;
+        console.log('[Events] Job refunded:', jobId?.toString());
+        invalidateJobQueries(queryClient, jobId);
+      });
+    },
+  });
 
-        if (jobId) {
-          queryClient.invalidateQueries({ queryKey: ['job', jobId.toString()] });
-          queryClient.invalidateQueries({ queryKey: ['jobs'] });
-        }
+  // Watch ProviderSet events
+  useWatchContractEvent({
+    address: AGENTIC_COMMERCE_ADDRESS,
+    abi: AGENTIC_COMMERCE_ABI,
+    eventName: 'ProviderSet',
+    onLogs: logs => {
+      logs.forEach((log: any) => {
+        const jobId = log.args?.jobId;
+        console.log('[Events] Provider set:', jobId?.toString());
+        invalidateJobQueries(queryClient, jobId);
+      });
+    },
+  });
+
+  // Watch BudgetSet events
+  useWatchContractEvent({
+    address: AGENTIC_COMMERCE_ADDRESS,
+    abi: AGENTIC_COMMERCE_ABI,
+    eventName: 'BudgetSet',
+    onLogs: logs => {
+      logs.forEach((log: any) => {
+        const jobId = log.args?.jobId;
+        console.log('[Events] Budget set:', jobId?.toString());
+        invalidateJobQueries(queryClient, jobId);
+      });
+    },
+  });
+
+  // Watch BidCommitted events
+  useWatchContractEvent({
+    address: AGENTIC_COMMERCE_ADDRESS,
+    abi: AGENTIC_COMMERCE_ABI,
+    eventName: 'BidCommitted',
+    onLogs: logs => {
+      logs.forEach((log: any) => {
+        const jobId = log.args?.jobId;
+        console.log('[Events] Bid committed:', jobId?.toString());
+        invalidateJobQueries(queryClient, jobId);
+      });
+    },
+  });
+
+  // Watch BidRevealed events
+  useWatchContractEvent({
+    address: AGENTIC_COMMERCE_ADDRESS,
+    abi: AGENTIC_COMMERCE_ABI,
+    eventName: 'BidRevealed',
+    onLogs: logs => {
+      logs.forEach((log: any) => {
+        const jobId = log.args?.jobId;
+        console.log('[Events] Bid revealed:', jobId?.toString());
+        invalidateJobQueries(queryClient, jobId);
+      });
+    },
+  });
+
+  // Watch BidAccepted events
+  useWatchContractEvent({
+    address: AGENTIC_COMMERCE_ADDRESS,
+    abi: AGENTIC_COMMERCE_ABI,
+    eventName: 'BidAccepted',
+    onLogs: logs => {
+      logs.forEach((log: any) => {
+        const jobId = log.args?.jobId;
+        console.log('[Events] Bid accepted:', jobId?.toString());
+        invalidateJobQueries(queryClient, jobId);
+      });
+    },
+  });
+
+  // Watch StakesReturned events
+  useWatchContractEvent({
+    address: AGENTIC_COMMERCE_ADDRESS,
+    abi: AGENTIC_COMMERCE_ABI,
+    eventName: 'StakesReturned',
+    onLogs: logs => {
+      logs.forEach((log: any) => {
+        const jobId = log.args?.jobId;
+        console.log('[Events] Stakes returned:', jobId?.toString());
+        invalidateJobQueries(queryClient, jobId);
       });
     },
   });

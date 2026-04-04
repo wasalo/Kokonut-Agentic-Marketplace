@@ -48,6 +48,7 @@ import {
   Job,
   Bid,
 } from '@/lib/hooks/useJobs';
+import { useWatchJob } from '@/lib/hooks/useJobEvents';
 import { useService } from '@/lib/hooks/useServices';
 import { useUSDCAllowance, useUSDCApprove, useUSDCBalance } from '@/lib/hooks/useUSDC';
 import { ERC8004_ABI } from '@/lib/8004contracts';
@@ -78,6 +79,9 @@ export default function JobDetailPage({
 
   const { job, isLoading, refetch } = useJob(jobId);
   const { service } = useService(job?.serviceId ?? BigInt(0));
+
+  // Enable event-driven updates for this specific job
+  useWatchJob(jobId);
 
   // USDC approval and balance hooks
   const AGENTIC_COMMERCE_ADDRESS = CONTRACTS[11155111].agenticCommerce as `0x${string}`;

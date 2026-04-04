@@ -18,6 +18,7 @@ import { ServiceList } from '@/components/heroui/service-list';
 import { useAllServices } from '@/lib/hooks/useServicesContract';
 import { StatusBadge } from '@/components/StatusBadge';
 import { useDebounce } from '@/lib/hooks/useDebounce';
+import { useServiceEvents } from '@/lib/hooks/useServiceEvents';
 
 interface StatCardProps {
   label: string;
@@ -244,6 +245,9 @@ export default function MarketplacePage(): JSX.Element {
   useEffect(() => {
     setMounted(true);
   }, []);
+
+  // Enable event-driven updates for real-time service status
+  useServiceEvents();
 
   // Use the same hook as ServiceList to ensure counter matches grid
   const { services: allServices, isLoading: isServicesLoading } = useAllServices();

@@ -13,6 +13,7 @@ import {
   SlidersHorizontal,
   DollarSign,
   ArrowUpDown,
+  Bookmark,
 } from 'lucide-react';
 import { Card, Button } from '@heroui/react';
 import NextLink from 'next/link';
@@ -23,6 +24,8 @@ import {
   getJobStatusColor,
   JobStatus,
 } from '@/lib/hooks/useJobsEvents';
+import { useJobEvents } from '@/lib/hooks/useJobEvents';
+import { useJobBookmarks, useBookmarkCounts } from '@/lib/hooks/useBookmarks';
 import { useService } from '@/lib/hooks/useServices';
 import { useState, useCallback, useEffect } from 'react';
 import { StatusBadge, getJobStatusBadgeType } from '@/components/StatusBadge';
@@ -30,15 +33,26 @@ import { useDebounce } from '@/lib/hooks/useDebounce';
 
 function JobCard({ job, isConnected }: { job: any; isConnected: boolean }) {
   const { service } = useService(job.serviceId ?? BigInt(0));
+  const { isBookmarked, toggleBookmark } = useJobBookmarks();
+  const { getJobCount } = useBookmarkCounts();
   const formattedBudget = formatUnits(job.budget, 6);
   const isOpen = job.status === JobStatus.Open;
+  const jobIdStr = job.id.toString();
+  const bookmarked = isBookmarked(jobIdStr);
+  const bookmarkCount = getJobCount(jobIdStr);
+
+  const handleBookmark = (e: React.MouseEvent) => {
+    e.preventDefault();
+    e.stopPropagation();
+    toggleBookmark(jobIdStr);
+  };
 
   return (
     <Card className="border border-divider p-4 hover:border-success/30 transition-colors">
       <div className="flex items-start justify-between gap-4">
-        <NextLink href={`/jobs/${job.id}`} className="flex-1 min-w-0">
+        <NextLink href={`/jobs/${jobIdStr}`} className="flex-1 min-w-0">
           <div className="flex items-center gap-2">
-            <h3 className="font-semibold">Job #{job.id.toString()}</h3>
+            <h3 className="font-semibold">Job #{jobIdStr}</h3>
             <StatusBadge status={getJobStatusBadgeType(job.status)} size="sm" />
           </div>
           <p className="text-sm text-default-500 mt-0.5 truncate">{job.description}</p>
@@ -57,11 +71,26 @@ function JobCard({ job, isConnected }: { job: any; isConnected: boolean }) {
           </div>
         </NextLink>
 
+        <div className="flex flex-col items-end gap-2">
+          <button
+            onClick={handleBookmark}
+            className={`p-2 rounded-lg transition-colors ${
+              bookmarked
+                ? 'text-[#009F4D] hover:bg-[#009F4D]/10'
+                : 'text-default-400 hover:text-default-600 hover:bg-default-100'
+            }`}
+            title={bookmarked ? 'Remove bookmark' : 'Bookmark this job'}
+          >
+            <Bookmark className={`w-5 h-5 ${bookmarked ? 'fill-current' : ''}`} />
+          </button>
+          {bookmarkCount > 0 && <span className="text-xs text-default-400">{bookmarkCount}</span>}
+        </div>
+
         {isOpen && (
           <div className="shrink-0">
             {isConnected ? (
               <NextLink
-                href={`/jobs/${job.id}/proposal`}
+                href={`/jobs/${jobIdStr}/proposal`}
                 className="inline-flex items-center gap-2 px-4 py-2 bg-gradient-to-r from-[#009F4D] to-[#00c853] text-white text-sm font-medium rounded-lg hover:opacity-90 transition-opacity"
               >
                 Submit Proposal
@@ -85,6 +114,9 @@ export default function JobsPage(): JSX.Element {
   const { address, isConnected } = useAccount();
   const router = useRouter();
   const searchParams = useSearchParams();
+
+  // Enable event-driven updates for real-time job status
+  useJobEvents();
 
   // URL-based sorting
   const sortBy = searchParams.get('sort') || 'newest';

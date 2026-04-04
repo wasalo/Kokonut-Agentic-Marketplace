@@ -5,9 +5,45 @@ All notable changes to the Kokonut Agent Economy Stack are documented in this fi
 The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.0.0/),
 and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0.html).
 
-## [Unreleased] - 2026-04-03
+## [Unreleased] - 2026-04-04
 
-### 🚀 Phase 7: Enhanced UX & Admin Features
+### 🚀 Transaction Flow & Bookmark System
+
+#### Event-Driven Updates Fixed
+
+- **useJobEvents hook now watches 16 events** (up from 4):
+  - JobCreated, OpenJobCreated, JobStatusChanged, JobFunded
+  - JobSubmitted, JobCompleted, JobRejected, JobExpired
+  - PaymentReleased, Refunded, ProviderSet, BudgetSet
+  - BidCommitted, BidRevealed, BidAccepted, StakesReturned
+
+- **useServiceEvents hook created** with all 4 service events:
+  - ServiceCreated, ServiceUpdated, ServiceDeactivated, ServiceActivated
+
+- **Integration in pages:**
+  - `/jobs` - `useJobEvents()` for real-time job updates
+  - `/jobs/[id]` - `useWatchJob()` for specific job monitoring
+  - `/marketplace` - `useServiceEvents()` for service updates
+
+#### Bookmarks System
+
+- **localStorage-based bookmarks** (no wallet required):
+  - `useJobBookmarks()` - bookmark jobs, stored in `kokonut_bookmarks_jobs`
+  - `useServiceBookmarks()` - bookmark services, stored in `kokonut_bookmarks_services`
+
+- **Public bookmark counter** aggregated across all users:
+  - Stored in `kokonut_bookmark_counts` localStorage
+  - Shows total users who bookmarked each item
+  - Updates automatically when toggling bookmarks
+
+- **Bookmark UI added:**
+  - JobCard - bookmark button with count
+  - ServiceCard - bookmark button with count
+  - Filled icon when bookmarked, outline when not
+
+---
+
+## [2026-04-03] - Phase 7: Enhanced UX & Admin Features
 
 #### ETH Funding Support
 

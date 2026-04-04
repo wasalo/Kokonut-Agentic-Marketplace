@@ -7,9 +7,18 @@ import { useFindSkillsByDomain } from '@/lib/hooks/useSkills';
 import { useTokenPriceConversion } from '@/lib/hooks/useTokenConversion';
 import { Card, Button } from '@heroui/react';
 import NextLink from 'next/link';
-import { ShoppingBag, DollarSign, ChevronLeft, ChevronRight, List, LayoutGrid } from 'lucide-react';
+import {
+  ShoppingBag,
+  DollarSign,
+  ChevronLeft,
+  ChevronRight,
+  List,
+  LayoutGrid,
+  Bookmark,
+} from 'lucide-react';
 import { useViewportPagination, usePagination } from '@/lib/hooks/useViewportPagination';
 import { StatusBadge, getServiceStatusBadgeType } from '@/components/StatusBadge';
+import { useServiceBookmarks, useBookmarkCounts } from '@/lib/hooks/useBookmarks';
 import { CONTRACTS } from '@/lib/wagmi';
 import { AGENT_SKILL_REGISTRY_ABI } from '@/lib/contracts/abis';
 
@@ -69,6 +78,8 @@ function EmptyState() {
 
 function ServiceCard({ service }: { service: Service }) {
   const { ethToUsdcRate } = useTokenPriceConversion();
+  const { isBookmarked, toggleBookmark } = useServiceBookmarks();
+  const { getServiceCount } = useBookmarkCounts();
 
   const isEth =
     service.paymentToken && service.paymentToken.toLowerCase() === ZERO_ADDRESS.toLowerCase();
@@ -79,27 +90,51 @@ function ServiceCard({ service }: { service: Service }) {
   const usdValue =
     isEth && ethToUsdcRate ? tokenAmount * ethToUsdcRate : isEth ? null : tokenAmount;
 
+  const serviceIdStr = service.id.toString();
+  const bookmarked = isBookmarked(serviceIdStr);
+  const bookmarkCount = getServiceCount(serviceIdStr);
+
   const handlePurchase = (e: React.MouseEvent) => {
     e.stopPropagation();
-    window.location.href = `/jobs/create?serviceId=${service.id}&provider=${service.provider}`;
+    window.location.href = `/jobs/create?serviceId=${serviceIdStr}&provider=${service.provider}`;
+  };
+
+  const handleBookmark = (e: React.MouseEvent) => {
+    e.preventDefault();
+    e.stopPropagation();
+    toggleBookmark(serviceIdStr);
   };
 
   return (
     <Card className="border border-divider p-6 hover:border-success transition-colors cursor-pointer h-full relative group">
-      <NextLink href={`/marketplace/${service.id.toString()}`} className="block">
-        <div className="flex justify-between items-start mb-3">
+      <div className="flex items-start justify-between mb-3">
+        <NextLink href={`/marketplace/${serviceIdStr}`} className="flex-1 min-w-0 pr-2">
           <h3 className="font-semibold text-lg">{service.name}</h3>
-          <div className="flex items-center gap-2">
-            <StatusBadge status={getServiceStatusBadgeType(service.isActive)} size="sm" />
-            <span
-              className={`text-xs px-2 py-0.5 rounded ${
-                isEth ? 'bg-[#627EEA]/10 text-[#627EEA]' : 'bg-[#2775CA]/10 text-[#2775CA]'
-              }`}
-            >
-              {tokenSymbol}
-            </span>
-          </div>
+        </NextLink>
+        <div className="flex items-center gap-2 shrink-0">
+          <button
+            onClick={handleBookmark}
+            className={`p-1.5 rounded-lg transition-colors ${
+              bookmarked
+                ? 'text-[#009F4D] hover:bg-[#009F4D]/10'
+                : 'text-default-400 hover:text-default-600 hover:bg-default-100'
+            }`}
+            title={bookmarked ? 'Remove bookmark' : 'Bookmark this service'}
+          >
+            <Bookmark className={`w-4 h-4 ${bookmarked ? 'fill-current' : ''}`} />
+          </button>
+          {bookmarkCount > 0 && <span className="text-xs text-default-400">{bookmarkCount}</span>}
+          <StatusBadge status={getServiceStatusBadgeType(service.isActive)} size="sm" />
+          <span
+            className={`text-xs px-2 py-0.5 rounded ${
+              isEth ? 'bg-[#627EEA]/10 text-[#627EEA]' : 'bg-[#2775CA]/10 text-[#2775CA]'
+            }`}
+          >
+            {tokenSymbol}
+          </span>
         </div>
+      </div>
+      <NextLink href={`/marketplace/${serviceIdStr}`} className="block">
         <p className="text-default-500 text-sm mb-4 line-clamp-2">{service.description}</p>
         <div className="flex justify-between items-center text-sm">
           <span className="text-default-500">
