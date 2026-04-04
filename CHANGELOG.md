@@ -129,6 +129,51 @@ Migrated 4 hooks from fragile `CONTRACTS[11155111]` pattern to resilient `getCon
 
 ---
 
+### 🚀 Audit Gap Fixes
+
+#### Gap 1: Client Job Count - Now Uses Contract ✅
+
+Fixed `lib/hooks/useClientJobCount.ts`:
+
+- **Before**: Client-side filtering via `useUserJobsFromEvents`
+- **After**: Direct contract call via `useReadContract` with `getClientJobCount()`
+- **Benefit**: Accurate on-chain count vs potentially stale event data
+
+#### Gap 2: Marketplace Provider Filtering - URL Params ✅
+
+Enhanced `app/marketplace/page.tsx`:
+
+- Added `useProviderServices` hook for provider filtering
+- Reads `?provider=X` URL parameter
+- Shows filter indicator when active
+- "Clear filter" button to reset
+
+#### Gap 3: Platform Fee Transparency - Job Creation ✅
+
+Enhanced `app/jobs/create/page.tsx`:
+
+- Added `useReadContract` call to fetch `platformFeeBP`
+- Displays platform fee percentage on job creation form
+- Shows "Platform Fee: X%" with evaluator fee note
+
+#### Gap 4: Commitment Hash Implementation ✅
+
+Fixed `lib/hooks/useCommitReveal.ts`:
+
+- **Before**: Threw "Not implemented" error
+- **After**: Implemented using viem's `keccak256(encodeAbiParameters(...))`
+- Matches contract logic: `keccak256(abi.encode(user, secret, serviceId))`
+- Added `generateSecret()` helper for random bytes32 generation
+
+#### Gap 5: Evaluation Reward/Stake Status ✅
+
+Fixed `lib/hooks/useProposals.ts`:
+
+- Updated `useEvaluation` interface to include `rewardClaimed` and `stakeReleased` fields
+- Maps contract's Evaluation struct fields correctly (added indices 6, 7 for new fields)
+
+---
+
 ### 🚀 Transaction Flow & Bookmark System
 
 #### Event-Driven Updates Fixed

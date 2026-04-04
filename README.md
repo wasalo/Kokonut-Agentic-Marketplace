@@ -9,18 +9,23 @@
 
 ## Identity → Commerce → Coordination
 
-### 🎉 Latest: Phase 8 - Event-Driven Updates, Bookmarks & Unified Error Handling (April 2026)
+### 🎉 Latest: Phase 8 - Event-Driven Updates, Bookmarks, Error Handling & Audit Fixes (April 2026)
 
 **New Features:**
 
 - ✅ **Event-Driven Updates** - Real-time UI updates via 16 job events + 4 service events
 - ✅ **Bookmarks System** - localStorage-based bookmarks with public counters (no wallet required)
-- ✅ **Unified Error Handling** - Consistent error display across all pages
+- ✅ **Unified Error Handling** - Consistent error display across all pages (TransactionError component)
+- ✅ **Audit Gap Fixes** - All 5 critical gaps resolved:
+  - Client job count now uses contract (not client-side filtering)
+  - Marketplace provider filtering via `?provider=X` URL params
+  - Platform fee display on job creation
+  - Commitment hash implementation (generateCommitmentHash working)
+  - Evaluation reward/stake status fields added
 - ✅ **Contract-Hook-UI Audit** - 100% hook coverage verification
 - ✅ **Platform Fee Settings** - Admin can update fees (0-10%) from dashboard
-- ✅ **useEvaluatorCount Hook** - New hook for proposal evaluator limits
 - ✅ **Contract Resilience** - Hooks use `getContractAddress()` with fallbacks
-- ✅ **Create Service Fix** - Fixed button enabling after form validation
+- ✅ **CI/CD Fixed** - Consolidated workflow, ESLint fixed, tests passing
 
 [📖 View Full Documentation](./AGENTS.md) | [🎨 UI Specification](./docs/UI_SPEC.md) | [⚛️ React Hooks](./docs/HOOKS.md)
 
@@ -38,7 +43,7 @@ The **Kokonut Agent Economy Stack** is a complete onchain agent economy with thr
 
 ## Deployed Contracts (Sepolia Testnet)
 
-### Contract Addresses (Phase 7 - Latest)
+### Contract Addresses (Phase 8 - Latest)
 
 | Contract                   | Address                                         | Description                                | Version |
 | -------------------------- | ----------------------------------------------- | ------------------------------------------ | ------- |

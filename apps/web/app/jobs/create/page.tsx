@@ -1,7 +1,7 @@
 'use client';
 
 import { useState, useCallback, Suspense, useEffect } from 'react';
-import { useAccount, useWaitForTransactionReceipt } from 'wagmi';
+import { useAccount, useReadContract, useWaitForTransactionReceipt } from 'wagmi';
 import { useRouter, useSearchParams } from 'next/navigation';
 import {
   ArrowLeft,
@@ -23,6 +23,8 @@ import {
   useJobConstants,
   useCalculateStake,
 } from '@/lib/hooks/useJobs';
+import { CONTRACT_ADDRESSES, getContractAddress } from '@/lib/contracts/config';
+import { AGENTIC_COMMERCE_ABI } from '@/lib/contracts/abis';
 import {
   useValidation,
   validateAddress,
@@ -119,6 +121,19 @@ function CreateJobContent() {
     percentageUsed,
     remainingJobs,
   } = useClientJobCount(address);
+
+  const AGENTIC_COMMERCE_ADDRESS = getContractAddress(
+    process.env.NEXT_PUBLIC_AGENTIC_COMMERCE_ADDRESS,
+    CONTRACT_ADDRESSES.sepolia.agenticCommerce
+  );
+
+  const { data: platformFeeBp } = useReadContract({
+    address: AGENTIC_COMMERCE_ADDRESS,
+    abi: AGENTIC_COMMERCE_ABI,
+    functionName: 'platformFeeBP',
+  });
+
+  const platformFeePercent = platformFeeBp ? Number(platformFeeBp) / 100 : 1;
 
   const [provider, setProvider] = useState('');
   const [evaluator, setEvaluator] = useState('');
@@ -647,6 +662,22 @@ function CreateJobContent() {
                     The maximum you're willing to pay. Providers bid lower.
                   </p>
                 )}
+              </div>
+            )}
+
+            {platformFeePercent > 0 && (
+              <div className="p-3 bg-primary/5 border border-primary/20 rounded-lg">
+                <div className="flex items-center gap-2 text-sm">
+                  <Coins className="w-4 h-4 text-primary" />
+                  <span className="font-medium text-primary">
+                    Platform Fee: {platformFeePercent}%
+                  </span>
+                </div>
+                <p className="text-xs text-default-500 mt-1 ml-6">
+                  {platformFeePercent > 0
+                    ? `A ${platformFeePercent}% platform fee applies. Evaluator fee is additional 1%.`
+                    : 'No platform fees applied.'}
+                </p>
               </div>
             )}
 

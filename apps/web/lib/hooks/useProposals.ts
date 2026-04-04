@@ -580,7 +580,9 @@ export function useEvaluation(
         reasoningURI: (data as any)[3],
         stakeAmount: (data as any)[4],
         isFinal: (data as any)[5],
-        submittedAt: (data as any)[6],
+        rewardClaimed: (data as any)[6],
+        stakeReleased: (data as any)[7],
+        submittedAt: (data as any)[8],
       }
     : null;
 

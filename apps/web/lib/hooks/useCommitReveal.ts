@@ -1,4 +1,5 @@
 import { useReadContract, useWriteContract } from 'wagmi';
+import { encodeAbiParameters, keccak256, toHex } from 'viem';
 import { CONTRACT_ADDRESSES, getContractAddress } from '@/lib/contracts/config';
 import { COMMIT_REVEAL_ABI } from '@/lib/contracts/abis';
 
@@ -153,15 +154,30 @@ export function useRevealDelay() {
 }
 
 /**
- * Helper function to generate a commitment hash
- * Use this client-side before calling useCommit
- * @param data The data to commit (e.g., serviceId + timestamp)
- * @param nonce A random nonce
- * @returns The commitment hash
+ * Generate a commitment hash for the CommitReveal pattern
+ * @param userAddress The user's address (msg.sender in contract)
+ * @param secret A random secret (bytes32)
+ * @param serviceId The service ID being committed to
+ * @returns The commitment hash (keccak256 of abi.encode(user, secret, serviceId))
  */
-export function generateCommitmentHash(data: string, nonce: bigint): `0x${string}` {
-  // This would use ethers.js or viem to hash
-  // Implementation depends on the exact hashing algorithm used in the contract
-  // For now, this is a placeholder that should be implemented based on contract logic
-  throw new Error('generateCommitmentHash must be implemented based on contract hashing algorithm');
+export function generateCommitmentHash(
+  userAddress: `0x${string}`,
+  secret: `0x${string}`,
+  serviceId: bigint
+): `0x${string}` {
+  const encoded = encodeAbiParameters(
+    [{ type: 'address' }, { type: 'bytes32' }, { type: 'uint256' }],
+    [userAddress, secret, serviceId]
+  );
+  return keccak256(encoded);
+}
+
+/**
+ * Generate a random secret for commitment
+ * @returns A random bytes32 hex string
+ */
+export function generateSecret(): `0x${string}` {
+  const array = new Uint8Array(32);
+  crypto.getRandomValues(array);
+  return toHex(array);
 }

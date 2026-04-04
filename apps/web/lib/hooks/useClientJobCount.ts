@@ -1,7 +1,12 @@
-import { useMemo } from 'react';
-import { useUserJobsFromEvents } from './useJobsEvents';
+import { useReadContract } from 'wagmi';
+import { CONTRACT_ADDRESSES, getContractAddress } from '@/lib/contracts/config';
+import { AGENTIC_COMMERCE_ABI } from '@/lib/contracts/abis';
 
-// From AGENTIC_COMMERCE_V4 contract
+const AGENTIC_COMMERCE_ADDRESS = getContractAddress(
+  process.env.NEXT_PUBLIC_AGENTIC_COMMERCE_ADDRESS,
+  CONTRACT_ADDRESSES.sepolia.agenticCommerce
+);
+
 export const MAX_JOBS_PER_CLIENT = 100;
 
 export interface ClientJobCountResult {
@@ -9,31 +14,29 @@ export interface ClientJobCountResult {
   isLoading: boolean;
   error: Error | null;
   refetch: () => void;
-  // Helper properties
   remainingJobs: number;
   isAtLimit: boolean;
   isNearLimit: boolean;
   percentageUsed: number;
 }
 
-/**
- * Hook to get the number of jobs created by a client
- * Used for job limit warnings (MAX_JOBS_PER_CLIENT = 100)
- *
- * Note: This counts jobs where the user is the client
- */
 export function useClientJobCount(clientAddress: `0x${string}` | undefined): ClientJobCountResult {
-  const { jobs, isLoading, error, refetch } = useUserJobsFromEvents(clientAddress);
+  const { data, isLoading, error, refetch } = useReadContract({
+    address: AGENTIC_COMMERCE_ADDRESS,
+    abi: AGENTIC_COMMERCE_ABI,
+    functionName: 'getClientJobCount',
+    args: clientAddress ? [clientAddress] : undefined,
+    query: {
+      enabled: !!clientAddress,
+      retry: 2,
+      staleTime: 30000,
+    },
+  });
 
-  // Count only jobs where user is the client
-  const count = useMemo(() => {
-    if (!clientAddress || !jobs) return 0;
-    return jobs.filter(job => job.client.toLowerCase() === clientAddress.toLowerCase()).length;
-  }, [jobs, clientAddress]);
-
+  const count = data ? Number(data) : 0;
   const remainingJobs = Math.max(0, MAX_JOBS_PER_CLIENT - count);
   const isAtLimit = count >= MAX_JOBS_PER_CLIENT;
-  const isNearLimit = count >= MAX_JOBS_PER_CLIENT * 0.8; // 80% threshold
+  const isNearLimit = count >= MAX_JOBS_PER_CLIENT * 0.8;
   const percentageUsed = Math.min(100, (count / MAX_JOBS_PER_CLIENT) * 100);
 
   return {

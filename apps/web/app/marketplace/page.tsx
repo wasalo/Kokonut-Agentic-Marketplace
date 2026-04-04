@@ -16,6 +16,7 @@ import {
 import { Card } from '@heroui/react';
 import { ServiceList } from '@/components/heroui/service-list';
 import { useAllServices } from '@/lib/hooks/useServicesContract';
+import { useProviderServices } from '@/lib/hooks/useServices';
 import { StatusBadge } from '@/components/StatusBadge';
 import { useDebounce } from '@/lib/hooks/useDebounce';
 import { useServiceEvents } from '@/lib/hooks/useServiceEvents';
@@ -249,9 +250,22 @@ export default function MarketplacePage(): JSX.Element {
   // Enable event-driven updates for real-time service status
   useServiceEvents();
 
+  // URL-based provider/agent filtering
+  const providerParam = searchParams.get('provider');
+  const agentParam = searchParams.get('agent');
+
+  // Use provider services hook if provider filter is set
+  const { services: providerServices, isLoading: isProviderLoading } = useProviderServices(
+    providerParam && providerParam.startsWith('0x') ? (providerParam as `0x${string}`) : undefined
+  );
+
   // Use the same hook as ServiceList to ensure counter matches grid
-  const { services: allServices, isLoading: isServicesLoading } = useAllServices();
-  const activeServicesCount = allServices.length;
+  const { services: allMarketServices, isLoading: isAllLoading } = useAllServices();
+
+  // Filter services based on URL params
+  const services = providerParam ? providerServices : allMarketServices;
+  const isServicesLoading = providerParam ? isProviderLoading : isAllLoading;
+  const activeServicesCount = services.length;
 
   // Filter states (all reactive - filters apply immediately like review page)
   const [searchQuery, setSearchQuery] = useState('');
@@ -292,7 +306,8 @@ export default function MarketplacePage(): JSX.Element {
     !showActiveOnly ||
     minPrice !== '' ||
     maxPrice !== '' ||
-    skillDomain !== '';
+    skillDomain !== '' ||
+    !!providerParam;
 
   return (
     <div className="container mx-auto px-4 py-8">
@@ -319,6 +334,25 @@ export default function MarketplacePage(): JSX.Element {
           isLoading={isServicesLoading}
         />
       </div>
+
+      {providerParam && (
+        <div className="mb-4 p-3 bg-primary/5 border border-primary/20 rounded-lg flex items-center justify-between">
+          <div className="flex items-center gap-2">
+            <span className="text-sm font-medium text-primary">Filtered by provider:</span>
+            <span className="text-sm font-mono text-default-600">{providerParam}</span>
+          </div>
+          <button
+            onClick={() => {
+              const params = new URLSearchParams(searchParams.toString());
+              params.delete('provider');
+              router.push(`/marketplace?${params.toString()}`);
+            }}
+            className="text-sm text-primary hover:underline"
+          >
+            Clear filter
+          </button>
+        </div>
+      )}
 
       <FilterSection
         searchQuery={searchQuery}
