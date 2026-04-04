@@ -14,6 +14,7 @@ import {
   Loader2,
   Clock,
   DollarSign,
+  Users,
 } from 'lucide-react';
 import { Card, Button } from '@heroui/react';
 import { useProposals, useReviewStats, Proposal } from '@/lib/hooks/useProposals';
@@ -72,6 +73,12 @@ function ProposalCard({ proposal }: { proposal: Proposal }) {
             <DollarSign className="w-3 h-3" />
             {formatReward(proposal.reward)}
           </span>
+          {proposal.evaluatorCount !== undefined && (
+            <span className="flex items-center gap-1">
+              <Users className="w-3 h-3" />
+              {proposal.evaluatorCount}
+            </span>
+          )}
         </div>
         <div className="flex justify-between items-center text-sm mt-2">
           <span className="text-default-500">By {formatAddress(proposal.proposer)}</span>

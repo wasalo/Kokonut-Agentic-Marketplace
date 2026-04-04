@@ -23,6 +23,7 @@ export interface Proposal {
   createdAt: bigint;
   decisionDeadline: bigint;
   winningEvaluator: `0x${string}`;
+  evaluatorCount?: number;
 }
 
 export interface ReviewStats {
@@ -311,9 +312,10 @@ export function useProposals(offset: number = 0, limit: number = 20) {
       const startId = Math.max(1, totalCount - offset);
       const endId = Math.max(1, startId - limit + 1);
 
-      const calls = [];
+      // Fetch proposals and evaluator counts in parallel
+      const proposalCalls = [];
       for (let i = startId; i >= endId; i--) {
-        calls.push({
+        proposalCalls.push({
           address: AGENT_REVIEW_ADDRESS,
           abi: AGENT_REVIEW_ABI,
           functionName: 'getProposal' as const,
@@ -321,14 +323,32 @@ export function useProposals(offset: number = 0, limit: number = 20) {
         });
       }
 
-      const results = await publicClient.multicall({ contracts: calls });
+      const evaluatorCountCalls = [];
+      for (let i = startId; i >= endId; i--) {
+        evaluatorCountCalls.push({
+          address: AGENT_REVIEW_ADDRESS,
+          abi: AGENT_REVIEW_ABI,
+          functionName: 'getEvaluatorCount' as const,
+          args: [BigInt(i)],
+        });
+      }
+
+      const [proposalResults, evaluatorResults] = await Promise.all([
+        publicClient.multicall({ contracts: proposalCalls }),
+        publicClient.multicall({ contracts: evaluatorCountCalls }),
+      ]);
 
       const mappedProposals: Proposal[] = [];
-      results.forEach((result, index) => {
+      proposalResults.forEach((result, index) => {
         if (result.status === 'success' && result.result) {
           const proposalId = BigInt(startId - index);
           const proposal = mapProposalData(proposalId, result.result);
           if (proposal) {
+            // Add evaluator count if available
+            const evaluatorResult = evaluatorResults[index];
+            if (evaluatorResult.status === 'success' && evaluatorResult.result) {
+              proposal.evaluatorCount = Number(evaluatorResult.result);
+            }
             mappedProposals.push(proposal);
           }
         }

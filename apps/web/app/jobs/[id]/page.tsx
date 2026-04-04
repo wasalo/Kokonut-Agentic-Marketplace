@@ -23,6 +23,7 @@ import {
   XSquare,
   RefreshCw,
   CircleDot,
+  Link,
 } from 'lucide-react';
 import { Card } from '@heroui/react';
 import { formatUnits, toHex, keccak256, toBytes } from 'viem';
@@ -407,6 +408,19 @@ export default function JobDetailPage({
               <DollarSign className="w-4 h-4 text-success" />
               <span className="text-sm text-success">
                 Evaluator fee enabled (+1% of budget on completion)
+              </span>
+            </div>
+          </Card>
+        )}
+
+        {/* Hook Address Display */}
+        {job.hook && job.hook !== '0x0000000000000000000000000000000000000000' && (
+          <Card className="border border-divider p-4">
+            <div className="flex items-center gap-2">
+              <Link className="w-4 h-4 text-default-400" />
+              <span className="text-sm text-default-500">Hook:</span>
+              <span className="text-sm font-mono text-default-600">
+                {job.hook.slice(0, 10)}...{job.hook.slice(-4)}
               </span>
             </div>
           </Card>

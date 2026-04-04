@@ -16,7 +16,11 @@ import {
 import { Card } from '@heroui/react';
 import { ServiceList } from '@/components/heroui/service-list';
 import { useAllServices } from '@/lib/hooks/useServicesContract';
-import { useProviderServices } from '@/lib/hooks/useServices';
+import {
+  useProviderServices,
+  useActiveServiceCount,
+  useTotalServiceCount,
+} from '@/lib/hooks/useServices';
 import { StatusBadge } from '@/components/StatusBadge';
 import { useDebounce } from '@/lib/hooks/useDebounce';
 import { useServiceEvents } from '@/lib/hooks/useServiceEvents';
@@ -262,6 +266,10 @@ export default function MarketplacePage(): JSX.Element {
   // Use the same hook as ServiceList to ensure counter matches grid
   const { services: allMarketServices, isLoading: isAllLoading } = useAllServices();
 
+  // Contract-based counts
+  const { count: activeCount, isLoading: isActiveCountLoading } = useActiveServiceCount();
+  const { count: totalCount, isLoading: isTotalCountLoading } = useTotalServiceCount();
+
   // Filter services based on URL params
   const services = providerParam ? providerServices : allMarketServices;
   const isServicesLoading = providerParam ? isProviderLoading : isAllLoading;
@@ -332,6 +340,11 @@ export default function MarketplacePage(): JSX.Element {
           label="Active Services"
           value={activeServicesCount.toString()}
           isLoading={isServicesLoading}
+        />
+        <StatCard
+          label="Total Services"
+          value={totalCount.toString()}
+          isLoading={isTotalCountLoading}
         />
       </div>
 

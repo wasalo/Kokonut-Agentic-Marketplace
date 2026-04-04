@@ -15,6 +15,7 @@ import {
   List,
   LayoutGrid,
   Bookmark,
+  Calendar,
 } from 'lucide-react';
 import { useViewportPagination, usePagination } from '@/lib/hooks/useViewportPagination';
 import { StatusBadge, getServiceStatusBadgeType } from '@/components/StatusBadge';
@@ -94,6 +95,10 @@ function ServiceCard({ service }: { service: Service }) {
   const bookmarked = isBookmarked(serviceIdStr);
   const bookmarkCount = getServiceCount(serviceIdStr);
 
+  const createdAt = service.createdAt
+    ? new Date(Number(service.createdAt) * 1000).toLocaleDateString()
+    : null;
+
   const handlePurchase = (e: React.MouseEvent) => {
     e.stopPropagation();
     window.location.href = `/jobs/create?serviceId=${serviceIdStr}&provider=${service.provider}`;
@@ -140,6 +145,12 @@ function ServiceCard({ service }: { service: Service }) {
           <span className="text-default-500">
             By {(service.provider as `0x${string}`).slice(0, 6)}...
             {(service.provider as `0x${string}`).slice(-4)}
+            {createdAt && (
+              <span className="flex items-center gap-1 mt-1 text-xs text-default-400">
+                <Calendar className="w-3 h-3" />
+                {createdAt}
+              </span>
+            )}
           </span>
           <div className="text-right">
             <span className="font-semibold text-success flex items-center gap-1">

@@ -163,6 +163,54 @@ export function useActiveServiceCount() {
   };
 }
 
+export function useTotalServiceCount() {
+  const publicClient = usePublicClient();
+  const [count, setCount] = useState(0);
+  const [isLoading, setIsLoading] = useState(true);
+  const [error, setError] = useState<Error | null>(null);
+
+  const fetchCount = useCallback(async () => {
+    if (!publicClient) {
+      debugLog('hooks', 'useTotalServiceCount: No publicClient yet');
+      return;
+    }
+
+    setIsLoading(true);
+    setError(null);
+
+    try {
+      debugLog('hooks', 'useTotalServiceCount: Fetching from contract', SERVICE_REGISTRY_ADDRESS);
+
+      const result = await publicClient.readContract({
+        address: SERVICE_REGISTRY_ADDRESS,
+        abi: SERVICE_REGISTRY_ABI,
+        functionName: 'getServiceCounter',
+      });
+
+      const countValue = result ? Number(result) : 0;
+      debugLog('hooks', `useTotalServiceCount: Retrieved count: ${countValue}`);
+      setCount(countValue);
+    } catch (err) {
+      debugError('hooks', 'useTotalServiceCount: Error fetching count', err);
+      setError(err instanceof Error ? err : new Error('Failed to fetch count'));
+      setCount(0);
+    } finally {
+      setIsLoading(false);
+    }
+  }, [publicClient]);
+
+  useEffect(() => {
+    fetchCount();
+  }, [fetchCount]);
+
+  return {
+    count,
+    isLoading,
+    error,
+    refetch: fetchCount,
+  };
+}
+
 export function useService(serviceId: number | bigint) {
   const id = typeof serviceId === 'bigint' ? serviceId : BigInt(serviceId);
   const config = getQueryConfig('services');

@@ -7,6 +7,51 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ## [2026-04-04] - Phase 8: Event-Driven Updates, Bookmarks & Unified Error Handling
 
+### ✨ UI/UX Enhancements
+
+#### Service Counter Display (Total vs Active)
+
+Added total service count alongside active count on marketplace page:
+
+- Added `useTotalServiceCount` hook using `getServiceCounter()` contract function
+- Added `getServiceCounter` to `SERVICE_REGISTRY_ABI`
+- Marketplace now displays both "Active Services" and "Total Services" counters
+
+#### Evaluator Count on Proposal Cards
+
+Added evaluator count to proposal cards on review page:
+
+- Updated `Proposal` interface to include `evaluatorCount?: number`
+- Updated `useProposals` hook to fetch evaluator counts using multicall alongside proposals
+- Proposal cards now display evaluator count with Users icon
+
+#### Evaluation Claim Status Visual Indicators
+
+Updated review detail page with claim status indicators:
+
+- Added `rewardClaimed` and `stakeReleased` status indicators for winners/non-winners
+- Changed "You Won!" to "Reward Claimed!" with checkmark when reward already claimed
+- Changed "Release Your Stake" to "Stake Released" with visual feedback when stake already released
+- Claim/Release buttons hidden when action already completed
+
+#### Service Creation Date Display
+
+Added creation date to service cards:
+
+- Added `Calendar` icon import
+- Service cards now display creation date from `service.createdAt` field
+- Date shown in localized format below provider address
+
+#### Hook Address Display on Job Detail
+
+Added hook address display to job detail page:
+
+- Added `Link` icon import
+- Job detail page displays hook contract address when set (non-zero address)
+- Shows truncated address format with 0x prefix
+
+---
+
 ### 🧪 CI/CD Fixes
 
 #### Consolidated CI Workflow

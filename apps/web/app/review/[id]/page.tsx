@@ -418,17 +418,34 @@ export default function ProposalDetailPage({
         {/* Claim Reward (winner) */}
         {isWinner && proposal.status === 2 && (
           <Card className="border border-success/30 p-6">
-            <h2 className="text-base font-semibold mb-2">You Won!</h2>
+            <h2 className="text-base font-semibold mb-2 flex items-center gap-2">
+              {myEvaluation?.rewardClaimed ? (
+                <>
+                  <CheckCircle2 className="w-5 h-5 text-success" />
+                  Reward Claimed!
+                </>
+              ) : (
+                'You Won!'
+              )}
+            </h2>
             <p className="text-sm text-default-500 mb-4">
-              Claim your stake back plus the reward of {formatEther(proposal.reward)} ETH.
+              {myEvaluation?.rewardClaimed
+                ? 'You have already claimed your reward of ' +
+                  formatEther(proposal.reward) +
+                  ' ETH.'
+                : 'Claim your stake back plus the reward of ' +
+                  formatEther(proposal.reward) +
+                  ' ETH.'}
             </p>
-            <button
-              onClick={handleClaim}
-              disabled={anyPending || !!txStep}
-              className="w-full px-6 py-3 bg-gradient-to-r from-[#009F4D] to-[#00c853] text-white rounded-lg font-medium hover:opacity-90 disabled:opacity-50"
-            >
-              {isClaimPending ? 'Claiming...' : 'Claim Reward'}
-            </button>
+            {!myEvaluation?.rewardClaimed && (
+              <button
+                onClick={handleClaim}
+                disabled={anyPending || !!txStep}
+                className="w-full px-6 py-3 bg-gradient-to-r from-[#009F4D] to-[#00c853] text-white rounded-lg font-medium hover:opacity-90 disabled:opacity-50"
+              >
+                {isClaimPending ? 'Claiming...' : 'Claim Reward'}
+              </button>
+            )}
           </Card>
         )}
 
@@ -437,18 +454,22 @@ export default function ProposalDetailPage({
           <Card className="border border-divider p-6">
             <h2 className="text-base font-semibold mb-2 flex items-center gap-2">
               <Unlock className="w-4 h-4" />
-              Release Your Stake
+              {myEvaluation?.stakeReleased ? 'Stake Released' : 'Release Your Stake'}
             </h2>
             <p className="text-sm text-default-500 mb-4">
-              The decision has been made. Release your stake back.
+              {myEvaluation?.stakeReleased
+                ? 'You have already released your stake.'
+                : 'The decision has been made. Release your stake back.'}
             </p>
-            <button
-              onClick={handleRelease}
-              disabled={anyPending || !!txStep}
-              className="w-full px-6 py-3 border border-divider rounded-lg font-medium hover:bg-content2 disabled:opacity-50"
-            >
-              {isReleasePending ? 'Releasing...' : 'Release Stake'}
-            </button>
+            {!myEvaluation?.stakeReleased && (
+              <button
+                onClick={handleRelease}
+                disabled={anyPending || !!txStep}
+                className="w-full px-6 py-3 border border-divider rounded-lg font-medium hover:bg-content2 disabled:opacity-50"
+              >
+                {isReleasePending ? 'Releasing...' : 'Release Stake'}
+              </button>
+            )}
           </Card>
         )}
       </div>
