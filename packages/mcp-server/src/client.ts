@@ -8,13 +8,15 @@ export const publicClient: PublicClient = createPublicClient({
   transport: http(RPC_URL),
 });
 
-export const CONTRACTS = {
+export type ContractAddress = `0x${string}`;
+
+export const CONTRACTS: Record<string, ContractAddress> = {
   erc8004Registry: '0x8004A818BFB912233c491871b3d84c89A494BD9e',
   erc8004Reputation: '0x8004B663056A597Dffe9eCcC1965A193B7388713',
   serviceRegistry: '0x62E1eeEa1A2Ab987004F35bDA430457Ed6077201',
-  agenticCommerce: '0xA7E8F13AC8E659356333Bf3e579BF3f39334821e',
+  agenticCommerce: '0x948d97EA7F0c49796fB576ADff375C900627568E',
   agentReview: '0x716B02447b52Eab450e31bD77103B41bC2c7bE0b',
-  skillRegistry: '0x7cf16C00ed4831EB9eE3a8765831968F0a28f53D',
+  skillRegistry: '0xA84684261558f342d6871DD2CFef90A2117Aa20A',
   usdc: '0x1c7D4B196Cb0C7B01d743Fbc6116a902379C7238',
 };
 
