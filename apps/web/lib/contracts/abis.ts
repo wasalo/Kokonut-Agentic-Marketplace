@@ -564,6 +564,13 @@ export const AGENTIC_COMMERCE_ABI = [
     stateMutability: 'nonpayable',
     type: 'function',
   },
+  {
+    inputs: [{ name: 'treasury', type: 'address' }],
+    name: 'setPlatformTreasury',
+    outputs: [],
+    stateMutability: 'nonpayable',
+    type: 'function',
+  },
 
   // === Legacy (Still supported) ===
   {

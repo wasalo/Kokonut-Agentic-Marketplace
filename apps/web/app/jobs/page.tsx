@@ -82,7 +82,7 @@ const ITEMS_PER_PAGE = 10;
 
 export default function JobsPage(): JSX.Element {
   const [page, setPage] = useState(0);
-  const { isConnected } = useAccount();
+  const { address, isConnected } = useAccount();
   const router = useRouter();
   const searchParams = useSearchParams();
 
@@ -104,6 +104,7 @@ export default function JobsPage(): JSX.Element {
   const [searchQuery, setSearchQuery] = useState('');
   const [debouncedSearchQuery, setDebouncedSearchQuery] = useState('');
   const [statusFilter, setStatusFilter] = useState<string>('all');
+  const [roleFilter, setRoleFilter] = useState<string>('all'); // all, myJobs, openForBidding
   const [minBudget, setMinBudget] = useState('');
   const [maxBudget, setMaxBudget] = useState('');
   const [showFilters, setShowFilters] = useState(false);
@@ -128,6 +129,20 @@ export default function JobsPage(): JSX.Element {
       !job.description.toLowerCase().includes(debouncedSearchQuery.toLowerCase())
     ) {
       return false;
+    }
+
+    // Role filter
+    if (roleFilter === 'myJobs' && address) {
+      // Show jobs where user is client, provider, or evaluator
+      const isClient = job.client?.toLowerCase() === address.toLowerCase();
+      const isProvider = job.provider?.toLowerCase() === address.toLowerCase();
+      const isEvaluator = job.evaluator?.toLowerCase() === address.toLowerCase();
+      if (!isClient && !isProvider && !isEvaluator) return false;
+    } else if (roleFilter === 'openForBidding') {
+      // Show only open jobs (no provider assigned - bidding jobs)
+      if (job.status !== JobStatus.Open) return false;
+      if (job.provider && job.provider !== '0x0000000000000000000000000000000000000000')
+        return false;
     }
 
     // Status filter
@@ -234,12 +249,33 @@ export default function JobsPage(): JSX.Element {
         </div>
 
         {showFilters && (
-          <div className="mt-4 pt-4 border-t border-divider grid grid-cols-1 sm:grid-cols-3 gap-4">
+          <div className="mt-4 pt-4 border-t border-divider grid grid-cols-1 sm:grid-cols-4 gap-4">
+            {isConnected && (
+              <div>
+                <label className="text-sm font-medium text-default-500 mb-2 block">Role</label>
+                <select
+                  value={roleFilter}
+                  onChange={e => {
+                    setRoleFilter(e.target.value);
+                    setPage(0);
+                  }}
+                  className="w-full px-3 py-2 border border-divider rounded-lg bg-content2 focus:outline-none focus:ring-2 focus:ring-success"
+                >
+                  <option value="all">All Jobs</option>
+                  <option value="myJobs">My Jobs</option>
+                  <option value="openForBidding">Open for Bidding</option>
+                </select>
+              </div>
+            )}
+
             <div>
               <label className="text-sm font-medium text-default-500 mb-2 block">Status</label>
               <select
                 value={statusFilter}
-                onChange={e => setStatusFilter(e.target.value)}
+                onChange={e => {
+                  setStatusFilter(e.target.value);
+                  setPage(0);
+                }}
                 className="w-full px-3 py-2 border border-divider rounded-lg bg-content2 focus:outline-none focus:ring-2 focus:ring-success"
               >
                 <option value="all">All Statuses</option>
@@ -258,7 +294,10 @@ export default function JobsPage(): JSX.Element {
                 type="number"
                 placeholder="0"
                 value={minBudget}
-                onChange={e => setMinBudget(e.target.value)}
+                onChange={e => {
+                  setMinBudget(e.target.value);
+                  setPage(0);
+                }}
                 className="w-full px-3 py-2 border border-divider rounded-lg bg-content2 focus:outline-none focus:ring-2 focus:ring-success"
               />
             </div>
@@ -271,7 +310,10 @@ export default function JobsPage(): JSX.Element {
                 type="number"
                 placeholder="Any"
                 value={maxBudget}
-                onChange={e => setMaxBudget(e.target.value)}
+                onChange={e => {
+                  setMaxBudget(e.target.value);
+                  setPage(0);
+                }}
                 className="w-full px-3 py-2 border border-divider rounded-lg bg-content2 focus:outline-none focus:ring-2 focus:ring-success"
               />
             </div>

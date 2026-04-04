@@ -1,5 +1,5 @@
 // Contract addresses with fallbacks for Sepolia testnet
-// Phase 3: Comprehensive Events (Deployed 2026-03-29)
+// Phase 6: AgenticCommerceV6 - ERC-2771, Evaluator Fees, Loser Stake Withdrawal (Deployed 2026-04-03)
 
 export const CONTRACT_ADDRESSES = {
   sepolia: {
@@ -7,15 +7,14 @@ export const CONTRACT_ADDRESSES = {
     erc8004Registry: '0x8004A818BFB912233c491871b3d84c89A494BD9e',
     erc8004Reputation: '0x8004B663056A597Dffe9eCcC1965A193B7388713',
 
-    // Phase 3: Comprehensive Events (Latest)
-    // UPDATED: SkillRegistry V2 - Uses ownerOf() instead of getAgent() to fix revert issues
+    // SkillRegistry V2 - Uses ownerOf() instead of getAgent()
     skillRegistry: '0xA84684261558f342d6871DD2CFef90A2117Aa20A',
     skillRegistryImpl: '0x3Eec6BAF9FAc410B9C580d3Eb8c971a14298BC87',
     serviceRegistry: '0x62E1eeEa1A2Ab987004F35bDA430457Ed6077201',
     serviceRegistryImpl: '0x218340e07bEd7fD15058414388F2C82E0f3B04f9',
-    // Phase 5: V5 with bidding - UUPS proxy
-    agenticCommerce: '0xe0006203ceb8bb20b29fa5324ad3fea356bbf858',
-    agenticCommerceImpl: '0xfed5abbea703485e725be1b0e9db3772e4068ec5',
+    // Phase 6: V6 - ERC-2771, Evaluator Fees, Loser Stake Withdrawal
+    agenticCommerce: '0x948d97EA7F0c49796fB576ADff375C900627568E',
+    agenticCommerceImpl: '0x71EF7B696dbcfbb09029c8c60D78949C8309cA16',
     agentReview: '0x716B02447b52Eab450e31bD77103B41bC2c7bE0b',
     priceOracle: '0x5C4AC3dAF76708DCd51911BA3B33027eAB1B4047',
     commitReveal: '0x6CEd1574A3dF7ec646e43DD8408300117c453Aa3',

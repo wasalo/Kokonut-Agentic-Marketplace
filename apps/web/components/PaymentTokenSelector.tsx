@@ -4,6 +4,7 @@ import React, { useState, useEffect } from 'react';
 import { useAccount, useBalance } from 'wagmi';
 import { formatUnits } from 'viem';
 import { ChevronDown, DollarSign, CircleDot } from 'lucide-react';
+import type { UseBalanceReturnType } from 'wagmi';
 
 export interface Token {
   symbol: string;
@@ -139,11 +140,16 @@ export function useTokenBalance(token: Token | undefined, address: `0x${string}`
     address: isETH ? address : undefined,
   });
 
+  // Format ETH balance manually since 'formatted' property may not be in type
+  const formattedEthBalance = ethBalance
+    ? formatUnits(ethBalance.value, ethBalance.decimals)
+    : undefined;
+
   // For USDC and other ERC20 tokens, we'd need to use useReadContract
   // For now, return formatted ETH balance
   return {
     balance: isETH ? ethBalance?.value : undefined,
-    formattedBalance: isETH ? ethBalance?.formatted : undefined,
+    formattedBalance: isETH ? formattedEthBalance : undefined,
     symbol: isETH ? 'ETH' : token?.symbol,
     isLoading: isEthLoading,
   };

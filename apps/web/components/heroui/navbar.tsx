@@ -34,6 +34,7 @@ const moreLinks = [
   { name: 'Skills', href: '/skills' },
   { name: 'Activity', href: '/activity' },
   { name: 'Analytics', href: '/analytics' },
+  { name: 'Admin', href: '/admin' },
   { name: 'About', href: '/about' },
 ];
 

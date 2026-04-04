@@ -234,25 +234,27 @@ export function useServices(start: number = 0, count: number = 20) {
 
   const services: Service[] = [];
 
-  for (let i = 0; i < results.length; i++) {
-    const result = results[i];
-    if (result.status === 'success') {
-      const service = mapServiceData(
-        serviceIds![i],
-        result.result as unknown as readonly [
-          bigint,
-          string,
-          string,
-          string,
-          string,
-          bigint,
-          `0x${string}`,
-          boolean,
-          bigint,
-        ]
-      );
-      if (service) {
-        services.push(service);
+  if (results) {
+    for (let i = 0; i < results.length; i++) {
+      const result = results[i];
+      if (result.status === 'success') {
+        const service = mapServiceData(
+          serviceIds![i],
+          result.result as unknown as readonly [
+            bigint,
+            string,
+            string,
+            string,
+            string,
+            bigint,
+            `0x${string}`,
+            boolean,
+            bigint,
+          ]
+        );
+        if (service) {
+          services.push(service);
+        }
       }
     }
   }

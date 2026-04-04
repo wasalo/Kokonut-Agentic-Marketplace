@@ -3,7 +3,13 @@
 import { use, useState, useCallback, useEffect, useRef } from 'react';
 import { useQueryClient } from '@tanstack/react-query';
 import { Settings } from 'lucide-react';
-import { useAccount, useWaitForTransactionReceipt, useWriteContract, usePublicClient } from 'wagmi';
+import {
+  useAccount,
+  useWaitForTransactionReceipt,
+  useWriteContract,
+  usePublicClient,
+  useBalance,
+} from 'wagmi';
 import NextLink from 'next/link';
 import {
   ArrowLeft,
@@ -16,6 +22,7 @@ import {
   CheckSquare,
   XSquare,
   RefreshCw,
+  CircleDot,
 } from 'lucide-react';
 import { Card } from '@heroui/react';
 import { formatUnits, toHex, keccak256, toBytes } from 'viem';
@@ -77,7 +84,8 @@ export default function JobDetailPage({
     address,
     AGENTIC_COMMERCE_ADDRESS
   );
-  const { formattedBalance: usdcBalance, isLoading: balanceLoading } = useUSDCBalance(address);
+  const { formattedBalance: usdcBalance, isLoading: usdcBalanceLoading } = useUSDCBalance(address);
+  const { data: ethBalance, isLoading: ethBalanceLoading } = useBalance({ address });
   const { approve, hash: approveHash, isPending: isApprovePending } = useUSDCApprove();
 
   // Optimistic approval state - immediately show "Fund Job" after approve is clicked
@@ -96,6 +104,27 @@ export default function JobDetailPage({
   const [txStep, setTxStep] = useState<string | null>(null);
 
   const { fundJob, hash: fundHash, isPending: isFundPending, error: fundError } = useFundJob();
+
+  // ETH funding with value
+  const {
+    writeContract: writeFundETH,
+    data: fundETHTxHash,
+    isPending: isFundETHPending,
+  } = useWriteContract();
+
+  const fundJobWithETH = useCallback(
+    (jobId: bigint, value: bigint) => {
+      writeFundETH({
+        address: AGENTIC_COMMERCE_ADDRESS,
+        abi: AGENTIC_COMMERCE_ABI,
+        functionName: 'fund',
+        args: [jobId],
+        value,
+      });
+    },
+    [writeFundETH, AGENTIC_COMMERCE_ADDRESS]
+  );
+
   const {
     submitJob,
     hash: submitHash,
@@ -174,6 +203,7 @@ export default function JobDetailPage({
 
   const txHash =
     fundHash ||
+    fundETHTxHash ||
     submitHash ||
     completeHash ||
     rejectHash ||
@@ -336,7 +366,9 @@ export default function JobDetailPage({
             <div>
               <p className="text-default-400 uppercase tracking-wide">Provider</p>
               <p className="font-mono mt-0.5">
-                {job.provider.slice(0, 6)}...{job.provider.slice(-4)}
+                {job.provider === '0x0000000000000000000000000000000000000000'
+                  ? 'Open (Bidding)'
+                  : `${job.provider.slice(0, 6)}...${job.provider.slice(-4)}`}
               </p>
               {isProvider && <span className="text-primary">(You)</span>}
             </div>
@@ -349,6 +381,40 @@ export default function JobDetailPage({
             </div>
           </div>
         </Card>
+
+        {/* Evaluator Conflict Warning */}
+        {isClient && job.evaluator.toLowerCase() === address?.toLowerCase() && (
+          <Card className="border border-warning/30 bg-warning/5 p-4">
+            <div className="flex items-start gap-3">
+              <AlertCircle className="w-5 h-5 text-warning shrink-0 mt-0.5" />
+              <div>
+                <p className="font-medium text-warning">Conflict of Interest</p>
+                <p className="text-sm text-default-500 mt-1">
+                  You are both the client and evaluator for this job. Consider assigning a different
+                  evaluator for impartial evaluation.
+                </p>
+              </div>
+            </div>
+          </Card>
+        )}
+
+        {/* Evaluator = Provider Warning */}
+        {job.provider &&
+          job.provider !== '0x0000000000000000000000000000000000000000' &&
+          job.evaluator.toLowerCase() === job.provider.toLowerCase() && (
+            <Card className="border border-warning/30 bg-warning/5 p-4">
+              <div className="flex items-start gap-3">
+                <AlertCircle className="w-5 h-5 text-warning shrink-0 mt-0.5" />
+                <div>
+                  <p className="font-medium text-warning">Conflict of Interest</p>
+                  <p className="text-sm text-default-500 mt-1">
+                    The evaluator is the same as the provider. This may affect job evaluation
+                    impartiality.
+                  </p>
+                </div>
+              </div>
+            </Card>
+          )}
 
         {/* Transaction Status */}
         {txStep && (
@@ -369,25 +435,49 @@ export default function JobDetailPage({
           </div>
         )}
 
-        {/* USDC Balance Info */}
+        {/* Balance Info */}
         {isClient && job.status === JobStatus.Open && (
           <Card className="border border-divider p-6">
             <div className="flex items-center justify-between">
               <div>
-                <p className="text-sm font-medium text-default-600">Your USDC Balance</p>
+                <div className="flex items-center gap-2">
+                  <p className="text-sm font-medium text-default-600">
+                    Your {selectedPaymentToken.symbol} Balance
+                  </p>
+                  {selectedPaymentToken.symbol === 'ETH' && (
+                    <CircleDot className="w-4 h-4 text-default-400" />
+                  )}
+                  {selectedPaymentToken.symbol === 'USDC' && (
+                    <DollarSign className="w-4 h-4 text-default-400" />
+                  )}
+                </div>
                 <p className="text-2xl font-bold text-success">
-                  {balanceLoading ? (
+                  {usdcBalanceLoading || ethBalanceLoading ? (
                     <span className="animate-pulse">Loading...</span>
+                  ) : selectedPaymentToken.symbol === 'ETH' ? (
+                    `${ethBalance ? formatUnits(ethBalance.value, ethBalance.decimals) : '0.00'} ETH`
                   ) : (
                     `${usdcBalance || '0.00'} USDC`
                   )}
                 </p>
               </div>
-              {usdcBalance && job && Number(usdcBalance) < Number(formatUnits(job.budget, 6)) && (
-                <div className="px-4 py-2 bg-danger/10 text-danger rounded-lg text-sm">
-                  Insufficient balance
-                </div>
-              )}
+              {/* Insufficient balance warning */}
+              {job &&
+                selectedPaymentToken.symbol === 'USDC' &&
+                usdcBalance &&
+                Number(usdcBalance) < Number(formatUnits(job.budget, 6)) && (
+                  <div className="px-4 py-2 bg-danger/10 text-danger rounded-lg text-sm">
+                    Insufficient balance
+                  </div>
+                )}
+              {job &&
+                selectedPaymentToken.symbol === 'ETH' &&
+                ethBalance &&
+                Number(ethBalance.value) < job.budget && (
+                  <div className="px-4 py-2 bg-danger/10 text-danger rounded-lg text-sm">
+                    Insufficient balance
+                  </div>
+                )}
             </div>
           </Card>
         )}
@@ -398,7 +488,8 @@ export default function JobDetailPage({
           <div className="space-y-3">
             {job.status === JobStatus.Open && isClient && (
               <>
-                {!hasAllowance ? (
+                {/* USDC Flow: Show approve button only for USDC payments */}
+                {selectedPaymentToken.symbol === 'USDC' && !hasAllowance && (
                   <button
                     onClick={() =>
                       handleAction('Approving USDC', () =>
@@ -419,54 +510,64 @@ export default function JobDetailPage({
                       <Loader2 className="w-5 h-5 animate-spin text-warning ml-auto" />
                     )}
                   </button>
-                ) : (
-                  <button
-                    onClick={() => {
-                      // Check if payment token is set for direct jobs
-                      if (
-                        !job.paymentToken ||
-                        job.paymentToken === '0x0000000000000000000000000000000000000000'
-                      ) {
-                        setShowPaymentTokenModal(true);
-                      } else {
-                        handleAction('Funding job', () => fundJob(job.id));
-                      }
-                    }}
-                    disabled={anyPending || !!txStep || isPaymentTokenPending}
-                    className="w-full flex items-center gap-3 p-4 border border-success/30 rounded-lg hover:bg-success/5 transition-colors disabled:opacity-50"
-                  >
-                    <DollarSign className="w-5 h-5 text-success" />
-                    <div className="text-left">
-                      <p className="font-medium">Fund Job</p>
-                      <p className="text-xs text-default-500">
-                        Deposit ${formattedBudget} USDC into escrow
-                      </p>
-                    </div>
-                    {isPaymentTokenPending && (
-                      <Loader2 className="w-5 h-5 animate-spin text-success ml-auto" />
-                    )}
-                  </button>
                 )}
 
-                {/* Change Payment Token - DISABLED: AgenticCommerceV5 does not support setPaymentToken */}
-                {false &&
-                  job.paymentToken &&
-                  job.paymentToken !== '0x0000000000000000000000000000000000000000' && (
-                    <button
-                      onClick={() => setShowPaymentTokenModal(true)}
-                      disabled={anyPending || !!txStep || isPaymentTokenPending}
-                      className="w-full flex items-center gap-3 p-4 border border-divider rounded-lg hover:bg-content2 transition-colors disabled:opacity-50"
-                    >
-                      <Settings className="w-5 h-5 text-default-500" />
-                      <div className="text-left">
-                        <p className="font-medium">Change Payment Token</p>
-                        <p className="text-xs text-default-500">Switch between USDC and ETH</p>
-                      </div>
-                      {isPaymentTokenPending && (
-                        <Loader2 className="w-5 h-5 animate-spin text-default-500 ml-auto" />
-                      )}
-                    </button>
+                {/* Fund Button - Works for both USDC (after approval) and ETH (native) */}
+                <button
+                  onClick={() => {
+                    // Check if payment token is set for direct jobs
+                    if (
+                      !job.paymentToken ||
+                      job.paymentToken === '0x0000000000000000000000000000000000000000'
+                    ) {
+                      setShowPaymentTokenModal(true);
+                    } else {
+                      // For ETH, pass value. For USDC, just call fund
+                      handleAction('Funding job', () => {
+                        if (selectedPaymentToken.symbol === 'ETH') {
+                          // Use writeContract with value for ETH
+                          fundJobWithETH(job.id, job.budget);
+                        } else {
+                          fundJob(job.id);
+                        }
+                      });
+                    }
+                  }}
+                  disabled={anyPending || !!txStep || isPaymentTokenPending}
+                  className="w-full flex items-center gap-3 p-4 border border-success/30 rounded-lg hover:bg-success/5 transition-colors disabled:opacity-50"
+                >
+                  {selectedPaymentToken.symbol === 'ETH' ? (
+                    <CircleDot className="w-5 h-5 text-success" />
+                  ) : (
+                    <DollarSign className="w-5 h-5 text-success" />
                   )}
+                  <div className="text-left">
+                    <p className="font-medium">Fund Job</p>
+                    <p className="text-xs text-default-500">
+                      Deposit{' '}
+                      {selectedPaymentToken.symbol === 'ETH'
+                        ? `${formatUnits(job.budget, 18)} ETH`
+                        : `$${formattedBudget} USDC`}{' '}
+                      into escrow
+                    </p>
+                  </div>
+                  {isFundPending && (
+                    <Loader2 className="w-5 h-5 animate-spin text-success ml-auto" />
+                  )}
+                </button>
+
+                {/* Change Payment Token Button */}
+                <button
+                  onClick={() => setShowPaymentTokenModal(true)}
+                  disabled={anyPending || !!txStep || isPaymentTokenPending}
+                  className="w-full flex items-center gap-3 p-4 border border-divider rounded-lg hover:bg-content2 transition-colors disabled:opacity-50"
+                >
+                  <Settings className="w-5 h-5 text-default-500" />
+                  <div className="text-left">
+                    <p className="font-medium">Change Payment Token</p>
+                    <p className="text-xs text-default-500">Switch between USDC and ETH</p>
+                  </div>
+                </button>
               </>
             )}
 

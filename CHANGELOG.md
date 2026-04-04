@@ -2,10 +2,67 @@
 
 All notable changes to the Kokonut Agent Economy Stack are documented in this file.
 
-The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.0.0/),\
+The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.0.0/),
 and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0.html).
 
 ## [Unreleased] - 2026-04-03
+
+### 🚀 Phase 7: Enhanced UX & Admin Features
+
+#### ETH Funding Support
+
+- **Job Detail Page ETH Balance Display**
+  - Shows ETH balance when ETH is selected as payment token
+  - Dynamic balance display based on selected token (USDC or ETH)
+  - "Insufficient balance" warning for both USDC and ETH
+  - Balance card updates based on payment token selection
+
+- **ETH Funding with Value**
+  - `fundJobWithETH()` callback for native ETH transactions
+  - Passes ETH value to `fund()` function for native token payments
+  - Works with both USDC (approval flow) and ETH (native value)
+
+#### Payment Token Improvements
+
+- **PaymentTokenSelector Enhancements**
+  - ETH balance formatting using `formatUnits()`
+  - Fixed `useBalance()` hook to properly format ETH balance
+  - Consistent balance display across all token types
+
+#### Job Discovery Filters
+
+- **Provider Role Filters**
+  - "My Jobs" filter - shows jobs where user is client, provider, or evaluator
+  - "Open for Bidding" filter - shows open jobs without assigned provider
+  - Filters accessible in expanded filter panel
+  - Only visible when wallet is connected
+
+#### Evaluator Conflict Detection
+
+- **Job Detail Warnings**
+  - Warning when evaluator matches client address
+  - Warning when evaluator matches provider address
+  - Clear explanation of conflict of interest
+  - Visible only to relevant parties
+
+#### Admin Dashboard
+
+- **New Admin Page (`/admin`)**
+  - Treasury address management
+  - Contract info display (job counter, platform fee)
+  - Quick links to Etherscan read/write
+  - Owner-only function warnings
+  - Added to navbar under "More" menu
+
+#### Bug Fixes
+
+- **useServices Hook**
+  - Added null check for `results` before iteration
+  - Prevents TypeScript errors and runtime issues
+
+- **Contract ABI**
+  - Added `setPlatformTreasury` function to AgenticCommerce ABI
+  - Enables treasury updates from admin UI
 
 ### 🔧 Agent Identity & Management
 

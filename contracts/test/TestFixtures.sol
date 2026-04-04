@@ -263,3 +263,64 @@ contract MockERC721 {
         return _balances[owner];
     }
 }
+
+/**
+ * @title MockServiceRegistry
+ * @dev Mock ServiceRegistry for testing createJobFromService
+ */
+contract MockServiceRegistry {
+    struct Service {
+        uint256 id;
+        address provider;
+        uint256 agentId;
+        string name;
+        string description;
+        string metadataURI;
+        uint256 price;
+        address paymentToken;
+        bool isActive;
+        uint256 createdAt;
+    }
+    
+    mapping(uint256 => Service) public services;
+    uint256 public serviceCounter;
+    
+    event ServiceCreated(uint256 indexed serviceId, address indexed provider, uint256 indexed agentId, string name, uint256 price);
+    event ServiceDeactivated(uint256 indexed serviceId);
+    
+    function createService(
+        address provider,
+        uint256 agentId,
+        string calldata name,
+        string calldata description,
+        string calldata metadataURI,
+        uint256 price,
+        address paymentToken
+    ) external returns (uint256 serviceId) {
+        serviceId = ++serviceCounter;
+        services[serviceId] = Service({
+            id: serviceId,
+            provider: provider,
+            agentId: agentId,
+            name: name,
+            description: description,
+            metadataURI: metadataURI,
+            price: price,
+            paymentToken: paymentToken,
+            isActive: true,
+            createdAt: block.timestamp
+        });
+        
+        emit ServiceCreated(serviceId, provider, agentId, name, price);
+    }
+    
+    function getService(uint256 serviceId) external view returns (Service memory) {
+        return services[serviceId];
+    }
+    
+    function deactivateService(uint256 serviceId) external {
+        require(services[serviceId].provider == msg.sender, "Not provider");
+        services[serviceId].isActive = false;
+        emit ServiceDeactivated(serviceId);
+    }
+}
