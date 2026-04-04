@@ -571,6 +571,35 @@ export const AGENTIC_COMMERCE_ABI = [
     stateMutability: 'nonpayable',
     type: 'function',
   },
+  // === V6: Evaluator Fee & Stake Management ===
+  {
+    inputs: [{ name: 'jobId', type: 'uint256' }],
+    name: 'withdrawStake',
+    outputs: [],
+    stateMutability: 'nonpayable',
+    type: 'function',
+  },
+  {
+    inputs: [{ name: 'jobId', type: 'uint256' }],
+    name: 'isEvaluatorFeeEnabled',
+    outputs: [{ name: '', type: 'bool' }],
+    stateMutability: 'view',
+    type: 'function',
+  },
+  {
+    inputs: [{ name: 'jobId', type: 'uint256' }],
+    name: 'evaluatorFeeEnabled',
+    outputs: [{ name: '', type: 'bool' }],
+    stateMutability: 'view',
+    type: 'function',
+  },
+  {
+    inputs: [{ name: '', type: 'address' }],
+    name: 'totalStakesHeld',
+    outputs: [{ name: '', type: 'uint256' }],
+    stateMutability: 'view',
+    type: 'function',
+  },
 
   // === Legacy (Still supported) ===
   {
@@ -888,6 +917,32 @@ export const AGENT_REVIEW_ABI = [
     name: 'releaseStake',
     outputs: [],
     stateMutability: 'nonpayable',
+    type: 'function',
+  },
+  // === Admin & Proposal Management ===
+  {
+    inputs: [{ name: 'proposalId', type: 'uint256' }],
+    name: 'cancelProposal',
+    outputs: [],
+    stateMutability: 'nonpayable',
+    type: 'function',
+  },
+  {
+    inputs: [
+      { name: 'evaluator', type: 'address' },
+      { name: 'proposalId', type: 'uint256' },
+      { name: 'reason', type: 'string' },
+    ],
+    name: 'slashEvaluator',
+    outputs: [],
+    stateMutability: 'nonpayable',
+    type: 'function',
+  },
+  {
+    inputs: [{ name: 'proposalId', type: 'uint256' }],
+    name: 'getEvaluatorCount',
+    outputs: [{ name: '', type: 'uint256' }],
+    stateMutability: 'view',
     type: 'function',
   },
 ] as const;

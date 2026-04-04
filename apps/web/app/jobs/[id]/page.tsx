@@ -39,6 +39,8 @@ import {
   useJobBidCount,
   useJobBid,
   useUserBid,
+  useWithdrawStake,
+  useEvaluatorFeeEnabled,
   getJobStatusLabel,
   getJobStatusColor,
   JobStatus,
@@ -157,6 +159,8 @@ export default function JobDetailPage({
 
   // Bidding hooks for open jobs
   const { count: bidCount } = useJobBidCount(job?.id);
+  const { withdrawStake, hash: withdrawHash, isPending: isWithdrawPending } = useWithdrawStake();
+  const { isEvaluatorFeeEnabled } = useEvaluatorFeeEnabled(job?.id);
 
   // Fetch bids using useReadContracts
   const publicClient = usePublicClient();
@@ -211,7 +215,8 @@ export default function JobDetailPage({
     approveHash ||
     providerHash ||
     budgetHash ||
-    paymentTokenHash;
+    paymentTokenHash ||
+    withdrawHash;
   const { isSuccess: isTxConfirmed } = useWaitForTransactionReceipt({ hash: txHash });
 
   // Track when approval tx is sent to optimistically update UI
@@ -253,7 +258,13 @@ export default function JobDetailPage({
   const isExpired = job && Date.now() / 1000 > Number(job.expiredAt);
 
   const anyPending =
-    isFundPending || isSubmitPending || isCompletePending || isRejectPending || isRefundPending;
+    isFundPending ||
+    isFundETHPending ||
+    isSubmitPending ||
+    isCompletePending ||
+    isRejectPending ||
+    isRefundPending ||
+    isWithdrawPending;
   const currentError = fundError || submitError || completeError || rejectError || refundError;
 
   if (isLoading) {
@@ -378,9 +389,24 @@ export default function JobDetailPage({
                 {job.evaluator.slice(0, 10)}...{job.evaluator.slice(-4)}
               </p>
               {isEvaluator && <span className="text-primary">(You)</span>}
+              {isEvaluatorFeeEnabled && (
+                <span className="block text-xs text-success mt-1">+1% evaluator fee</span>
+              )}
             </div>
           </div>
         </Card>
+
+        {/* Evaluator Fee Badge for Clients */}
+        {isClient && isEvaluatorFeeEnabled && (
+          <Card className="border border-success/20 bg-success/5 p-4">
+            <div className="flex items-center gap-2">
+              <DollarSign className="w-4 h-4 text-success" />
+              <span className="text-sm text-success">
+                Evaluator fee enabled (+1% of budget on completion)
+              </span>
+            </div>
+          </Card>
+        )}
 
         {/* Evaluator Conflict Warning */}
         {isClient && job.evaluator.toLowerCase() === address?.toLowerCase() && (
@@ -972,17 +998,56 @@ interface BiddingSectionForProviderProps {
 
 function BiddingSectionForProvider({ job, address, refetch }: BiddingSectionForProviderProps) {
   const { bid: userBid } = useUserBid(job.id, address);
+  const { withdrawStake, isPending: isWithdrawPending } = useWithdrawStake();
+
+  const canWithdrawStake =
+    userBid &&
+    userBid.bidId > BigInt(0) &&
+    userBid.revealed &&
+    !userBid.accepted &&
+    (job.status === JobStatus.Completed ||
+      job.status === JobStatus.Rejected ||
+      job.status === JobStatus.Expired);
 
   return (
     <div className="space-y-4">
       {/* User's Bid Status */}
       {userBid && userBid.bidId > BigInt(0) && <BidStatusCard bid={userBid} />}
 
+      {/* Withdraw Stake Button - for losing bidders */}
+      {canWithdrawStake && (
+        <button
+          onClick={() => {
+            if (window.confirm('Withdraw your staked funds? This will forfeit your bid.')) {
+              withdrawStake(job.id);
+            }
+          }}
+          disabled={isWithdrawPending}
+          className="w-full flex items-center gap-3 p-4 border border-warning/30 rounded-lg hover:bg-warning/5 transition-colors disabled:opacity-50"
+        >
+          <RefreshCw className="w-5 h-5 text-warning" />
+          <div className="text-left">
+            <p className="font-medium">Withdraw Stake</p>
+            <p className="text-xs text-default-500">
+              Reclaim your staked funds (bid was not accepted)
+            </p>
+          </div>
+          {isWithdrawPending && <Loader2 className="w-5 h-5 animate-spin text-warning ml-auto" />}
+        </button>
+      )}
+
       {/* Commit or Reveal Form */}
       {!userBid?.revealed ? (
         <CommitBidForm job={job} onSuccess={refetch} />
       ) : !userBid?.accepted ? (
-        <RevealBidForm job={job} onSuccess={refetch} />
+        <>
+          <RevealBidForm job={job} onSuccess={refetch} />
+          {!canWithdrawStake && (
+            <p className="text-sm text-default-500 text-center">
+              Waiting for client to accept a bid...
+            </p>
+          )}
+        </>
       ) : (
         <Card className="border border-success/30 p-6">
           <div className="flex items-center gap-2 text-success">

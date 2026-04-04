@@ -645,6 +645,66 @@ export function useJobBid(jobId: bigint | undefined, index: number) {
   };
 }
 
+export function useWithdrawStake() {
+  const { writeContract, data, isPending, error, reset } = useWriteContract();
+
+  return {
+    withdrawStake: (jobId: bigint) =>
+      writeContract({
+        address: AGENTIC_COMMERCE_ADDRESS,
+        abi: AGENTIC_COMMERCE_ABI,
+        functionName: 'withdrawStake',
+        args: [jobId],
+      }),
+    hash: data,
+    isPending,
+    error,
+    reset,
+  };
+}
+
+export function useEvaluatorFeeEnabled(jobId: bigint | undefined) {
+  const { data, isLoading, error, refetch } = useReadContract({
+    address: AGENTIC_COMMERCE_ADDRESS,
+    abi: AGENTIC_COMMERCE_ABI,
+    functionName: 'isEvaluatorFeeEnabled',
+    args: jobId !== undefined ? [jobId] : undefined,
+    query: {
+      enabled: jobId !== undefined,
+      retry: 2,
+      staleTime: 30 * 1000,
+    },
+  });
+
+  return {
+    isEvaluatorFeeEnabled: data ?? false,
+    isLoading,
+    error,
+    refetch,
+  };
+}
+
+export function useTotalStakesHeld(address: `0x${string}` | undefined) {
+  const { data, isLoading, error, refetch } = useReadContract({
+    address: AGENTIC_COMMERCE_ADDRESS,
+    abi: AGENTIC_COMMERCE_ABI,
+    functionName: 'totalStakesHeld',
+    args: address !== undefined ? [address] : undefined,
+    query: {
+      enabled: address !== undefined,
+      retry: 2,
+      staleTime: 30 * 1000,
+    },
+  });
+
+  return {
+    totalStakes: data ?? BigInt(0),
+    isLoading,
+    error,
+    refetch,
+  };
+}
+
 // ============ Utility Functions ============
 
 export function isOpenJob(job: Job): boolean {

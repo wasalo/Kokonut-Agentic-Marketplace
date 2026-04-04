@@ -64,6 +64,43 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
   - Added `setPlatformTreasury` function to AgenticCommerce ABI
   - Enables treasury updates from admin UI
 
+### 🚀 Contract ABI & Hook Completeness
+
+#### Missing ABI Entries Added
+
+- **AgenticCommerceV6 ABI**
+  - `withdrawStake` - For losing bidders to reclaim their stake
+  - `isEvaluatorFeeEnabled` - Check if evaluator fee is enabled for a job
+  - `evaluatorFeeEnabled` - Mapping to check fee status
+  - `totalStakesHeld` - Mapping for held stakes per address
+
+- **AgentReviewV4 ABI**
+  - `cancelProposal` - Proposers can cancel open proposals
+  - `slashEvaluator` - Admin can slash misbehaving evaluators
+  - `getEvaluatorCount` - Get number of evaluators for a proposal
+
+#### New Hooks Added
+
+- **useJobs.ts**
+  - `useWithdrawStake()` - Withdraw stake for losing bidders
+  - `useEvaluatorFeeEnabled()` - Check evaluator fee status for a job
+  - `useTotalStakesHeld()` - Get total stakes held by an address
+
+- **useProposals.ts**
+  - `useCancelProposal()` - Cancel open proposals (proposers only)
+  - `useSlashEvaluator()` - Slash evaluators (admin only)
+
+#### UI Integration
+
+- **Job Detail Page (`/jobs/[id]`)**
+  - "Withdraw Stake" button for providers with losing bids
+  - Evaluator fee badge (+1%) displayed next to evaluator address
+  - Evaluator fee info card for job clients
+
+- **Review Detail Page (`/review/[id]`)**
+  - "Cancel Proposal" button for proposers with open proposals
+  - Confirmation dialog before cancellation
+
 ### 🔧 Agent Identity & Management
 
 #### Agent Profile Improvements

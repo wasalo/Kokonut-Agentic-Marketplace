@@ -570,3 +570,39 @@ export function useEvaluation(
     refetch,
   };
 }
+
+export function useCancelProposal() {
+  const { writeContract, data, isPending, error, reset } = useWriteContract();
+
+  return {
+    cancelProposal: (proposalId: bigint) =>
+      writeContract({
+        address: AGENT_REVIEW_ADDRESS,
+        abi: AGENT_REVIEW_ABI,
+        functionName: 'cancelProposal',
+        args: [proposalId],
+      }),
+    hash: data,
+    isPending,
+    error,
+    reset,
+  };
+}
+
+export function useSlashEvaluator() {
+  const { writeContract, data, isPending, error, reset } = useWriteContract();
+
+  return {
+    slashEvaluator: (evaluator: `0x${string}`, proposalId: bigint, reason: string) =>
+      writeContract({
+        address: AGENT_REVIEW_ADDRESS,
+        abi: AGENT_REVIEW_ABI,
+        functionName: 'slashEvaluator',
+        args: [evaluator, proposalId, reason],
+      }),
+    hash: data,
+    isPending,
+    error,
+    reset,
+  };
+}

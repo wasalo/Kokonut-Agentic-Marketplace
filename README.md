@@ -1,30 +1,29 @@
 # Kokonut Agent Economy Stack
 
 [![Security Audit](https://img.shields.io/badge/security-audited-brightgreen.svg)](./SECURITY_AUDIT_REPORT.md)
-[![Tests](https://img.shields.io/badge/tests-223%20passing-brightgreen.svg)](./contracts/test)
+[![Tests](https://img.shields.io/badge/tests-228%20passing-brightgreen.svg)](./contracts/test)
 [![Coverage](https://img.shields.io/badge/coverage-87%25-brightgreen.svg)](./contracts/test)
 [![Frontend Security](https://img.shields.io/badge/frontend%20security-8.6%2F10-brightgreen.svg)](./docs/FRONTEND_SECURITY_HARDENING_REPORT.md)
-[![Phase 5](https://img.shields.io/badge/phase-5%20enhanced%20UX-blue.svg)](./AGENTS.md)
+[![Phase 7](https://img.shields.io/badge/phase-7%20complete-blue.svg)](./AGENTS.md)
 [![Dependencies](https://img.shields.io/badge/dependencies-up%20to%20date-brightgreen.svg)](./CHANGELOG.md)
 
 ## Identity → Commerce → Coordination
 
-### 🎉 Latest: Full Dependency Upgrade & Network Access (April 2026)
+### 🎉 Latest: Phase 7 - ETH Funding, Admin UI & Evaluator Features (April 2026)
 
 **New Features:**
 
-- ✅ **Network Access** - Works on localhost by default; LAN hosts are opt-in via env config
+- ✅ **Admin Dashboard** - Treasury management at `/admin`
+- ✅ **ETH Funding** - Native ETH payments for jobs
+- ✅ **Job Filters** - "My Jobs" and "Open for Bidding" filters
+- ✅ **Evaluator Conflict Warnings** - Detects client/evaluator conflicts
+- ✅ **Withdraw Stake** - Losing bidders can reclaim their stake
+- ✅ **Evaluator Fee Display** - +1% fee shown on job details
+- ✅ **Cancel Proposal** - Proposers can cancel open proposals
+- ✅ **Complete Hook Library** - All contract functions wired to frontend
+- ✅ **Network Access** - Works on localhost and LAN hosts
 - ✅ **Health Check** - Service status at `/api/health`
-- ✅ **Next.js 16** - Turbopack for 2-5x faster builds
-- ✅ **React 19.2.4** - Critical security patches applied
-- ✅ **Tailwind CSS v4** - CSS-based configuration
-- ✅ **Activity Feed** - Platform-wide event tracking (`/activity`)
-- ✅ **Analytics Dashboard** - 7-day metrics with interactive charts (`/analytics`)
-- ✅ **Payment Token Switching** - USDC/ETH support for jobs
-- ✅ **Cancel Proposal** - Proposers can cancel and refund
-- ✅ **Job Limits** - Visual warnings at 100 job limit
-- ✅ **Enhanced Directories** - URL sorting, advanced filters, StatusBadge
-- ✅ **Quick Actions** - Dashboard shortcuts for common operations
+- ✅ **Next.js 16 + React 19.2** - Latest stack with security patches
 
 [📖 View Full Documentation](./AGENTS.md) | [🎨 UI Specification](./docs/UI_SPEC.md) | [⚛️ React Hooks](./docs/HOOKS.md)
 
@@ -42,27 +41,27 @@ The **Kokonut Agent Economy Stack** is a complete onchain agent economy with thr
 
 ## Deployed Contracts (Sepolia Testnet)
 
-### Contract Addresses (Phase 5 - Production)
+### Contract Addresses (Phase 7 - Latest)
 
-| Contract                   | Address                                      | Description                               | Version |
-| -------------------------- | -------------------------------------------- | ----------------------------------------- | ------- |
-| `AgentSkillRegistryV2`     | `0xA84684261558f342d6871DD2CFef90A2117Aa20A` | Skills/capabilities (UUPS Proxy)          | V2      |
-| `AgentSkillRegistryV2` (I) | `0x3Eec6BAF9FAc410B9C580d3Eb8c971a14298BC87` | Implementation                            | V2      |
-| `ServiceRegistryV2`        | `0x62E1eeEa1A2Ab987004F35bDA430457Ed6077201` | Service listings (UUPS Proxy, ERC-8004)   | V2      |
-| `ServiceRegistryV2` (I)    | `0xe2fB4aDA35B8d5FbB041a9C0ED4a655Be329a457` | Implementation (activateService)          | V2      |
-| `AgentReview`              | `0x716B02447b52Eab450e31bD77103B41bC2c7bE0b` | A/B evaluation with staking               | V4      |
-| `AgenticCommerce`          | `0xe0006203ceb8bb20b29fa5324ad3fea356bbf858` | Job escrow with open bidding (UUPS Proxy) | V5      |
-| `AgenticCommerce` (I)      | `0xfed5abbea703485e725be1b0e9db3772e4068ec5` | Implementation                            | V5      |
-| `PriceOracle`              | `0x5C4AC3dAF76708DCd51911BA3B33027eAB1B4047` | Price feeds (Chainlink on Sepolia)        | Live    |
-| `CommitReveal`             | `0x6CEd1574A3dF7ec646e43DD8408300117c453Aa3` | Front-running protection (12-block delay) | Live    |
-| `SlashManager`             | `0x7Cf955900FD7a12680E90D834eAf19346f5DBcf9` | 3-of-5 multisig governance                | V1      |
+| Contract                   | Address                                         | Description                                | Version |
+| -------------------------- | ----------------------------------------------- | ------------------------------------------ | ------- |
+| `AgentSkillRegistryV2`     | `0xA84684261558f342d6871DD2CFef90A2117Aa20A`    | Skills/capabilities (UUPS Proxy)           | V2      |
+| `AgentSkillRegistryV2` (I) | `0x3Eec6BAF9FAc410B9C580d3Eb8c971a14298BC87`    | Implementation                             | V2      |
+| `ServiceRegistryV2`        | `0x62E1eeEa1A2Ab987004F35bDA430457Ed6077201`    | Service listings (UUPS Proxy, ERC-8004)    | V2      |
+| `ServiceRegistryV2` (I)    | `0xe2fB4aDA35B8d5FbB041a9C0ED4a655Be329a457`    | Implementation (activateService)           | V2      |
+| `AgentReview`              | `0x716B02447b52Eab450e31bD77103B41bC2c7bE0b`    | A/B evaluation with staking                | V4      |
+| `AgenticCommerce`          | `0x948d97EA7F0c49796fB576ADff375C900627568E`    | Job escrow with bidding & ETH (UUPS Proxy) | V6      |
+| `AgenticCommerce` (I)      | `0x71EF7B696dbcfbb09009029c8c60D78949C8309cA16` | Implementation (ERC-2771, evaluator fees)  | V6      |
+| `PriceOracle`              | `0x5C4AC3dAF76708DCd51911BA3B33027eAB1B4047`    | Price feeds (Chainlink on Sepolia)         | Live    |
+| `CommitReveal`             | `0x6CEd1574A3dF7ec646e43DD8408300117c453Aa3`    | Front-running protection (12-block delay)  | Live    |
+| `SlashManager`             | `0x7Cf955900FD7a12680E90D834eAf19346f5DBcf9`    | 3-of-5 multisig governance                 | V1      |
 
 **Note:**
 
 - All contracts have been security audited and critical vulnerabilities fixed as of April 2026. See [SECURITY_AUDIT_REPORT.md](./SECURITY_AUDIT_REPORT.md) for details.
-- **223 tests passing** with 87%+ code coverage across all core contracts
-- V5 introduces open job bidding with sealed bids and multi-token support
-- ServiceRegistryV2 supports service reactivation via `activateService()`
+- **228 tests passing** with 87%+ code coverage across all core contracts
+- V6 includes ERC-2771 meta-transactions, evaluator fees (1%), and loser stake withdrawal
+- Full hook library wiring: all contract functions connected to frontend UI
 
 ### Official ERC-8004 Registries (Sepolia)
 

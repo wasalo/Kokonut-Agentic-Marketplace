@@ -25,6 +25,7 @@ import {
   useAttestDecision,
   useClaimReward,
   useReleaseStake,
+  useCancelProposal,
 } from '@/lib/hooks/useProposals';
 
 const PROPOSAL_STATUS: Record<number, string> = {
@@ -80,8 +81,14 @@ export default function ProposalDetailPage({
     isPending: isReleasePending,
     error: releaseError,
   } = useReleaseStake();
+  const {
+    cancelProposal,
+    hash: cancelHash,
+    isPending: isCancelPending,
+    error: cancelError,
+  } = useCancelProposal();
 
-  const txHash = evalHash || attestHash || claimHash || releaseHash;
+  const txHash = evalHash || attestHash || claimHash || releaseHash || cancelHash;
   const { isSuccess: isTxConfirmed } = useWaitForTransactionReceipt({ hash: txHash });
 
   const handleSubmitEvaluation = useCallback(() => {
@@ -110,6 +117,17 @@ export default function ProposalDetailPage({
     releaseStake(proposalId);
   }, [proposalId, releaseStake]);
 
+  const handleCancel = useCallback(() => {
+    if (
+      !window.confirm(
+        'Are you sure you want to cancel this proposal? Your staked ETH will be refunded.'
+      )
+    )
+      return;
+    setTxStep('Cancelling proposal');
+    cancelProposal(proposalId);
+  }, [proposalId, cancelProposal]);
+
   useEffect(() => {
     if (isTxConfirmed && txStep) {
       setTxStep(null);
@@ -117,8 +135,9 @@ export default function ProposalDetailPage({
     }
   }, [isTxConfirmed, txStep, refetch]);
 
-  const anyPending = isEvalPending || isAttestPending || isClaimPending || isReleasePending;
-  const currentError = evalError || attestError || claimError || releaseError;
+  const anyPending =
+    isEvalPending || isAttestPending || isClaimPending || isReleasePending || isCancelPending;
+  const currentError = evalError || attestError || claimError || releaseError || cancelError;
 
   const isProposer =
     proposal && address && proposal.proposer.toLowerCase() === address.toLowerCase();
@@ -372,6 +391,27 @@ export default function ProposalDetailPage({
                 {isAttestPending ? 'Attesting...' : 'Attest Decision'}
               </button>
             </div>
+          </Card>
+        )}
+
+        {/* Cancel Proposal (proposer only, if Open) */}
+        {isProposer && proposal.status === 0 && (
+          <Card className="border border-warning/30 bg-warning/5 p-6">
+            <h2 className="text-base font-semibold mb-2 flex items-center gap-2">
+              <X className="w-4 h-4 text-warning" />
+              Cancel Proposal
+            </h2>
+            <p className="text-sm text-default-500 mb-4">
+              If you no longer need an evaluation, you can cancel this proposal. Your staked ETH
+              will be refunded.
+            </p>
+            <button
+              onClick={handleCancel}
+              disabled={anyPending || !!txStep}
+              className="w-full px-6 py-3 border border-warning/30 bg-warning/10 text-warning rounded-lg font-medium hover:bg-warning/20 disabled:opacity-50"
+            >
+              {isCancelPending ? 'Cancelling...' : 'Cancel Proposal'}
+            </button>
           </Card>
         )}
 
