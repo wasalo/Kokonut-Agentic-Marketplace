@@ -1,23 +1,26 @@
 'use client';
 
-import { useState, type ReactNode } from 'react';
+import { useState, type ReactNode, useEffect } from 'react';
 import { QueryClient, QueryClientProvider } from '@tanstack/react-query';
 import { WagmiProvider } from 'wagmi';
 import { RainbowKitProvider, darkTheme } from '@rainbow-me/rainbowkit';
 import { config } from '@/lib/wagmi';
 import { DebugProvider } from '@/contexts/DebugContext';
+import { usePersonalNotifications } from '@/lib/hooks/useNotificationEvents';
 
-// RainbowKit styles are imported in globals.css
+function NotificationWatcher() {
+  usePersonalNotifications();
+  return null;
+}
 
 export function Providers({ children }: { children: ReactNode }) {
-  // Create QueryClient once using lazy initialization
   const [queryClient] = useState(
     () =>
       new QueryClient({
         defaultOptions: {
           queries: {
-            staleTime: 5 * 60 * 1000, // 5 minutes
-            gcTime: 30 * 60 * 1000, // 30 minutes
+            staleTime: 5 * 60 * 1000,
+            gcTime: 30 * 60 * 1000,
             refetchOnWindowFocus: false,
             refetchOnReconnect: false,
             retry: 2,
@@ -39,6 +42,7 @@ export function Providers({ children }: { children: ReactNode }) {
               borderRadius: 'large',
             })}
           >
+            <NotificationWatcher />
             {children}
           </RainbowKitProvider>
         </DebugProvider>

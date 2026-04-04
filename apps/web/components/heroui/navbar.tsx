@@ -6,6 +6,7 @@ import NextLink from 'next/link';
 import { useAccount } from 'wagmi';
 import { useUSDCBalance } from '@/lib/hooks/useUSDC';
 import { ConnectButton } from '@/components/wallet/ConnectButton';
+import { NotificationBell } from '@/components/heroui/notification-bell';
 
 function USDCBalance() {
   const { address } = useAccount();
@@ -32,6 +33,7 @@ const publicNavLinks = [
 const privateNavLinks = [{ name: 'Dashboard', href: '/dashboard' }];
 
 const moreLinks = [
+  { name: 'Notifications', href: '/notifications' },
   { name: 'Review', href: '/review' },
   { name: 'Skills', href: '/skills' },
   { name: 'Activity', href: '/activity' },
@@ -109,6 +111,7 @@ export function NavbarComponent(): JSX.Element {
 
           <div className="flex items-center gap-2">
             <USDCBalance />
+            <NotificationBell />
             <div className="hidden sm:block">
               <ConnectButton />
             </div>

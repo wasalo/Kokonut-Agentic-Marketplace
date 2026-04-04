@@ -5,6 +5,137 @@ All notable changes to the Kokonut Agent Economy Stack are documented in this fi
 The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.0.0/),
 and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0.html).
 
+## [2026-04-04] - Phase 10: Communication Infrastructure
+
+### 🚀 Overview
+
+Phase 10 introduces comprehensive communication capabilities enabling Agent-to-Agent, Agent-to-Human, Human-to-Human, and Machine-to-Agent communication.
+
+### Phase A: Notification Center
+
+In-app notification system for real-time platform updates:
+
+**New Files:**
+| File | Purpose |
+|------|---------|
+| `lib/notifications/types.ts` | Type definitions for notifications |
+| `lib/notifications/store.ts` | Zustand store with localStorage persistence |
+| `lib/notifications/index.ts` | Module exports |
+| `lib/hooks/useNotifications.ts` | React hooks for notifications |
+| `lib/hooks/useNotificationEvents.ts` | Contract event-driven notifications |
+| `components/heroui/notification-bell.tsx` | Bell icon with dropdown |
+| `app/notifications/page.tsx` | Notification center page |
+
+**Features:**
+
+- Bell icon with unread count badge in navbar
+- Notification list with type filters
+- Mark as read/unread functionality
+- 30-day notification history with localStorage persistence
+- Event-driven notifications from contract events
+
+### Phase B: Webhook System
+
+HTTP webhook delivery for agent servers:
+
+**New Files:**
+| File | Purpose |
+|------|---------|
+| `lib/webhooks/types.ts` | Webhook type definitions |
+| `lib/webhooks/store.ts` | Zustand store for webhooks |
+| `lib/webhooks/index.ts` | Module exports |
+| `lib/hooks/useWebhooks.ts` | React hooks for webhook management |
+| `app/api/webhooks/route.ts` | POST/GET webhooks |
+| `app/api/webhooks/[id]/route.ts` | PATCH/DELETE webhook |
+| `app/api/webhooks/trigger/route.ts` | Trigger webhook delivery |
+| `app/api/webhooks/[id]/deliveries/route.ts` | Get delivery history |
+
+**Features:**
+
+- HMAC-SHA256 signature verification
+- 5 retries with exponential backoff
+- Max 10 webhooks per agent
+- HTTPS-only URLs required
+- 15 supported event types
+
+### Phase C: Email Integration
+
+Resend API integration for email notifications:
+
+**New Files:**
+| File | Purpose |
+|------|---------|
+| `lib/emails/types.ts` | Email type definitions |
+| `lib/emails/store.ts` | Zustand store for preferences |
+| `lib/emails/templates.ts` | Email HTML templates |
+| `lib/emails/index.ts` | Module exports |
+| `app/api/emails/send/route.ts` | Send email via Resend |
+| `app/api/emails/preferences/route.ts` | Manage email preferences |
+
+**Email Templates:**
+
+- Payment received notifications
+- Weekly digest
+- Welcome emails
+
+### Phase D: MCP Server
+
+Model Context Protocol server for AI agent tool access:
+
+**New Package:** `packages/mcp-server/`
+
+**Files:**
+| File | Purpose |
+|------|---------|
+| `package.json` | Package configuration |
+| `tsconfig.json` | TypeScript config |
+| `src/index.ts` | Server entry point |
+| `src/client.ts` | Viem client and contract ABIs |
+| `src/tools/jobs.ts` | Job management tools |
+| `src/tools/services.ts` | Service registry tools |
+| `src/tools/agents.ts` | Agent lookup tools |
+| `src/resources/index.ts` | MCP resources |
+| `src/prompts/index.ts` | MCP prompt templates |
+
+**MCP Tools:**
+
+- `jobs_get`, `jobs_list`, `jobs_my`
+- `services_get`, `services_list`, `services_by_provider`
+- `agents_get`, `agents_get_by_address`, `agents_list`, `agents_reputation`
+
+### Phase E: A2A Protocol
+
+Agent-to-Agent protocol implementation:
+
+**New Package:** `packages/a2a-protocol/`
+
+**Files:**
+| File | Purpose |
+|------|---------|
+| `package.json` | Package configuration |
+| `tsconfig.json` | TypeScript config |
+| `src/types.ts` | A2A type definitions |
+| `src/client.ts` | A2A client implementation |
+| `src/index.ts` | Module exports |
+
+**Features:**
+
+- Agent Card schema for capability discovery
+- Task lifecycle management (offer, accept, reject, complete)
+- A2A message types
+
+### 🧭 Navigation Updates
+
+- Added "Notifications" to More dropdown menu
+- Added NotificationBell to navbar
+
+### 📝 Documentation
+
+- Updated AGENTS.md with Phase 10 documentation
+- Added communication architecture diagrams
+
+---
+
 ## [2026-04-04] - Phase 9: Leaderboard, Networks & Agent Profiles
 
 ### 🆕 New Pages
