@@ -148,17 +148,29 @@ export enum JobStatus {
   Expired = 5,
 }
 
+export enum BidStatus {
+  None = 0,
+  Committed = 1,
+  Revealed = 2,
+  Accepted = 3,
+  Forfeited = 4,
+}
+
 export interface Job {
   id: bigint;
   client: `0x${string}`;
   provider: `0x${string}`;
   evaluator: `0x${string}`;
+  serviceId: bigint;
   description: string;
   budget: bigint;
+  maxBudget: bigint;
   expiredAt: bigint;
   status: JobStatus;
   hook: `0x${string}`;
   deliverable: `0x${string}`;
+  evaluatorFee: boolean;
+  paymentToken: `0x${string}`;
 }
 
 export interface JobParams {
@@ -167,6 +179,40 @@ export interface JobParams {
   description: string;
   expiredAt?: number;
   hook?: `0x${string}`;
+  evaluatorFee?: boolean;
+}
+
+export interface OpenJobParams {
+  evaluator: `0x${string}`;
+  maxBudget: bigint;
+  description: string;
+  expiredAt?: number;
+  hook?: `0x${string}`;
+  evaluatorFee?: boolean;
+  paymentToken?: `0x${string}`;
+}
+
+export interface Bid {
+  jobId: bigint;
+  bidder: `0x${string}`;
+  amount: bigint;
+  message: string;
+  status: BidStatus;
+  committedAt: bigint;
+  revealedAt: bigint;
+}
+
+export interface CommitBidParams {
+  jobId: bigint;
+  amount: bigint;
+  message: string;
+}
+
+export interface RevealBidParams {
+  jobId: bigint;
+  amount: bigint;
+  message: string;
+  salt: `0x${string}`;
 }
 
 // ============================================================================
@@ -337,10 +383,10 @@ export const NETWORKS: Record<NetworkName, NetworkConfig> = {
       // ERC-8004 Official Registries
       erc8004Registry: '0x8004A818BFB912233c491871b3d84c89A494BD9e',
       erc8004Reputation: '0x8004B663056A597Dffe9eCcC1965A193B7388713',
-      // Phase 3: Comprehensive Events (Latest)
-      skillRegistry: '0x7cf16C00ed4831EB9eE3a8765831968F0a28f53D',
+      // Phase 6: AgenticCommerceV6 (UUPS Proxy with ERC-2771, evaluator fees)
+      skillRegistry: '0xA84684261558f342d6871DD2CFef90A2117Aa20A',
       serviceRegistry: '0x62E1eeEa1A2Ab987004F35bDA430457Ed6077201',
-      agenticCommerce: '0xA7E8F13AC8E659356333Bf3e579BF3f39334821e',
+      agenticCommerce: '0x948d97EA7F0c49796fB576ADff375C900627568E',
       agentReview: '0x716B02447b52Eab450e31bD77103B41bC2c7bE0b',
       priceOracle: '0x5C4AC3dAF76708DCd51911BA3B33027eAB1B4047',
       commitReveal: '0x6CEd1574A3dF7ec646e43DD8408300117c453Aa3',

@@ -248,7 +248,7 @@ export function ServiceList({
   }, [publicClient, skillIds]);
 
   // Apply filters
-  let filteredServices = useMemo(() => {
+  const filteredServices = useMemo(() => {
     return services.filter((service: Service) => {
       // Search query filter
       if (searchQuery && !service.name.toLowerCase().includes(searchQuery.toLowerCase())) {
@@ -295,11 +295,12 @@ export function ServiceList({
     const multiplier = sortOrder === 'asc' ? 1 : -1;
 
     switch (sortBy) {
-      case 'price':
+      case 'price': {
         // Sort by USD equivalent price
         const priceA = priceToUsdEquivalent(a.price, a.paymentToken, ethToUsdcRate);
         const priceB = priceToUsdEquivalent(b.price, b.paymentToken, ethToUsdcRate);
         return multiplier * (priceA - priceB);
+      }
       case 'name':
         return multiplier * a.name.localeCompare(b.name);
       case 'newest':

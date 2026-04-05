@@ -2155,6 +2155,712 @@ program
     }
   });
 
+// ============================================================================
+// V6 BIDDING COMMANDS
+// ============================================================================
+
+// 🎯 CREATE OPEN JOB COMMAND
+program
+  .command('create-open-job')
+  .description('Create an open job for bidding (V6)')
+  .option('--max-budget <number>', 'Maximum budget in USDC wei', '1000000')
+  .option('--evaluator <address>', 'Evaluator address')
+  .option('--description <string>', 'Job description')
+  .option('--deadline <number>', 'Deadline in days', '7')
+  .option('--evaluator-fee', 'Enable evaluator fee (1%)', false)
+  .option('--payment-token <address>', 'Payment token address (default: USDC)')
+  .action(async options => {
+    try {
+      initWallet();
+
+      const commerceABI = [
+        'function createOpenJob(uint256 maxBudget, address evaluator, uint256 expiredAt, string calldata description, address paymentToken, bool evaluatorFee) external returns (uint256 jobId)',
+      ];
+
+      const commerce = new ethers.Contract(
+        config.contracts.agenticCommerce,
+        commerceABI,
+        config.signer
+      );
+
+      const maxBudget = BigInt(options.maxBudget);
+      const evaluator = options.evaluator || '0x0000000000000000000000000000000000000000';
+      const description = options.description || 'Open job for bidding';
+      const deadlineDays = parseInt(options.deadline);
+      const expiredAt = Math.floor(Date.now() / 1000) + deadlineDays * 24 * 60 * 60;
+      const evaluatorFee = options.evaluatorFee || false;
+      const paymentToken = options.paymentToken || config.contracts.usdc;
+
+      console.log(chalk.cyan('\n📋 Creating Open Job (Bidding):'));
+      console.log(chalk.dim('Max Budget:'), maxBudget.toString(), 'wei');
+      console.log(chalk.dim('Evaluator:'), evaluator);
+      console.log(chalk.dim('Description:'), description);
+      console.log(chalk.dim('Deadline:'), new Date(expiredAt * 1000).toISOString());
+      console.log(chalk.dim('Evaluator Fee:'), evaluatorFee ? 'Enabled' : 'Disabled');
+      console.log(chalk.dim('Payment Token:'), paymentToken);
+
+      const tx = await commerce.createOpenJob(
+        maxBudget,
+        evaluator,
+        expiredAt,
+        description,
+        paymentToken,
+        evaluatorFee
+      );
+      console.log(chalk.cyan('Transaction sent:'), tx.hash);
+
+      const receipt = await tx.wait();
+      console.log(chalk.green('✅ Open job created!'));
+      console.log(chalk.cyan('Gas used:'), receipt.gasUsed.toString());
+
+      let jobId;
+      for (const log of receipt.logs) {
+        try {
+          const parsed = commerce.interface.parseLog(log);
+          if (parsed && (parsed.name === 'OpenJobCreated' || parsed.name === 'JobCreated')) {
+            jobId = parsed.args.jobId.toString();
+            break;
+          }
+        } catch (e) {
+          /* ignore */
+        }
+      }
+
+      if (jobId) {
+        console.log(chalk.green('\n🎉 Job ID:'), jobId);
+      }
+    } catch (error: unknown) {
+      const err = error as { message?: string; reason?: string };
+      console.error(chalk.red('❌ Error creating open job:'), err.message);
+      if (err.reason) console.error(chalk.red('Reason:'), err.reason);
+      process.exit(1);
+    }
+  });
+
+// 🎯 COMMIT BID COMMAND
+program
+  .command('commit-bid')
+  .description('Commit a sealed bid with stake (V6)')
+  .requiredOption('--job-id <number>', 'Job ID (required)')
+  .requiredOption('--amount <number>', 'Bid amount in USDC wei (required)')
+  .requiredOption('--message <string>', 'Bid message (required)')
+  .action(async options => {
+    try {
+      initWallet();
+
+      const commerceABI = [
+        'function commitBid(uint256 jobId, bytes32 commitHash) external payable',
+        'function calculateStake(uint256 maxBudget) external pure returns (uint256)',
+      ];
+
+      const commerce = new ethers.Contract(
+        config.contracts.agenticCommerce,
+        commerceABI,
+        config.signer
+      );
+
+      const jobId = BigInt(options.jobId);
+      const amount = BigInt(options.amount);
+      const message = options.message;
+
+      const stake = (amount * 100n) / 10000n;
+      const commitHash = ethers.solidityPackedKeccak256(
+        ['uint256', 'string', 'bytes32'],
+        [amount, message, ethers.randomBytes(32)]
+      );
+
+      console.log(chalk.cyan('\n🔐 Committing Bid:'));
+      console.log(chalk.dim('Job ID:'), jobId.toString());
+      console.log(chalk.dim('Amount:'), amount.toString(), 'wei');
+      console.log(chalk.dim('Message:'), message);
+      console.log(chalk.dim('Stake (1%):'), ethers.formatEther(stake), 'ETH');
+
+      const tx = await commerce.commitBid(jobId, commitHash, { value: stake });
+      console.log(chalk.cyan('Transaction sent:'), tx.hash);
+
+      const receipt = await tx.wait();
+      console.log(chalk.green('✅ Bid committed!'));
+      console.log(chalk.cyan('Gas used:'), receipt.gasUsed.toString());
+    } catch (error: unknown) {
+      const err = error as { message?: string; reason?: string };
+      console.error(chalk.red('❌ Error committing bid:'), err.message);
+      if (err.reason) console.error(chalk.red('Reason:'), err.reason);
+      process.exit(1);
+    }
+  });
+
+// 🎯 REVEAL BID COMMAND
+program
+  .command('reveal-bid')
+  .description('Reveal your committed bid (V6)')
+  .requiredOption('--job-id <number>', 'Job ID (required)')
+  .requiredOption('--amount <number>', 'Bid amount (required)')
+  .requiredOption('--message <string>', 'Bid message (required)')
+  .requiredOption('--salt <string>', 'Salt used in commitment (required)')
+  .action(async options => {
+    try {
+      initWallet();
+
+      const commerceABI = [
+        'function revealBid(uint256 jobId, uint256 amount, string calldata message, bytes32 salt) external',
+      ];
+
+      const commerce = new ethers.Contract(
+        config.contracts.agenticCommerce,
+        commerceABI,
+        config.signer
+      );
+
+      const jobId = BigInt(options.jobId);
+      const amount = BigInt(options.amount);
+      const message = options.message;
+      const salt = (options.salt as `0x${string}`) || '0x' + '00'.repeat(32);
+
+      console.log(chalk.cyan('\n🔓 Revealing Bid:'));
+      console.log(chalk.dim('Job ID:'), jobId.toString());
+      console.log(chalk.dim('Amount:'), amount.toString(), 'wei');
+      console.log(chalk.dim('Message:'), message);
+
+      const tx = await commerce.revealBid(jobId, amount, message, salt);
+      console.log(chalk.cyan('Transaction sent:'), tx.hash);
+
+      const receipt = await tx.wait();
+      console.log(chalk.green('✅ Bid revealed!'));
+      console.log(chalk.cyan('Gas used:'), receipt.gasUsed.toString());
+    } catch (error: unknown) {
+      const err = error as { message?: string; reason?: string };
+      console.error(chalk.red('❌ Error revealing bid:'), err.message);
+      if (err.reason) console.error(chalk.red('Reason:'), err.reason);
+      process.exit(1);
+    }
+  });
+
+// 🎯 ACCEPT BID COMMAND
+program
+  .command('accept-bid')
+  .description('Accept a winning bid (V6)')
+  .requiredOption('--job-id <number>', 'Job ID (required)')
+  .requiredOption('--bid-id <number>', 'Bid ID to accept (required)')
+  .action(async options => {
+    try {
+      initWallet();
+
+      const commerceABI = ['function acceptBid(uint256 jobId, uint256 bidId) external'];
+
+      const commerce = new ethers.Contract(
+        config.contracts.agenticCommerce,
+        commerceABI,
+        config.signer
+      );
+
+      const jobId = BigInt(options.jobId);
+      const bidId = BigInt(options.bidId);
+
+      console.log(chalk.cyan('\n✅ Accepting Bid:'));
+      console.log(chalk.dim('Job ID:'), jobId.toString());
+      console.log(chalk.dim('Bid ID:'), bidId.toString());
+
+      const tx = await commerce.acceptBid(jobId, bidId);
+      console.log(chalk.cyan('Transaction sent:'), tx.hash);
+
+      const receipt = await tx.wait();
+      console.log(chalk.green('✅ Bid accepted!'));
+      console.log(chalk.cyan('Gas used:'), receipt.gasUsed.toString());
+    } catch (error: unknown) {
+      const err = error as { message?: string; reason?: string };
+      console.error(chalk.red('❌ Error accepting bid:'), err.message);
+      if (err.reason) console.error(chalk.red('Reason:'), err.reason);
+      process.exit(1);
+    }
+  });
+
+// 🎯 WITHDRAW STAKE COMMAND
+program
+  .command('withdraw-stake')
+  .description('Withdraw your stake from a job (V6)')
+  .requiredOption('--job-id <number>', 'Job ID (required)')
+  .action(async options => {
+    try {
+      initWallet();
+
+      const commerceABI = ['function withdrawStake(uint256 jobId) external'];
+
+      const commerce = new ethers.Contract(
+        config.contracts.agenticCommerce,
+        commerceABI,
+        config.signer
+      );
+
+      const jobId = BigInt(options.jobId);
+
+      console.log(chalk.cyan('\n💸 Withdrawing Stake:'));
+      console.log(chalk.dim('Job ID:'), jobId.toString());
+
+      const tx = await commerce.withdrawStake(jobId);
+      console.log(chalk.cyan('Transaction sent:'), tx.hash);
+
+      const receipt = await tx.wait();
+      console.log(chalk.green('✅ Stake withdrawn!'));
+      console.log(chalk.cyan('Gas used:'), receipt.gasUsed.toString());
+    } catch (error: unknown) {
+      const err = error as { message?: string; reason?: string };
+      console.error(chalk.red('❌ Error withdrawing stake:'), err.message);
+      if (err.reason) console.error(chalk.red('Reason:'), err.reason);
+      process.exit(1);
+    }
+  });
+
+// 🎯 GET MY BID COMMAND
+program
+  .command('get-my-bid')
+  .description('Get your bid for a job (V6)')
+  .requiredOption('--job-id <number>', 'Job ID (required)')
+  .action(async options => {
+    try {
+      initWallet();
+
+      const commerceABI = [
+        'function getUserBid(uint256 jobId, address user) external view returns (tuple(address bidder, uint256 amount, string message, uint8 status, uint256 committedAt, uint256 revealedAt))',
+      ];
+
+      const commerce = new ethers.Contract(
+        config.contracts.agenticCommerce,
+        commerceABI,
+        config.provider
+      );
+
+      const jobId = BigInt(options.jobId);
+      const bid = await commerce.getUserBid(jobId, config.signer.address);
+
+      if (bid.bidder === '0x0000000000000000000000000000000000000000') {
+        console.log(chalk.yellow('\n⚠️  No bid found for this job'));
+        return;
+      }
+
+      const statusNames = ['None', 'Committed', 'Revealed', 'Accepted', 'Forfeited'];
+
+      console.log(chalk.cyan('\n📋 Your Bid:'));
+      console.log(chalk.dim('Job ID:'), jobId.toString());
+      console.log(chalk.dim('Bidder:'), bid.bidder);
+      console.log(chalk.dim('Amount:'), bid.amount.toString(), 'wei');
+      console.log(chalk.dim('Message:'), bid.message);
+      console.log(chalk.dim('Status:'), statusNames[bid.status] || 'Unknown');
+      console.log(
+        chalk.dim('Committed At:'),
+        new Date(Number(bid.committedAt) * 1000).toISOString()
+      );
+      if (bid.revealedAt > 0n) {
+        console.log(
+          chalk.dim('Revealed At:'),
+          new Date(Number(bid.revealedAt) * 1000).toISOString()
+        );
+      }
+    } catch (error: unknown) {
+      const err = error as { message?: string };
+      console.error(chalk.red('❌ Error getting bid:'), err.message);
+      process.exit(1);
+    }
+  });
+
+// 🎯 GET JOB BID COUNT COMMAND
+program
+  .command('get-job-bid-count')
+  .description('Get number of bids on a job (V6)')
+  .requiredOption('--job-id <number>', 'Job ID (required)')
+  .action(async options => {
+    try {
+      initWallet();
+
+      const commerceABI = ['function jobBidCount(uint256 jobId) external view returns (uint256)'];
+
+      const commerce = new ethers.Contract(
+        config.contracts.agenticCommerce,
+        commerceABI,
+        config.provider
+      );
+
+      const jobId = BigInt(options.jobId);
+      const count = await commerce.jobBidCount(jobId);
+
+      console.log(chalk.cyan('\n📊 Job Bid Count:'));
+      console.log(chalk.dim('Job ID:'), jobId.toString());
+      console.log(chalk.bold('Total Bids:'), count.toString());
+    } catch (error: unknown) {
+      const err = error as { message?: string };
+      console.error(chalk.red('❌ Error:'), err.message);
+      process.exit(1);
+    }
+  });
+
+// 🎯 GET CLIENT JOB COUNT COMMAND
+program
+  .command('get-client-job-count')
+  .description('Get job count for a client address (V6)')
+  .option('--address <address>', 'Client address (defaults to connected wallet)')
+  .action(async options => {
+    try {
+      initWallet();
+
+      const commerceABI = [
+        'function getClientJobCount(address client) external view returns (uint256)',
+      ];
+
+      const commerce = new ethers.Contract(
+        config.contracts.agenticCommerce,
+        commerceABI,
+        config.provider
+      );
+
+      const address = options.address || config.signer.address;
+      const count = await commerce.getClientJobCount(address);
+
+      console.log(chalk.cyan('\n📊 Client Job Count:'));
+      console.log(chalk.dim('Client:'), address);
+      console.log(chalk.bold('Total Jobs:'), count.toString());
+    } catch (error: unknown) {
+      const err = error as { message?: string };
+      console.error(chalk.red('❌ Error:'), err.message);
+      process.exit(1);
+    }
+  });
+
+// 🎯 ACTIVATE SERVICE COMMAND
+program
+  .command('activate-service')
+  .description('Activate a previously deactivated service (V6)')
+  .requiredOption('--service-id <number>', 'Service ID (required)')
+  .action(async options => {
+    try {
+      initWallet();
+
+      const serviceRegistryABI = ['function activateService(uint256 serviceId) external'];
+
+      const serviceRegistry = new ethers.Contract(
+        config.contracts.serviceRegistry,
+        serviceRegistryABI,
+        config.signer
+      );
+
+      const serviceId = BigInt(options.serviceId);
+
+      console.log(chalk.cyan('\n✅ Activating Service:'));
+      console.log(chalk.dim('Service ID:'), serviceId.toString());
+
+      const tx = await serviceRegistry.activateService(serviceId);
+      console.log(chalk.cyan('Transaction sent:'), tx.hash);
+
+      const receipt = await tx.wait();
+      console.log(chalk.green('✅ Service activated!'));
+      console.log(chalk.cyan('Gas used:'), receipt.gasUsed.toString());
+    } catch (error: unknown) {
+      const err = error as { message?: string; reason?: string };
+      console.error(chalk.red('❌ Error activating service:'), err.message);
+      if (err.reason) console.error(chalk.red('Reason:'), err.reason);
+      process.exit(1);
+    }
+  });
+
+// 🎯 GET SERVICE COUNTER COMMAND
+program
+  .command('get-service-counter')
+  .description('Get total service counter (V6)')
+  .action(async () => {
+    try {
+      initWallet();
+
+      const serviceRegistryABI = ['function getServiceCounter() external view returns (uint256)'];
+
+      const serviceRegistry = new ethers.Contract(
+        config.contracts.serviceRegistry,
+        serviceRegistryABI,
+        config.provider
+      );
+
+      const counter = await serviceRegistry.getServiceCounter();
+
+      console.log(chalk.cyan('\n📊 Service Counter:'));
+      console.log(chalk.bold('Total Services Created:'), counter.toString());
+    } catch (error: unknown) {
+      const err = error as { message?: string };
+      console.error(chalk.red('❌ Error:'), err.message);
+      process.exit(1);
+    }
+  });
+
+// ============================================================================
+// V6 REVIEW COMMANDS
+// ============================================================================
+
+// 🎯 CLAIM PROPOSAL REWARD COMMAND
+program
+  .command('claim-proposal-reward')
+  .description('Claim reward for a winning proposal (V6)')
+  .requiredOption('--proposal-id <number>', 'Proposal ID (required)')
+  .action(async options => {
+    try {
+      initWallet();
+
+      const reviewABI = ['function claimReward(uint256 proposalId) external'];
+
+      const review = new ethers.Contract(config.contracts.agentReview, reviewABI, config.signer);
+
+      const proposalId = BigInt(options.proposalId);
+
+      console.log(chalk.cyan('\n💰 Claiming Proposal Reward:'));
+      console.log(chalk.dim('Proposal ID:'), proposalId.toString());
+
+      const tx = await review.claimReward(proposalId);
+      console.log(chalk.cyan('Transaction sent:'), tx.hash);
+
+      const receipt = await tx.wait();
+      console.log(chalk.green('✅ Reward claimed!'));
+      console.log(chalk.cyan('Gas used:'), receipt.gasUsed.toString());
+    } catch (error: unknown) {
+      const err = error as { message?: string; reason?: string };
+      console.error(chalk.red('❌ Error:'), err.message);
+      if (err.reason) console.error(chalk.red('Reason:'), err.reason);
+      process.exit(1);
+    }
+  });
+
+// 🎯 RELEASE PROPOSAL STAKE COMMAND
+program
+  .command('release-proposal-stake')
+  .description('Release your stake for a proposal (V6)')
+  .requiredOption('--proposal-id <number>', 'Proposal ID (required)')
+  .action(async options => {
+    try {
+      initWallet();
+
+      const reviewABI = ['function releaseStake(uint256 proposalId) external'];
+
+      const review = new ethers.Contract(config.contracts.agentReview, reviewABI, config.signer);
+
+      const proposalId = BigInt(options.proposalId);
+
+      console.log(chalk.cyan('\n💸 Releasing Proposal Stake:'));
+      console.log(chalk.dim('Proposal ID:'), proposalId.toString());
+
+      const tx = await review.releaseStake(proposalId);
+      console.log(chalk.cyan('Transaction sent:'), tx.hash);
+
+      const receipt = await tx.wait();
+      console.log(chalk.green('✅ Stake released!'));
+      console.log(chalk.cyan('Gas used:'), receipt.gasUsed.toString());
+    } catch (error: unknown) {
+      const err = error as { message?: string; reason?: string };
+      console.error(chalk.red('❌ Error:'), err.message);
+      if (err.reason) console.error(chalk.red('Reason:'), err.reason);
+      process.exit(1);
+    }
+  });
+
+// 🎯 CANCEL PROPOSAL COMMAND
+program
+  .command('cancel-proposal')
+  .description('Cancel your open proposal (V6)')
+  .requiredOption('--proposal-id <number>', 'Proposal ID (required)')
+  .action(async options => {
+    try {
+      initWallet();
+
+      const reviewABI = ['function cancelProposal(uint256 proposalId) external'];
+
+      const review = new ethers.Contract(config.contracts.agentReview, reviewABI, config.signer);
+
+      const proposalId = BigInt(options.proposalId);
+
+      console.log(chalk.cyan('\n❌ Cancelling Proposal:'));
+      console.log(chalk.dim('Proposal ID:'), proposalId.toString());
+
+      const tx = await review.cancelProposal(proposalId);
+      console.log(chalk.cyan('Transaction sent:'), tx.hash);
+
+      const receipt = await tx.wait();
+      console.log(chalk.green('✅ Proposal cancelled!'));
+      console.log(chalk.cyan('Gas used:'), receipt.gasUsed.toString());
+    } catch (error: unknown) {
+      const err = error as { message?: string; reason?: string };
+      console.error(chalk.red('❌ Error:'), err.message);
+      if (err.reason) console.error(chalk.red('Reason:'), err.reason);
+      process.exit(1);
+    }
+  });
+
+// 🎯 SLASH EVALUATOR COMMAND
+program
+  .command('slash-evaluator')
+  .description('Slash an evaluator for malicious behavior (V6)')
+  .requiredOption('--evaluator <address>', 'Evaluator address (required)')
+  .requiredOption('--proposal-id <number>', 'Proposal ID (required)')
+  .requiredOption('--reason <string>', 'Reason for slash (required)')
+  .action(async options => {
+    try {
+      initWallet();
+
+      const reviewABI = [
+        'function slashEvaluator(address evaluator, uint256 proposalId, string calldata reason) external',
+      ];
+
+      const review = new ethers.Contract(config.contracts.agentReview, reviewABI, config.signer);
+
+      console.log(chalk.cyan('\n⚡ Slashing Evaluator:'));
+      console.log(chalk.dim('Evaluator:'), options.evaluator);
+      console.log(chalk.dim('Proposal ID:'), options.proposalId);
+      console.log(chalk.dim('Reason:'), options.reason);
+
+      const tx = await review.slashEvaluator(
+        options.evaluator,
+        BigInt(options.proposalId),
+        options.reason
+      );
+      console.log(chalk.cyan('Transaction sent:'), tx.hash);
+
+      const receipt = await tx.wait();
+      console.log(chalk.green('✅ Evaluator slashed!'));
+      console.log(chalk.cyan('Gas used:'), receipt.gasUsed.toString());
+    } catch (error: unknown) {
+      const err = error as { message?: string; reason?: string };
+      console.error(chalk.red('❌ Error:'), err.message);
+      if (err.reason) console.error(chalk.red('Reason:'), err.reason);
+      process.exit(1);
+    }
+  });
+
+// ============================================================================
+// V6 SKILLS COMMANDS
+// ============================================================================
+
+// 🎯 FIND SKILLS BY DOMAIN COMMAND
+program
+  .command('find-skills-by-domain')
+  .description('Find skills by domain (V6)')
+  .requiredOption('--domain <string>', 'Domain to search (required)')
+  .action(async options => {
+    try {
+      initWallet();
+
+      const skillRegistryABI = [
+        'function findSkillsByDomain(string calldata domain) external view returns (uint256[] memory)',
+        'function getSkill(uint256 skillId) external view returns (tuple(uint256 agentId, string name, string version, string description, string endpoint, string[] domains, bool isActive, address registeredBy, uint256 registeredAt))',
+      ];
+
+      const skillRegistry = new ethers.Contract(
+        config.contracts.skillRegistry,
+        skillRegistryABI,
+        config.provider
+      );
+
+      const domain = options.domain;
+      const skillIds = await skillRegistry.findSkillsByDomain(domain);
+
+      console.log(chalk.cyan('\n🔍 Skills for Domain:'), domain);
+      console.log(chalk.dim('Total:'), skillIds.length, 'skills\n');
+
+      for (const skillId of skillIds) {
+        const skill = await skillRegistry.getSkill(skillId);
+        console.log(chalk.bold(`\nSkill ID: ${skillId}`));
+        console.log(chalk.dim('  Agent ID:'), skill[0].toString());
+        console.log(chalk.dim('  Name:'), skill[1], `(${skill[2]})`);
+        console.log(chalk.dim('  Description:'), skill[3] || '(none)');
+        console.log(chalk.dim('  Endpoint:'), skill[4] || '(none)');
+        console.log(chalk.dim('  Domains:'), skill[5].join(', '));
+        console.log(chalk.dim('  Active:'), skill[6] ? chalk.green('Yes') : chalk.red('No'));
+      }
+    } catch (error: unknown) {
+      const err = error as { message?: string };
+      console.error(chalk.red('❌ Error:'), err.message);
+      process.exit(1);
+    }
+  });
+
+// 🎯 GET TOTAL SKILL COUNT COMMAND
+program
+  .command('get-total-skill-count')
+  .description('Get total skill count (V6)')
+  .action(async () => {
+    try {
+      initWallet();
+
+      const skillRegistryABI = ['function getTotalSkillCount() external view returns (uint256)'];
+
+      const skillRegistry = new ethers.Contract(
+        config.contracts.skillRegistry,
+        skillRegistryABI,
+        config.provider
+      );
+
+      const count = await skillRegistry.getTotalSkillCount();
+
+      console.log(chalk.cyan('\n📊 Total Skill Count:'));
+      console.log(chalk.bold('Total Skills:'), count.toString());
+    } catch (error: unknown) {
+      const err = error as { message?: string };
+      console.error(chalk.red('❌ Error:'), err.message);
+      process.exit(1);
+    }
+  });
+
+// 🎯 UPDATE SKILL COMMAND
+program
+  .command('update-skill')
+  .description('Update an existing skill (V6)')
+  .requiredOption('--skill-id <number>', 'Skill ID (required)')
+  .requiredOption('--name <string>', 'Skill name (required)')
+  .option('--version <string>', 'Skill version', '1.0.0')
+  .option('--description <string>', 'Skill description')
+  .option('--endpoint <string>', 'Service endpoint URL')
+  .option('--domains <string>', 'Comma-separated domains')
+  .action(async options => {
+    try {
+      initWallet();
+
+      const skillRegistryABI = [
+        'function updateSkill(uint256 skillId, string calldata name, string calldata version, string calldata description, string calldata endpoint, string[] calldata domains) external',
+      ];
+
+      const skillRegistry = new ethers.Contract(
+        config.contracts.skillRegistry,
+        skillRegistryABI,
+        config.signer
+      );
+
+      const skillId = BigInt(options.skillId);
+      const name = options.name;
+      const version = options.version || '1.0.0';
+      const description = options.description || '';
+      const endpoint = options.endpoint || '';
+      const domains = (options.domains || '').split(',').filter(d => d.trim());
+
+      console.log(chalk.cyan('\n✏️  Updating Skill:'));
+      console.log(chalk.dim('Skill ID:'), skillId.toString());
+      console.log(chalk.dim('Name:'), name);
+      console.log(chalk.dim('Version:'), version);
+      console.log(chalk.dim('Description:'), description || '(none)');
+      console.log(chalk.dim('Endpoint:'), endpoint || '(none)');
+      console.log(chalk.dim('Domains:'), domains.length > 0 ? domains.join(', ') : '(none)');
+
+      const tx = await skillRegistry.updateSkill(
+        skillId,
+        name,
+        version,
+        description,
+        endpoint,
+        domains
+      );
+      console.log(chalk.cyan('Transaction sent:'), tx.hash);
+
+      const receipt = await tx.wait();
+      console.log(chalk.green('✅ Skill updated!'));
+      console.log(chalk.cyan('Gas used:'), receipt.gasUsed.toString());
+    } catch (error: unknown) {
+      const err = error as { message?: string; reason?: string };
+      console.error(chalk.red('❌ Error:'), err.message);
+      if (err.reason) console.error(chalk.red('Reason:'), err.reason);
+      process.exit(1);
+    }
+  });
+
 // 🎯 HELP COMMAND
 program
   .command('help')
@@ -2190,6 +2896,26 @@ program
     );
     console.log(chalk.cyan('  attest-decision <id>') + '   Attest to winning evaluator');
     console.log(chalk.cyan('  proposal-status <id>') + '    Get proposal and evaluation status');
+    console.log(chalk.cyan('  -- V6 Bidding Commands --'));
+    console.log(chalk.cyan('  create-open-job') + '         Create an open job for bidding');
+    console.log(chalk.cyan('  commit-bid') + '             Commit a sealed bid with stake');
+    console.log(chalk.cyan('  reveal-bid') + '             Reveal your committed bid');
+    console.log(chalk.cyan('  accept-bid') + '             Accept a winning bid');
+    console.log(chalk.cyan('  withdraw-stake') + '         Withdraw your stake from a job');
+    console.log(chalk.cyan('  get-my-bid') + '             Get your bid for a job');
+    console.log(chalk.cyan('  get-job-bid-count') + '      Get number of bids on a job');
+    console.log(chalk.cyan('  get-client-job-count') + '   Get job count for a client');
+    console.log(chalk.cyan('  activate-service') + '       Activate a deactivated service');
+    console.log(chalk.cyan('  get-service-counter') + '   Get total service counter');
+    console.log(chalk.cyan('  claim-proposal-reward') + '  Claim reward for a winning proposal');
+    console.log(chalk.cyan('  release-proposal-stake') + ' Release your stake for a proposal');
+    console.log(chalk.cyan('  cancel-proposal') + '        Cancel your open proposal');
+    console.log(
+      chalk.cyan('  slash-evaluator') + '       Slash an evaluator for malicious behavior'
+    );
+    console.log(chalk.cyan('  find-skills-by-domain') + '  Find skills by domain');
+    console.log(chalk.cyan('  get-total-skill-count') + '  Get total skill count');
+    console.log(chalk.cyan('  update-skill') + '           Update an existing skill');
     console.log(chalk.cyan('  help') + '                   Show this help information');
     console.log('\n' + '='.repeat(80));
     console.log('\n🔧 Environment Variables:');

@@ -3,15 +3,7 @@
 import { useState } from 'react';
 import NextLink from 'next/link';
 import { Card } from '@heroui/react';
-import {
-  Activity,
-  Briefcase,
-  ShoppingBag,
-  Scale,
-  Loader2,
-  ExternalLink,
-  Filter,
-} from 'lucide-react';
+import { Activity, Briefcase, ShoppingBag, Scale, ExternalLink, Filter } from 'lucide-react';
 import { useActivityFeed, ActivityType } from '@/lib/hooks/useActivityFeed';
 import { StatusBadge } from '@/components/StatusBadge';
 
@@ -143,7 +135,9 @@ export default function ActivityPage(): JSX.Element {
           </p>
         </div>
         <button
-          onClick={() => refetch()}
+          onClick={() => {
+            void refetch();
+          }}
           disabled={isLoading}
           className="flex items-center gap-2 px-4 py-2 border border-divider rounded-lg hover:bg-content2 transition-colors disabled:opacity-50"
         >
@@ -174,7 +168,7 @@ export default function ActivityPage(): JSX.Element {
       <Card className="border border-divider">
         {isLoading ? (
           <div className="divide-y divide-divider">
-            {[...Array(5)].map((_, i) => (
+            {Array.from({ length: 5 }, (_, i) => (
               <ActivitySkeleton key={i} />
             ))}
           </div>
@@ -186,7 +180,9 @@ export default function ActivityPage(): JSX.Element {
             <h3 className="text-lg font-semibold mb-2">Error Loading Activity</h3>
             <p className="text-default-500 max-w-md mx-auto mb-4">{error.message}</p>
             <button
-              onClick={() => refetch()}
+              onClick={() => {
+                void refetch();
+              }}
               className="px-4 py-2 bg-gradient-to-r from-[#009F4D] to-[#00c853] text-white rounded-lg font-medium hover:opacity-90 transition-opacity"
             >
               Try Again

@@ -16,6 +16,11 @@ import type {
   JobParams,
   Job,
   JobStatus,
+  OpenJobParams,
+  Bid,
+  BidStatus,
+  CommitBidParams,
+  RevealBidParams,
   ProposalParams,
   EvaluationParams,
   Proposal,
@@ -42,7 +47,16 @@ const IDENTITY_REGISTRY_ABI = [
   'function getAgent(uint256 agentId) external view returns (address owner, string memory agentURI, address agentWallet, bool isActive)',
   'function isAgent(address agentAddress) external view returns (bool)',
   'function getCurrentAgentId() external view returns (uint256)',
+  'function setAgentURI(uint256 agentId, string calldata newURI) external',
+  'function getMetadata(uint256 agentId, string calldata metadataKey) external view returns (bytes memory)',
+  'function setMetadata(uint256 agentId, string calldata metadataKey, bytes calldata metadataValue) external',
+  'function getAgentWallet(uint256 agentId) external view returns (address)',
+  'function setAgentWallet(uint256 agentId, address newWallet, uint256 deadline, bytes calldata signature) external',
+  'function unsetAgentWallet(uint256 agentId) external',
   'event Registered(uint256 indexed agentId, string agentURI, address indexed owner)',
+  'event AgentURIUpdated(uint256 indexed agentId, string newURI)',
+  'event MetadataUpdated(uint256 indexed agentId, string key)',
+  'event AgentWalletUpdated(uint256 indexed agentId, address indexed oldWallet, address indexed newWallet)',
 ] as const;
 
 const LEGACY_REPUTATION_ABI = [
@@ -54,41 +68,92 @@ const SERVICE_REGISTRY_ABI = [
   'function createService(uint256 agentId, string calldata name, string calldata description, string calldata metadataURI, uint256 price, address paymentToken) external returns (uint256 serviceId)',
   'function updateService(uint256 serviceId, string calldata name, string calldata description, string calldata metadataURI, uint256 price) external',
   'function deactivateService(uint256 serviceId) external',
+  'function activateService(uint256 serviceId) external',
   'function getService(uint256 serviceId) external view returns (tuple(uint256 id, address provider, uint256 agentId, string name, string description, string metadataURI, uint256 price, address paymentToken, bool isActive, uint256 createdAt))',
   'function getServices(uint256 start, uint256 count) external view returns (uint256[] memory)',
   'function getActiveServiceCount() external view returns (uint256)',
   'function getProviderServices(address provider) external view returns (uint256[] memory)',
   'function getServicesByAgent(uint256 agentId) external view returns (uint256[] memory)',
+  'function getServiceCounter() external view returns (uint256)',
   'event ServiceCreated(uint256 indexed serviceId, address indexed provider, uint256 indexed agentId, string name, uint256 price)',
   'event ServiceUpdated(uint256 indexed serviceId)',
+  'event ServiceDeactivated(uint256 indexed serviceId)',
+  'event ServiceActivated(uint256 indexed serviceId)',
 ] as const;
 
 const AGENTIC_COMMERCE_ABI = [
-  'function createJob(address provider, address evaluator, uint256 expiredAt, string calldata description, address hook) external returns (uint256 jobId)',
-  'function createJobFromService(uint256 serviceId, address evaluator, uint256 expiredAt, string calldata description) external returns (uint256 jobId)',
-  'function fundJob(uint256 jobId) external',
-  'function submitJob(uint256 jobId) external',
-  'function completeJob(uint256 jobId) external',
-  'function rejectJob(uint256 jobId, string calldata reason) external',
+  // V6 Functions
+  'function createJob(address provider, address evaluator, uint256 expiredAt, string calldata description, address hook, bool evaluatorFee) external returns (uint256 jobId)',
+  'function createJobFromService(uint256 serviceId, address evaluator, uint256 expiredAt, string calldata description, address hook, bool evaluatorFee) external returns (uint256 jobId)',
+  'function createOpenJob(uint256 maxBudget, address evaluator, uint256 expiredAt, string calldata description, address paymentToken, bool evaluatorFee) external returns (uint256 jobId)',
+  'function setProvider(uint256 jobId, address provider) external',
+  'function setBudget(uint256 jobId, uint256 amount) external',
+  'function fundJob(uint256 jobId) external payable',
+  'function fundJobWithETH(uint256 jobId) external payable',
+  'function submitJob(uint256 jobId, bytes32 deliverable) external',
+  'function completeJob(uint256 jobId, bytes32 reason) external',
+  'function rejectJob(uint256 jobId, bytes32 reason) external',
   'function claimRefund(uint256 jobId) external',
-  'function getJob(uint256 jobId) external view returns (tuple(uint256 id, address client, address provider, address evaluator, string description, uint256 budget, uint256 expiredAt, uint8 status, address hook, bytes32 deliverable))',
+  // Bidding Functions
+  'function commitBid(uint256 jobId, bytes32 commitHash) external',
+  'function revealBid(uint256 jobId, uint256 amount, string calldata message, bytes32 salt) external',
+  'function acceptBid(uint256 jobId, uint256 bidId) external',
+  'function withdrawStake(uint256 jobId) external',
+  // View Functions
+  'function getJob(uint256 jobId) external view returns (tuple(uint256 id, address client, address provider, address evaluator, uint256 serviceId, string description, uint256 budget, uint256 maxBudget, uint256 expiredAt, uint8 status, address hook, bytes32 deliverable, bool evaluatorFee, address paymentToken))',
   'function getCurrentJobId() external view returns (uint256)',
   'function getClientJobs(address client) external view returns (uint256[] memory)',
-  'event JobCreated(uint256 indexed jobId, address indexed client, address indexed provider)',
+  'function getClientJobCount(address client) external view returns (uint256)',
+  'function getUserBid(uint256 jobId, address user) external view returns (tuple(address bidder, uint256 amount, string message, uint8 status, uint256 committedAt, uint256 revealedAt))',
+  'function jobBidCount(uint256 jobId) external view returns (uint256)',
+  'function calculateStake(uint256 maxBudget) external pure returns (uint256)',
+  'function isEvaluatorFeeEnabled(uint256 jobId) external view returns (bool)',
+  'function totalStakesHeld(address user) external view returns (uint256)',
+  // Admin Functions
+  'function setPlatformTreasury(address treasury) external',
+  'function setPlatformFee(uint256 feeBP) external',
+  // Events
+  'event JobCreated(uint256 indexed jobId, address indexed client, address indexed provider, address evaluator, uint256 serviceId, uint256 expiredAt)',
+  'event OpenJobCreated(uint256 indexed jobId, address indexed client, uint256 maxBudget, address evaluator, uint256 expiredAt)',
   'event JobFunded(uint256 indexed jobId, uint256 amount)',
-  'event JobSubmitted(uint256 indexed jobId)',
-  'event JobCompleted(uint256 indexed jobId, uint256 payment)',
+  'event JobSubmitted(uint256 indexed jobId, bytes32 deliverable)',
+  'event JobCompleted(uint256 indexed jobId, uint256 payment, address recipient)',
+  'event JobRejected(uint256 indexed jobId, string reason)',
+  'event JobStatusChanged(uint256 indexed jobId, uint8 status)',
+  'event JobUpdated(uint256 indexed jobId)',
+  'event ProviderSet(uint256 indexed jobId, address indexed provider)',
+  'event BudgetSet(uint256 indexed jobId, uint256 amount)',
+  'event BidCommitted(uint256 indexed jobId, address indexed bidder, bytes32 commitHash)',
+  'event BidRevealed(uint256 indexed jobId, address indexed bidder, uint256 amount, string message)',
+  'event BidAccepted(uint256 indexed jobId, uint256 indexed bidId, address indexed provider)',
+  'event BidWithdrawn(uint256 indexed jobId, address indexed bidder)',
+  'event StakesReturned(uint256 indexed jobId)',
+  'event PaymentReleased(uint256 indexed jobId, uint256 amount, address recipient)',
 ] as const;
 
 const AGENT_REVIEW_ABI = [
   'function createProposal(string calldata title, string calldata description, string calldata criteriaURI, uint256 reward, uint256 decisionDeadline) external payable returns (uint256 proposalId)',
   'function submitEvaluation(uint256 proposalId, int256 confidenceScore, string calldata reasoningURI) external payable',
   'function attestDecision(uint256 proposalId, address winningEvaluator) external',
+  'function slashEvaluator(address evaluator, uint256 proposalId, string calldata reason) external',
+  'function claimReward(uint256 proposalId) external',
+  'function releaseStake(uint256 proposalId) external',
+  'function cancelProposal(uint256 proposalId) external',
   'function getProposal(uint256 proposalId) external view returns (tuple(uint256 id, address proposer, string title, string description, string criteriaURI, uint256 reward, uint8 status, uint256 createdAt, uint256 decisionDeadline, address winningEvaluator))',
   'function getProposalCount() external view returns (uint256)',
   'function getEvaluation(uint256 proposalId, address evaluator) external view returns (tuple(uint256 proposalId, address evaluator, int256 confidenceScore, string reasoningURI, uint256 stakeAmount, bool isFinal, uint256 submittedAt))',
+  'function getProposalEvaluators(uint256 proposalId) external view returns (address[] memory)',
+  'function getEvaluatorCount(uint256 proposalId) external view returns (uint256)',
+  'function withdrawETH(address payable to, uint256 amount) external',
   'event ProposalCreated(uint256 indexed proposalId, address indexed proposer, string title, uint256 reward)',
   'event EvaluationSubmitted(uint256 indexed proposalId, address indexed evaluator, int256 confidenceScore, uint256 stakeAmount)',
+  'event EvaluatorRegistered(uint256 indexed proposalId, address indexed evaluator, uint256 stakeAmount)',
+  'event ProposalStatusChanged(uint256 indexed proposalId, uint8 status)',
+  'event ProposalDecided(uint256 indexed proposalId, address indexed winner)',
+  'event EvaluatorSlashed(uint256 indexed proposalId, address indexed evaluator, uint256 slashedAmount)',
+  'event RewardClaimed(uint256 indexed proposalId, address indexed winner, uint256 amount)',
+  'event StakeReleased(uint256 indexed proposalId, address indexed evaluator, uint256 amount)',
+  'event ProposalCancelledByProposer(uint256 indexed proposalId)',
 ] as const;
 
 const USDC_ABI = [
@@ -266,6 +331,56 @@ class IdentityModule {
 
   async isRegistered(): Promise<boolean> {
     return this.isAgent(this.wallet.address as Address);
+  }
+
+  async setAgentURI(agentId: number | bigint, newURI: string): Promise<TransactionResult> {
+    const tx = await this.contract.setAgentURI(agentId, newURI);
+    return {
+      hash: tx.hash,
+      wait: () => tx.wait(),
+    };
+  }
+
+  async getMetadata(agentId: number | bigint, key: string): Promise<string> {
+    const result = await this.contract.getMetadata(agentId, key);
+    return ethers.toUtf8String(result);
+  }
+
+  async setMetadata(
+    agentId: number | bigint,
+    key: string,
+    value: string
+  ): Promise<TransactionResult> {
+    const tx = await this.contract.setMetadata(agentId, key, ethers.toUtf8Bytes(value));
+    return {
+      hash: tx.hash,
+      wait: () => tx.wait(),
+    };
+  }
+
+  async getAgentWallet(agentId: number | bigint): Promise<Address> {
+    return (await this.contract.getAgentWallet(agentId)) as Address;
+  }
+
+  async setAgentWallet(
+    agentId: number | bigint,
+    newWallet: Address,
+    deadline: bigint,
+    signature: `0x${string}`
+  ): Promise<TransactionResult> {
+    const tx = await this.contract.setAgentWallet(agentId, newWallet, deadline, signature);
+    return {
+      hash: tx.hash,
+      wait: () => tx.wait(),
+    };
+  }
+
+  async unsetAgentWallet(agentId: number | bigint): Promise<TransactionResult> {
+    const tx = await this.contract.unsetAgentWallet(agentId);
+    return {
+      hash: tx.hash,
+      wait: () => tx.wait(),
+    };
   }
 
   on<K extends 'AgentRegistered'>(event: K, handler: SDKEventHandler<SDKEventMap[K]>): void {
@@ -466,6 +581,18 @@ class ServicesModule {
     };
   }
 
+  async activateService(serviceId: bigint): Promise<TransactionResult> {
+    const tx = await this.contract.activateService(serviceId);
+    return {
+      hash: tx.hash,
+      wait: () => tx.wait(),
+    };
+  }
+
+  async getServiceCounter(): Promise<number> {
+    return Number(await this.contract.getServiceCounter());
+  }
+
   on<K extends 'ServiceCreated'>(event: K, handler: SDKEventHandler<SDKEventMap[K]>): void {
     this.contract.on(event, (serviceId, provider, agentId) => {
       handler({ serviceId, provider: provider as Address, agentId });
@@ -498,7 +625,8 @@ class CommerceModule {
       params.evaluator || params.provider,
       params.expiredAt || Math.floor(Date.now() / 1000) + 7 * 24 * 60 * 60, // 7 days
       params.description,
-      params.hook || '0x0000000000000000000000000000000000000000'
+      params.hook || '0x0000000000000000000000000000000000000000',
+      params.evaluatorFee || false
     );
 
     return {
@@ -507,16 +635,75 @@ class CommerceModule {
     };
   }
 
-  async fundJob(jobId: number | bigint, amount: bigint): Promise<TransactionResult> {
-    // Approve USDC first
-    const allowance = (await this.usdc.allowance(
-      this.wallet.address,
-      this.contracts.agenticCommerce
-    )) as bigint;
+  async createOpenJob(params: OpenJobParams): Promise<TransactionResult> {
+    const tx = await this.contract.createOpenJob(
+      params.maxBudget,
+      params.evaluator || '0x0000000000000000000000000000000000000000',
+      params.expiredAt || Math.floor(Date.now() / 1000) + 7 * 24 * 60 * 60,
+      params.description,
+      params.paymentToken || this.contracts.usdc,
+      params.evaluatorFee || false
+    );
 
-    if (allowance < amount) {
-      const approveTx = await this.usdc.approve(this.contracts.agenticCommerce, ethers.MaxUint256);
-      await approveTx.wait();
+    return {
+      hash: tx.hash,
+      wait: () => tx.wait(),
+    };
+  }
+
+  async createJobFromService(
+    serviceId: bigint,
+    evaluator: Address,
+    expiredAt: bigint,
+    description: string,
+    hook: Address,
+    evaluatorFee: boolean
+  ): Promise<TransactionResult> {
+    const tx = await this.contract.createJobFromService(
+      serviceId,
+      evaluator,
+      expiredAt,
+      description,
+      hook,
+      evaluatorFee
+    );
+    return {
+      hash: tx.hash,
+      wait: () => tx.wait(),
+    };
+  }
+
+  async setProvider(jobId: bigint, provider: Address): Promise<TransactionResult> {
+    const tx = await this.contract.setProvider(jobId, provider);
+    return {
+      hash: tx.hash,
+      wait: () => tx.wait(),
+    };
+  }
+
+  async setBudget(jobId: bigint, amount: bigint): Promise<TransactionResult> {
+    const tx = await this.contract.setBudget(jobId, amount);
+    return {
+      hash: tx.hash,
+      wait: () => tx.wait(),
+    };
+  }
+
+  async fundJob(jobId: number | bigint, amount?: bigint): Promise<TransactionResult> {
+    // Approve USDC first if amount is provided
+    if (amount) {
+      const allowance = (await this.usdc.allowance(
+        this.wallet.address,
+        this.contracts.agenticCommerce
+      )) as bigint;
+
+      if (allowance < amount) {
+        const approveTx = await this.usdc.approve(
+          this.contracts.agenticCommerce,
+          ethers.MaxUint256
+        );
+        await approveTx.wait();
+      }
     }
 
     const tx = await this.contract.fundJob(jobId);
@@ -526,23 +713,31 @@ class CommerceModule {
     };
   }
 
-  async submitJob(jobId: number | bigint): Promise<TransactionResult> {
-    const tx = await this.contract.submitJob(jobId);
+  async fundJobWithETH(jobId: number | bigint, value?: bigint): Promise<TransactionResult> {
+    const tx = await this.contract.fundJobWithETH(jobId, { value: value || 0 });
     return {
       hash: tx.hash,
       wait: () => tx.wait(),
     };
   }
 
-  async completeJob(jobId: number | bigint): Promise<TransactionResult> {
-    const tx = await this.contract.completeJob(jobId);
+  async submitJob(jobId: number | bigint, deliverable: `0x${string}`): Promise<TransactionResult> {
+    const tx = await this.contract.submitJob(jobId, deliverable);
     return {
       hash: tx.hash,
       wait: () => tx.wait(),
     };
   }
 
-  async rejectJob(jobId: number | bigint, reason: string): Promise<TransactionResult> {
+  async completeJob(jobId: number | bigint, reason: `0x${string}`): Promise<TransactionResult> {
+    const tx = await this.contract.completeJob(jobId, reason);
+    return {
+      hash: tx.hash,
+      wait: () => tx.wait(),
+    };
+  }
+
+  async rejectJob(jobId: number | bigint, reason: `0x${string}`): Promise<TransactionResult> {
     const tx = await this.contract.rejectJob(jobId, reason);
     return {
       hash: tx.hash,
@@ -557,12 +752,97 @@ class CommerceModule {
       client: job.client as Address,
       provider: job.provider as Address,
       evaluator: job.evaluator as Address,
+      serviceId: job.serviceId,
       description: job.description,
       budget: job.budget,
+      maxBudget: job.maxBudget,
       expiredAt: job.expiredAt,
       status: job.status as JobStatus,
       hook: job.hook as Address,
-      deliverable: ethers.toBeHex(job.deliverable) as Address,
+      deliverable: job.deliverable as `0x${string}`,
+      evaluatorFee: job.evaluatorFee,
+      paymentToken: job.paymentToken as Address,
+    };
+  }
+
+  async getClientJobCount(client: Address): Promise<number> {
+    return Number(await this.contract.getClientJobCount(client));
+  }
+
+  async getUserBid(jobId: bigint, user: Address): Promise<Bid | null> {
+    const bid = await this.contract.getUserBid(jobId, user);
+    if (bid.bidder === '0x0000000000000000000000000000000000000000') {
+      return null;
+    }
+    return {
+      jobId,
+      bidder: bid.bidder as Address,
+      amount: bid.amount,
+      message: bid.message,
+      status: bid.status as BidStatus,
+      committedAt: bid.committedAt,
+      revealedAt: bid.revealedAt,
+    };
+  }
+
+  async jobBidCount(jobId: bigint): Promise<number> {
+    return Number(await this.contract.jobBidCount(jobId));
+  }
+
+  async calculateStake(maxBudget: bigint): Promise<bigint> {
+    return this.contract.calculateStake(maxBudget);
+  }
+
+  async isEvaluatorFeeEnabled(jobId: bigint): Promise<boolean> {
+    return this.contract.isEvaluatorFeeEnabled(jobId);
+  }
+
+  async totalStakesHeld(user: Address): Promise<bigint> {
+    return this.contract.totalStakesHeld(user);
+  }
+
+  // V6 Bidding Functions
+  async commitBid(jobId: bigint, amount: bigint, message: string): Promise<TransactionResult> {
+    // Calculate stake (1% of amount)
+    const stake = (amount * 100n) / 10000n; // 1% = 100/10000
+    const commitHash = ethers.solidityPackedKeccak256(
+      ['uint256', 'string', 'bytes32'],
+      [amount, message, ethers.randomBytes(32)]
+    );
+
+    const tx = await this.contract.commitBid(jobId, commitHash, { value: stake });
+    return {
+      hash: tx.hash,
+      wait: () => tx.wait(),
+    };
+  }
+
+  async revealBid(params: RevealBidParams): Promise<TransactionResult> {
+    const tx = await this.contract.revealBid(
+      params.jobId,
+      params.amount,
+      params.message,
+      params.salt
+    );
+    return {
+      hash: tx.hash,
+      wait: () => tx.wait(),
+    };
+  }
+
+  async acceptBid(jobId: bigint, bidId: bigint): Promise<TransactionResult> {
+    const tx = await this.contract.acceptBid(jobId, bidId);
+    return {
+      hash: tx.hash,
+      wait: () => tx.wait(),
+    };
+  }
+
+  async withdrawStake(jobId: bigint): Promise<TransactionResult> {
+    const tx = await this.contract.withdrawStake(jobId);
+    return {
+      hash: tx.hash,
+      wait: () => tx.wait(),
     };
   }
 
@@ -584,24 +864,6 @@ class CommerceModule {
 
   async approveUSDC(spender: Address, amount: bigint): Promise<TransactionResult> {
     const tx = await this.usdc.approve(spender, amount);
-    return {
-      hash: tx.hash,
-      wait: () => tx.wait(),
-    };
-  }
-
-  async createJobFromService(
-    serviceId: bigint,
-    evaluator: Address,
-    expiredAt: bigint,
-    description: string
-  ): Promise<TransactionResult> {
-    const tx = await this.contract.createJobFromService(
-      serviceId,
-      evaluator,
-      expiredAt,
-      description
-    );
     return {
       hash: tx.hash,
       wait: () => tx.wait(),
@@ -731,6 +993,58 @@ class ReviewModule {
     return Number(await this.contract.getProposalCount());
   }
 
+  async claimReward(proposalId: number | bigint): Promise<TransactionResult> {
+    const tx = await this.contract.claimReward(proposalId);
+    return {
+      hash: tx.hash,
+      wait: () => tx.wait(),
+    };
+  }
+
+  async releaseStake(proposalId: number | bigint): Promise<TransactionResult> {
+    const tx = await this.contract.releaseStake(proposalId);
+    return {
+      hash: tx.hash,
+      wait: () => tx.wait(),
+    };
+  }
+
+  async slashEvaluator(
+    evaluator: Address,
+    proposalId: number | bigint,
+    reason: string
+  ): Promise<TransactionResult> {
+    const tx = await this.contract.slashEvaluator(evaluator, proposalId, reason);
+    return {
+      hash: tx.hash,
+      wait: () => tx.wait(),
+    };
+  }
+
+  async getProposalEvaluators(proposalId: number | bigint): Promise<Address[]> {
+    return (await this.contract.getProposalEvaluators(proposalId)) as Address[];
+  }
+
+  async getEvaluatorCount(proposalId: number | bigint): Promise<number> {
+    return Number(await this.contract.getEvaluatorCount(proposalId));
+  }
+
+  async cancelProposal(proposalId: number | bigint): Promise<TransactionResult> {
+    const tx = await this.contract.cancelProposal(proposalId);
+    return {
+      hash: tx.hash,
+      wait: () => tx.wait(),
+    };
+  }
+
+  async withdrawETH(to: Address, amount: bigint): Promise<TransactionResult> {
+    const tx = await this.contract.withdrawETH(to, amount);
+    return {
+      hash: tx.hash,
+      wait: () => tx.wait(),
+    };
+  }
+
   on<K extends 'ProposalCreated' | 'EvaluationSubmitted' | 'DecisionAttested'>(
     event: K,
     handler: SDKEventHandler<SDKEventMap[K]>
@@ -770,10 +1084,16 @@ interface Skill {
 
 const AGENT_SKILL_REGISTRY_ABI = [
   'function registerSkill(uint256 agentId, string calldata name, string calldata version, string calldata description, string calldata endpoint, string[] calldata domains) external returns (uint256 skillId)',
+  'function updateSkill(uint256 skillId, string calldata name, string calldata version, string calldata description, string calldata endpoint, string[] calldata domains) external',
   'function getAgentSkills(uint256 agentId) external view returns (uint256[] memory)',
   'function getSkill(uint256 skillId) external view returns (tuple(uint256 agentId, string name, string version, string description, string endpoint, string[] domains, bool isActive, address registeredBy, uint256 registeredAt))',
+  'function getSkillData(uint256 skillId) external view returns (tuple(uint256 id, uint256 agentId, string name, string version, string description, string endpoint, string[] domains, bool isActive, address registeredBy, uint256 registeredAt))',
   'function deactivateSkill(uint256 skillId) external',
+  'function getTotalSkillCount() external view returns (uint256)',
+  'function getAgentSkillCount(uint256 agentId) external view returns (uint256)',
+  'function findSkillsByDomain(string calldata domain) external view returns (uint256[] memory)',
   'event SkillRegistered(uint256 indexed agentId, uint256 indexed skillId, string name, string version, address indexed registeredBy)',
+  'event SkillUpdated(uint256 indexed skillId, string name, string version)',
   'event SkillDeactivated(uint256 indexed skillId, address indexed deactivatedBy)',
 ] as const;
 
@@ -830,6 +1150,56 @@ class SkillsModule {
       registeredBy: skill[7],
       registeredAt: skill[8],
     };
+  }
+
+  async getSkillData(skillId: bigint): Promise<Skill & { id: bigint }> {
+    const skill = await this.contract.getSkillData(skillId);
+    return {
+      id: skill.id,
+      agentId: skill.agentId,
+      name: skill.name,
+      version: skill.version,
+      description: skill.description,
+      endpoint: skill.endpoint,
+      domains: skill.domains,
+      isActive: skill.isActive,
+      registeredBy: skill.registeredBy,
+      registeredAt: skill.registeredAt,
+    };
+  }
+
+  async updateSkill(
+    skillId: bigint,
+    name: string,
+    version: string,
+    description: string,
+    endpoint: string,
+    domains: string[]
+  ): Promise<TransactionResult> {
+    const tx = await this.contract.updateSkill(
+      skillId,
+      name,
+      version,
+      description,
+      endpoint,
+      domains
+    );
+    return {
+      hash: tx.hash,
+      wait: () => tx.wait(),
+    };
+  }
+
+  async getTotalSkillCount(): Promise<number> {
+    return Number(await this.contract.getTotalSkillCount());
+  }
+
+  async getAgentSkillCount(agentId: bigint): Promise<number> {
+    return Number(await this.contract.getAgentSkillCount(agentId));
+  }
+
+  async findSkillsByDomain(domain: string): Promise<bigint[]> {
+    return this.contract.findSkillsByDomain(domain);
   }
 
   async deactivateSkill(skillId: bigint): Promise<TransactionResult> {

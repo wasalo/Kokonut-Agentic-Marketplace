@@ -4,9 +4,18 @@
  * Phase 3: Security - Report Only Mode
  */
 
+interface CSPReport {
+  'csp-report'?: {
+    'blocked-uri'?: string;
+    'violated-directive'?: string;
+    'document-uri'?: string;
+  };
+  type?: string;
+}
+
 export async function POST(request: Request) {
   try {
-    const report = await request.json();
+    const report: CSPReport = await request.json();
 
     // Log to console in development
     if (process.env.NODE_ENV === 'development') {

@@ -500,6 +500,40 @@ await client.review.claimReward(proposalId);
 await client.review.releaseStake(proposalId);
 ```
 
+### Slash Evaluator
+
+```typescript
+await client.review.slashEvaluator(evaluatorAddress, proposalId, reason);
+```
+
+### Get Proposal Evaluators
+
+```typescript
+const evaluators = await client.review.getProposalEvaluators(proposalId);
+// Returns: Address[] of all evaluators
+```
+
+### Get Evaluator Count
+
+```typescript
+const count = await client.review.getEvaluatorCount(proposalId);
+// Returns: number
+```
+
+### Cancel Proposal
+
+```typescript
+await client.review.cancelProposal(proposalId);
+// Only available for Open proposals, refunds staked ETH
+```
+
+### Withdraw ETH
+
+```typescript
+await client.review.withdrawETH(toAddress, amount);
+// Admin function to withdraw contract ETH balance
+```
+
 ---
 
 ## Skills Module
@@ -530,6 +564,47 @@ const skillIds = await client.skills.getAgentSkills(agentId);
 ```typescript
 const skill = await client.skills.getSkill(skillId);
 // Returns: { agentId, name, version, description, endpoint, domains, isActive, registeredBy, registeredAt }
+```
+
+### Get Skill Data
+
+```typescript
+const skillData = await client.skills.getSkillData(skillId);
+// Returns full skill data with id field
+```
+
+### Update Skill
+
+```typescript
+await client.skills.updateSkill({
+  skillId: bigint;
+  name: string;
+  version: string;
+  description: string;
+  endpoint: string;
+  domains: string[];
+});
+```
+
+### Get Total Skill Count
+
+```typescript
+const count = await client.skills.getTotalSkillCount();
+// Returns: number of all skills
+```
+
+### Get Agent Skill Count
+
+```typescript
+const count = await client.skills.getAgentSkillCount(agentId);
+// Returns: number of skills for agent
+```
+
+### Find Skills By Domain
+
+```typescript
+const skillIds = await client.skills.findSkillsByDomain('defi');
+// Returns: bigint[] of matching skill IDs
 ```
 
 ### Deactivate Skill

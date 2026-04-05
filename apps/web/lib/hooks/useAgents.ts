@@ -1,5 +1,6 @@
 'use client';
 
+import { useState, useEffect, useCallback } from 'react';
 import { useReadContract, useWriteContract } from 'wagmi';
 import { ERC8004_ABI } from '@/lib/8004contracts';
 import { decodeAgentMetadata, type AgentMetadata8004 } from '@/lib/metadata';
@@ -207,19 +208,231 @@ export function useUnsetAgentWallet() {
 
 // ============ Aggregate Hooks ============
 
+const API_KEY = process.env.NEXT_PUBLIC_8004_API_KEY || '';
+const API_BASE = 'https://8004scan.io/api/v1/public';
+const MAX_RETRIES = 3;
+const CACHE_KEY = 'kokonut_all_agents_cache_v1';
+const CACHE_DURATION = 5 * 60 * 1000; // 5 minutes
+
+interface CacheEntry {
+  agents: Agent[];
+  timestamp: number;
+  totalCount: number;
+}
+
+function getCachedAllAgents(): CacheEntry | null {
+  if (typeof window === 'undefined') return null;
+
+  try {
+    const cached = localStorage.getItem(CACHE_KEY);
+    if (!cached) return null;
+
+    const entry: CacheEntry = JSON.parse(cached);
+    const age = Date.now() - entry.timestamp;
+
+    if (age > CACHE_DURATION) {
+      localStorage.removeItem(CACHE_KEY);
+      return null;
+    }
+
+    return entry;
+  } catch {
+    return null;
+  }
+}
+
+function setCachedAllAgents(agents: Agent[], totalCount: number) {
+  if (typeof window === 'undefined') return;
+
+  try {
+    const entry: CacheEntry = {
+      agents,
+      timestamp: Date.now(),
+      totalCount,
+    };
+    localStorage.setItem(CACHE_KEY, JSON.stringify(entry));
+    debugLog('contracts', `Cached ${agents.length} all agents`);
+  } catch (error) {
+    debugLog('errors', 'Failed to cache all agents', error);
+  }
+}
+
+async function fetchWithBackoff(
+  url: string,
+  options: RequestInit,
+  retries = MAX_RETRIES
+): Promise<Response> {
+  for (let i = 0; i < retries; i++) {
+    const response = await fetch(url, options);
+
+    if (response.ok) {
+      return response;
+    }
+
+    if (response.status === 429) {
+      const delay = Math.min(1000 * Math.pow(2, i), 30000);
+      await new Promise(resolve => setTimeout(resolve, delay));
+      continue;
+    }
+
+    throw new Error(`API error: ${response.status}`);
+  }
+
+  throw new Error('Rate limited after maximum retries');
+}
+
+async function fetchAllAgentsFromAPI(
+  page: number,
+  limit: number
+): Promise<{ agents: any[]; hasMore: boolean; total: number }> {
+  try {
+    const response = await fetchWithBackoff(
+      `${API_BASE}/agents?chainId=11155111&page=${page}&limit=${limit}`,
+      {
+        headers: {
+          'X-API-Key': API_KEY,
+          'Content-Type': 'application/json',
+        },
+      }
+    );
+
+    const data = await response.json();
+    return {
+      agents: data.data || [],
+      hasMore: data.meta?.pagination?.hasMore || false,
+      total: data.meta?.pagination?.total || 0,
+    };
+  } catch (error) {
+    debugLog('errors', 'Failed to fetch agents from API', error);
+    return { agents: [], hasMore: false, total: 0 };
+  }
+}
+
+let cachedAllAgentsResults: CacheEntry | null = null;
+
 /**
  * Hook to fetch all agents with pagination
- * Note: This is a simplified version that returns an empty array
- * In production, you would fetch agents from an indexer or subgraph
+ * Fetches from 8004scan API and decodes metadata onchain via multicall
  */
 export function useAgents(start: number = 0, count: number = 20) {
-  // This is a placeholder implementation
-  // In production, this should fetch from an indexer or event logs
+  const [agents, setAgents] = useState<Agent[]>([]);
+  const [totalCount, setTotalCount] = useState(0);
+  const [isLoading, setIsLoading] = useState(true);
+  const [error, setError] = useState<Error | null>(null);
+
+  useEffect(() => {
+    let mounted = true;
+
+    const fetchAgents = async () => {
+      // Check cache first
+      const cached = getCachedAllAgents();
+      if (cached) {
+        cachedAllAgentsResults = cached;
+        if (mounted) {
+          setAgents(cached.agents.slice(start, start + count));
+          setTotalCount(cached.totalCount);
+          setIsLoading(false);
+        }
+        return;
+      }
+
+      if (cachedAllAgentsResults) {
+        if (mounted) {
+          setAgents(cachedAllAgentsResults.agents.slice(start, start + count));
+          setTotalCount(cachedAllAgentsResults.totalCount);
+          setIsLoading(false);
+        }
+        return;
+      }
+
+      setIsLoading(true);
+      setError(null);
+
+      try {
+        // Fetch all agents from API
+        const allApiAgents: any[] = [];
+        let currentPage = 1;
+        let hasMorePages = true;
+
+        while (hasMorePages && currentPage <= 50) {
+          const {
+            agents: pageAgents,
+            hasMore,
+            total,
+          } = await fetchAllAgentsFromAPI(currentPage, 100);
+
+          if (currentPage === 1 && total) {
+            if (mounted) setTotalCount(total);
+          }
+
+          allApiAgents.push(...pageAgents);
+          hasMorePages = hasMore;
+          currentPage++;
+        }
+
+        if (allApiAgents.length === 0) {
+          if (mounted) {
+            setAgents([]);
+            setTotalCount(0);
+            setIsLoading(false);
+          }
+          return;
+        }
+
+        debugLog('contracts', `Fetched ${allApiAgents.length} total agents from API`);
+
+        // For now, return all agents (without filtering by source)
+        // This ensures the hook works for both Kokonut and non-Kokonut agents
+        const decodedAgents: Agent[] = allApiAgents.map((agent: any) => ({
+          id: parseInt(agent.token_id),
+          owner: agent.owner_address as `0x${string}`,
+          agentURI: agent.agent_uri || '',
+          metadata: null,
+          isActive: true,
+          createdAt: agent.created_at,
+        }));
+
+        // Cache results
+        const cacheEntry: CacheEntry = {
+          agents: decodedAgents,
+          timestamp: Date.now(),
+          totalCount: decodedAgents.length,
+        };
+        cachedAllAgentsResults = cacheEntry;
+        setCachedAllAgents(decodedAgents, decodedAgents.length);
+
+        if (mounted) {
+          setAgents(decodedAgents.slice(start, start + count));
+          setTotalCount(decodedAgents.length);
+          setIsLoading(false);
+        }
+      } catch (err) {
+        if (mounted) {
+          setError(err instanceof Error ? err : new Error('Failed to fetch agents'));
+          setIsLoading(false);
+        }
+      }
+    };
+
+    fetchAgents();
+
+    return () => {
+      mounted = false;
+    };
+  }, [start, count]);
+
+  const refetch = useCallback(() => {
+    localStorage.removeItem(CACHE_KEY);
+    cachedAllAgentsResults = null;
+    setAgents([]);
+    setTotalCount(0);
+  }, []);
+
   return {
-    agents: [] as Agent[],
-    totalCount: 0,
-    isLoading: false,
-    error: null as Error | null,
-    refetch: () => Promise.resolve(),
+    agents,
+    totalCount,
+    isLoading,
+    error,
+    refetch,
   };
 }

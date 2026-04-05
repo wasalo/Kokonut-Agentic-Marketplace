@@ -5,6 +5,76 @@ All notable changes to the Kokonut Agent Economy Stack are documented in this fi
 The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.0.0/),
 and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0.html).
 
+## [2026-04-05] - SDK/CLI Parity & Hook Fixes
+
+### 🚀 Overview
+
+Completed SDK and CLI parity with V6 smart contracts, plus frontend hook fixes.
+
+### SDK Updates (`sdk/typescript/client.ts`)
+
+**ReviewModule - Added 7 new functions:**
+
+- `claimReward(proposalId)` - Claim reward for winning proposal
+- `releaseStake(proposalId)` - Release stake for proposal
+- `slashEvaluator(evaluator, proposalId, reason)` - Slash malicious evaluator
+- `getProposalEvaluators(proposalId)` - Get evaluators for a proposal
+- `getEvaluatorCount(proposalId)` - Get evaluator count
+- `cancelProposal(proposalId)` - Cancel open proposal
+- `withdrawETH(to, amount)` - Withdraw ETH from contract
+
+**SkillsModule - Added 5 new functions:**
+
+- `updateSkill(skillId, name, version, description, endpoint, domains)` - Update skill
+- `getSkillData(skillId)` - Get skill with full data
+- `getTotalSkillCount()` - Get total skill count
+- `getAgentSkillCount(agentId)` - Get skill count for agent
+- `findSkillsByDomain(domain)` - Find skills by domain
+
+### CLI Updates (`cli/cli.ts`)
+
+**Added 15 new V6 commands:**
+
+| Command                  | Description                       |
+| ------------------------ | --------------------------------- |
+| `create-open-job`        | Create open job for bidding       |
+| `commit-bid`             | Commit sealed bid with 1% stake   |
+| `reveal-bid`             | Reveal committed bid              |
+| `accept-bid`             | Accept winning bid                |
+| `withdraw-stake`         | Withdraw stake from job           |
+| `get-my-bid`             | Get user's bid for a job          |
+| `get-job-bid-count`      | Get bid count for job             |
+| `get-client-job-count`   | Get job count for client          |
+| `activate-service`       | Activate deactivated service      |
+| `get-service-counter`    | Get total service counter         |
+| `claim-proposal-reward`  | Claim reward for winning proposal |
+| `release-proposal-stake` | Release stake for proposal        |
+| `cancel-proposal`        | Cancel open proposal              |
+| `slash-evaluator`        | Slash malicious evaluator         |
+| `find-skills-by-domain`  | Find skills by domain             |
+| `get-total-skill-count`  | Get total skill count             |
+| `update-skill`           | Update existing skill             |
+
+### Frontend Hooks
+
+**Fixed `useAgents` placeholder** (`apps/web/lib/hooks/useAgents.ts`):
+
+- Implemented proper agent fetching from 8004scan API
+- Added caching with localStorage (5 min duration)
+- Added pagination support with `start` and `count` parameters
+
+### UI Polish
+
+**Fixed lint errors:**
+
+- `service-list.tsx`: Changed `let` to `const`, wrapped case blocks in braces
+- `activity/page.tsx`: Removed unused import, fixed promise handling
+- `admin/page.tsx`: Removed unused variable
+- `analytics/page.tsx`: Fixed promise handling with void operator
+- `csp-report/route.ts`: Added proper TypeScript interface
+
+---
+
 ## [2026-04-05] - Phase 10: Communication Infrastructure (UI Integration)
 
 ### 🚀 Overview

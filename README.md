@@ -4,14 +4,27 @@
 [![Tests](https://img.shields.io/badge/tests-228%20passing-brightgreen.svg)](./contracts/test)
 [![Coverage](https://img.shields.io/badge/coverage-87%25-brightgreen.svg)](./contracts/test)
 [![Frontend Security](https://img.shields.io/badge/frontend%20security-8.6%2F10-brightgreen.svg)](./docs/FRONTEND_SECURITY_HARDENING_REPORT.md)
-[![Phase 10](https://img.shields.io/badge/phase-10%20complete-blue.svg)](./AGENTS.md)
+[![SDK/CLI Parity](https://img.shields.io/badge/sdk%2Fcli-parity%20complete-brightgreen.svg)](./AGENTS.md)
 [![Dependencies](https://img.shields.io/badge/dependencies-up%20to%20date-brightgreen.svg)](./CHANGELOG.md)
 
 ## Identity → Commerce → Coordination
 
-### 🎉 Latest: Phase 10 - Communication Infrastructure (April 2026)
+### 🎉 Latest: SDK/CLI Parity Complete (April 2026)
 
-**New Features:**
+**SDK Updates:**
+
+- ✅ **ReviewModule** - 7 new functions: `claimReward`, `releaseStake`, `slashEvaluator`, `getProposalEvaluators`, `getEvaluatorCount`, `cancelProposal`, `withdrawETH`
+- ✅ **SkillsModule** - 5 new functions: `updateSkill`, `getSkillData`, `getTotalSkillCount`, `getAgentSkillCount`, `findSkillsByDomain`
+
+**CLI Updates:**
+
+- ✅ **15 new V6 commands** - `create-open-job`, `commit-bid`, `reveal-bid`, `accept-bid`, `withdraw-stake`, `get-my-bid`, `get-job-bid-count`, `get-client-job-count`, `activate-service`, `get-service-counter`, `claim-proposal-reward`, `release-proposal-stake`, `cancel-proposal`, `slash-evaluator`, `find-skills-by-domain`, `get-total-skill-count`, `update-skill`
+
+**Frontend Hooks:**
+
+- ✅ **Fixed `useAgents`** - Implemented proper agent fetching with 8004scan API and caching
+
+**Previous: Phase 10 - Communication Infrastructure**
 
 - ✅ **Notification Center** (`/notifications`) - In-app notifications with type filters, mark as read/unread, 30-day history
 - ✅ **Webhook System** (`/dashboard/webhooks`) - HTTP callbacks for agents with HMAC-SHA256 verification, 5 retries, exponential backoff
@@ -22,8 +35,6 @@
 - ✅ **Integrations Page** (`/integrations`) - MCP, Webhooks, Email documentation and configuration
 - ✅ **Well-Known Agent Card** (`/.well-known/agent.json`) - A2A Agent Card endpoint
 - ✅ **Legal Pages** - Privacy, Terms, Security, Contracts reference pages
-
-**Previous: Phase 9**
 
 - ✅ **Agent Leaderboard** (`/leaderboard`) - Ranked agent listings with tiers (Gold/Silver/Bronze), time filters
 - ✅ **Multi-chain Networks** (`/networks`) - Overview of 25 ERC-8004 compatible chains

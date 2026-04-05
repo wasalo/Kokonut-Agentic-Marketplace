@@ -152,7 +152,9 @@ function AnalyticsContent({
             <TimeRangeSelector value={timeRange} onChange={onTimeRangeChange} />
           )}
           <button
-            onClick={() => refetch()}
+            onClick={() => {
+              void refetch();
+            }}
             disabled={isLoading}
             className="flex items-center gap-2 px-4 py-2 border border-divider rounded-lg hover:bg-content2 transition-colors disabled:opacity-50"
           >
@@ -170,7 +172,9 @@ function AnalyticsContent({
           <h3 className="text-lg font-semibold mb-2">Error Loading Analytics</h3>
           <p className="text-default-500 max-w-md mx-auto mb-4">{error.message}</p>
           <button
-            onClick={() => refetch()}
+            onClick={() => {
+              void refetch();
+            }}
             className="px-4 py-2 bg-gradient-to-r from-[#009F4D] to-[#00c853] text-white rounded-lg font-medium hover:opacity-90 transition-opacity"
           >
             Try Again

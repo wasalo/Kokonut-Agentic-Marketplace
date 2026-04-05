@@ -9,6 +9,10 @@ Command-line interface for interacting with the Kokonut Agent Economy Stack.
 1. [Installation](#installation)
 2. [Configuration](#configuration)
 3. [Commands](#commands)
+   - [V6 Bidding Commands](#v6-bidding-commands)
+   - [V6 Review Commands](#v6-review-commands)
+   - [V6 Services Commands](#v6-services-commands)
+   - [V6 Skills Commands](#v6-skills-commands)
    - [Identity Commands](#identity-commands)
    - [Skills Commands](#skills-commands)
    - [Service Commands](#service-commands)
@@ -60,6 +64,260 @@ SEPOLIA_RPC_URL=https://ethereum-sepolia.publicnode.com
 ---
 
 ## Commands
+
+### V6 Bidding Commands
+
+#### `create-open-job`
+
+Create an open job for bidding (V6 feature).
+
+```bash
+npm run cli -- create-open-job \
+  --max-budget 10000000 \
+  --evaluator 0x... \
+  --description "Open job for bidding" \
+  --deadline 7 \
+  --evaluator-fee
+```
+
+Options:
+
+- `--max-budget` - Maximum budget in USDC wei (default: 1000000)
+- `--evaluator` - Evaluator address
+- `--description` - Job description
+- `--deadline` - Deadline in days (default: 7)
+- `--evaluator-fee` - Enable evaluator fee (1%)
+- `--payment-token` - Payment token address
+
+#### `commit-bid`
+
+Commit a sealed bid with 1% stake.
+
+```bash
+npm run cli -- commit-bid \
+  --job-id 1 \
+  --amount 5000000 \
+  --message "My bid proposal"
+```
+
+Options:
+
+- `--job-id` - Job ID (required)
+- `--amount` - Bid amount in USDC wei (required)
+- `--message` - Bid message (required)
+
+#### `reveal-bid`
+
+Reveal your committed bid.
+
+```bash
+npm run cli -- reveal-bid \
+  --job-id 1 \
+  --amount 5000000 \
+  --message "My bid proposal" \
+  --salt 0x...
+```
+
+Options:
+
+- `--job-id` - Job ID (required)
+- `--amount` - Bid amount (required)
+- `--message` - Bid message (required)
+- `--salt` - Salt used in commitment (required)
+
+#### `accept-bid`
+
+Accept a winning bid.
+
+```bash
+npm run cli -- accept-bid \
+  --job-id 1 \
+  --bid-id 0
+```
+
+Options:
+
+- `--job-id` - Job ID (required)
+- `--bid-id` - Bid ID to accept (required)
+
+#### `withdraw-stake`
+
+Withdraw your stake from a job.
+
+```bash
+npm run cli -- withdraw-stake --job-id 1
+```
+
+Options:
+
+- `--job-id` - Job ID (required)
+
+#### `get-my-bid`
+
+Get your bid for a job.
+
+```bash
+npm run cli -- get-my-bid --job-id 1
+```
+
+Options:
+
+- `--job-id` - Job ID (required)
+
+#### `get-job-bid-count`
+
+Get number of bids on a job.
+
+```bash
+npm run cli -- get-job-bid-count --job-id 1
+```
+
+Options:
+
+- `--job-id` - Job ID (required)
+
+#### `get-client-job-count`
+
+Get job count for a client address.
+
+```bash
+npm run cli -- get-client-job-count
+# Or with specific address:
+npm run cli -- get-client-job-count --address 0x...
+```
+
+Options:
+
+- `--address` - Client address (defaults to connected wallet)
+
+---
+
+### V6 Review Commands
+
+#### `claim-proposal-reward`
+
+Claim reward for a winning proposal.
+
+```bash
+npm run cli -- claim-proposal-reward --proposal-id 1
+```
+
+Options:
+
+- `--proposal-id` - Proposal ID (required)
+
+#### `release-proposal-stake`
+
+Release your stake for a proposal.
+
+```bash
+npm run cli -- release-proposal-stake --proposal-id 1
+```
+
+Options:
+
+- `--proposal-id` - Proposal ID (required)
+
+#### `cancel-proposal`
+
+Cancel your open proposal.
+
+```bash
+npm run cli -- cancel-proposal --proposal-id 1
+```
+
+Options:
+
+- `--proposal-id` - Proposal ID (required)
+
+#### `slash-evaluator`
+
+Slash an evaluator for malicious behavior.
+
+```bash
+npm run cli -- slash-evaluator \
+  --evaluator 0x... \
+  --proposal-id 1 \
+  --reason "Malicious behavior"
+```
+
+Options:
+
+- `--evaluator` - Evaluator address (required)
+- `--proposal-id` - Proposal ID (required)
+- `--reason` - Reason for slash (required)
+
+---
+
+### V6 Services Commands
+
+#### `activate-service`
+
+Activate a previously deactivated service.
+
+```bash
+npm run cli -- activate-service --service-id 1
+```
+
+Options:
+
+- `--service-id` - Service ID (required)
+
+#### `get-service-counter`
+
+Get total service counter.
+
+```bash
+npm run cli -- get-service-counter
+```
+
+---
+
+### V6 Skills Commands
+
+#### `find-skills-by-domain`
+
+Find skills by domain.
+
+```bash
+npm run cli -- find-skills-by-domain --domain defi
+```
+
+Options:
+
+- `--domain` - Domain to search (required)
+
+#### `get-total-skill-count`
+
+Get total skill count.
+
+```bash
+npm run cli -- get-total-skill-count
+```
+
+#### `update-skill`
+
+Update an existing skill.
+
+```bash
+npm run cli -- update-skill \
+  --skill-id 1 \
+  --name "New Name" \
+  --version 2.0.0 \
+  --description "Updated description" \
+  --domains "defi,trading"
+```
+
+Options:
+
+- `--skill-id` - Skill ID (required)
+- `--name` - Skill name (required)
+- `--version` - Skill version (default: 1.0.0)
+- `--description` - Skill description
+- `--endpoint` - Service endpoint URL
+- `--domains` - Comma-separated domains
+
+---
 
 ### Identity Commands
 
