@@ -10,7 +10,6 @@ import {
   useRevealBid,
   useAcceptBid,
   useUserBid,
-  useJobConstants,
   useCalculateStake,
   Job,
   Bid,
@@ -33,7 +32,6 @@ interface CommitBidFormProps {
 
 export function CommitBidForm({ job, onSuccess }: CommitBidFormProps) {
   const { isConnected, address } = useAccount();
-  const { revealWindow } = useJobConstants();
   const { calculateStake } = useCalculateStake();
   const { formatUsdValue } = useTokenPriceConversion();
 
@@ -208,7 +206,6 @@ interface RevealBidFormProps {
 export function RevealBidForm({ job, onSuccess }: RevealBidFormProps) {
   const { isConnected, address } = useAccount();
   const { bid: userBid } = useUserBid(job.id, address);
-  const { revealWindow } = useJobConstants();
 
   const { revealBid, hash, isPending, error: txError } = useRevealBid();
   const { isLoading: isConfirming, isSuccess } = useWaitForTransactionReceipt({ hash });

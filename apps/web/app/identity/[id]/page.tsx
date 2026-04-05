@@ -14,7 +14,6 @@ import {
   Award,
   Settings,
   Trophy,
-  TrendingUp,
   Zap,
 } from 'lucide-react';
 import { Card } from '@heroui/react';
@@ -102,7 +101,7 @@ export default function AgentDetailPage(): JSX.Element | null {
   }, [connectedAddress, ownerAddress]);
 
   const { reputation } = useAgentReputation(agentIdBigInt);
-  const { healthScore, isLoading: isLoadingHealth } = useAgentHealth(agentIdBigInt);
+  const { healthScore } = useAgentHealth(agentIdBigInt);
 
   const metadata = useMemo(() => (tokenURI ? decodeAgentMetadata(tokenURI) : null), [tokenURI]);
 
@@ -151,9 +150,8 @@ export default function AgentDetailPage(): JSX.Element | null {
     );
   }
 
-  const agentOwner = ownerAddress as `0x${string}`;
-  const agentWallet =
-    (walletAddress as `0x${string}`) || '0x0000000000000000000000000000000000000000';
+  const agentOwner = ownerAddress;
+  const agentWallet = walletAddress || '0x0000000000000000000000000000000000000000';
   const isActive = true;
 
   return (

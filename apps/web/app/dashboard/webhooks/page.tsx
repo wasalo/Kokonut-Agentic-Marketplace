@@ -2,16 +2,7 @@
 
 import { useState, useEffect } from 'react';
 import { useAccount } from 'wagmi';
-import {
-  Webhook,
-  Plus,
-  Trash2,
-  RefreshCw,
-  Check,
-  X,
-  AlertCircle,
-  ExternalLink,
-} from 'lucide-react';
+import { Webhook, Plus, Trash2, RefreshCw, Check, X, AlertCircle } from 'lucide-react';
 import { Card } from '@heroui/react';
 import { useWebhooks } from '@/lib/hooks/useWebhooks';
 import type {
@@ -295,7 +286,14 @@ function CreateWebhookForm({
             </div>
           )}
 
-          <Button variant="primary" className="w-full" onClick={handleSubmit} loading={isLoading}>
+          <Button
+            variant="primary"
+            className="w-full"
+            onClick={() => {
+              void handleSubmit();
+            }}
+            loading={isLoading}
+          >
             Create Webhook
           </Button>
         </div>

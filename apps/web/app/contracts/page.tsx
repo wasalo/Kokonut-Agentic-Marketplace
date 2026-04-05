@@ -2,7 +2,6 @@
 
 import { Code2, ExternalLink } from 'lucide-react';
 import { Card } from '@heroui/react';
-import NextLink from 'next/link';
 
 const SEPOLIA_EXPLORER = 'https://sepolia.etherscan.io';
 

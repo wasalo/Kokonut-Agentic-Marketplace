@@ -2,7 +2,6 @@
 
 export const dynamic = 'force-dynamic';
 
-import { useState, useMemo } from 'react';
 import { useAccount, useChainId } from 'wagmi';
 import { Card, Chip } from '@heroui/react';
 import {
@@ -16,16 +15,9 @@ import {
   Activity,
 } from 'lucide-react';
 import NextLink from 'next/link';
-import { useWalletAgentsWithDetails } from '@/lib/hooks/useWalletAgentsWithDetails';
-import {
-  useJobCount,
-  useUserJobs,
-  getJobStatusLabel,
-  getJobStatusColor,
-} from '@/lib/hooks/useJobs';
+import { useJobCount, useUserJobs, getJobStatusLabel } from '@/lib/hooks/useJobs';
 import { useProposalCount, useProposals } from '@/lib/hooks/useProposals';
 import { useActivityFeed, ActivityType } from '@/lib/hooks/useActivityFeed';
-import { debugLog } from '@/lib/debug';
 
 function WalletConnectPrompt() {
   return (
@@ -38,7 +30,7 @@ function WalletConnectPrompt() {
 }
 
 function UserJobsList({ user }: { user: `0x${string}` }) {
-  const { count } = useJobCount();
+  useJobCount();
   const { jobs, isLoading, error, refetch } = useUserJobs(user, 'all');
 
   if (isLoading) {
@@ -94,7 +86,7 @@ function UserJobsList({ user }: { user: `0x${string}` }) {
 }
 
 function UserProposalsList({ user }: { user: `0x${string}` }) {
-  const { count } = useProposalCount();
+  useProposalCount();
   const { proposals, isLoading, error } = useProposals(0, 50);
 
   if (error) {

@@ -4,24 +4,11 @@ import { useState, useCallback, useEffect } from 'react';
 import { useAccount } from 'wagmi';
 import { useSearchParams, useRouter } from 'next/navigation';
 import NextLink from 'next/link';
-import {
-  Plus,
-  Search,
-  ShoppingBag,
-  SlidersHorizontal,
-  ArrowUpDown,
-  Loader2,
-  Code,
-} from 'lucide-react';
+import { Plus, Search, ShoppingBag, SlidersHorizontal, Loader2, Code } from 'lucide-react';
 import { Card } from '@heroui/react';
 import { ServiceList } from '@/components/heroui/service-list';
 import { useAllServices } from '@/lib/hooks/useServicesContract';
-import {
-  useProviderServices,
-  useActiveServiceCount,
-  useTotalServiceCount,
-} from '@/lib/hooks/useServices';
-import { StatusBadge } from '@/components/StatusBadge';
+import { useProviderServices, useTotalServiceCount } from '@/lib/hooks/useServices';
 import { useDebounce } from '@/lib/hooks/useDebounce';
 import { useServiceEvents } from '@/lib/hooks/useServiceEvents';
 
@@ -254,9 +241,8 @@ export default function MarketplacePage(): JSX.Element {
   // Enable event-driven updates for real-time service status
   useServiceEvents();
 
-  // URL-based provider/agent filtering
+  // URL-based provider filtering
   const providerParam = searchParams.get('provider');
-  const agentParam = searchParams.get('agent');
 
   // Use provider services hook if provider filter is set
   const { services: providerServices, isLoading: isProviderLoading } = useProviderServices(
@@ -267,7 +253,6 @@ export default function MarketplacePage(): JSX.Element {
   const { services: allMarketServices, isLoading: isAllLoading } = useAllServices();
 
   // Contract-based counts
-  const { count: activeCount, isLoading: isActiveCountLoading } = useActiveServiceCount();
   const { count: totalCount, isLoading: isTotalCountLoading } = useTotalServiceCount();
 
   // Filter services based on URL params

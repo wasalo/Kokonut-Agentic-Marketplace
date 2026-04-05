@@ -42,7 +42,7 @@ export function useClientJobCount(clientAddress: `0x${string}` | undefined): Cli
   return {
     count,
     isLoading,
-    error: error as Error | null,
+    error,
     refetch,
     remainingJobs,
     isAtLimit,

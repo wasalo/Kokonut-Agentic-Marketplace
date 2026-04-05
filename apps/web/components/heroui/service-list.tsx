@@ -143,8 +143,8 @@ function ServiceCard({ service }: { service: Service }) {
         <p className="text-default-500 text-sm mb-4 line-clamp-2">{service.description}</p>
         <div className="flex justify-between items-center text-sm">
           <span className="text-default-500">
-            By {(service.provider as `0x${string}`).slice(0, 6)}...
-            {(service.provider as `0x${string}`).slice(-4)}
+            By {service.provider.slice(0, 6)}...
+            {service.provider.slice(-4)}
             {createdAt && (
               <span className="flex items-center gap-1 mt-1 text-xs text-default-400">
                 <Calendar className="w-3 h-3" />

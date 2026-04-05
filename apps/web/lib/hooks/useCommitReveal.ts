@@ -97,7 +97,7 @@ export function useCommitment(
   });
 
   return {
-    commitment: data as { blockNumber: bigint; exists: boolean } | undefined,
+    commitment: data,
     isLoading,
     error,
     refetch,
@@ -123,7 +123,7 @@ export function useIsCommitmentValid(commitmentHash: `0x${string}` | undefined) 
   });
 
   return {
-    isValid: data as boolean | undefined,
+    isValid: data,
     isLoading,
     error,
     refetch,
@@ -146,7 +146,7 @@ export function useRevealDelay() {
   });
 
   return {
-    revealDelay: data as bigint | undefined,
+    revealDelay: data,
     isLoading,
     error,
     refetch,

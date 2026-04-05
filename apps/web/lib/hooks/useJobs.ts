@@ -2,6 +2,8 @@ import { useReadContract, useReadContracts, useWriteContract } from 'wagmi';
 import { AGENTIC_COMMERCE_ABI } from '@/lib/contracts/abis';
 import { CONTRACT_ADDRESSES, getContractAddress, debugLog } from '@/lib/contracts/config';
 
+/* eslint-disable @typescript-eslint/no-explicit-any */
+
 const AGENTIC_COMMERCE_ADDRESS = getContractAddress(
   process.env.NEXT_PUBLIC_AGENTIC_COMMERCE_ADDRESS,
   CONTRACT_ADDRESSES.sepolia.agenticCommerce
@@ -99,7 +101,7 @@ export function useJob(jobId: number | bigint | undefined) {
   });
 
   return {
-    job: data as Job | undefined,
+    job: data,
     isLoading,
     error,
     refetch,

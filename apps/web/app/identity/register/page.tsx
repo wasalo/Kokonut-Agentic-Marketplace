@@ -40,7 +40,7 @@ export default function RegisterAgentPage(): JSX.Element {
   const { isConnected, address } = useAccount();
   const [formData, setFormData] = useState<FormData>(initialFormData);
 
-  const { taggedAgents, isLoading: isLoadingAgents } = useWalletAgentsWithDetails(address);
+  const { taggedAgents } = useWalletAgentsWithDetails(address);
   const isRegistered = taggedAgents.length > 0;
   const agent = taggedAgents[0];
 
@@ -73,8 +73,6 @@ export default function RegisterAgentPage(): JSX.Element {
         updatedAt: new Date().toISOString(),
       };
       const agentURI = generateAgentMetadata(metadata);
-
-      console.log('[RegisterAgent] Registering agent with URI:', agentURI);
 
       // Use simple register function with source tag in metadata JSON
       writeContract({

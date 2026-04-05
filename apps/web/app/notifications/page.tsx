@@ -125,7 +125,7 @@ function NotificationItem({
   );
 }
 
-function NotificationSkeleton() {
+function _NotificationSkeleton() {
   return (
     <div className="flex items-start gap-4 p-4 animate-pulse">
       <div className="w-10 h-10 rounded-full bg-default-200" />

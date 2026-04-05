@@ -5,6 +5,7 @@ import { useReadContract, useWriteContract } from 'wagmi';
 import { ERC8004_ABI } from '@/lib/8004contracts';
 import { decodeAgentMetadata, type AgentMetadata8004 } from '@/lib/metadata';
 import { CONTRACT_ADDRESSES, getContractAddress, debugLog } from '@/lib/contracts/config';
+import type { AgentListResponse, AgentResponse } from '@/lib/types/api';
 
 const ERC8004_ADDRESS = getContractAddress(
   process.env.NEXT_PUBLIC_8004_REGISTRY_ADDRESS,
@@ -36,7 +37,7 @@ export function useAgentOwner(agentId: bigint | undefined) {
   });
 
   return {
-    owner: data as `0x${string}` | undefined,
+    owner: data,
     isLoading,
     error,
     refetch,
@@ -56,10 +57,10 @@ export function useAgentTokenURI(agentId: bigint | undefined) {
     },
   });
 
-  const metadata = data ? decodeAgentMetadata(data as string) : null;
+  const metadata = data ? decodeAgentMetadata(data) : null;
 
   return {
-    uri: data as string | undefined,
+    uri: data,
     metadata,
     isLoading,
     error,
@@ -81,7 +82,7 @@ export function useAgentMetadata(agentId: bigint | undefined, key: string) {
   });
 
   return {
-    metadata: data as `0x${string}` | undefined,
+    metadata: data,
     isLoading,
     error,
     refetch,
@@ -102,7 +103,7 @@ export function useAgentWallet(agentId: bigint | undefined) {
   });
 
   return {
-    wallet: data as `0x${string}` | undefined,
+    wallet: data,
     isLoading,
     error,
     refetch,
@@ -284,7 +285,7 @@ async function fetchWithBackoff(
 async function fetchAllAgentsFromAPI(
   page: number,
   limit: number
-): Promise<{ agents: any[]; hasMore: boolean; total: number }> {
+): Promise<{ agents: AgentResponse[]; hasMore: boolean; total: number }> {
   try {
     const response = await fetchWithBackoff(
       `${API_BASE}/agents?chainId=11155111&page=${page}&limit=${limit}`,
@@ -296,7 +297,7 @@ async function fetchAllAgentsFromAPI(
       }
     );
 
-    const data = await response.json();
+    const data: AgentListResponse = await response.json();
     return {
       agents: data.data || [],
       hasMore: data.meta?.pagination?.hasMore || false,
@@ -350,7 +351,7 @@ export function useAgents(start: number = 0, count: number = 20) {
 
       try {
         // Fetch all agents from API
-        const allApiAgents: any[] = [];
+        const allApiAgents: AgentResponse[] = [];
         let currentPage = 1;
         let hasMorePages = true;
 
@@ -383,7 +384,7 @@ export function useAgents(start: number = 0, count: number = 20) {
 
         // For now, return all agents (without filtering by source)
         // This ensures the hook works for both Kokonut and non-Kokonut agents
-        const decodedAgents: Agent[] = allApiAgents.map((agent: any) => ({
+        const decodedAgents: Agent[] = allApiAgents.map((agent: AgentResponse) => ({
           id: parseInt(agent.token_id),
           owner: agent.owner_address as `0x${string}`,
           agentURI: agent.agent_uri || '',

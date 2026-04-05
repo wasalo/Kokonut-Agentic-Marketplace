@@ -10,6 +10,7 @@ import {
   Terminal,
   ExternalLink,
 } from 'lucide-react';
+import { MCPDemoPanel } from '@/components/MCPDemoPanel';
 import NextLink from 'next/link';
 import { useState } from 'react';
 import { Card, Button, Chip } from '@heroui/react';
@@ -224,6 +225,8 @@ npm start
               </div>
             </div>
           </Card>
+
+          <MCPDemoPanel />
         </div>
       )}
 

@@ -100,7 +100,7 @@ export function useAgentHealth(
   }, [publicClient, agentId, REGISTRY_ADDRESS]);
 
   useEffect(() => {
-    fetchHealth();
+    void fetchHealth();
   }, [fetchHealth]);
 
   return {

@@ -89,7 +89,7 @@ function SkillForm({
   const [description, setDescription] = useState(initialData?.description || '');
   const [endpoint, setEndpoint] = useState(initialData?.endpoint || '');
   const [domains, setDomains] = useState(initialData?.domains?.join(', ') || '');
-  const [formError, setFormError] = useState<string | null>(null);
+  const [_formError, setFormError] = useState<string | null>(null);
 
   const isEditing = !!initialData;
 
@@ -355,7 +355,7 @@ function SkillCard({
 
 export default function DashboardSkillsPage() {
   const { isConnected, address } = useAccount();
-  const { taggedAgents, agents, isLoading: isLoadingAgents } = useWalletAgentsWithDetails(address);
+  const { agents, isLoading: isLoadingAgents } = useWalletAgentsWithDetails(address);
   const [selectedAgentId, setSelectedAgentId] = useState<number | null>(null);
   const [showForm, setShowForm] = useState(false);
   const [editingSkill, setEditingSkill] = useState<(Skill & { skillId: bigint }) | null>(null);
@@ -408,7 +408,7 @@ export default function DashboardSkillsPage() {
   }, [skillResults, skillIds]);
 
   // Deactivate skill
-  const { writeContract: deactivateSkill, isPending: isDeactivating } = useWriteContract();
+  const { writeContract: deactivateSkill } = useWriteContract();
 
   const handleDeactivate = useCallback(
     (skillId: bigint) => {
@@ -498,7 +498,9 @@ export default function DashboardSkillsPage() {
           </div>
           {!showForm && (
             <button
-              onClick={() => setShowForm(true)}
+              onClick={() => {
+                void setShowForm(true);
+              }}
               className="inline-flex items-center gap-2 px-5 py-2.5 bg-gradient-to-r from-[#009F4D] to-[#00c853] text-white rounded-lg font-medium hover:opacity-90 transition-opacity"
             >
               <Plus className="w-4 h-4" />
@@ -600,7 +602,9 @@ export default function DashboardSkillsPage() {
                     differentiate your services.
                   </p>
                   <button
-                    onClick={() => setShowForm(true)}
+                    onClick={() => {
+                      void setShowForm(true);
+                    }}
                     className="inline-flex items-center gap-2 px-5 py-2.5 bg-gradient-to-r from-[#009F4D] to-[#00c853] text-white rounded-lg font-medium hover:opacity-90 transition-opacity"
                   >
                     <Plus className="w-4 h-4" />

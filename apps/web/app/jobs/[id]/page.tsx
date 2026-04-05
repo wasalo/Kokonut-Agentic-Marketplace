@@ -26,7 +26,7 @@ import {
   Link,
 } from 'lucide-react';
 import { Card } from '@heroui/react';
-import { formatUnits, toHex, keccak256, toBytes } from 'viem';
+import { formatUnits, toHex, keccak256 } from 'viem';
 import {
   useJob,
   useFundJob,
@@ -38,7 +38,6 @@ import {
   useSetBudget,
   useSetPaymentToken,
   useJobBidCount,
-  useJobBid,
   useUserBid,
   useWithdrawStake,
   useEvaluatorFeeEnabled,
@@ -87,10 +86,7 @@ export default function JobDetailPage({
   // USDC approval and balance hooks
   const AGENTIC_COMMERCE_ADDRESS = CONTRACTS[11155111].agenticCommerce as `0x${string}`;
   const USDC_ADDRESS = '0x1c7D4B196Cb0C7B01d743Fbc6116a902379C7238' as `0x${string}`;
-  const { allowance, isLoading: allowanceLoading } = useUSDCAllowance(
-    address,
-    AGENTIC_COMMERCE_ADDRESS
-  );
+  const { allowance } = useUSDCAllowance(address, AGENTIC_COMMERCE_ADDRESS);
   const { formattedBalance: usdcBalance, isLoading: usdcBalanceLoading } = useUSDCBalance(address);
   const { data: ethBalance, isLoading: ethBalanceLoading } = useBalance({ address });
   const { approve, hash: approveHash, isPending: isApprovePending } = useUSDCApprove();
@@ -155,7 +151,6 @@ export default function JobDetailPage({
     hash: refundHash,
     isPending: isRefundPending,
     error: refundError,
-    reset,
   } = useClaimRefund();
 
   const { setProvider, hash: providerHash, isPending: isProviderPending } = useSetProvider();
@@ -164,7 +159,7 @@ export default function JobDetailPage({
 
   // Bidding hooks for open jobs
   const { count: bidCount } = useJobBidCount(job?.id);
-  const { withdrawStake, hash: withdrawHash, isPending: isWithdrawPending } = useWithdrawStake();
+  const { hash: withdrawHash, isPending: isWithdrawPending } = useWithdrawStake();
   const { isEvaluatorFeeEnabled } = useEvaluatorFeeEnabled(job?.id);
 
   // Fetch bids using useReadContracts
@@ -204,7 +199,7 @@ export default function JobDetailPage({
       }
     };
 
-    void fetchBids();
+    void void fetchBids();
   }, [publicClient, job?.id, bidCount, jobIsOpen]);
 
   const [newProvider, setNewProvider] = useState('');
@@ -259,7 +254,7 @@ export default function JobDetailPage({
 
   // USDC approval check - includes optimistic state
   const hasAllowance = (allowance && job && allowance >= job.budget) || optimisticApprovalSent;
-  const needsApproval = !hasAllowance && job?.status === JobStatus.Open && isClient;
+  const _needsApproval = !hasAllowance && job?.status === JobStatus.Open && isClient;
   const isExpired = job && Date.now() / 1000 > Number(job.expiredAt);
 
   const anyPending =

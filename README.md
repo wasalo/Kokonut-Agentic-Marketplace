@@ -9,32 +9,42 @@
 
 ## Identity → Commerce → Coordination
 
-### 🎉 Latest: SDK/CLI Parity Complete (April 2026)
+### 🎉 Latest: Code Quality & MCP Demo (April 2026)
 
-**SDK Updates:**
+**Code Quality Improvements:**
 
-- ✅ **ReviewModule** - 7 new functions: `claimReward`, `releaseStake`, `slashEvaluator`, `getProposalEvaluators`, `getEvaluatorCount`, `cancelProposal`, `withdrawETH`
-- ✅ **SkillsModule** - 5 new functions: `updateSkill`, `getSkillData`, `getTotalSkillCount`, `getAgentSkillCount`, `findSkillsByDomain`
+- ✅ **Lint Cleanup** - Removed unused imports/vars, fixed promise handling
+- ✅ **Type Safety** - Added API type interfaces, suppressed viem edge cases
+- ✅ **Fixed `useAgents`** - Proper agent fetching with caching
 
-**CLI Updates:**
+**MCP Interactive Demo:**
 
-- ✅ **15 new V6 commands** - `create-open-job`, `commit-bid`, `reveal-bid`, `accept-bid`, `withdraw-stake`, `get-my-bid`, `get-job-bid-count`, `get-client-job-count`, `activate-service`, `get-service-counter`, `claim-proposal-reward`, `release-proposal-stake`, `cancel-proposal`, `slash-evaluator`, `find-skills-by-domain`, `get-total-skill-count`, `update-skill`
+- ✅ **Mock Data** - Realistic sample data for demo (no blockchain required)
+- ✅ **Tool Explorer** - Interactive tool selector with categories
+- ✅ **Request Builder** - Visual JSON request construction
+- ✅ **Response Viewer** - Simulated MCP responses
+- ✅ **No Wallet Required** - Try MCP without connecting
 
-**Frontend Hooks:**
+**Push Notifications:**
 
-- ✅ **Fixed `useAgents`** - Implemented proper agent fetching with 8004scan API and caching
+- ✅ **Simplified VAPID** - JSON-based storage for subscriptions
+- ✅ **Webhook Storage** - Persistent localStorage implementation
+
+**Previous: SDK/CLI Parity**
+
+- ✅ **ReviewModule** - 7 new functions for proposal management
+- ✅ **SkillsModule** - 5 new functions for skill operations
+- ✅ **15 new CLI commands** - Full V6 bidding support
 
 **Previous: Phase 10 - Communication Infrastructure**
 
-- ✅ **Notification Center** (`/notifications`) - In-app notifications with type filters, mark as read/unread, 30-day history
-- ✅ **Webhook System** (`/dashboard/webhooks`) - HTTP callbacks for agents with HMAC-SHA256 verification, 5 retries, exponential backoff
-- ✅ **Email Integration** (`/identity/settings`) - Resend API for transactional emails with user preferences
-- ✅ **MCP Server** (`packages/mcp-server/`) - Model Context Protocol server for AI agent tool access
-- ✅ **A2A Protocol** (`packages/a2a-protocol/`) - Agent-to-Agent communication with task management
-- ✅ **Push Notifications** - Web Push support with VAPID key management
-- ✅ **Integrations Page** (`/integrations`) - MCP, Webhooks, Email documentation and configuration
-- ✅ **Well-Known Agent Card** (`/.well-known/agent.json`) - A2A Agent Card endpoint
-- ✅ **Legal Pages** - Privacy, Terms, Security, Contracts reference pages
+- ✅ **Notification Center** (`/notifications`) - In-app notifications with type filters
+- ✅ **Webhook System** (`/dashboard/webhooks`) - HTTP callbacks with HMAC verification
+- ✅ **Email Integration** (`/identity/settings`) - Resend API for notifications
+- ✅ **MCP Server** (`packages/mcp-server/`) - AI agent tool access
+- ✅ **A2A Protocol** (`packages/a2a-protocol/`) - Agent-to-Agent communication
+- ✅ **Integrations Page** (`/integrations`) - MCP, Webhooks, Email documentation
+- ✅ **Legal Pages** - Privacy, Terms, Security, Contracts
 
 - ✅ **Agent Leaderboard** (`/leaderboard`) - Ranked agent listings with tiers (Gold/Silver/Bronze), time filters
 - ✅ **Multi-chain Networks** (`/networks`) - Overview of 25 ERC-8004 compatible chains

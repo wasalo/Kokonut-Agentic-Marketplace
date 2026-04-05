@@ -1,7 +1,7 @@
 'use client';
 
 import { useState, useMemo } from 'react';
-import { useReadContract, useReadContracts } from 'wagmi';
+import { useReadContracts } from 'wagmi';
 import { Card } from '@heroui/react';
 import { Search, Code, ArrowLeft, Tag, Loader2 } from 'lucide-react';
 import NextLink from 'next/link';

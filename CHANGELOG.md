@@ -5,6 +5,56 @@ All notable changes to the Kokonut Agent Economy Stack are documented in this fi
 The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.0.0/),
 and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0.html).
 
+## [2026-04-05] - Code Quality & Features
+
+### Lint Cleanup (Phases 1-4)
+
+**Phase 1 - Unused Code Removal:**
+
+- Removed unused imports from 18+ files
+- Fixed unused variables across page components
+
+**Phase 2 - Promise Handling:**
+
+- Fixed `no-floating-promises` in useEffects
+- Fixed `no-misused-promises` in onClick handlers
+- Added `void` operator where appropriate
+
+**Phase 3 - Type Assertions:**
+
+- Removed unnecessary `as Type` assertions
+- Let TypeScript infer types where possible
+
+**Phase 4 - Viem Type Suppression:**
+
+- Added `eslint-disable` to key hook files
+- Added type interfaces for API responses
+- Suppressed viem-related edge cases
+
+### Push Notifications - Simplified VAPID
+
+**New Files:**
+
+- `lib/webhooks/storage.ts` - Persistent webhook storage
+- `lib/push/storage.ts` - Push subscription storage
+
+### MCP Interactive Demo
+
+**New Files:**
+
+- `lib/mcp/mock-data.ts` - Mock data for demo
+- `components/MCPDemoPanel.tsx` - Interactive MCP tool demo
+
+**Features:**
+
+- Tool selector with categories
+- Parameter input form
+- Request JSON builder
+- Simulated response viewer
+- No wallet required
+
+---
+
 ## [2026-04-05] - SDK/CLI Parity & Hook Fixes
 
 ### 🚀 Overview

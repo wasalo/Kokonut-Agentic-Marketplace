@@ -1,7 +1,7 @@
 'use client';
 
 import { useState, useCallback, useEffect } from 'react';
-import { useAccount, useWriteContract, useWaitForTransactionReceipt } from 'wagmi';
+import { useAccount, useWaitForTransactionReceipt } from 'wagmi';
 import { useRouter } from 'next/navigation';
 import {
   ArrowLeft,
@@ -19,23 +19,16 @@ import { useCreateService } from '@/lib/hooks/useServices';
 import { useWalletAgentsWithDetails } from '@/lib/hooks/useWalletAgentsWithDetails';
 import { useAddKokonutTag } from '@/lib/hooks/useAddKokonutTag';
 import { useDebug } from '@/contexts/DebugContext';
-import {
-  validateAmount,
-  validateStringLength,
-  validateURL,
-  validateMetadataURI,
-} from '@/lib/hooks/useValidation';
+import { validateStringLength, validateMetadataURI } from '@/lib/hooks/useValidation';
 import { useFormSubmit, formatTimeRemaining } from '@/lib/hooks/useDebounce';
-import { TransactionError, FormFieldError } from '@/components/TransactionError';
+import { TransactionError } from '@/components/TransactionError';
 import {
   useTokenPriceConversion,
   USDC_TOKEN,
-  ETH_TOKEN,
   SUPPORTED_PAYMENT_TOKENS,
   Token,
 } from '@/lib/hooks/useTokenConversion';
 
-const USDC_DECIMALS = 6;
 const MAX_SERVICE_NAME_LENGTH = 100;
 const MAX_DESCRIPTION_LENGTH = 500;
 const MAX_METADATA_URI_LENGTH = 2000;

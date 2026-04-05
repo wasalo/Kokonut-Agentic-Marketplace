@@ -89,28 +89,28 @@ export default function AgentSettingsPage(): JSX.Element {
   const { isSuccess: unsetSuccess } = useWaitForTransactionReceipt({ hash: unsetHash });
 
   const handleUpdateURI = useCallback(
-    async (e: React.FormEvent) => {
+    (e: React.FormEvent) => {
       e.preventDefault();
       if (!agentId || !newURI) return;
-      await setAgentURI(agentId, newURI);
+      setAgentURI(agentId, newURI);
     },
     [agentId, newURI, setAgentURI]
   );
 
   const handleSetMetadata = useCallback(
-    async (e: React.FormEvent) => {
+    (e: React.FormEvent) => {
       e.preventDefault();
       if (!agentId || !metadataKey || !metadataValue) return;
-      await setMetadata(agentId, metadataKey, metadataValue as `0x${string}`);
+      setMetadata(agentId, metadataKey, metadataValue as `0x${string}`);
     },
     [agentId, metadataKey, metadataValue, setMetadata]
   );
 
   const handleSetWallet = useCallback(
-    async (e: React.FormEvent) => {
+    (e: React.FormEvent) => {
       e.preventDefault();
       if (!agentId || !newWallet || !deadline || !signature) return;
-      await setAgentWallet(
+      setAgentWallet(
         agentId,
         newWallet as `0x${string}`,
         BigInt(deadline),
@@ -120,9 +120,9 @@ export default function AgentSettingsPage(): JSX.Element {
     [agentId, newWallet, deadline, signature, setAgentWallet]
   );
 
-  const handleUnsetWallet = useCallback(async () => {
+  const handleUnsetWallet = useCallback(() => {
     if (!agentId) return;
-    await unsetAgentWallet(agentId);
+    unsetAgentWallet(agentId);
   }, [agentId, unsetAgentWallet]);
 
   if (!address) {

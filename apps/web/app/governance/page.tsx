@@ -24,7 +24,7 @@ export default function GovernancePage() {
   const { isSigner: isUserSigner } = useIsSigner(address);
   const { signers } = useSigners();
   const { required } = useRequiredConfirmations();
-  const { delay: executionDelay, delayInHours } = useExecutionDelay();
+  const { delayInHours } = useExecutionDelay();
   const { maxAmountInEth } = useMaxSlashAmount();
 
   const {
@@ -63,11 +63,11 @@ export default function GovernancePage() {
   }
 
   const handleCreateProposal = useCallback(
-    async (e: React.FormEvent) => {
+    (e: React.FormEvent) => {
       e.preventDefault();
       setTxStep('Creating slash proposal');
 
-      await createProposal(
+      createProposal(
         evaluator as `0x${string}`,
         BigInt(targetProposalId),
         parseEther(slashAmount),
@@ -77,20 +77,20 @@ export default function GovernancePage() {
     [evaluator, targetProposalId, slashAmount, slashReason, createProposal]
   );
 
-  const handleConfirmProposal = useCallback(async () => {
+  const handleConfirmProposal = useCallback(() => {
     if (!confirmProposalId) return;
     setTxStep('Confirming slash proposal');
-    await confirmProposal(confirmProposalId as `0x${string}`);
+    confirmProposal(confirmProposalId as `0x${string}`);
   }, [confirmProposalId, confirmProposal]);
 
-  const handleExecuteProposal = useCallback(async () => {
+  const handleExecuteProposal = useCallback(() => {
     if (!executeProposalId) return;
     setTxStep('Executing slash proposal');
-    await executeProposal(executeProposalId as `0x${string}`);
+    executeProposal(executeProposalId as `0x${string}`);
   }, [executeProposalId, executeProposal]);
 
   const isOwner = address && address.toLowerCase() === '0x3394c45b5938127eb56603a6051df26cfaf08c26';
-  const anyPending = isCreatePending || isConfirmPending || isExecutePending;
+  const _anyPending = isCreatePending || isConfirmPending || isExecutePending;
 
   return (
     <div className="container mx-auto px-4 py-8">

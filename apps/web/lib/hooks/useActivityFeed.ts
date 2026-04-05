@@ -207,7 +207,7 @@ export function useActivityFeed(type: ActivityType = 'all', limit: number = 50) 
   }, [publicClient, type, limit]);
 
   useEffect(() => {
-    fetchActivities();
+    void fetchActivities();
   }, [fetchActivities]);
 
   // Group activities by date for display

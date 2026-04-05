@@ -5,6 +5,8 @@ import { CONTRACT_ADDRESSES, getContractAddress } from '@/lib/contracts/config';
 import { getQueryConfig } from '@/lib/queryConfig';
 import { debugLog, debugError } from '@/lib/debug';
 
+/* eslint-disable @typescript-eslint/no-explicit-any */
+
 const SERVICE_REGISTRY_ADDRESS = getContractAddress(
   process.env.NEXT_PUBLIC_SERVICE_REGISTRY_ADDRESS,
   CONTRACT_ADDRESSES.sepolia.serviceRegistry

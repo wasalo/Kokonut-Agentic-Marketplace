@@ -2,6 +2,8 @@ import { useReadContract, useWriteContract } from 'wagmi';
 import { CONTRACT_ADDRESSES, getContractAddress } from '@/lib/contracts/config';
 import { ERC20_ABI } from '@/lib/contracts/abis';
 
+/* eslint-disable @typescript-eslint/no-explicit-any */
+
 const USDC_ADDRESS = getContractAddress(
   process.env.NEXT_PUBLIC_USDC_ADDRESS,
   CONTRACT_ADDRESSES.sepolia.usdc
@@ -26,7 +28,7 @@ export function useUSDCBalance(address: `0x${string}` | undefined) {
   });
 
   return {
-    balance: data as bigint | undefined,
+    balance: data,
     formattedBalance: data ? Number(data) / 1e6 : undefined,
     isLoading,
     error,
@@ -57,7 +59,7 @@ export function useUSDCAllowance(
   });
 
   return {
-    allowance: data as bigint | undefined,
+    allowance: data,
     formattedAllowance: data ? Number(data) / 1e6 : undefined,
     isLoading,
     error,
@@ -123,9 +125,9 @@ export function useUSDCInfo() {
   });
 
   return {
-    decimals: decimals as number | undefined,
-    symbol: symbol as string | undefined,
-    name: name as string | undefined,
+    decimals: decimals,
+    symbol: symbol,
+    name: name,
     isLoading: isLoadingDecimals || isLoadingSymbol || isLoadingName,
   };
 }

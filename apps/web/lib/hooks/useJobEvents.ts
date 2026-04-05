@@ -4,6 +4,8 @@ import { useQueryClient } from '@tanstack/react-query';
 import { AGENTIC_COMMERCE_ABI, AGENTIC_COMMERCE_EVENTS } from '@/lib/contracts/abis';
 import { CONTRACT_ADDRESSES } from '@/lib/contracts/config';
 
+/* eslint-disable @typescript-eslint/no-explicit-any */
+
 const AGENTIC_COMMERCE_ADDRESS = CONTRACT_ADDRESSES.sepolia.agenticCommerce;
 
 function invalidateJobQueries(queryClient: any, jobId: bigint) {

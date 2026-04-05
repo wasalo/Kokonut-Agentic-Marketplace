@@ -3,47 +3,24 @@
 import { useState, useCallback, Suspense, useEffect } from 'react';
 import { useAccount, useReadContract, useWaitForTransactionReceipt } from 'wagmi';
 import { useRouter, useSearchParams } from 'next/navigation';
-import {
-  ArrowLeft,
-  Loader2,
-  CheckCircle2,
-  ShieldCheck,
-  AlertTriangle,
-  Coins,
-  Users,
-} from 'lucide-react';
+import { ArrowLeft, Loader2, ShieldCheck, AlertTriangle, Coins, Users } from 'lucide-react';
 import NextLink from 'next/link';
-import { Card, Switch } from '@heroui/react';
-import { isAddress } from 'viem';
+import { Card } from '@heroui/react';
 import { useService } from '@/lib/hooks/useServices';
-import {
-  useCreateJobFromService,
-  useCreateJob,
-  useCreateOpenJob,
-  useJobConstants,
-  useCalculateStake,
-} from '@/lib/hooks/useJobs';
+import { useCreateJobFromService, useCreateJob, useCreateOpenJob } from '@/lib/hooks/useJobs';
 import { CONTRACT_ADDRESSES, getContractAddress } from '@/lib/contracts/config';
 import { AGENTIC_COMMERCE_ABI } from '@/lib/contracts/abis';
-import {
-  useValidation,
-  validateAddress,
-  validateDeadline,
-  validateStringLength,
-} from '@/lib/hooks/useValidation';
+import { validateAddress, validateDeadline, validateStringLength } from '@/lib/hooks/useValidation';
 import { TransactionError } from '@/components/TransactionError';
 import { useFormSubmit, formatTimeRemaining } from '@/lib/hooks/useDebounce';
 import { useClientJobCount, MAX_JOBS_PER_CLIENT } from '@/lib/hooks/useClientJobCount';
 import {
   useTokenPriceConversion,
   USDC_TOKEN,
-  ETH_TOKEN,
   SUPPORTED_PAYMENT_TOKENS,
   Token,
 } from '@/lib/hooks/useTokenConversion';
 import { showToast } from '@/lib/toast';
-
-const USDC_ADDRESS = process.env.NEXT_PUBLIC_USDC_ADDRESS as `0x${string}`;
 
 const MAX_DESCRIPTION_LENGTH = 1000;
 const MIN_EXPIRY_DURATION = 5 * 60 * 1000;
@@ -181,9 +158,6 @@ function CreateJobContent() {
     isPending: isOpenPending,
     error: openError,
   } = useCreateOpenJob();
-
-  const { revealWindow } = useJobConstants();
-  const { stakeAmount } = useCalculateStake();
 
   const txHash = serviceHash || directHash || openHash;
   const { isLoading: isConfirming, isSuccess: isConfirmed } = useWaitForTransactionReceipt({
@@ -346,7 +320,7 @@ function CreateJobContent() {
           description || `Job for ${service.name}`
         );
       } else {
-        const budgetUsdc = Math.floor(parseFloat(budget) * 1e6);
+        const _budgetUsdc = Math.floor(parseFloat(budget) * 1e6);
         createJob(
           provider as `0x${string}`,
           effectiveEvaluator as `0x${string}`,

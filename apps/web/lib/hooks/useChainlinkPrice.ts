@@ -23,10 +23,10 @@ export function useChainlinkEthUsdPrice() {
 
   const priceData: ChainlinkPriceData | null = data
     ? {
-        price: data[1] as bigint, // answer
-        decimals: 8, // ETH/USD typically has 8 decimals
-        updatedAt: Number(data[3]), // updatedAt
-        priceInUsd: Number(data[1]) / 1e8, // Convert to USD
+        price: data[1],
+        decimals: 8,
+        updatedAt: Number(data[3]),
+        priceInUsd: Number(data[1]) / 1e8,
       }
     : null;
 

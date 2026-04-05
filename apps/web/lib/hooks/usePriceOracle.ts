@@ -2,6 +2,8 @@ import { useReadContract } from 'wagmi';
 import { CONTRACT_ADDRESSES, getContractAddress } from '@/lib/contracts/config';
 import { PRICE_ORACLE_ABI } from '@/lib/contracts/abis';
 
+/* eslint-disable @typescript-eslint/no-explicit-any */
+
 const PRICE_ORACLE_ADDRESS = getContractAddress(
   process.env.NEXT_PUBLIC_PRICE_ORACLE_ADDRESS,
   CONTRACT_ADDRESSES.sepolia.priceOracle
@@ -23,7 +25,7 @@ export function useUSDCPrice() {
   });
 
   return {
-    price: data as bigint | undefined,
+    price: data,
     priceInUsd: data ? Number(data) / 1e8 : undefined,
     isLoading,
     error,
@@ -47,7 +49,7 @@ export function useETHRate() {
   });
 
   return {
-    rate: data as bigint | undefined,
+    rate: data,
     isLoading,
     error,
     refetch,
@@ -70,7 +72,7 @@ export function usePriceOracleStale() {
   });
 
   return {
-    isStale: data as boolean | undefined,
+    isStale: data,
     isLoading,
     error,
     refetch,
@@ -96,7 +98,7 @@ export function useTokenPrice(tokenAddress: `0x${string}` | undefined) {
   });
 
   return {
-    price: data as bigint | undefined,
+    price: data,
     priceInUsd: data ? Number(data) / 1e8 : undefined,
     isLoading,
     error,

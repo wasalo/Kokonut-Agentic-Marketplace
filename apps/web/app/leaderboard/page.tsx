@@ -12,12 +12,11 @@ import {
   Star,
   Clock,
   RefreshCw,
-  Loader2,
 } from 'lucide-react';
 import { Card, Button } from '@heroui/react';
 import { useKokonutAgents } from '@/lib/hooks/useKokonutAgents';
 import { useLeaderboard, LeaderboardPeriod, LeaderboardEntry } from '@/lib/hooks/useLeaderboard';
-import { getTierColor, getTierLabel, formatScore, getScoreColor } from '@/lib/healthScore';
+import { getTierColor, formatScore, getScoreColor } from '@/lib/healthScore';
 import { StatusBadge } from '@/components/StatusBadge';
 
 interface TierBadgeProps {
@@ -215,13 +214,6 @@ function LoadingSkeleton() {
 }
 
 export default function LeaderboardPage() {
-  const { isConnected } = useAccount();
-  const [mounted, setMounted] = useState(false);
-
-  useEffect(() => {
-    setMounted(true);
-  }, []);
-
   const { agents, isLoading: isLoadingAgents, totalCount } = useKokonutAgents(1, 100, false);
   const agentIds = useMemo(() => agents.map(a => BigInt(a.id.toString())), [agents]);
 

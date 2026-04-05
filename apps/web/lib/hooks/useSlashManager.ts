@@ -26,7 +26,7 @@ export function useIsSigner(address: `0x${string}` | undefined) {
   });
 
   return {
-    isSigner: data as boolean | undefined,
+    isSigner: data,
     isLoading,
     error,
     refetch,
@@ -49,7 +49,7 @@ export function useSigners() {
   });
 
   return {
-    signers: data as `0x${string}`[] | undefined,
+    signers: data,
     isLoading,
     error,
     refetch,
@@ -72,7 +72,7 @@ export function useRequiredConfirmations() {
   });
 
   return {
-    required: data as bigint | undefined,
+    required: data,
     isLoading,
     error,
     refetch,
@@ -224,7 +224,7 @@ export function useExecutionDelay() {
   });
 
   return {
-    delay: data as bigint | undefined,
+    delay: data,
     delayInHours: data ? Number(data) / 3600 : undefined,
     isLoading,
     error,
@@ -248,7 +248,7 @@ export function useMaxSlashAmount() {
   });
 
   return {
-    maxAmount: data as bigint | undefined,
+    maxAmount: data,
     maxAmountInEth: data ? Number(data) / 1e18 : undefined,
     isLoading,
     error,

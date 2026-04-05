@@ -7,6 +7,8 @@ import { CONTRACT_ADDRESSES, getContractAddress, debugLog } from '@/lib/contract
 import { debugError } from '@/lib/debug';
 import { getQueryConfig } from '@/lib/queryConfig';
 
+/* eslint-disable @typescript-eslint/no-explicit-any */
+
 const AGENT_REVIEW_ADDRESS = getContractAddress(
   process.env.NEXT_PUBLIC_AGENT_REVIEW_ADDRESS,
   CONTRACT_ADDRESSES.sepolia.agentReview

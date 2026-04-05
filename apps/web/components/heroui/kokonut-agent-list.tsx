@@ -125,7 +125,9 @@ export function KokonutAgentList({ className }: KokonutAgentListProps) {
         <p className="text-danger mb-2">Error loading agents</p>
         <p className="text-default-500 text-sm">{error.message}</p>
         <button
-          onClick={() => refetch()}
+          onClick={() => {
+            void refetch();
+          }}
           className="mt-4 px-4 py-2 bg-content2 rounded-lg text-sm hover:bg-content3 transition-colors"
         >
           Retry

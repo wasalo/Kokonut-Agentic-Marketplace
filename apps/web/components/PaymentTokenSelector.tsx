@@ -1,10 +1,9 @@
 'use client';
 
-import React, { useState, useEffect } from 'react';
+import React, { useState } from 'react';
 import { useAccount, useBalance } from 'wagmi';
 import { formatUnits } from 'viem';
 import { ChevronDown, DollarSign, CircleDot } from 'lucide-react';
-import type { UseBalanceReturnType } from 'wagmi';
 
 export interface Token {
   symbol: string;
@@ -50,7 +49,7 @@ export function PaymentTokenSelector({
   const [isOpen, setIsOpen] = useState(false);
 
   // Get balance for selected token
-  const { data: ethBalance } = useBalance({
+  useBalance({
     address: selectedToken.symbol === 'ETH' ? address : undefined,
   });
 
