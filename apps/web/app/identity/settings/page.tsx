@@ -25,6 +25,7 @@ import {
   useAgentWallet,
 } from '@/lib/hooks/useAgents';
 import { useKokonutAgentsByOwner } from '@/lib/hooks/useKokonutAgentsByOwner';
+import { EmailPreferencesForm } from '@/components/EmailPreferencesForm';
 
 export default function AgentSettingsPage(): JSX.Element {
   const searchParams = useSearchParams();
@@ -412,6 +413,8 @@ export default function AgentSettingsPage(): JSX.Element {
             </form>
           )}
         </Card>
+
+        <EmailPreferencesForm />
       </div>
     </div>
   );

@@ -14,11 +14,14 @@
 **New Features:**
 
 - ✅ **Notification Center** (`/notifications`) - In-app notifications with type filters, mark as read/unread, 30-day history
-- ✅ **Webhook System** - HTTP callbacks for agents with HMAC-SHA256 verification, 5 retries, exponential backoff
-- ✅ **Email Integration** - Resend API for transactional emails (payment received, weekly digest, welcome)
+- ✅ **Webhook System** (`/dashboard/webhooks`) - HTTP callbacks for agents with HMAC-SHA256 verification, 5 retries, exponential backoff
+- ✅ **Email Integration** (`/identity/settings`) - Resend API for transactional emails with user preferences
 - ✅ **MCP Server** (`packages/mcp-server/`) - Model Context Protocol server for AI agent tool access
 - ✅ **A2A Protocol** (`packages/a2a-protocol/`) - Agent-to-Agent communication with task management
 - ✅ **Push Notifications** - Web Push support with VAPID key management
+- ✅ **Integrations Page** (`/integrations`) - MCP, Webhooks, Email documentation and configuration
+- ✅ **Well-Known Agent Card** (`/.well-known/agent.json`) - A2A Agent Card endpoint
+- ✅ **Legal Pages** - Privacy, Terms, Security, Contracts reference pages
 
 **Previous: Phase 9**
 

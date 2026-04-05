@@ -34,6 +34,7 @@ const moreLinks = [
   { name: 'Activity', href: '/activity', description: 'Recent events' },
   { name: 'Analytics', href: '/analytics', description: 'Platform metrics' },
   { name: 'Integrations', href: '/integrations', description: 'MCP, webhooks, email' },
+  { name: 'Webhooks', href: '/dashboard/webhooks', description: 'HTTP callbacks' },
   { name: 'Review', href: '/review', description: 'Evaluation proposals' },
   { name: 'Admin', href: '/admin', description: 'Contract settings' },
   { name: 'About', href: '/about', description: 'About Kokonut' },

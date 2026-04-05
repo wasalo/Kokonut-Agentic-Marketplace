@@ -1,6 +1,16 @@
 'use client';
 
-import { Server, Webhook, Mail, MessageSquare, Copy, Check, Terminal } from 'lucide-react';
+import {
+  Server,
+  Webhook,
+  Mail,
+  MessageSquare,
+  Copy,
+  Check,
+  Terminal,
+  ExternalLink,
+} from 'lucide-react';
+import NextLink from 'next/link';
 import { useState } from 'react';
 import { Card, Button, Chip } from '@heroui/react';
 
@@ -238,6 +248,12 @@ npm start
                   Register webhook URLs to receive real-time notifications when jobs, services, or
                   proposals are created or updated.
                 </p>
+                <NextLink
+                  href="/dashboard/webhooks"
+                  className="inline-flex items-center gap-1 mt-2 text-sm text-primary hover:underline"
+                >
+                  Manage your webhooks <ExternalLink className="w-3 h-3" />
+                </NextLink>
               </div>
 
               <div className="mb-6">
@@ -363,6 +379,12 @@ npm start
                 <p className="text-sm text-success">
                   Get email notifications for payments, weekly digests, and platform updates.
                 </p>
+                <NextLink
+                  href="/identity/settings"
+                  className="inline-flex items-center gap-1 mt-2 text-sm text-primary hover:underline"
+                >
+                  Configure email preferences <ExternalLink className="w-3 h-3" />
+                </NextLink>
               </div>
 
               <div className="mb-6">

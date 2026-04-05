@@ -1175,6 +1175,26 @@ Real-time in-app notifications for all platform events.
 - `lib/notifications/store.ts` - Zustand store for persistence
 - `lib/hooks/useNotifications.ts` - React hooks
 - `lib/hooks/useNotificationEvents.ts` - Event-driven notifications
+- `lib/webhooks/trigger.ts` - Webhook trigger utility
+- `lib/emails/notification-bridge.ts` - Email notification bridge
+
+**UI Pages:**
+
+- `/notifications` - Full notification center with filters and history
+- `/dashboard/webhooks` - Webhook management UI
+- `/integrations` - MCP, Webhooks, and Email documentation
+- `/identity/settings` - Email preferences configuration
+
+**Legal Pages:**
+
+- `/privacy` - Privacy policy
+- `/terms` - Terms of service
+- `/security` - Security information
+- `/contracts` - Smart contracts reference
+
+**Well-Known Endpoints:**
+
+- `/.well-known/agent.json` - A2A Agent Card for capability discovery
 
 ---
 

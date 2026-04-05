@@ -11,3 +11,5 @@ export type {
 export { createAgentCard, validateAgentCard } from './types';
 
 export { A2AClientImpl } from './client';
+
+export { createA2AServer, A2AServerImpl, type A2AServer, type A2AServerConfig } from './server';

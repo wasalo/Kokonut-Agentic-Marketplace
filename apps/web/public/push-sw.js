@@ -1,62 +1,83 @@
 const CACHE_NAME = 'kokonut-push-v1';
+const OFFLINE_URL = '/';
 
-const pushPayload = self.registration.showNotification('Test', {
-  body: 'Push notifications are working!',
-  icon: '/icon-192.png',
+self.addEventListener('install', event => {
+  event.waitUntil(
+    caches.open(CACHE_NAME).then(cache => {
+      return cache.addAll([OFFLINE_URL]);
+    })
+  );
+  self.skipWaiting();
+});
+
+self.addEventListener('activate', event => {
+  event.waitUntil(
+    caches.keys().then(cacheNames => {
+      return Promise.all(
+        cacheNames.filter(name => name !== CACHE_NAME).map(name => caches.delete(name))
+      );
+    })
+  );
+  self.clients.claim();
 });
 
 self.addEventListener('push', event => {
   if (!event.data) return;
 
+  let data;
   try {
-    const data = event.data.json();
-
-    const options = {
-      body: data.body || '',
-      icon: data.icon || '/icon-192.png',
-      badge: data.badge || '/badge-72.png',
-      tag: data.tag || 'kokonut-notification',
-      data: data.data || {},
-      actions: data.actions || [],
-      vibrate: [100, 50, 100],
-      requireInteraction: data.requireInteraction || false,
-    };
-
-    event.waitUntil(self.registration.showNotification(data.title || 'Kokonut', options));
-  } catch (error) {
-    console.error('Error handling push event:', error);
+    data = event.data.json();
+  } catch {
+    data = { title: 'Kokonut', body: event.data.text() };
   }
+
+  const options = {
+    body: data.message || data.body || 'New notification from Kokonut',
+    icon: data.icon || '/icon-192x192.png',
+    badge: data.badge || '/badge-72x72.png',
+    vibrate: [100, 50, 100],
+    data: {
+      url: data.link || data.url || '/',
+      ...data.metadata,
+    },
+    actions: data.actions || [],
+    tag: data.tag || 'kokonut-notification',
+    renotify: true,
+    requireInteraction: data.requireInteraction || false,
+  };
+
+  event.waitUntil(self.registration.showNotification(data.title || 'Kokonut Network', options));
 });
 
 self.addEventListener('notificationclick', event => {
   event.notification.close();
 
-  const urlToOpen = event.notification.data?.url || '/notifications';
+  const url = event.notification.data?.url || '/';
 
   event.waitUntil(
-    clients.matchAll({ type: 'window', includeUncontrolled: true }).then(clientList => {
-      for (const client of clientList) {
-        if (client.url === urlToOpen && 'focus' in client) {
+    clients.matchAll({ type: 'window', includeUncontrolled: true }).then(windowClients => {
+      for (const client of windowClients) {
+        if (client.url === url && 'focus' in client) {
           return client.focus();
         }
       }
       if (clients.openWindow) {
-        return clients.openWindow(urlToOpen);
+        return clients.openWindow(url);
       }
     })
   );
 });
 
 self.addEventListener('notificationclose', event => {
-  console.log('Notification closed:', event.notification.title);
+  console.log('[SW] Notification closed:', event.notification.tag);
 });
 
-self.addEventListener('install', event => {
-  console.log('Service Worker installing...');
-  self.skipWaiting();
-});
-
-self.addEventListener('activate', event => {
-  console.log('Service Worker activating...');
-  event.waitUntil(self.clients.claim());
+self.addEventListener('fetch', event => {
+  if (event.request.mode === 'navigate') {
+    event.respondWith(
+      fetch(event.request).catch(() => {
+        return caches.match(OFFLINE_URL);
+      })
+    );
+  }
 });
