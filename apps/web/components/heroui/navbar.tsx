@@ -22,24 +22,21 @@ function USDCBalance() {
   );
 }
 
-const publicNavLinks = [
-  { name: 'Identity', href: '/identity' },
-  { name: 'Marketplace', href: '/marketplace' },
-  { name: 'Jobs', href: '/jobs' },
-  { name: 'Leaderboard', href: '/leaderboard' },
-  { name: 'Networks', href: '/networks' },
+const primaryNavLinks = [
+  { name: 'Marketplace', href: '/marketplace', description: 'Discover services' },
+  { name: 'Jobs', href: '/jobs', description: 'Find work' },
+  { name: 'Identity', href: '/identity', description: 'Agent directory' },
+  { name: 'Leaderboard', href: '/leaderboard', description: 'Top agents' },
+  { name: 'Networks', href: '/networks', description: 'Multi-chain' },
 ];
 
-const privateNavLinks = [{ name: 'Dashboard', href: '/dashboard' }];
-
 const moreLinks = [
-  { name: 'Notifications', href: '/notifications' },
-  { name: 'Review', href: '/review' },
-  { name: 'Skills', href: '/skills' },
-  { name: 'Activity', href: '/activity' },
-  { name: 'Analytics', href: '/analytics' },
-  { name: 'Admin', href: '/admin' },
-  { name: 'About', href: '/about' },
+  { name: 'Activity', href: '/activity', description: 'Recent events' },
+  { name: 'Analytics', href: '/analytics', description: 'Platform metrics' },
+  { name: 'Integrations', href: '/integrations', description: 'MCP, webhooks, email' },
+  { name: 'Review', href: '/review', description: 'Evaluation proposals' },
+  { name: 'Admin', href: '/admin', description: 'Contract settings' },
+  { name: 'About', href: '/about', description: 'About Kokonut' },
 ];
 
 export function NavbarComponent(): JSX.Element {
@@ -60,8 +57,7 @@ export function NavbarComponent(): JSX.Element {
   }, []);
 
   // Always render all links to prevent hydration mismatch
-  // Use CSS to show/hide Dashboard link based on connection state
-  const allNavLinks = [...publicNavLinks, ...privateNavLinks];
+  // Dashboard only shown when connected via CSS
 
   return (
     <header className="sticky top-0 z-50 backdrop-blur-xl bg-background/80 border-b border-divider">
@@ -74,34 +70,39 @@ export function NavbarComponent(): JSX.Element {
             <span className="font-bold text-lg hidden sm:block">Kokonut</span>
           </NextLink>
 
-          <div className="hidden md:flex items-center gap-1">
-            {allNavLinks.map((link: { name: string; href: string }) => (
+          <div className="hidden lg:flex items-center gap-1">
+            {primaryNavLinks.map((link: { name: string; href: string }) => (
               <NextLink
                 key={link.name}
                 href={link.href}
-                className={
-                  link.href === '/dashboard' && (!mounted || !isConnected)
-                    ? 'hidden'
-                    : 'px-3 py-2 text-sm text-foreground hover:bg-content2 rounded-lg transition-colors'
-                }
+                className="px-3 py-2 text-sm text-foreground hover:bg-content2 rounded-lg transition-colors"
               >
                 {link.name}
               </NextLink>
             ))}
+            {mounted && isConnected && (
+              <NextLink
+                href="/dashboard"
+                className="px-3 py-2 text-sm text-foreground hover:bg-content2 rounded-lg transition-colors"
+              >
+                Dashboard
+              </NextLink>
+            )}
             <div className="relative group">
               <button className="flex items-center gap-1 px-3 py-2 text-sm text-foreground hover:bg-content2 rounded-lg transition-colors">
                 More
                 <ChevronDown className="w-3 h-3" />
               </button>
               <div className="absolute top-full left-0 pt-1 opacity-0 invisible group-hover:opacity-100 group-hover:visible transition-all">
-                <div className="bg-content2 border border-divider rounded-lg shadow-lg py-1 min-w-[140px]">
+                <div className="bg-content2 border border-divider rounded-lg shadow-lg py-1 min-w-[160px]">
                   {moreLinks.map(link => (
                     <NextLink
                       key={link.name}
                       href={link.href}
                       className="block px-4 py-2 text-sm text-foreground hover:bg-content3 transition-colors"
                     >
-                      {link.name}
+                      <span className="block font-medium">{link.name}</span>
+                      <span className="block text-xs text-default-500">{link.description}</span>
                     </NextLink>
                   ))}
                 </div>
@@ -117,7 +118,7 @@ export function NavbarComponent(): JSX.Element {
             </div>
 
             <button
-              className="md:hidden p-2 text-foreground hover:bg-content2 rounded-lg transition-colors"
+              className="lg:hidden p-2 text-foreground hover:bg-content2 rounded-lg transition-colors"
               onClick={toggleMenu}
             >
               {isMenuOpen ? <X className="w-5 h-5" /> : <Menu className="w-5 h-5" />}
@@ -126,26 +127,37 @@ export function NavbarComponent(): JSX.Element {
         </div>
 
         {isMenuOpen && (
-          <div className="md:hidden border-t border-divider py-4 space-y-1">
-            {allNavLinks.map((link: { name: string; href: string }) => (
+          <div className="lg:hidden border-t border-divider py-4 space-y-1">
+            <div className="px-4 py-2 text-xs font-semibold text-default-500 uppercase tracking-wider">
+              Discover
+            </div>
+            {primaryNavLinks.map(link => (
               <NextLink
                 key={link.name}
                 href={link.href}
-                className={
-                  link.href === '/dashboard' && (!mounted || !isConnected)
-                    ? 'hidden'
-                    : 'block px-4 py-2 text-foreground hover:bg-content2 rounded-lg transition-colors'
-                }
+                className="block px-4 py-2 text-sm text-foreground hover:bg-content2 rounded-lg transition-colors"
                 onClick={closeMenu}
               >
                 {link.name}
               </NextLink>
             ))}
+            {mounted && isConnected && (
+              <NextLink
+                href="/dashboard"
+                className="block px-4 py-2 text-sm text-foreground hover:bg-content2 rounded-lg transition-colors"
+                onClick={closeMenu}
+              >
+                Dashboard
+              </NextLink>
+            )}
+            <div className="px-4 py-2 text-xs font-semibold text-default-500 uppercase tracking-wider mt-2">
+              Tools
+            </div>
             {moreLinks.map(link => (
               <NextLink
                 key={link.name}
                 href={link.href}
-                className="block px-4 py-2 text-foreground hover:bg-content2 rounded-lg transition-colors"
+                className="block px-4 py-2 text-sm text-foreground hover:bg-content2 rounded-lg transition-colors"
                 onClick={closeMenu}
               >
                 {link.name}

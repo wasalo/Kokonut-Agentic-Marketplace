@@ -403,7 +403,7 @@ export default function HomePage(): JSX.Element {
                   <ArrowRight className="w-4 h-4" />
                 </NextLink>
                 <a
-                  href="https://github.com"
+                  href="https://github.com/wasalo/Kokonut-Agentic-Marketplace"
                   target="_blank"
                   rel="noopener noreferrer"
                   className="inline-flex items-center justify-center gap-2 px-8 py-4 text-lg font-semibold border-2 border-white text-white rounded-xl hover:bg-white/10 transition-colors"
