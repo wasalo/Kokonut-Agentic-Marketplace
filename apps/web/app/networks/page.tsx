@@ -139,11 +139,11 @@ export default function NetworksPage() {
   }, [searchQuery]);
 
   const totalAgents = useMemo(() => {
-    return stats.reduce((sum, s) => sum + s.agentCount, 0);
+    return stats.reduce((sum: number, s: { agentCount: number }) => sum + s.agentCount, 0);
   }, [stats]);
 
   const totalFeedbacks = useMemo(() => {
-    return stats.reduce((sum, s) => sum + s.feedbackCount, 0);
+    return stats.reduce((sum: number, s: { feedbackCount: number }) => sum + s.feedbackCount, 0);
   }, [stats]);
 
   return (

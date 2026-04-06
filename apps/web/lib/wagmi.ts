@@ -53,6 +53,7 @@ export const CONTRACTS = {
     commitReveal: getContractAddress('COMMIT_REVEAL'),
     slashManager: getContractAddress('SLASH_MANAGER'),
     usdc: getContractAddress('USDC'),
+    biddingSystem: getContractAddress('BIDDING_SYSTEM'),
   },
 } as const;
 

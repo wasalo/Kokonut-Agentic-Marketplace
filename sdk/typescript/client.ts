@@ -84,7 +84,7 @@ const SERVICE_REGISTRY_ABI = [
 const AGENTIC_COMMERCE_ABI = [
   // V6 Functions (using correct contract names)
   'function createJob(address provider, address evaluator, uint256 expiredAt, string calldata description, address hook, bool evaluatorFee) external returns (uint256 jobId)',
-  'function createOpenJob(uint256 maxBudget, address evaluator, uint256 expiredAt, string calldata description, address paymentToken, bool evaluatorFee) external returns (uint256 jobId)',
+  // NOTE: createOpenJob is DISABLED in V6.1 - use BiddingSystem for bidding instead
   'function setProvider(uint256 jobId, address provider) external',
   'function setBudget(uint256 jobId, uint256 amount) external',
   'function fund(uint256 jobId) external payable',
@@ -96,20 +96,18 @@ const AGENTIC_COMMERCE_ABI = [
   'function completeAfterTimeout(uint256 jobId, bytes32 reason) external',
   'function setDisputeWindow(uint256 jobId, uint256 window) external',
   'function setNonResponsiveSlashBP(uint256 jobId, uint256 slashBP) external',
-  // Bidding Functions
-  'function commitBid(uint256 jobId, bytes32 commitHash) external payable',
-  'function revealBid(uint256 jobId, uint256 amount, string calldata message, bytes32 salt) external',
-  'function acceptBid(uint256 jobId, uint256 bidId) external',
-  'function withdrawStake(uint256 jobId) external',
+  // Bidding Functions - DISABLED in V6.1 (moved to BiddingSystem)
+  // Use this.bidding.commitBid(), this.bidding.revealBid(), etc. instead
+  // 'function commitBid(uint256 jobId, bytes32 commitHash) external payable', // DISABLED
+  // 'function revealBid(uint256 jobId, uint256 amount, string calldata message, bytes32 salt) external', // DISABLED
+  // 'function acceptBid(uint256 jobId, uint256 bidId) external', // DISABLED
+  // 'function withdrawStake(uint256 jobId) external', // DISABLED
   // View Functions
   'function getJob(uint256 jobId) external view returns (tuple(uint256 id, address client, address provider, address evaluator, uint256 serviceId, address paymentToken, string description, uint256 budget, uint256 expiredAt, uint8 status, address hook, bytes32 deliverable))',
   'function jobCounter() external view returns (uint256)',
   'function getClientJobCount(address client) external view returns (uint256)',
-  'function getUserBid(uint256 jobId, address user) external view returns (tuple(uint256 bidId, address bidder, uint256 proposedAmount, uint256 stake, string message, bytes32 commitHash, bool revealed, bool accepted, bool withdrawn, uint256 timestamp))',
-  'function jobBidCount(uint256 jobId) external view returns (uint256)',
-  'function calculateStake(uint256 maxBudget) external pure returns (uint256)',
+  // NOTE: getUserBid, jobBidCount are DISABLED in V6.1 - use BiddingSystem instead
   'function isEvaluatorFeeEnabled(uint256 jobId) external view returns (bool)',
-  'function jobTypes(uint256 jobId) external view returns (uint8)',
   // Admin Functions
   'function setPlatformTreasury(address treasury) external',
   // Events
@@ -192,6 +190,7 @@ export class KokonutClient {
   public priceOracle: PriceOracleModule;
   public commitReveal: CommitRevealModule;
   public slashManager: SlashManagerModule;
+  public bidding: BiddingSystemModule; // Phase 11: Standalone bidding
 
   constructor(config: SDKConfig) {
     // Setup network
@@ -222,6 +221,7 @@ export class KokonutClient {
     this.priceOracle = new PriceOracleModule(this.provider, this.contracts);
     this.commitReveal = new CommitRevealModule(this.wallet, this.contracts);
     this.slashManager = new SlashManagerModule(this.wallet, this.contracts);
+    this.bidding = new BiddingSystemModule(this.wallet, this.contracts);
 
     // Setup event listeners
     this.setupEventListeners();

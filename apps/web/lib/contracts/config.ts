@@ -18,7 +18,7 @@ export const CONTRACT_ADDRESSES = {
     // Phase 11: BiddingSystem - Standalone commit-reveal bidding
     biddingSystem: '0x32c9d069a248a619d3EAc4D1FC76F2639AaBeF04',
     biddingSystemImpl: '0x0A09e4Ff6DAa0eeA49526560e2c946Ea32a293Bb',
-    agentReview: '0x716B02447b52Eab450e31bD77103B41bC2c7bE0b',
+    agentReview: '0x5CDb592Fd37749bF87448FBf5725D1Cd986dd1Cb', // AgentReviewV5
     priceOracle: '0x5C4AC3dAF76708DCd51911BA3B33027eAB1B4047',
     commitReveal: '0x6CEd1574A3dF7ec646e43DD8408300117c453Aa3',
     slashManager: '0x7Cf955900FD7a12680E90D834eAf19346f5DBcf9',

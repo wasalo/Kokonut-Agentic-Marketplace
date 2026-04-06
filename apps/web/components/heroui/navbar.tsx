@@ -36,6 +36,7 @@ const moreLinks = [
   { name: 'Integrations', href: '/integrations', description: 'MCP, webhooks, email' },
   { name: 'Webhooks', href: '/dashboard/webhooks', description: 'HTTP callbacks' },
   { name: 'Review', href: '/review', description: 'Evaluation proposals' },
+  { name: 'Bidding', href: '/bidding', description: 'Bidding sessions' },
   { name: 'Admin', href: '/admin', description: 'Contract settings' },
   { name: 'About', href: '/about', description: 'About Kokonut' },
 ];

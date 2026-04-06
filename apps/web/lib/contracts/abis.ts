@@ -246,19 +246,95 @@ export const SERVICE_REGISTRY_ABI = [
 ] as const;
 
 export const AGENTIC_COMMERCE_ABI = [
+  // === V6.1 Constants ===
+  {
+    inputs: [],
+    name: 'FEE_DENOMINATOR',
+    outputs: [{ name: '', type: 'uint256' }],
+    stateMutability: 'view',
+    type: 'function',
+  },
+  {
+    inputs: [],
+    name: 'EVALUATOR_FEE_BP',
+    outputs: [{ name: '', type: 'uint256' }],
+    stateMutability: 'view',
+    type: 'function',
+  },
+  {
+    inputs: [],
+    name: 'MIN_EXPIRY_DURATION',
+    outputs: [{ name: '', type: 'uint256' }],
+    stateMutability: 'view',
+    type: 'function',
+  },
+  {
+    inputs: [],
+    name: 'MAX_EXPIRY_DURATION',
+    outputs: [{ name: '', type: 'uint256' }],
+    stateMutability: 'view',
+    type: 'function',
+  },
+  {
+    inputs: [],
+    name: 'MAX_JOBS_PER_CLIENT',
+    outputs: [{ name: '', type: 'uint256' }],
+    stateMutability: 'view',
+    type: 'function',
+  },
+  {
+    inputs: [],
+    name: 'MAX_DESCRIPTION_LENGTH',
+    outputs: [{ name: '', type: 'uint256' }],
+    stateMutability: 'view',
+    type: 'function',
+  },
+  {
+    inputs: [],
+    name: 'MIN_BUDGET',
+    outputs: [{ name: '', type: 'uint256' }],
+    stateMutability: 'view',
+    type: 'function',
+  },
+  {
+    inputs: [],
+    name: 'MAX_BUDGET',
+    outputs: [{ name: '', type: 'uint256' }],
+    stateMutability: 'view',
+    type: 'function',
+  },
+  {
+    inputs: [],
+    name: 'MIN_ETH_PAYMENT',
+    outputs: [{ name: '', type: 'uint256' }],
+    stateMutability: 'view',
+    type: 'function',
+  },
+  {
+    inputs: [],
+    name: 'DEFAULT_DISPUTE_WINDOW',
+    outputs: [{ name: '', type: 'uint256' }],
+    stateMutability: 'view',
+    type: 'function',
+  },
+  {
+    inputs: [],
+    name: 'DEFAULT_NONRESPONSIVE_SLASH_BP',
+    outputs: [{ name: '', type: 'uint256' }],
+    stateMutability: 'view',
+    type: 'function',
+  },
+
   // === Initialization ===
   {
-    inputs: [
-      { name: 'treasury_', type: 'address' },
-      { name: 'serviceRegistry_', type: 'address' },
-    ],
+    inputs: [{ name: 'treasury_', type: 'address' }],
     name: 'initialize',
     outputs: [],
     stateMutability: 'nonpayable',
     type: 'function',
   },
 
-  // === Job Creation ===
+  // === V6.1 Job Creation ===
   {
     inputs: [
       { name: 'provider', type: 'address' },
@@ -266,8 +342,23 @@ export const AGENTIC_COMMERCE_ABI = [
       { name: 'expiredAt', type: 'uint256' },
       { name: 'description', type: 'string' },
       { name: 'hook', type: 'address' },
+      { name: 'evaluatorFee', type: 'bool' },
     ],
     name: 'createJob',
+    outputs: [{ name: 'jobId', type: 'uint256' }],
+    stateMutability: 'nonpayable',
+    type: 'function',
+  },
+  {
+    inputs: [
+      { name: 'serviceId', type: 'uint256' },
+      { name: 'evaluator', type: 'address' },
+      { name: 'expiredAt', type: 'uint256' },
+      { name: 'description', type: 'string' },
+      { name: 'hook', type: 'address' },
+      { name: 'evaluatorFee', type: 'bool' },
+    ],
+    name: 'createJobFromService',
     outputs: [{ name: 'jobId', type: 'uint256' }],
     stateMutability: 'nonpayable',
     type: 'function',
@@ -279,6 +370,7 @@ export const AGENTIC_COMMERCE_ABI = [
       { name: 'expiredAt', type: 'uint256' },
       { name: 'description', type: 'string' },
       { name: 'paymentToken', type: 'address' },
+      { name: 'evaluatorFee', type: 'bool' },
     ],
     name: 'createOpenJob',
     outputs: [{ name: 'jobId', type: 'uint256' }],
@@ -303,6 +395,38 @@ export const AGENTIC_COMMERCE_ABI = [
       { name: 'amount', type: 'uint256' },
     ],
     name: 'setBudget',
+    outputs: [],
+    stateMutability: 'nonpayable',
+    type: 'function',
+  },
+  {
+    inputs: [
+      { name: 'jobId', type: 'uint256' },
+      { name: 'paymentToken', type: 'address' },
+    ],
+    name: 'setPaymentToken',
+    outputs: [],
+    stateMutability: 'nonpayable',
+    type: 'function',
+  },
+
+  // === V6.1 Dispute Management ===
+  {
+    inputs: [
+      { name: 'jobId', type: 'uint256' },
+      { name: 'window', type: 'uint256' },
+    ],
+    name: 'setDisputeWindow',
+    outputs: [],
+    stateMutability: 'nonpayable',
+    type: 'function',
+  },
+  {
+    inputs: [
+      { name: 'jobId', type: 'uint256' },
+      { name: 'slashBP', type: 'uint256' },
+    ],
+    name: 'setNonResponsiveSlashBP',
     outputs: [],
     stateMutability: 'nonpayable',
     type: 'function',
@@ -341,6 +465,16 @@ export const AGENTIC_COMMERCE_ABI = [
       { name: 'jobId', type: 'uint256' },
       { name: 'reason', type: 'bytes32' },
     ],
+    name: 'completeAfterTimeout',
+    outputs: [],
+    stateMutability: 'nonpayable',
+    type: 'function',
+  },
+  {
+    inputs: [
+      { name: 'jobId', type: 'uint256' },
+      { name: 'reason', type: 'bytes32' },
+    ],
     name: 'reject',
     outputs: [],
     stateMutability: 'nonpayable',
@@ -349,40 +483,6 @@ export const AGENTIC_COMMERCE_ABI = [
   {
     inputs: [{ name: 'jobId', type: 'uint256' }],
     name: 'claimRefund',
-    outputs: [],
-    stateMutability: 'nonpayable',
-    type: 'function',
-  },
-
-  // === Bidding Functions ===
-  {
-    inputs: [
-      { name: 'jobId', type: 'uint256' },
-      { name: 'commitHash', type: 'bytes32' },
-    ],
-    name: 'commitBid',
-    outputs: [],
-    stateMutability: 'payable',
-    type: 'function',
-  },
-  {
-    inputs: [
-      { name: 'jobId', type: 'uint256' },
-      { name: 'amount', type: 'uint256' },
-      { name: 'message', type: 'string' },
-      { name: 'salt', type: 'bytes32' },
-    ],
-    name: 'revealBid',
-    outputs: [],
-    stateMutability: 'nonpayable',
-    type: 'function',
-  },
-  {
-    inputs: [
-      { name: 'jobId', type: 'uint256' },
-      { name: 'bidId', type: 'uint256' },
-    ],
-    name: 'acceptBid',
     outputs: [],
     stateMutability: 'nonpayable',
     type: 'function',
@@ -423,6 +523,136 @@ export const AGENTIC_COMMERCE_ABI = [
     type: 'function',
   },
   {
+    inputs: [{ name: 'jobId', type: 'uint256' }],
+    name: 'isEvaluatorFeeEnabled',
+    outputs: [{ name: '', type: 'bool' }],
+    stateMutability: 'view',
+    type: 'function',
+  },
+  {
+    inputs: [{ name: '', type: 'uint256' }],
+    name: 'jobs',
+    outputs: [
+      {
+        components: [
+          { name: 'id', type: 'uint256' },
+          { name: 'client', type: 'address' },
+          { name: 'provider', type: 'address' },
+          { name: 'evaluator', type: 'address' },
+          { name: 'serviceId', type: 'uint256' },
+          { name: 'paymentToken', type: 'address' },
+          { name: 'description', type: 'string' },
+          { name: 'budget', type: 'uint256' },
+          { name: 'expiredAt', type: 'uint256' },
+          { name: 'status', type: 'uint8' },
+          { name: 'hook', type: 'address' },
+          { name: 'deliverable', type: 'bytes32' },
+        ],
+        name: '',
+        type: 'tuple',
+      },
+    ],
+    stateMutability: 'view',
+    type: 'function',
+  },
+
+  // === Constants ===
+  {
+    inputs: [],
+    name: 'jobCounter',
+    outputs: [{ name: '', type: 'uint256' }],
+    stateMutability: 'view',
+    type: 'function',
+  },
+  {
+    inputs: [],
+    name: 'platformTreasury',
+    outputs: [{ name: '', type: 'address' }],
+    stateMutability: 'view',
+    type: 'function',
+  },
+  {
+    inputs: [],
+    name: 'owner',
+    outputs: [{ name: '', type: 'address' }],
+    stateMutability: 'view',
+    type: 'function',
+  },
+
+  // === Admin ===
+  {
+    inputs: [{ name: 'treasury', type: 'address' }],
+    name: 'setPlatformTreasury',
+    outputs: [],
+    stateMutability: 'nonpayable',
+    type: 'function',
+  },
+
+  // === Ownership ===
+  {
+    inputs: [],
+    name: 'renounceOwnership',
+    outputs: [],
+    stateMutability: 'nonpayable',
+    type: 'function',
+  },
+  {
+    inputs: [{ name: 'newOwner', type: 'address' }],
+    name: 'transferOwnership',
+    outputs: [],
+    stateMutability: 'nonpayable',
+    type: 'function',
+  },
+
+  // === Disabled Bidding Functions (Still exist in contract, revert when called) ===
+  // These are kept for backward compatibility - they revert with "Bidding disabled"
+  {
+    inputs: [{ name: 'maxBudget', type: 'uint256' }],
+    name: 'calculateStake',
+    outputs: [{ name: '', type: 'uint256' }],
+    stateMutability: 'pure',
+    type: 'function',
+  },
+  {
+    inputs: [
+      { name: 'jobId', type: 'uint256' },
+      { name: 'commitHash', type: 'bytes32' },
+    ],
+    name: 'commitBid',
+    outputs: [],
+    stateMutability: 'payable',
+    type: 'function',
+  },
+  {
+    inputs: [
+      { name: 'jobId', type: 'uint256' },
+      { name: 'amount', type: 'uint256' },
+      { name: 'message', type: 'string' },
+      { name: 'salt', type: 'bytes32' },
+    ],
+    name: 'revealBid',
+    outputs: [],
+    stateMutability: 'nonpayable',
+    type: 'function',
+  },
+  {
+    inputs: [
+      { name: 'jobId', type: 'uint256' },
+      { name: 'bidId', type: 'uint256' },
+    ],
+    name: 'acceptBid',
+    outputs: [],
+    stateMutability: 'nonpayable',
+    type: 'function',
+  },
+  {
+    inputs: [{ name: 'jobId', type: 'uint256' }],
+    name: 'withdrawStake',
+    outputs: [],
+    stateMutability: 'nonpayable',
+    type: 'function',
+  },
+  {
     inputs: [
       { name: 'jobId', type: 'uint256' },
       { name: 'user', type: 'address' },
@@ -439,6 +669,7 @@ export const AGENTIC_COMMERCE_ABI = [
           { name: 'commitHash', type: 'bytes32' },
           { name: 'revealed', type: 'bool' },
           { name: 'accepted', type: 'bool' },
+          { name: 'withdrawn', type: 'bool' },
           { name: 'timestamp', type: 'uint256' },
         ],
         name: '',
@@ -448,14 +679,6 @@ export const AGENTIC_COMMERCE_ABI = [
     stateMutability: 'view',
     type: 'function',
   },
-  {
-    inputs: [{ name: 'maxBudget', type: 'uint256' }],
-    name: 'calculateStake',
-    outputs: [{ name: '', type: 'uint256' }],
-    stateMutability: 'pure',
-    type: 'function',
-  },
-  // === Bid Functions ===
   {
     inputs: [{ name: 'jobId', type: 'uint256' }],
     name: 'jobBidCount',
@@ -480,6 +703,7 @@ export const AGENTIC_COMMERCE_ABI = [
           { name: 'commitHash', type: 'bytes32' },
           { name: 'revealed', type: 'bool' },
           { name: 'accepted', type: 'bool' },
+          { name: 'withdrawn', type: 'bool' },
           { name: 'timestamp', type: 'uint256' },
         ],
         name: '',
@@ -489,11 +713,9 @@ export const AGENTIC_COMMERCE_ABI = [
     stateMutability: 'view',
     type: 'function',
   },
-
-  // === Constants ===
   {
-    inputs: [],
-    name: 'jobCounter',
+    inputs: [{ name: '', type: 'address' }],
+    name: 'totalStakesHeld',
     outputs: [{ name: '', type: 'uint256' }],
     stateMutability: 'view',
     type: 'function',
@@ -507,32 +729,9 @@ export const AGENTIC_COMMERCE_ABI = [
   },
   {
     inputs: [],
-    name: 'MIN_ETH_PAYMENT',
-    outputs: [{ name: '', type: 'uint256' }],
-    stateMutability: 'view',
-    type: 'function',
-  },
-  {
-    inputs: [],
-    name: 'platformTreasury',
-    outputs: [{ name: '', type: 'address' }],
-    stateMutability: 'view',
-    type: 'function',
-  },
-  {
-    inputs: [],
     name: 'platformFeeBP',
     outputs: [{ name: '', type: 'uint256' }],
     stateMutability: 'view',
-    type: 'function',
-  },
-
-  // === Admin ===
-  {
-    inputs: [{ name: 'serviceRegistry', type: 'address' }],
-    name: 'setServiceRegistry',
-    outputs: [],
-    stateMutability: 'nonpayable',
     type: 'function',
   },
   {
@@ -541,66 +740,6 @@ export const AGENTIC_COMMERCE_ABI = [
       { name: 'treasury', type: 'address' },
     ],
     name: 'setPlatformFee',
-    outputs: [],
-    stateMutability: 'nonpayable',
-    type: 'function',
-  },
-  {
-    inputs: [{ name: 'treasury', type: 'address' }],
-    name: 'setPlatformTreasury',
-    outputs: [],
-    stateMutability: 'nonpayable',
-    type: 'function',
-  },
-  // === V6: Evaluator Fee & Stake Management ===
-  {
-    inputs: [{ name: 'jobId', type: 'uint256' }],
-    name: 'withdrawStake',
-    outputs: [],
-    stateMutability: 'nonpayable',
-    type: 'function',
-  },
-  {
-    inputs: [{ name: 'jobId', type: 'uint256' }],
-    name: 'isEvaluatorFeeEnabled',
-    outputs: [{ name: '', type: 'bool' }],
-    stateMutability: 'view',
-    type: 'function',
-  },
-  {
-    inputs: [{ name: 'jobId', type: 'uint256' }],
-    name: 'evaluatorFeeEnabled',
-    outputs: [{ name: '', type: 'bool' }],
-    stateMutability: 'view',
-    type: 'function',
-  },
-  {
-    inputs: [{ name: '', type: 'address' }],
-    name: 'totalStakesHeld',
-    outputs: [{ name: '', type: 'uint256' }],
-    stateMutability: 'view',
-    type: 'function',
-  },
-
-  // === Legacy (Still supported) ===
-  {
-    inputs: [
-      { name: 'serviceId', type: 'uint256' },
-      { name: 'evaluator', type: 'address' },
-      { name: 'expiredAt', type: 'uint256' },
-      { name: 'description', type: 'string' },
-    ],
-    name: 'createJobFromService',
-    outputs: [{ name: 'jobId', type: 'uint256' }],
-    stateMutability: 'nonpayable',
-    type: 'function',
-  },
-  {
-    inputs: [
-      { name: 'jobId', type: 'uint256' },
-      { name: 'token', type: 'address' },
-    ],
-    name: 'setPaymentToken',
     outputs: [],
     stateMutability: 'nonpayable',
     type: 'function',
@@ -735,11 +874,51 @@ export const AGENTIC_COMMERCE_EVENTS = [
   {
     anonymous: false,
     inputs: [
+      { indexed: true, name: 'jobId', type: 'uint256' },
+      { indexed: true, name: 'updateType', type: 'bytes32' },
+      { indexed: false, name: 'timestamp', type: 'uint256' },
+    ],
+    name: 'JobUpdated',
+    type: 'event',
+  },
+  {
+    anonymous: false,
+    inputs: [
       { indexed: true, name: 'client', type: 'address' },
       { indexed: false, name: 'attemptedCount', type: 'uint256' },
       { indexed: false, name: 'maxAllowed', type: 'uint256' },
     ],
     name: 'JobLimitExceeded',
+    type: 'event',
+  },
+
+  // V6.1 Dispute Events
+  {
+    anonymous: false,
+    inputs: [
+      { indexed: true, name: 'jobId', type: 'uint256' },
+      { indexed: false, name: 'window', type: 'uint256' },
+    ],
+    name: 'DisputeWindowSet',
+    type: 'event',
+  },
+  {
+    anonymous: false,
+    inputs: [
+      { indexed: true, name: 'jobId', type: 'uint256' },
+      { indexed: false, name: 'slashBP', type: 'uint256' },
+    ],
+    name: 'NonResponsiveSlashSet',
+    type: 'event',
+  },
+  {
+    anonymous: false,
+    inputs: [
+      { indexed: true, name: 'jobId', type: 'uint256' },
+      { indexed: true, name: 'evaluator', type: 'address' },
+      { indexed: false, name: 'slashAmount', type: 'uint256' },
+    ],
+    name: 'EvaluatorSlashedForInactivity',
     type: 'event',
   },
 

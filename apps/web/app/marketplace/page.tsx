@@ -10,7 +10,6 @@ import { ServiceList } from '@/components/heroui/service-list';
 import { useAllServices } from '@/lib/hooks/useServicesContract';
 import { useProviderServices, useTotalServiceCount } from '@/lib/hooks/useServices';
 import { useDebounce } from '@/lib/hooks/useDebounce';
-import { useServiceEvents } from '@/lib/hooks/useServiceEvents';
 
 interface StatCardProps {
   label: string;
@@ -237,9 +236,6 @@ export default function MarketplacePage(): JSX.Element {
   useEffect(() => {
     setMounted(true);
   }, []);
-
-  // Enable event-driven updates for real-time service status
-  useServiceEvents();
 
   // URL-based provider filtering
   const providerParam = searchParams.get('provider');

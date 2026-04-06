@@ -48,6 +48,7 @@ export interface Bid {
   commitHash: `0x${string}`;
   revealed: boolean;
   accepted: boolean;
+  withdrawn: boolean;
   timestamp: bigint;
 }
 
@@ -209,6 +210,11 @@ export function useActiveJobCount() {
 
 // ============ Write Hooks ============
 
+/**
+ * @deprecated createJobFromService is disabled in V6.1 for size optimization.
+ * Use useCreateJob + useSetProvider + useSetBudget instead.
+ * This function will revert with "createJobFromService disabled".
+ */
 export function useCreateJobFromService() {
   const { writeContract, data, isPending, error, reset } = useWriteContract();
   return {
@@ -216,14 +222,20 @@ export function useCreateJobFromService() {
       serviceId: bigint,
       evaluator: `0x${string}`,
       expiredAt: bigint,
-      description: string
-    ) =>
+      description: string,
+      hook: `0x${string}` = '0x0000000000000000000000000000000000000000',
+      evaluatorFee: boolean = false
+    ) => {
+      console.warn(
+        'useCreateJobFromService is deprecated - createJobFromService disabled in V6.1. Use createJob + setProvider + setBudget instead.'
+      );
       writeContract({
         address: AGENTIC_COMMERCE_ADDRESS,
         abi: AGENTIC_COMMERCE_ABI,
         functionName: 'createJobFromService',
-        args: [serviceId, evaluator, expiredAt, description],
-      }),
+        args: [serviceId, evaluator, expiredAt, description, hook, evaluatorFee],
+      });
+    },
     hash: data,
     isPending,
     error,
@@ -238,7 +250,8 @@ export function useCreateJob() {
       provider: `0x${string}`,
       evaluator: `0x${string}`,
       expiredAt: bigint,
-      description: string
+      description: string,
+      evaluatorFee: boolean = false
     ) =>
       writeContract({
         address: AGENTIC_COMMERCE_ADDRESS,
@@ -250,6 +263,7 @@ export function useCreateJob() {
           expiredAt,
           description,
           '0x0000000000000000000000000000000000000000',
+          evaluatorFee,
         ],
       }),
     hash: data,
@@ -464,6 +478,11 @@ export function useJobConstants() {
   };
 }
 
+/**
+ * @deprecated Bidding is now handled by the standalone BiddingSystem contract.
+ * Use useBiddingCalculateStake, useCreateBiddingSession, useBiddingCommitBid, etc. from useBiddingSystem.ts instead.
+ * These functions will revert with "Bidding disabled in V6.1"
+ */
 export function useCalculateStake() {
   const { data, isLoading, error } = useReadContract({
     address: AGENTIC_COMMERCE_ADDRESS,
@@ -480,23 +499,32 @@ export function useCalculateStake() {
   };
 }
 
+/**
+ * @deprecated Use BiddingSystem for open job bidding instead.
+ * This function will revert with "Bidding disabled in V6.1"
+ */
 export function useCreateOpenJob() {
   const { writeContract, data, isPending, error, reset } = useWriteContract();
 
   return {
     createOpenJob: (
-      maxBudget: bigint,
-      evaluator: `0x${string}`,
-      expiredAt: bigint,
-      description: string,
-      paymentToken: `0x${string}`
-    ) =>
+      _maxBudget: bigint,
+      _evaluator: `0x${string}`,
+      _expiredAt: bigint,
+      _description: string,
+      _paymentToken: `0x${string}`,
+      _evaluatorFee: boolean = false
+    ) => {
+      console.warn(
+        'useCreateOpenJob is deprecated - bidding disabled in V6.1. Use BiddingSystem instead.'
+      );
       writeContract({
         address: AGENTIC_COMMERCE_ADDRESS,
         abi: AGENTIC_COMMERCE_ABI,
         functionName: 'createOpenJob',
-        args: [maxBudget, evaluator, expiredAt, description, paymentToken],
-      }),
+        args: [_maxBudget, _evaluator, _expiredAt, _description, _paymentToken, _evaluatorFee],
+      });
+    },
     hash: data,
     isPending,
     error,
@@ -504,18 +532,19 @@ export function useCreateOpenJob() {
   };
 }
 
+/**
+ * @deprecated Use BiddingSystem for bidding instead.
+ * This function will revert with "Bidding disabled"
+ */
 export function useCommitBid() {
   const { writeContract, data, isPending, error, reset } = useWriteContract();
 
   return {
-    commitBid: (jobId: bigint, commitHash: `0x${string}`, value?: bigint) =>
-      writeContract({
-        address: AGENTIC_COMMERCE_ADDRESS,
-        abi: AGENTIC_COMMERCE_ABI,
-        functionName: 'commitBid',
-        args: [jobId, commitHash],
-        value,
-      }),
+    commitBid: (_jobId: bigint, _commitHash: `0x${string}`, _value?: bigint) => {
+      console.warn(
+        'useCommitBid is deprecated - bidding disabled in V6.1. Use useBiddingCommitBid from useBiddingSystem.ts instead.'
+      );
+    },
     hash: data,
     isPending,
     error,
@@ -523,17 +552,19 @@ export function useCommitBid() {
   };
 }
 
+/**
+ * @deprecated Use BiddingSystem for bidding instead.
+ * This function will revert with "Bidding disabled"
+ */
 export function useRevealBid() {
   const { writeContract, data, isPending, error, reset } = useWriteContract();
 
   return {
-    revealBid: (jobId: bigint, amount: bigint, message: string, salt: `0x${string}`) =>
-      writeContract({
-        address: AGENTIC_COMMERCE_ADDRESS,
-        abi: AGENTIC_COMMERCE_ABI,
-        functionName: 'revealBid',
-        args: [jobId, amount, message, salt],
-      }),
+    revealBid: (_jobId: bigint, _amount: bigint, _message: string, _salt: `0x${string}`) => {
+      console.warn(
+        'useRevealBid is deprecated - bidding disabled in V6.1. Use useBiddingRevealBid from useBiddingSystem.ts instead.'
+      );
+    },
     hash: data,
     isPending,
     error,
@@ -541,17 +572,19 @@ export function useRevealBid() {
   };
 }
 
+/**
+ * @deprecated Use BiddingSystem for bidding instead.
+ * This function will revert with "Bidding disabled"
+ */
 export function useAcceptBid() {
   const { writeContract, data, isPending, error, reset } = useWriteContract();
 
   return {
-    acceptBid: (jobId: bigint, bidId: bigint) =>
-      writeContract({
-        address: AGENTIC_COMMERCE_ADDRESS,
-        abi: AGENTIC_COMMERCE_ABI,
-        functionName: 'acceptBid',
-        args: [jobId, bidId],
-      }),
+    acceptBid: (_jobId: bigint, _bidId: bigint) => {
+      console.warn(
+        'useAcceptBid is deprecated - bidding disabled in V6.1. Use useBiddingAcceptBid from useBiddingSystem.ts instead.'
+      );
+    },
     hash: data,
     isPending,
     error,
@@ -559,6 +592,11 @@ export function useAcceptBid() {
   };
 }
 
+/**
+ * @deprecated Bidding is now handled by the standalone BiddingSystem contract.
+ * Use useBiddingUserBid from useBiddingSystem.ts instead.
+ * This function always returns an empty bid (Bid {bidId: 0}) because bidding is disabled in V6.1.
+ */
 export function useUserBid(jobId: number | bigint | undefined, user: `0x${string}` | undefined) {
   const id = jobId !== undefined ? (typeof jobId === 'bigint' ? jobId : BigInt(jobId)) : undefined;
 
@@ -602,6 +640,11 @@ export function useFundJobWithETH() {
   };
 }
 
+/**
+ * @deprecated Bidding is now handled by the standalone BiddingSystem contract.
+ * Use BiddingSystem to track bids on open jobs.
+ * This function will revert with "Bidding disabled".
+ */
 export function useJobBidCount(jobId: bigint | undefined) {
   const { data, isLoading, error, refetch } = useReadContract({
     address: AGENTIC_COMMERCE_ADDRESS,
@@ -623,6 +666,11 @@ export function useJobBidCount(jobId: bigint | undefined) {
   };
 }
 
+/**
+ * @deprecated Bidding is now handled by the standalone BiddingSystem contract.
+ * Use BiddingSystem to track bids on open jobs.
+ * This function will revert with "Bidding disabled".
+ */
 export function useJobBid(jobId: bigint | undefined, index: number) {
   const { data, isLoading, error, refetch } = useReadContract({
     address: AGENTIC_COMMERCE_ADDRESS,
@@ -644,6 +692,11 @@ export function useJobBid(jobId: bigint | undefined, index: number) {
   };
 }
 
+/**
+ * @deprecated Bidding is now handled by the standalone BiddingSystem contract.
+ * Use useBiddingWithdrawStake from useBiddingSystem.ts instead.
+ * This function will revert with "Bidding disabled".
+ */
 export function useWithdrawStake() {
   const { writeContract, data, isPending, error, reset } = useWriteContract();
 

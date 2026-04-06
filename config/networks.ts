@@ -11,11 +11,11 @@ export const NETWORKS = {
     contracts: {
       identityRegistry: '0x8004A818BFB912233c491871b3d84c89A494BD9e',
       reputationRegistry: '0x8004B663056A597Dffe9eCcC1965A193B7388713',
-      skillRegistry: '0x7cf16C00ed4831EB9eE3a8765831968F0a28f53D',
+      skillRegistry: '0xA84684261558f342d6871DD2CFef90A2117Aa20A', // AgentSkillRegistryV2 Proxy
       serviceRegistry: '0x62E1eeEa1A2Ab987004F35bDA430457Ed6077201', // ServiceRegistryV2 Proxy
-      agentReview: '0xefAeF01B3DDeF2041A1dbdCEbcA352eD2240920A', // Fixed Contract - March 2026
-      agenticCommerce: '0x14293D31c15594bcB03d6581d26FF9353a882884', // Fixed Contract - March 2026
-      biddingSystem: '0x32c9d069a248a619d3EAc4D1FC76F2639AaBeF04', // Phase 11 - Standalone bidding
+      agentReview: '0x5CDb592Fd37749bF87448FBf5725D1Cd986dd1Cb', // AgentReviewV5 Proxy
+      agenticCommerce: '0x948d97EA7F0c49796fB576ADff375C900627568E', // AgenticCommerceV6.1 Proxy
+      biddingSystem: '0x32c9d069a248a619d3EAc4D1FC76F2639AaBeF04', // BiddingSystem Proxy
       priceOracle: '0x5C4AC3dAF76708DCd51911BA3B33027eAB1B4047',
       commitReveal: '0x6CEd1574A3dF7ec646e43DD8408300117c453Aa3',
       slashManager: '0x7Cf955900FD7a12680E90D834eAf19346f5DBcf9',
