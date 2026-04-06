@@ -1,0 +1,27 @@
+{
+  "name": "@kokonut/sdk",
+  "version": "0.1.0",
+  "description": "TypeScript SDK for Kokonut Agent Economy",
+  "main": "dist/sdk/typescript/index.js",
+  "types": "dist/sdk/typescript/index.d.ts",
+  "scripts": {
+    "build": "tsc -p tsconfig.json",
+    "test": "jest"
+  },
+  "keywords": [
+    "kokonut",
+    "agent-economy",
+    "web3",
+    "sdk"
+  ],
+  "author": "Kokonut Network",
+  "license": "MIT",
+  "dependencies": {
+    "viem": "^2.47.6",
+    "zod": "^3.23.0"
+  },
+  "devDependencies": {
+    "@types/node": "^20.10.0",
+    "typescript": "^5.9.3"
+  }
+}

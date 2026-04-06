@@ -5,7 +5,82 @@ All notable changes to the Kokonut Agent Economy Stack are documented in this fi
 The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.0.0/),
 and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0.html).
 
-## [2026-04-05] - Critical Bug Fixes (External Audit)
+## [2026-04-06] - Critical Bug Fixes (External Audit Round 2)
+
+### 🚨 Codebase Cleanup & Integration Fixes
+
+**Priority 1 - Critical**
+
+1. **wagmi Version Updated to v3.6.0**
+   - Updated both `package.json` and `apps/web/package.json` to use wagmi v3.6.0
+   - All wagmi v2/v3 APIs are compatible with the codebase
+
+2. **ERC8004_REPUTATION_ABI Added**
+   - Added new ABI to `lib/contracts/abis.ts` for reputation registry
+   - Fixed `useReputation.ts` to use correct ABI and parameter type (address, not agentId)
+   - Updated pages to pass owner address instead of agentId
+
+3. **SDK/CLI Package.json Created**
+   - Created `sdk/typescript/package.json` for TypeScript SDK
+   - Created `cli/package.json` for CLI tool
+   - Both now properly linked in workspace
+
+**Priority 2 - Medium**
+
+4. **MCP Server Contract Addresses Fixed**
+   - Updated `packages/mcp-server/src/resources/index.ts` with correct addresses
+   - agenticCommerce: `0x948d97EA7F0c49796fB576ADff375C900627568E`
+   - skillRegistry: `0xA84684261558f342d6871DD2CFef90A2117Aa20A`
+   - Added missing contracts (priceOracle, commitReveal, slashManager)
+
+5. **Chainlink Address Centralized**
+   - Added `CHAINLINK_PRICE_FEEDS` to `lib/contracts/config.ts`
+   - Updated `useChainlinkPrice.ts` to use centralized config
+   - Updated `useTokenConversion.ts` to use `CONTRACT_ADDRESSES.sepolia.usdc`
+
+6. **Hardcoded Addresses Replaced**
+   - `useKokonutAgents.ts` now uses `CONTRACT_ADDRESSES.sepolia.erc8004Registry`
+   - `useChainlinkPrice.ts` uses `CHAINLINK_PRICE_FEEDS.sepolia.ethUsd`
+   - `useTokenConversion.ts` uses centralized USDC address
+
+**Priority 3 - Low**
+
+7. **debugLog Consolidated**
+   - `lib/contracts/config.ts` now re-exports from `lib/debug.ts`
+   - Removed duplicate debugLog implementation
+
+8. **push-sw.js Icon References Fixed**
+   - Changed from `/icon-192x192.png` to `/icon.png`
+   - Changed from `/badge-72x72.png` to `/icon.png`
+
+9. **Webhook Signature Consistency**
+   - `app/api/webhooks/trigger/route.ts` now uses `signPayload` from `lib/webhooks/types.ts`
+   - Consistent HMAC implementation across codebase
+
+### Files Changed
+
+| File                                         | Change                                            |
+| -------------------------------------------- | ------------------------------------------------- |
+| `package.json`                               | wagmi v3.6.0                                      |
+| `apps/web/package.json`                      | wagmi v3.6.0, eslint fix                          |
+| `apps/web/lib/contracts/abis.ts`             | Added ERC8004_REPUTATION_ABI                      |
+| `apps/web/lib/contracts/config.ts`           | Added CHAINLINK_PRICE_FEEDS, consolidated exports |
+| `apps/web/lib/hooks/useReputation.ts`        | Fixed ABI, parameter type, updated interface      |
+| `apps/web/lib/hooks/useChainlinkPrice.ts`    | Use centralized Chainlink config                  |
+| `apps/web/lib/hooks/useTokenConversion.ts`   | Use centralized USDC address                      |
+| `apps/web/lib/hooks/useKokonutAgents.ts`     | Use centralized ERC8004 registry                  |
+| `apps/web/lib/wagmi.ts`                      | Use centralized address utility                   |
+| `apps/web/public/push-sw.js`                 | Fixed icon references                             |
+| `apps/web/app/api/webhooks/trigger/route.ts` | Use consistent signature                          |
+| `apps/web/app/identity/[id]/page.tsx`        | Pass owner address to useReputation               |
+| `apps/web/app/marketplace/[id]/page.tsx`     | Pass provider address to useReputation            |
+| `packages/mcp-server/src/resources/index.ts` | Updated contract addresses                        |
+| `sdk/typescript/package.json`                | **NEW** - SDK package config                      |
+| `cli/package.json`                           | **NEW** - CLI package config                      |
+
+---
+
+## [2026-04-05] - Critical Bug Fixes (External Audit Round 1)
 
 ### 🚨 Bug Fixes
 

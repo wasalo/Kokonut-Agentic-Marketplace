@@ -1,5 +1,6 @@
 import { useMemo } from 'react';
 import { useChainlinkEthUsdPrice } from './useChainlinkPrice';
+import { CONTRACT_ADDRESSES } from '@/lib/contracts/config';
 
 export interface Token {
   symbol: string;
@@ -11,7 +12,7 @@ export interface Token {
 export const USDC_TOKEN: Token = {
   symbol: 'USDC',
   name: 'USD Coin',
-  address: '0x1c7D4B196Cb0C7B01d743Fbc6116a902379C7238' as `0x${string}`,
+  address: CONTRACT_ADDRESSES.sepolia.usdc,
   decimals: 6,
 };
 

@@ -1748,26 +1748,48 @@ Check browser console for:
 
 ---
 
+### TypeScript Errors
+
+TypeScript errors are now enforced during build (ignoreBuildErrors has been removed). If you see TypeScript errors:
+
+1. Run `npx tsc --noEmit` to see all errors
+2. Common fixes:
+   - Import missing types from correct modules
+   - Update function signatures to match expected types
+   - Use type assertions (`as`) where necessary for dynamic data
+
+---
+
 ### Development Server Issues
 
-**Issue: Turbopack compilation hangs**
-
-If the dev server hangs during compilation, use webpack instead:
+**Note:** The dev server uses Turbopack by default. If you encounter issues, use webpack:
 
 ```bash
 cd apps/web
-npm run dev  # Uses webpack (default)
+npm run dev  # Uses turbopack
+npm run dev:turbo  # Same as above
 ```
 
 **Issue: npm install fails with "Invalid Version"**
 
-Clear npm cache and reinstall:
+npm has compatibility issues with some dependency versions. Use pnpm instead:
 
 ```bash
-npm cache clean --force
-cd apps/web
-rm -rf node_modules package-lock.json
-npm install --legacy-peer-deps
+npm install -g pnpm
+pnpm install
+```
+
+Or if pnpm is already installed:
+
+```bash
+pnpm install
+```
+
+**Note:** pnpm v10.x is recommended. If you see errors, try:
+
+```bash
+pnpm store prune
+pnpm install
 ```
 
 **Issue: Missing SWC binaries**

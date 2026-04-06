@@ -9,13 +9,29 @@
 
 ## Identity → Commerce → Coordination
 
-### 🎉 Latest: Code Quality & MCP Demo (April 2026)
+### 🎉 Latest: External Audit Bug Fixes (April 2026)
 
-**Code Quality Improvements:**
+**Round 1 - Critical Infrastructure:**
 
-- ✅ **Lint Cleanup** - Removed unused imports/vars, fixed promise handling
-- ✅ **Type Safety** - Added API type interfaces, suppressed viem edge cases
-- ✅ **Fixed `useAgents`** - Proper agent fetching with caching
+- ✅ **wagmi Version** - Updated to v3.6.0 for compatibility
+- ✅ **Workspace Entries** - Added `packages/*` and `sdk/typescript` to workspaces
+- ✅ **Turbopack Config** - Removed conflicting webpack config
+- ✅ **TypeScript Enforcement** - Removed `ignoreBuildErrors`, errors now block builds
+- ✅ **Centralized Addresses** - Created `getContractAddress()` utility with fallbacks
+
+**Round 2 - Integration Fixes:**
+
+- ✅ **ERC8004_REPUTATION_ABI** - Added to abis.ts, fixed useReputation hook
+- ✅ **SDK/CLI Package.json** - Created proper package configurations
+- ✅ **MCP Contract Addresses** - Updated to correct Sepolia addresses
+- ✅ **Chainlink Configuration** - Centralized price feed addresses
+- ✅ **Webhook Signature** - Consistent HMAC implementation
+
+[📖 View Changelog](./CHANGELOG.md) | [🔧 Troubleshooting](./AGENTS.md#troubleshooting)
+
+---
+
+### Previous: Code Quality & MCP Demo
 
 **MCP Interactive Demo:**
 

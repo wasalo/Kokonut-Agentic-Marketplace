@@ -33,8 +33,8 @@ self.addEventListener('push', event => {
 
   const options = {
     body: data.message || data.body || 'New notification from Kokonut',
-    icon: data.icon || '/icon-192x192.png',
-    badge: data.badge || '/badge-72x72.png',
+    icon: data.icon || '/icon.png',
+    badge: data.badge || '/icon.png',
     vibrate: [100, 50, 100],
     data: {
       url: data.link || data.url || '/',

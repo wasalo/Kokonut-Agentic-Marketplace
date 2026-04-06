@@ -1,5 +1,6 @@
 import { NextRequest, NextResponse } from 'next/server';
 import { getWebhooksForEvent, recordDelivery } from '@/lib/db/webhooks';
+import { signPayload } from '@/lib/webhooks/types';
 
 const RETRY_DELAYS = [0, 60000, 300000, 1800000, 7200000];
 const MAX_RETRY_ATTEMPTS = 5;
@@ -14,7 +15,7 @@ async function deliverWebhook(
   payload: Record<string, unknown>
 ): Promise<{ status: number; body: string }> {
   const body = JSON.stringify(payload);
-  const signature = await generateSignature(body, secret);
+  const signature = signPayload(body, secret);
 
   const response = await fetch(url, {
     method: 'POST',
@@ -33,25 +34,6 @@ async function deliverWebhook(
     status: response.status,
     body: responseBody.substring(0, 1000),
   };
-}
-
-async function generateSignature(payload: string, secret: string): Promise<string> {
-  const encoder = new TextEncoder();
-  const payloadData = encoder.encode(payload);
-
-  const hashBuffer = await crypto.subtle.digest('SHA-256', payloadData);
-  const hashArray = Array.from(new Uint8Array(hashBuffer));
-  const hashHex = hashArray.map(b => b.toString(16).padStart(2, '0')).join('');
-
-  const combined = payload + hashHex;
-  let hash = 0;
-  for (let i = 0; i < combined.length; i++) {
-    const char = combined.charCodeAt(i);
-    hash = (hash << 5) - hash + char;
-    hash = hash & hash;
-  }
-
-  return Math.abs(hash).toString(16);
 }
 
 export async function POST(request: NextRequest) {

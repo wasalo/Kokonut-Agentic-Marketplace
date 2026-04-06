@@ -1,46 +1,45 @@
 'use client';
 
 import { useReadContract, useReadContracts } from 'wagmi';
-import { ERC8004_ABI } from '@/lib/8004contracts';
 import { useKokonutAgents } from './useKokonutAgents';
 import { getContractAddress, debugLog } from '@/lib/contracts/config';
+import { ERC8004_REPUTATION_ABI } from '@/lib/contracts/abis';
 
 /* eslint-disable @typescript-eslint/no-explicit-any */
 
 const ERC8004_REPUTATION_ADDRESS = getContractAddress('ERC8004_REPUTATION');
 
 export interface ReputationData {
+  average: number;
+  total: number;
+  providers: number;
   feedbackCount: number;
-  cumulativeValue: number;
-  valueDecimals: number;
-  normalizedRating: number; // value / 10^decimals, for display
+  normalizedRating: number;
 }
 
 /**
  * Get reputation for a single agent from the official ERC-8004 reputation registry.
- * @param agentId The agent's token ID on the ERC-8004 identity registry
+ * @param agent The agent's wallet address
  */
-export function useAgentReputation(agentId: bigint | undefined) {
+export function useAgentReputation(agent: `0x${string}` | undefined) {
   const { data, isLoading, error, refetch } = useReadContract({
     address: ERC8004_REPUTATION_ADDRESS,
-    abi: ERC8004_ABI,
-    functionName: 'getSummary',
-    args: agentId !== undefined ? [agentId, [], '', ''] : undefined,
+    abi: ERC8004_REPUTATION_ABI,
+    functionName: 'getAgentReputation',
+    args: agent !== undefined ? [agent] : undefined,
     query: {
       retry: 2,
       staleTime: 30 * 1000,
-      enabled: agentId !== undefined,
+      enabled: agent !== undefined,
     },
   });
 
   const reputation: ReputationData = {
-    feedbackCount: data ? Number((data as any)[0]) : 0,
-    cumulativeValue: data ? Number((data as any)[1]) : 0,
-    valueDecimals: data ? Number((data as any)[2]) : 0,
-    normalizedRating:
-      data && Number((data as any)[2]) > 0
-        ? Number((data as any)[1]) / 10 ** Number((data as any)[2])
-        : 0,
+    average: data ? Number(data[0]) : 0,
+    total: data ? Number(data[1]) : 0,
+    providers: data ? Number(data[2]) : 0,
+    feedbackCount: data ? Number(data[1]) : 0,
+    normalizedRating: data && Number(data[2]) > 0 ? Number(data[0]) / 10 ** 18 : 0,
   };
 
   return {
@@ -63,11 +62,11 @@ export function useGlobalReputation() {
     refetch: refetchAgents,
   } = useKokonutAgents(0, 1000, true);
 
-  const agentQueries = agents.map((agent: { id: number }) => ({
+  const agentQueries = agents.map((agent: { id: number; owner: `0x${string}` }) => ({
     address: ERC8004_REPUTATION_ADDRESS,
-    abi: ERC8004_ABI,
-    functionName: 'getSummary' as const,
-    args: [BigInt(agent.id), [] as readonly `0x${string}`[], '', ''] as const,
+    abi: ERC8004_REPUTATION_ABI,
+    functionName: 'getAgentReputation' as const,
+    args: [agent.owner] as const,
   }));
 
   const {
@@ -91,13 +90,11 @@ export function useGlobalReputation() {
   if (results) {
     for (const result of results) {
       if (result.status === 'success' && result.result) {
-        const data = result.result as unknown as [bigint, bigint, number];
-        const count = Number(data[0]);
-        const value = Number(data[1]);
-        const decimals = Number(data[2]);
-        if (count > 0 && decimals > 0) {
+        const [average, total, providers] = result.result as [bigint, bigint, bigint];
+        const count = Number(total);
+        if (count > 0) {
           totalFeedbacks += count;
-          totalNormalizedRating += value / 10 ** decimals;
+          totalNormalizedRating += Number(average) / 10 ** 18;
           ratedAgents++;
         }
       }

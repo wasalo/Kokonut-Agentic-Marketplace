@@ -1,0 +1,33 @@
+{
+  "name": "@kokonut/cli",
+  "version": "0.1.0",
+  "description": "CLI for Kokonut Agent Economy",
+  "type": "module",
+  "bin": {
+    "kokonut": "./cli.js"
+  },
+  "scripts": {
+    "build": "tsc -p tsconfig.json",
+    "start": "node dist/cli.js",
+    "dev": "tsx cli.ts"
+  },
+  "keywords": [
+    "kokonut",
+    "agent-economy",
+    "cli"
+  ],
+  "author": "Kokonut Network",
+  "license": "MIT",
+  "dependencies": {
+    "chalk": "^4.1.2",
+    "commander": "^11.1.0",
+    "dotenv": "^16.3.1",
+    "ethers": "^6.16.0",
+    "viem": "^2.47.6"
+  },
+  "devDependencies": {
+    "@types/node": "^20.10.0",
+    "tsx": "^4.6.0",
+    "typescript": "^5.9.3"
+  }
+}

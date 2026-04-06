@@ -1026,6 +1026,59 @@ export const AGENT_SKILL_REGISTRY_ABI = [
   },
 ] as const;
 
+// ERC-8004 Reputation Registry ABI
+export const ERC8004_REPUTATION_ABI = [
+  {
+    inputs: [{ name: 'agent', type: 'address' }],
+    name: 'getAgentReputation',
+    outputs: [
+      { name: 'average', type: 'int256' },
+      { name: 'total', type: 'uint256' },
+      { name: 'providers', type: 'uint256' },
+    ],
+    stateMutability: 'view',
+    type: 'function',
+  },
+  {
+    inputs: [{ name: 'agent', type: 'address' }],
+    name: 'getFeedbackCount',
+    outputs: [{ name: '', type: 'uint256' }],
+    stateMutability: 'view',
+    type: 'function',
+  },
+  {
+    inputs: [{ name: 'feedbackId', type: 'uint256' }],
+    name: 'getFeedbackDetails',
+    outputs: [
+      {
+        name: '',
+        type: 'tuple',
+        components: [
+          { name: 'agent', type: 'address' },
+          { name: 'taskId', type: 'uint256' },
+          { name: 'rating', type: 'int256' },
+          { name: 'metadataURI', type: 'string' },
+          { name: 'timestamp', type: 'uint256' },
+        ],
+      },
+    ],
+    stateMutability: 'view',
+    type: 'function',
+  },
+  {
+    inputs: [
+      { name: 'agent', type: 'address' },
+      { name: 'taskId', type: 'uint256' },
+      { name: 'rating', type: 'int256' },
+      { name: 'metadataURI', type: 'string' },
+    ],
+    name: 'submitFeedback',
+    outputs: [{ name: '', type: 'uint256' }],
+    stateMutability: 'nonpayable',
+    type: 'function',
+  },
+] as const;
+
 // Price Oracle ABI
 export const PRICE_ORACLE_ABI = [
   {

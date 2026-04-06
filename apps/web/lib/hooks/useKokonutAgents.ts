@@ -4,7 +4,7 @@ import { useState, useEffect, useCallback, useMemo } from 'react';
 import { usePublicClient } from 'wagmi';
 import { useQuery } from '@tanstack/react-query';
 import { decodeAgentMetadata, type AgentMetadata8004 } from '@/lib/metadata';
-import { debugLog } from '@/lib/contracts/config';
+import { debugLog, CONTRACT_ADDRESSES } from '@/lib/contracts/config';
 import { ERC8004_ABI } from '@/lib/8004contracts';
 
 const API_KEY = process.env.NEXT_PUBLIC_8004_API_KEY || '';
@@ -237,7 +237,7 @@ export function useKokonutAgents(
 
         // Create multicall for tokenURIs
         const calls = tokenIds.map((id: bigint) => ({
-          address: '0x8004A818BFB912233c491871b3d84c89A494BD9e' as `0x${string}`,
+          address: CONTRACT_ADDRESSES.sepolia.erc8004Registry,
           abi: ERC8004_ABI,
           functionName: 'tokenURI' as const,
           args: [id] as const,

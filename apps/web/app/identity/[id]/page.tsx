@@ -100,7 +100,7 @@ export default function AgentDetailPage(): JSX.Element | null {
     return connectedAddress.toLowerCase() === ownerAddress.toLowerCase();
   }, [connectedAddress, ownerAddress]);
 
-  const { reputation } = useAgentReputation(agentIdBigInt);
+  const { reputation } = useAgentReputation(ownerAddress);
   const { healthScore } = useAgentHealth(agentIdBigInt);
 
   const metadata = useMemo(() => (tokenURI ? decodeAgentMetadata(tokenURI) : null), [tokenURI]);
@@ -320,8 +320,8 @@ export default function AgentDetailPage(): JSX.Element | null {
                 <p className="text-xs text-default-400">Reviews</p>
               </div>
               <div className="text-center">
-                <p className="text-2xl font-bold">{reputation.valueDecimals}</p>
-                <p className="text-xs text-default-400">Precision</p>
+                <p className="text-2xl font-bold">{reputation.providers}</p>
+                <p className="text-xs text-default-400">Providers</p>
               </div>
             </div>
           ) : (

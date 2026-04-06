@@ -39,7 +39,7 @@ export default function ServiceDetailPage({
   const { address } = useAccount();
 
   const { service, isLoading, refetch } = useServiceContract(serviceId);
-  const { reputation } = useAgentReputation(service?.agentId);
+  const { reputation } = useAgentReputation(service?.provider);
   const { ethToUsdcRate } = useTokenPriceConversion();
 
   const isEth =

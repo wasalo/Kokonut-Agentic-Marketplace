@@ -1,7 +1,8 @@
 import { useReadContract } from 'wagmi';
 import { CHAINLINK_AGGREGATOR_ABI } from '@/lib/contracts/abis';
+import { CHAINLINK_PRICE_FEEDS } from '@/lib/contracts/config';
 
-const CHAINLINK_ETH_USD_FEED = '0x694AA1769357215DE4FAC081bf1f309aDC325306' as const;
+const CHAINLINK_ETH_USD_FEED = CHAINLINK_PRICE_FEEDS.sepolia.ethUsd;
 
 export interface ChainlinkPriceData {
   price: bigint;

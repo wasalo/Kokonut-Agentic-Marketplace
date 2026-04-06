@@ -88,7 +88,7 @@
     "tailwindcss": "^4.2.2",
     "uuid": "^9.0.1",
     "viem": "^2.47.6",
-    "wagmi": "^2.9.0",
+    "wagmi": "^3.6.0",
     "ws": "^8.20.0"
   },
   "devDependencies": {

@@ -25,6 +25,13 @@ export const CONTRACT_ADDRESSES = {
   },
 } as const;
 
+// Chainlink Price Feeds (Sepolia) - Standard addresses
+export const CHAINLINK_PRICE_FEEDS = {
+  sepolia: {
+    ethUsd: '0x694AA1769357215DE4FAC081bf1f309aDC325306',
+  },
+} as const;
+
 // Env var names for contract addresses - centralized reference
 export const CONTRACT_ENV_VARS = {
   ERC8004_REGISTRY: 'NEXT_PUBLIC_8004_REGISTRY_ADDRESS',
@@ -83,16 +90,5 @@ export function getContractAddressFromEnv(
   return (envVar || fallbackAddress) as `0x${string}`;
 }
 
-// Debug logging
-export const DEBUG = {
-  contracts: true,
-  errors: true,
-  data: false,
-  hooks: true,
-} as const;
-
-export function debugLog(category: keyof typeof DEBUG, message: string, data?: any) {
-  if (DEBUG[category]) {
-    console.log(`[${category.toUpperCase()}] ${message}`, data ? data : '');
-  }
-}
+// Re-export debug utilities from lib/debug.ts for backward compatibility
+export { debugLog, debugError, isDebugEnabled, enableDebug, disableDebug } from '@/lib/debug';
