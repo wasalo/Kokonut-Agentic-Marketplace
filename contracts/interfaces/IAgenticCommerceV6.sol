@@ -5,21 +5,20 @@ import "@openzeppelin/contracts/token/ERC20/IERC20.sol";
 
 /**
  * @title IAgenticCommerceV6
- * @dev Interface for Agentic Commerce Protocol V6
+ * @dev Interface for Agentic Commerce Protocol V6.1
  * 
- * V6 Features:
+ * V6.1 Features (Size Optimized):
  * - ERC-2771 Meta-Transactions (using ContextUpgradeable)
- * - createJobFromService() for seamless service-to-escrow
  * - Evaluator fees (1%, optional, on top of budget)
- * - Loser stake withdrawal for bidding protection
+ * - completeAfterTimeout for deadlock resolution
+ * - RolesMustBeDistinct for collusion prevention
+ * - Bidding disabled (use V5 for bidding functionality)
  */
 interface IAgenticCommerceV6 {
     /***********************************/
     /* Constants */
     /***********************************/
     
-    function REVEAL_WINDOW() external view returns (uint256);
-    function MIN_STAKE_BP() external view returns (uint256);
     function MIN_EXPIRY_DURATION() external view returns (uint256);
     function MAX_EXPIRY_DURATION() external view returns (uint256);
     function MAX_JOBS_PER_CLIENT() external view returns (uint256);
@@ -28,6 +27,9 @@ interface IAgenticCommerceV6 {
     function MAX_BUDGET() external view returns (uint256);
     function MIN_ETH_PAYMENT() external view returns (uint256);
     function EVALUATOR_FEE_BP() external view returns (uint256);
+    function FEE_DENOMINATOR() external view returns (uint256);
+    function DEFAULT_DISPUTE_WINDOW() external view returns (uint256);
+    function DEFAULT_NONRESPONSIVE_SLASH_BP() external view returns (uint256);
     
     /***********************************/
     /* Enums */
@@ -40,11 +42,6 @@ interface IAgenticCommerceV6 {
         Completed,
         Rejected,
         Expired
-    }
-    
-    enum JobType {
-        Direct,
-        Open
     }
     
     /***********************************/
@@ -75,7 +72,7 @@ interface IAgenticCommerceV6 {
         bytes32 commitHash;
         bool revealed;
         bool accepted;
-        bool withdrawn;  // V6: Track if stake withdrawn
+        bool withdrawn;
         uint256 timestamp;
     }
     
@@ -83,7 +80,6 @@ interface IAgenticCommerceV6 {
     /* Events */
     /***********************************/
     
-    // Core Events
     event JobCreated(uint256 indexed jobId, address indexed client, address indexed provider, address evaluator, uint256 serviceId, uint256 expiredAt);
     event OpenJobCreated(uint256 indexed jobId, address indexed client, uint256 maxBudget, address evaluator, uint256 expiredAt);
     event ProviderSet(uint256 indexed jobId, address indexed provider);
@@ -96,7 +92,6 @@ interface IAgenticCommerceV6 {
     event PaymentReleased(uint256 indexed jobId, address indexed provider, uint256 amount);
     event Refunded(uint256 indexed jobId, address indexed client, uint256 amount);
     
-    // Enhanced Events
     event JobStatusChanged(
         uint256 indexed jobId, 
         JobStatus indexed oldStatus, 
@@ -121,39 +116,9 @@ interface IAgenticCommerceV6 {
         uint256 maxAllowed
     );
     
-    // Bidding Events
-    event BidCommitted(
-        uint256 indexed jobId,
-        address indexed bidder,
-        uint256 stakeAmount,
-        bytes32 commitHash
-    );
-    
-    event BidRevealed(
-        uint256 indexed jobId,
-        address indexed bidder,
-        uint256 proposedAmount,
-        string message
-    );
-    
-    event BidAccepted(
-        uint256 indexed jobId,
-        address indexed bidder,
-        uint256 bidId,
-        uint256 acceptedAmount
-    );
-    
-    event BidWithdrawn(
-        uint256 indexed jobId,
-        address indexed bidder,
-        uint256 stakeReturned
-    );
-    
-    event StakesReturned(
-        uint256 indexed jobId,
-        address indexed recipient,
-        uint256 amount
-    );
+    event DisputeWindowSet(uint256 indexed jobId, uint256 window);
+    event NonResponsiveSlashSet(uint256 indexed jobId, uint256 slashBP);
+    event EvaluatorSlashedForInactivity(uint256 indexed jobId, address indexed evaluator, uint256 slashAmount);
     
     /***********************************/
     /* Initialize */
@@ -165,10 +130,6 @@ interface IAgenticCommerceV6 {
     /* Core Job Functions */
     /***********************************/
     
-    /**
-     * @dev Create a direct job with fixed provider
-     * @param evaluatorFee Enable 1% evaluator fee on top of budget
-     */
     function createJob(
         address provider,
         address evaluator,
@@ -178,10 +139,6 @@ interface IAgenticCommerceV6 {
         bool evaluatorFee
     ) external returns (uint256 jobId);
     
-    /**
-     * @dev Create job from an existing service (V6 new feature)
-     * Automatically sets provider, budget, and payment token from service
-     */
     function createJobFromService(
         uint256 serviceId,
         address evaluator,
@@ -191,10 +148,6 @@ interface IAgenticCommerceV6 {
         bool evaluatorFee
     ) external returns (uint256 jobId);
     
-    /**
-     * @dev Create an open job for bidding
-     * @param evaluatorFee Enable 1% evaluator fee on top of budget
-     */
     function createOpenJob(
         uint256 maxBudget,
         address evaluator,
@@ -204,64 +157,27 @@ interface IAgenticCommerceV6 {
         bool evaluatorFee
     ) external returns (uint256 jobId);
     
-    /**
-     * @dev Set provider for direct jobs
-     */
     function setProvider(uint256 jobId, address provider) external;
-    
-    /**
-     * @dev Set budget (for direct jobs)
-     */
     function setBudget(uint256 jobId, uint256 amount) external;
-    
-    /**
-     * @dev Fund a job (payable for ETH)
-     */
     function fund(uint256 jobId) external payable;
-    
-    /**
-     * @dev Submit work deliverable
-     */
     function submit(uint256 jobId, bytes32 deliverable) external;
-    
-    /**
-     * @dev Complete job and release payment
-     */
     function complete(uint256 jobId, bytes32 reason) external;
-    
-    /**
-     * @dev Reject job
-     */
+    function completeAfterTimeout(uint256 jobId, bytes32 reason) external;
+    function setDisputeWindow(uint256 jobId, uint256 window) external;
+    function setNonResponsiveSlashBP(uint256 jobId, uint256 slashBP) external;
     function reject(uint256 jobId, bytes32 reason) external;
-    
-    /**
-     * @dev Claim refund after expiry
-     */
     function claimRefund(uint256 jobId) external;
     
     /***********************************/
-    /* Bidding Functions */
+    /* Bidding Functions - Disabled in V6.1 */
     /***********************************/
     
-    /**
-     * @dev Commit a sealed bid (before deadline)
-     */
     function commitBid(uint256 jobId, bytes32 commitHash) external payable;
-    
-    /**
-     * @dev Reveal a committed bid (after deadline)
-     */
     function revealBid(uint256 jobId, uint256 amount, string calldata message, bytes32 salt) external;
-    
-    /**
-     * @dev Accept a revealed bid (client only)
-     */
     function acceptBid(uint256 jobId, uint256 bidId) external;
-    
-    /**
-     * @dev Withdraw stake for rejected/unrevealed bids (V6 new feature)
-     */
     function withdrawStake(uint256 jobId) external;
+    function calculateStake(uint256 maxBudget) external pure returns (uint256);
+    function getUserBid(uint256 jobId, address user) external view returns (Bid memory);
     
     /***********************************/
     /* View Functions */
@@ -269,9 +185,7 @@ interface IAgenticCommerceV6 {
     
     function getJob(uint256 jobId) external view returns (Job memory);
     function getClientJobCount(address client) external view returns (uint256);
-    function getUserBid(uint256 jobId, address user) external view returns (Bid memory);
     function isEvaluatorFeeEnabled(uint256 jobId) external view returns (bool);
-    function calculateStake(uint256 maxBudget) external pure returns (uint256);
     
     /***********************************/
     /* Admin Functions */

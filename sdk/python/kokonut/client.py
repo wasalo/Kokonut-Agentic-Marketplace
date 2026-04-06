@@ -275,21 +275,21 @@ AGENTIC_COMMERCE_ABI = [
     },
     {
         "inputs": [{"internalType": "uint256", "name": "jobId", "type": "uint256"}],
-        "name": "fundJob",
+        "name": "fund",
         "outputs": [],
         "stateMutability": "nonpayable",
         "type": "function",
     },
     {
         "inputs": [{"internalType": "uint256", "name": "jobId", "type": "uint256"}],
-        "name": "submitJob",
+        "name": "submit",
         "outputs": [],
         "stateMutability": "nonpayable",
         "type": "function",
     },
     {
         "inputs": [{"internalType": "uint256", "name": "jobId", "type": "uint256"}],
-        "name": "completeJob",
+        "name": "complete",
         "outputs": [],
         "stateMutability": "nonpayable",
         "type": "function",
@@ -299,7 +299,14 @@ AGENTIC_COMMERCE_ABI = [
             {"internalType": "uint256", "name": "jobId", "type": "uint256"},
             {"internalType": "string", "name": "reason", "type": "string"},
         ],
-        "name": "rejectJob",
+        "name": "reject",
+        "outputs": [],
+        "stateMutability": "nonpayable",
+        "type": "function",
+    },
+    {
+        "inputs": [{"internalType": "uint256", "name": "jobId", "type": "uint256"}],
+        "name": "completeAfterTimeout",
         "outputs": [],
         "stateMutability": "nonpayable",
         "type": "function",
@@ -473,6 +480,63 @@ AGENT_REVIEW_ABI = [
         "inputs": [
             {"internalType": "uint256", "name": "proposalId", "type": "uint256"}
         ],
+        "name": "claimReward",
+        "outputs": [],
+        "stateMutability": "nonpayable",
+        "type": "function",
+    },
+    {
+        "inputs": [
+            {"internalType": "uint256", "name": "proposalId", "type": "uint256"}
+        ],
+        "name": "releaseStake",
+        "outputs": [],
+        "stateMutability": "nonpayable",
+        "type": "function",
+    },
+    {
+        "inputs": [
+            {"internalType": "address", "name": "evaluator", "type": "address"},
+            {"internalType": "uint256", "name": "proposalId", "type": "uint256"},
+            {"internalType": "string", "name": "reason", "type": "string"},
+        ],
+        "name": "slashEvaluator",
+        "outputs": [],
+        "stateMutability": "nonpayable",
+        "type": "function",
+    },
+    {
+        "inputs": [
+            {"internalType": "address", "name": "slashManager_", "type": "address"},
+        ],
+        "name": "setSlashManager",
+        "outputs": [],
+        "stateMutability": "nonpayable",
+        "type": "function",
+    },
+    {
+        "inputs": [
+            {"internalType": "address payable", "name": "to", "type": "address"},
+            {"internalType": "uint256", "name": "amount", "type": "uint256"},
+        ],
+        "name": "withdrawETH",
+        "outputs": [],
+        "stateMutability": "nonpayable",
+        "type": "function",
+    },
+    {
+        "inputs": [],
+        "name": "getTotalLockedETH",
+        "outputs": [
+            {"internalType": "uint256", "name": "totalLocked", "type": "uint256"}
+        ],
+        "stateMutability": "view",
+        "type": "function",
+    },
+    {
+        "inputs": [
+            {"internalType": "uint256", "name": "proposalId", "type": "uint256"}
+        ],
         "name": "getProposal",
         "outputs": [
             {
@@ -496,7 +560,7 @@ AGENT_REVIEW_ABI = [
                         "type": "address",
                     },
                 ],
-                "internalType": "struct AgentReview.Proposal",
+                "internalType": "struct AgentReviewV5.Proposal",
                 "name": "",
                 "type": "tuple",
             }
@@ -506,7 +570,7 @@ AGENT_REVIEW_ABI = [
     },
     {
         "inputs": [],
-        "name": "getProposalCount",
+        "name": "_proposalCounter",
         "outputs": [{"internalType": "uint256", "name": "", "type": "uint256"}],
         "stateMutability": "view",
         "type": "function",
@@ -542,17 +606,33 @@ AGENT_REVIEW_ABI = [
                         "type": "uint256",
                     },
                     {"internalType": "bool", "name": "isFinal", "type": "bool"},
+                    {"internalType": "bool", "name": "rewardClaimed", "type": "bool"},
+                    {"internalType": "bool", "name": "stakeReleased", "type": "bool"},
                     {
                         "internalType": "uint256",
                         "name": "submittedAt",
                         "type": "uint256",
                     },
+                    {
+                        "internalType": "uint256",
+                        "name": "rewardAmount",
+                        "type": "uint256",
+                    },
                 ],
-                "internalType": "struct AgentReview.Evaluation",
+                "internalType": "struct AgentReviewV5.Evaluation",
                 "name": "",
                 "type": "tuple",
             }
         ],
+        "stateMutability": "view",
+        "type": "function",
+    },
+    {
+        "inputs": [
+            {"internalType": "uint256", "name": "proposalId", "type": "uint256"}
+        ],
+        "name": "getProposalEvaluators",
+        "outputs": [{"internalType": "address[]", "name": "", "type": "address[]"}],
         "stateMutability": "view",
         "type": "function",
     },
@@ -616,6 +696,88 @@ AGENT_REVIEW_ABI = [
             },
         ],
         "name": "EvaluationSubmitted",
+        "type": "event",
+    },
+    {
+        "anonymous": False,
+        "inputs": [
+            {
+                "indexed": True,
+                "internalType": "uint256",
+                "name": "proposalId",
+                "type": "uint256",
+            },
+            {
+                "indexed": True,
+                "internalType": "address",
+                "name": "evaluator",
+                "type": "address",
+            },
+            {
+                "indexed": False,
+                "internalType": "uint256",
+                "name": "amount",
+                "type": "uint256",
+            },
+        ],
+        "name": "RewardClaimed",
+        "type": "event",
+    },
+    {
+        "anonymous": False,
+        "inputs": [
+            {
+                "indexed": True,
+                "internalType": "uint256",
+                "name": "proposalId",
+                "type": "uint256",
+            },
+            {
+                "indexed": True,
+                "internalType": "address",
+                "name": "evaluator",
+                "type": "address",
+            },
+            {
+                "indexed": False,
+                "internalType": "uint256",
+                "name": "amount",
+                "type": "uint256",
+            },
+        ],
+        "name": "StakeReleased",
+        "type": "event",
+    },
+    {
+        "anonymous": False,
+        "inputs": [
+            {
+                "indexed": True,
+                "internalType": "address",
+                "name": "slashManager",
+                "type": "address",
+            },
+        ],
+        "name": "SlashManagerSet",
+        "type": "event",
+    },
+    {
+        "anonymous": False,
+        "inputs": [
+            {
+                "indexed": True,
+                "internalType": "address payable",
+                "name": "to",
+                "type": "address",
+            },
+            {
+                "indexed": False,
+                "internalType": "uint256",
+                "name": "amount",
+                "type": "uint256",
+            },
+        ],
+        "name": "ETHWithdrawn",
         "type": "event",
     },
 ]
@@ -1142,7 +1304,7 @@ class CommerceModule:
             signed = self.account.sign_transaction(approve_tx)
             self.w3.eth.send_raw_transaction(signed.rawTransaction)
 
-        tx = self.contract.functions.fundJob(job_id).build_transaction(
+        tx = self.contract.functions.fund(job_id).build_transaction(
             {
                 "from": self.account.address,
                 "gas": 150000,
@@ -1154,7 +1316,7 @@ class CommerceModule:
         return TransactionResult(hash=hash_.hex(), provider=self.w3)
 
     async def submit_job(self, job_id: Union[int, str]) -> TransactionResult:
-        tx = self.contract.functions.submitJob(job_id).build_transaction(
+        tx = self.contract.functions.submit(job_id).build_transaction(
             {
                 "from": self.account.address,
                 "gas": 100000,
@@ -1166,7 +1328,7 @@ class CommerceModule:
         return TransactionResult(hash=hash_.hex(), provider=self.w3)
 
     async def complete_job(self, job_id: Union[int, str]) -> TransactionResult:
-        tx = self.contract.functions.completeJob(job_id).build_transaction(
+        tx = self.contract.functions.complete(job_id).build_transaction(
             {
                 "from": self.account.address,
                 "gas": 100000,
@@ -1180,7 +1342,7 @@ class CommerceModule:
     async def reject_job(
         self, job_id: Union[int, str], reason: str
     ) -> TransactionResult:
-        tx = self.contract.functions.rejectJob(job_id, reason).build_transaction(
+        tx = self.contract.functions.reject(job_id, reason).build_transaction(
             {
                 "from": self.account.address,
                 "gas": 100000,
@@ -1390,10 +1552,45 @@ class ReviewModule:
             stake_amount=eval_[4],
             is_final=eval_[5],
             submitted_at=eval_[6],
+            reward_claimed=eval_[7] if len(eval_) > 7 else False,
+            stake_released=eval_[8] if len(eval_) > 8 else False,
+            reward_amount=eval_[9] if len(eval_) > 9 else 0,
         )
 
     async def get_proposal_count(self) -> int:
-        return self.contract.functions.getProposalCount().call()
+        return self.contract.functions._proposalCounter().call()
+
+    async def claim_reward(self, proposal_id: Union[int, str]) -> TransactionResult:
+        tx = self.contract.functions.claimReward(proposal_id).build_transaction(
+            {
+                "from": self.account.address,
+                "gas": 100000,
+                "gasPrice": self.w3.eth.gas_price,
+            }
+        )
+        signed = self.account.sign_transaction(tx)
+        hash_ = self.w3.eth.send_raw_transaction(signed.rawTransaction)
+        return TransactionResult(hash=hash_.hex(), provider=self.w3)
+
+    async def release_stake(self, proposal_id: Union[int, str]) -> TransactionResult:
+        tx = self.contract.functions.releaseStake(proposal_id).build_transaction(
+            {
+                "from": self.account.address,
+                "gas": 100000,
+                "gasPrice": self.w3.eth.gas_price,
+            }
+        )
+        signed = self.account.sign_transaction(tx)
+        hash_ = self.w3.eth.send_raw_transaction(signed.rawTransaction)
+        return TransactionResult(hash=hash_.hex(), provider=self.w3)
+
+    async def get_proposal_evaluators(
+        self, proposal_id: Union[int, str]
+    ) -> List[Address]:
+        return self.contract.functions.getProposalEvaluators(proposal_id).call()
+
+    async def get_total_locked_eth(self) -> int:
+        return self.contract.functions.getTotalLockedETH().call()
 
     def on(self, event: str, handler: SDKEventHandler) -> None:
         pass  # Polling mode - use listen_for_events() instead
@@ -1653,7 +1850,9 @@ class PriceOracleModule:
 
 COMMIT_REVEAL_ABI = [
     {
-        "inputs": [{"internalType": "bytes32", "name": "commitment", "type": "bytes32"}],
+        "inputs": [
+            {"internalType": "bytes32", "name": "commitment", "type": "bytes32"}
+        ],
         "name": "commit",
         "outputs": [],
         "stateMutability": "nonpayable",
@@ -1742,28 +1941,36 @@ SLASH_MANAGER_ABI = [
         "type": "function",
     },
     {
-        "inputs": [{"internalType": "bytes32", "name": "proposalId", "type": "bytes32"}],
+        "inputs": [
+            {"internalType": "bytes32", "name": "proposalId", "type": "bytes32"}
+        ],
         "name": "confirmProposal",
         "outputs": [],
         "stateMutability": "nonpayable",
         "type": "function",
     },
     {
-        "inputs": [{"internalType": "bytes32", "name": "proposalId", "type": "bytes32"}],
+        "inputs": [
+            {"internalType": "bytes32", "name": "proposalId", "type": "bytes32"}
+        ],
         "name": "executeProposal",
         "outputs": [],
         "stateMutability": "nonpayable",
         "type": "function",
     },
     {
-        "inputs": [{"internalType": "bytes32", "name": "proposalId", "type": "bytes32"}],
+        "inputs": [
+            {"internalType": "bytes32", "name": "proposalId", "type": "bytes32"}
+        ],
         "name": "cancelProposal",
         "outputs": [],
         "stateMutability": "nonpayable",
         "type": "function",
     },
     {
-        "inputs": [{"internalType": "bytes32", "name": "proposalId", "type": "bytes32"}],
+        "inputs": [
+            {"internalType": "bytes32", "name": "proposalId", "type": "bytes32"}
+        ],
         "name": "getProposal",
         "outputs": [
             {"internalType": "address", "name": "evaluator", "type": "address"},

@@ -233,6 +233,9 @@ class Evaluation:
     stake_amount: int
     is_final: bool
     submitted_at: int
+    reward_claimed: bool = False
+    stake_released: bool = False
+    reward_amount: int = 0
 
 
 @dataclass

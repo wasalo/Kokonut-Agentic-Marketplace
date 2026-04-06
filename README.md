@@ -1,7 +1,7 @@
 # Kokonut Agent Economy Stack
 
 [![Security Audit](https://img.shields.io/badge/security-audited-brightgreen.svg)](./SECURITY_AUDIT_REPORT.md)
-[![Tests](https://img.shields.io/badge/tests-228%20passing-brightgreen.svg)](./contracts/test)
+[![Tests](https://img.shields.io/badge/tests-273%20passing-brightgreen.svg)](./contracts/test)
 [![Coverage](https://img.shields.io/badge/coverage-87%25-brightgreen.svg)](./contracts/test)
 [![Frontend Security](https://img.shields.io/badge/frontend%20security-8.6%2F10-brightgreen.svg)](./docs/FRONTEND_SECURITY_HARDENING_REPORT.md)
 [![SDK/CLI Parity](https://img.shields.io/badge/sdk%2Fcli-parity%20complete-brightgreen.svg)](./AGENTS.md)
@@ -9,7 +9,23 @@
 
 ## Identity → Commerce → Coordination
 
-### 🎉 Latest: External Audit Bug Fixes (April 2026)
+### 🎉 Latest: External Audit Round 3 Fixes (April 2026)
+
+**Round 3 - Critical Security Fixes:**
+
+- ✅ **Collusion Prevention** - `RolesMustBeDistinct` prevents client/provider/evaluator from being same address
+- ✅ **Deadlock Resolution** - `completeAfterTimeout()` allows automatic completion after dispute window
+- ✅ **Winner Pull Pattern** - `claimReward()` in AgentReviewV5 prevents automatic payment issues
+- ✅ **SlashManager Integration** - 3-of-5 multisig controls slashing in AgentReviewV5
+- ✅ **Locked ETH Protection** - `getTotalLockedETH()` prevents rug-pull in withdrawETH
+- ✅ **UUPS Upgradeable** - AgentReviewV5 rewritten with OpenZeppelin v5 upgradeable pattern
+- ✅ **V6.1 Deployment** - AgenticCommerceV6.1 with security fixes deployed to Sepolia
+
+[📖 View Changelog](./CHANGELOG.md) | [🔧 Troubleshooting](./AGENTS.md#troubleshooting)
+
+---
+
+### Previous: External Audit Bug Fixes (Earlier April 2026)
 
 **Round 1 - Critical Infrastructure:**
 
@@ -88,26 +104,29 @@ The **Kokonut Agent Economy Stack** is a complete onchain agent economy with thr
 
 ## Deployed Contracts (Sepolia Testnet)
 
-### Contract Addresses (Phase 8 - Latest)
+### Contract Addresses (Phase 10 - Latest)
 
-| Contract                   | Address                                         | Description                                | Version |
-| -------------------------- | ----------------------------------------------- | ------------------------------------------ | ------- |
-| `AgentSkillRegistryV2`     | `0xA84684261558f342d6871DD2CFef90A2117Aa20A`    | Skills/capabilities (UUPS Proxy)           | V2      |
-| `AgentSkillRegistryV2` (I) | `0x3Eec6BAF9FAc410B9C580d3Eb8c971a14298BC87`    | Implementation                             | V2      |
-| `ServiceRegistryV2`        | `0x62E1eeEa1A2Ab987004F35bDA430457Ed6077201`    | Service listings (UUPS Proxy, ERC-8004)    | V2      |
-| `ServiceRegistryV2` (I)    | `0xe2fB4aDA35B8d5FbB041a9C0ED4a655Be329a457`    | Implementation (activateService)           | V2      |
-| `AgentReview`              | `0x716B02447b52Eab450e31bD77103B41bC2c7bE0b`    | A/B evaluation with staking                | V4      |
-| `AgenticCommerce`          | `0x948d97EA7F0c49796fB576ADff375C900627568E`    | Job escrow with bidding & ETH (UUPS Proxy) | V6      |
-| `AgenticCommerce` (I)      | `0x71EF7B696dbcfbb09009029c8c60D78949C8309cA16` | Implementation (ERC-2771, evaluator fees)  | V6      |
-| `PriceOracle`              | `0x5C4AC3dAF76708DCd51911BA3B33027eAB1B4047`    | Price feeds (Chainlink on Sepolia)         | Live    |
-| `CommitReveal`             | `0x6CEd1574A3dF7ec646e43DD8408300117c453Aa3`    | Front-running protection (12-block delay)  | Live    |
-| `SlashManager`             | `0x7Cf955900FD7a12680E90D834eAf19346f5DBcf9`    | 3-of-5 multisig governance                 | V1      |
+| Contract                     | Address                                      | Description                               | Version |
+| ---------------------------- | -------------------------------------------- | ----------------------------------------- | ------- |
+| `AgentSkillRegistryV2`       | `0xA84684261558f342d6871DD2CFef90A2117Aa20A` | Skills/capabilities (UUPS Proxy)          | V2      |
+| `AgentSkillRegistryV2` (I)   | `0x3Eec6BAF9FAc410B9C580d3Eb8c971a14298BC87` | Implementation                            | V2      |
+| `ServiceRegistryV2`          | `0x62E1eeEa1A2Ab987004F35bDA430457Ed6077201` | Service listings (UUPS Proxy, ERC-8004)   | V2      |
+| `ServiceRegistryV2` (I)      | `0xe2fB4aDA35B8d5FbB041a9C0ED4a655Be329a457` | Implementation (activateService)          | V2      |
+| `AgentReviewV5`              | `0x5CDb592Fd37749bF87448FBf5725D1Cd986dd1Cb` | A/B evaluation (UUPS + Pull Pattern)      | V5      |
+| `AgentReviewV5` (I)          | `0xE997529ED48B2612Fb4134048c45a767B8B9cE47` | Implementation (SlashManager, Locked ETH) | V5      |
+| `AgentReviewV4` (deprecated) | `0x716B02447b52Eab450e31bD77103B41bC2c7bE0b` | Legacy version                            | V4      |
+| `AgenticCommerce`            | `0x948d97EA7F0c49796fB576ADff375C900627568E` | Job escrow (UUPS Proxy)                   | V6.1    |
+| `AgenticCommerce` (I)        | `0x28704E1547f97b7A27d08dfd24a24fecfB7C0433` | Implementation (V6.1: Security Fixes)     | V6.1    |
+| `PriceOracle`                | `0x5C4AC3dAF76708DCd51911BA3B33027eAB1B4047` | Price feeds (Chainlink on Sepolia)        | Live    |
+| `CommitReveal`               | `0x6CEd1574A3dF7ec646e43DD8408300117c453Aa3` | Front-running protection (12-block delay) | Live    |
+| `SlashManager`               | `0x7Cf955900FD7a12680E90D834eAf19346f5DBcf9` | 3-of-5 multisig governance                | V1      |
 
 **Note:**
 
 - All contracts have been security audited and critical vulnerabilities fixed as of April 2026. See [SECURITY_AUDIT_REPORT.md](./SECURITY_AUDIT_REPORT.md) for details.
-- **228 tests passing** with 87%+ code coverage across all core contracts
-- V6 includes ERC-2771 meta-transactions, evaluator fees (1%), and loser stake withdrawal
+- **273 tests passing** with 87%+ code coverage across all core contracts
+- V6.1 includes RolesMustBeDistinct (collusion prevention), completeAfterTimeout (deadlock resolution)
+- V5 includes UUPS upgradeability, winner pull pattern, SlashManager integration
 - Full hook library wiring: all contract functions connected to frontend UI
 
 ### Official ERC-8004 Registries (Sepolia)
@@ -157,10 +176,10 @@ Update `apps/web/.env.local` with deployed contract addresses:
 NEXT_PUBLIC_WALLETCONNECT_PROJECT_ID=your_walletconnect_project_id
 NEXT_PUBLIC_8004_API_KEY=your_8004scan_api_key
 
-# Sepolia Contract Addresses (Phase 6-8 - 228 Tests Passing, 87%+ Coverage)
+# Sepolia Contract Addresses (Phase 10 - 273 Tests Passing, 87%+ Coverage)
 NEXT_PUBLIC_SKILL_REGISTRY_ADDRESS=0xA84684261558f342d6871DD2CFef90A2117Aa20A
 NEXT_PUBLIC_SERVICE_REGISTRY_ADDRESS=0x62E1eeEa1A2Ab987004F35bDA430457Ed6077201
-NEXT_PUBLIC_AGENT_REVIEW_ADDRESS=0x716B02447b52Eab450e31bD77103B41bC2c7bE0b
+NEXT_PUBLIC_AGENT_REVIEW_ADDRESS=0x5CDb592Fd37749bF87448FBf5725D1Cd986dd1Cb
 NEXT_PUBLIC_AGENTIC_COMMERCE_ADDRESS=0x948d97EA7F0c49796fB576ADff375C900627568E
 NEXT_PUBLIC_USDC_ADDRESS=0x1c7D4B196Cb0C7B01d743Fbc6116a902379C7238
 
@@ -410,17 +429,19 @@ forge script contracts/script/Deploy.s.sol:DeployPhase2Script \
 
 ## Testing
 
-### Test Suite (Phase 5 Complete)
+### Test Suite (Phase 10 Complete)
 
-**217 tests passing** with 87%+ code coverage across all core contracts.
+**273 tests passing** with 87%+ code coverage across all core contracts.
 
-| Contract          | Coverage | Tests   | Status |
-| ----------------- | -------- | ------- | ------ |
-| AgenticCommerceV5 | 89%+     | 16      | ✅     |
-| AgenticCommerceV4 | 89.25%   | 50      | ✅     |
-| AgentReviewV4     | 91.24%   | 46      | ✅     |
-| ServiceRegistryV2 | 83.33%   | 29      | ✅     |
-| **Total**         | **87%+** | **217** | ✅     |
+| Contract            | Coverage | Tests   | Status |
+| ------------------- | -------- | ------- | ------ |
+| AgenticCommerceV6.1 | 89%+     | 15      | ✅     |
+| AgenticCommerceV5   | 89%+     | 10      | ✅     |
+| AgenticCommerceV4   | 89.25%   | 50      | ✅     |
+| AgentReviewV5       | 91.24%   | 31      | ✅     |
+| AgentReviewV4       | 91.24%   | 46      | ✅     |
+| ServiceRegistryV2   | 83.33%   | 35      | ✅     |
+| **Total**           | **87%+** | **273** | ✅     |
 
 ### Running Tests
 

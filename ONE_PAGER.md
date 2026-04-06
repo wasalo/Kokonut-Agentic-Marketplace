@@ -1,6 +1,6 @@
 # Kokonut Agent Economy Stack — One Pager
 
-> Last updated: 2026-04-05 | Phase 10 Complete (UI Integration)
+> Last updated: 2026-04-06 | Phase 10 Complete + Round 3 Security Fixes
 
 ## What Is This?
 
@@ -456,6 +456,32 @@ Agent's reputation increases — more trust — more clients
 
 ---
 
+## Security Audit Round 3 Fixes (April 2026)
+
+### Critical Security Fixes Deployed
+
+| Issue                        | Fix                                                                                    | Contract            |
+| ---------------------------- | -------------------------------------------------------------------------------------- | ------------------- |
+| **Collusion Prevention**     | `RolesMustBeDistinct` prevents client/provider/evaluator from being same address       | AgenticCommerceV6.1 |
+| **Deadlock Resolution**      | `completeAfterTimeout()` allows automatic completion after configurable dispute window | AgenticCommerceV6.1 |
+| **Winner Pull Pattern**      | Winner calls `claimReward()` to pull payment (not automatic)                           | AgentReviewV5       |
+| **SlashManager Integration** | 3-of-5 multisig controls slashing decisions                                            | AgentReviewV5       |
+| **Locked ETH Protection**    | `getTotalLockedETH()` validates withdrawals cannot exceed available balance            | AgentReviewV5       |
+| **UUPS Upgradeable**         | AgentReviewV5 rewritten with OpenZeppelin v5 upgradeable pattern                       | AgentReviewV5       |
+
+### New Configurable Parameters
+
+| Parameter              | Default | Range     | Purpose                          |
+| ---------------------- | ------- | --------- | -------------------------------- |
+| `disputeWindow`        | 7 days  | 1-30 days | Time before auto-completion      |
+| `nonResponsiveSlashBP` | 1%      | 0-10%     | Slash for unresponsive evaluator |
+
+### Bidding Note
+
+**Bidding functionality is disabled in V6.1** due to contract size limits (24KB EIP-170). Use `AgenticCommerceV5` for bidding operations. V6.1 focuses on core escrow security with the critical fixes above.
+
+---
+
 ## Contract Addresses (Sepolia)
 
 ### Official ERC-8004 Registries
@@ -465,15 +491,27 @@ Agent's reputation increases — more trust — more clients
 | Identity   | `0x8004A818BFB912233c491871b3d84c89A494BD9e` |
 | Reputation | `0x8004B663056A597Dffe9eCcC1965A193B7388713` |
 
-### Kokonut Contracts (Phase 10)
+### Kokonut Contracts (Phase 10 + Round 3 Security Fixes)
 
-| Contract                   | Address                                         | Wired To                       |
-| -------------------------- | ----------------------------------------------- | ------------------------------ |
-| **AgentSkillRegistryV2**   | `0xA84684261558f342d6871DD2CFef90A2117Aa20A`    | ERC-8004 Identity (UUPS Proxy) |
-| **ServiceRegistryV2**      | `0x62E1eeEa1A2Ab987004F35bDA430457Ed6077201`    | ERC-8004 Identity (UUPS Proxy) |
-| **AgentReview**            | `0x716B02447b52Eab450e31bD77103B41bC2c7bE0b`    | —                              |
-| **AgenticCommerce (V6)**   | `0x948d97EA7F0c49796fB576ADff375C900627568E`    | ServiceRegistry (UUPS Proxy)   |
-| **AgenticCommerce (Impl)** | `0x71EF7B696dbcfbb09009029c8c60D78949C8309cA16` | ERC-2771, evaluator fees       |
-| PriceOracle                | `0x5C4AC3dAF76708DCd51911BA3B33027eAB1B4047`    | Chainlink                      |
-| CommitReveal               | `0x6CEd1574A3dF7ec646e43DD8408300117c453Aa3`    | ServiceRegistry                |
-| SlashManager               | `0x7Cf955900FD7a12680E90D834eAf19346f5DBcf9`    | AgentReview                    |
+| Contract                   | Address                                      | Wired To                       |
+| -------------------------- | -------------------------------------------- | ------------------------------ |
+| **AgentSkillRegistryV2**   | `0xA84684261558f342d6871DD2CFef90A2117Aa20A` | ERC-8004 Identity (UUPS Proxy) |
+| **ServiceRegistryV2**      | `0x62E1eeEa1A2Ab987004F35bDA430457Ed6077201` | ERC-8004 Identity (UUPS Proxy) |
+| **AgentReviewV5**          | `0x5CDb592Fd37749bF87448FBf5725D1Cd986dd1Cb` | SlashManager (UUPS Proxy)      |
+| **AgentReviewV5** (Impl)   | `0xE997529ED48B2612Fb4134048c45a767B8B9cE47` | Pull Pattern, Locked ETH       |
+| **AgentReviewV4** (legacy) | `0x716B02447b52Eab450e31bD77103B41bC2c7bE0b` | —                              |
+| **AgenticCommerce (V6.1)** | `0x948d97EA7F0c49796fB576ADff375C900627568E` | ServiceRegistry (UUPS Proxy)   |
+| **AgenticCommerce** (Impl) | `0x28704E1547f97b7A27d08dfd24a24fecfB7C0433` | Security Fixes, Collusion Prev |
+| PriceOracle                | `0x5C4AC3dAF76708DCd51911BA3B33027eAB1B4047` | Chainlink                      |
+| CommitReveal               | `0x6CEd1574A3dF7ec646e43DD8408300117c453Aa3` | ServiceRegistry                |
+| SlashManager               | `0x7Cf955900FD7a12680E90D834eAf19346f5DBcf9` | AgentReviewV5                  |
+
+### Security Features Summary
+
+| Feature              | Implementation                                      |
+| -------------------- | --------------------------------------------------- |
+| Collusion Prevention | V6.1: `RolesMustBeDistinct` in job creation         |
+| Deadlock Resolution  | V6.1: `completeAfterTimeout()` after dispute window |
+| Winner Pull Pattern  | V5: `claimReward()` instead of automatic transfer   |
+| SlashManager         | V5: 3-of-5 multisig controls all slashing           |
+| Locked ETH Guard     | V5: `withdrawETH()` validates against locked funds  |

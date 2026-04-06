@@ -42,8 +42,6 @@ contract AgenticCommerceV6 is
     /* Constants */
     /***********************************/
     
-    uint256 public constant REVEAL_WINDOW = 1 hours;
-    uint256 public constant MIN_STAKE_BP = 100; // 1% in basis points
     uint256 public constant FEE_DENOMINATOR = 10000;
     uint256 public constant EVALUATOR_FEE_BP = 100; // 1% evaluator fee (on top of budget)
     
@@ -59,6 +57,12 @@ contract AgenticCommerceV6 is
     
     // Minimum ETH payment (dust threshold)
     uint256 public constant MIN_ETH_PAYMENT = 0.005 ether;
+    
+    // Configurable Dispute Window for timeout completion
+    uint256 public constant DEFAULT_DISPUTE_WINDOW = 7 days;
+    
+    // Configurable Non-Responsiveness Slash Percentage (100 BP = 1%)
+    uint256 public constant DEFAULT_NONRESPONSIVE_SLASH_BP = 100; // 1%
 
     /***********************************/
     /* Update Type Constants */
@@ -80,19 +84,20 @@ contract AgenticCommerceV6 is
     mapping(address => uint256) public clientJobCount;
     mapping(uint256 => address) public jobClient;
 
-    // Phase 5: Bidding State
-    mapping(uint256 => JobType) public jobTypes;
-    mapping(uint256 => uint256) public jobMaxBudget;
-    mapping(uint256 => uint256) public jobBidCount;
-    mapping(uint256 => Bid[]) public jobBids;
-    mapping(uint256 => mapping(address => uint256)) public bidderToBidIndex;
-    mapping(uint256 => mapping(bytes32 => bool)) public validCommits;
-    
-    // Track stakes held per job
-    mapping(uint256 => uint256) public totalStakesHeld;
+    // Phase 5: Bidding State - REMOVED in V6.1 for size optimization
+    // Users should use V5 for bidding functionality
     
     // Evaluator fee enabled per job
     mapping(uint256 => bool) public evaluatorFeeEnabled;
+    
+    // Configurable dispute window (per job)
+    mapping(uint256 => uint256) public jobDisputeWindow;
+    
+    // Configurable non-responsiveness slash (per job)
+    mapping(uint256 => uint256) public jobNonResponsiveSlashBP;
+    
+    // Job submission timestamp for timeout tracking
+    mapping(uint256 => uint256) public jobSubmittedAt;
 
     // Storage gap for upgradeability
     uint256[50] private __gap;
@@ -114,10 +119,8 @@ contract AgenticCommerceV6 is
     error InvalidHook();
     error MaxJobsPerClient(address client, uint256 current);
     
-    // Bidding errors
-    error AlreadyBid();
-    error NothingToWithdraw();
-    error StakeAlreadyWithdrawn();
+    // Security errors
+    error RolesMustBeDistinct();
 
     /***********************************/
     /* Modifiers */
@@ -198,7 +201,6 @@ contract AgenticCommerceV6 is
             deliverable: bytes32(0)
         });
         
-        jobTypes[jobId] = JobType.Direct;
         evaluatorFeeEnabled[jobId] = evaluatorFee;
         jobClient[jobId] = _msgSender();
         clientJobCount[_msgSender()]++;
@@ -222,52 +224,18 @@ contract AgenticCommerceV6 is
     }
 
     /**
-     * @dev Create an open job for bidding
-     * @param evaluatorFee Enable 1% evaluator fee on top of budget
+     * @dev Create an open job for bidding - DISABLED in V6.1 for size optimization
+     * Use AgenticCommerceV5 for bidding functionality
      */
     function createOpenJob(
-        uint256 maxBudget,
-        address evaluator,
-        uint256 expiredAt,
-        string calldata description,
-        IERC20 paymentToken,
-        bool evaluatorFee
-    ) external nonReentrant returns (uint256 jobId) {
-        require(maxBudget > 0, "Zero max budget");
-        require(expiredAt > block.timestamp + MIN_EXPIRY_DURATION, "Expiry too soon");
-        require(expiredAt <= block.timestamp + MAX_EXPIRY_DURATION, "Expiry too far");
-        require(bytes(description).length > 0, "Empty description");
-        require(bytes(description).length <= MAX_DESCRIPTION_LENGTH, "Description too long");
-        require(evaluator != address(0), "Zero evaluator");
-        
-        if (clientJobCount[_msgSender()] >= MAX_JOBS_PER_CLIENT) {
-            emit JobLimitExceeded(_msgSender(), clientJobCount[_msgSender()] + 1, MAX_JOBS_PER_CLIENT);
-            revert MaxJobsPerClient(_msgSender(), clientJobCount[_msgSender()]);
-        }
-
-        jobId = ++jobCounter;
-        jobs[jobId] = Job({
-            id: jobId,
-            client: _msgSender(),
-            provider: address(0),
-            evaluator: evaluator,
-            serviceId: 0,
-            paymentToken: paymentToken,
-            description: description,
-            budget: 0,
-            expiredAt: expiredAt,
-            status: JobStatus.Open,
-            hook: address(0),
-            deliverable: bytes32(0)
-        });
-        
-        jobTypes[jobId] = JobType.Open;
-        jobMaxBudget[jobId] = maxBudget;
-        evaluatorFeeEnabled[jobId] = evaluatorFee;
-        jobClient[jobId] = _msgSender();
-        clientJobCount[_msgSender()]++;
-
-        emit OpenJobCreated(jobId, _msgSender(), maxBudget, evaluator, expiredAt);
+        uint256,
+        address,
+        uint256,
+        string calldata,
+        IERC20,
+        bool
+    ) external pure returns (uint256) {
+        revert("Bidding disabled in V6.1");
     }
 
     /**
@@ -282,6 +250,9 @@ contract AgenticCommerceV6 is
     ) internal view {
         require(provider != address(0), "Zero provider");
         require(evaluator != address(0), "Zero evaluator");
+        require(_msgSender() != provider, "Client cannot be provider");
+        require(_msgSender() != evaluator, "Client cannot be evaluator");
+        require(provider != evaluator, "Provider cannot be evaluator");
         require(expiredAt > block.timestamp + MIN_EXPIRY_DURATION, "Expiry too soon");
         require(expiredAt <= block.timestamp + MAX_EXPIRY_DURATION, "Expiry too far");
         require(bytes(description).length > 0 && bytes(description).length <= MAX_DESCRIPTION_LENGTH, "Invalid description");
@@ -293,8 +264,8 @@ contract AgenticCommerceV6 is
         require(job.id != 0, "Invalid job");
         require(uint256(job.status) == 0, "Wrong status");
         require(job.provider == address(0), "Provider set");
+        require(provider != _msgSender(), "Provider cannot be client");
         require(provider != address(0), "Zero address");
-        require(jobTypes[jobId] == JobType.Direct, "Use acceptBid for open jobs");
 
         job.provider = provider;
         
@@ -307,7 +278,6 @@ contract AgenticCommerceV6 is
         require(job.id != 0, "Invalid job");
         require(uint256(job.status) == 0, "Wrong status");
         require(amount > 0, "Zero budget");
-        require(jobTypes[jobId] == JobType.Direct, "Use acceptBid for open jobs");
 
         job.budget = amount;
         
@@ -364,6 +334,7 @@ contract AgenticCommerceV6 is
         JobStatus oldStatus = job.status;
         job.status = JobStatus.Submitted;
         job.deliverable = deliverable;
+        jobSubmittedAt[jobId] = block.timestamp;
         
         emit JobSubmitted(jobId, _msgSender(), deliverable);
         emit JobStatusChanged(jobId, oldStatus, JobStatus.Submitted, block.timestamp);
@@ -409,6 +380,87 @@ contract AgenticCommerceV6 is
         emit JobCompleted(jobId, _msgSender(), reason, evaluatorFee);
         emit PaymentReleased(jobId, prov, net);
         emit JobStatusChanged(jobId, JobStatus.Submitted, JobStatus.Completed, block.timestamp);
+    }
+
+    /**
+     * @dev Complete job after dispute window when evaluator is unresponsive
+     *      Allows provider to recover payment if evaluator fails to act
+     * @param jobId The job ID
+     * @param reason Reason for completion
+     */
+    function completeAfterTimeout(uint256 jobId, bytes32 reason) external nonReentrant {
+        Job storage job = jobs[jobId];
+        require(job.id != 0, "Invalid job");
+        require(job.status == JobStatus.Submitted, "Wrong status");
+        require(job.provider == _msgSender() || job.client == _msgSender(), "Not provider or client");
+        
+        uint256 submittedAt = jobSubmittedAt[jobId];
+        require(submittedAt > 0, "Never submitted");
+        
+        uint256 disputeWindow = jobDisputeWindow[jobId];
+        if (disputeWindow == 0) disputeWindow = DEFAULT_DISPUTE_WINDOW;
+        
+        require(block.timestamp >= submittedAt + disputeWindow, "Dispute window not elapsed");
+        
+        if (job.hook != address(0)) {
+            IACPHook(job.hook).beforeAction(jobId, this.completeAfterTimeout.selector, abi.encode(reason));
+        }
+        
+        uint256 amount = job.budget;
+        uint256 platformFee = (amount * 100) / FEE_DENOMINATOR; // 1% platform fee
+        uint256 slashAmount = 0;
+        
+        uint256 slashBP = jobNonResponsiveSlashBP[jobId];
+        if (slashBP == 0) slashBP = DEFAULT_NONRESPONSIVE_SLASH_BP;
+        
+        slashAmount = (amount * slashBP) / FEE_DENOMINATOR;
+        uint256 net = amount - platformFee - slashAmount;
+        address prov = job.provider;
+        IERC20 paymentToken = job.paymentToken;
+
+        job.budget = 0;
+        job.status = JobStatus.Completed;
+        
+        _decrementJobCount(jobId);
+
+        if (platformFee > 0) {
+            _transferPayment(paymentToken, platformTreasury, platformFee);
+        }
+        if (slashAmount > 0) {
+            _transferPayment(paymentToken, platformTreasury, slashAmount);
+        }
+        if (net > 0) {
+            _transferPayment(paymentToken, prov, net);
+        }
+
+        emit JobCompleted(jobId, _msgSender(), reason, 0);
+        emit PaymentReleased(jobId, prov, net);
+        emit EvaluatorSlashedForInactivity(jobId, job.evaluator, slashAmount);
+        emit JobStatusChanged(jobId, JobStatus.Submitted, JobStatus.Completed, block.timestamp);
+    }
+
+    /**
+     * @dev Set dispute window for a job
+     * @param jobId The job ID
+     * @param window Dispute window in seconds
+     */
+    function setDisputeWindow(uint256 jobId, uint256 window) external onlyClient(jobId) {
+        require(jobs[jobId].status == JobStatus.Funded, "Wrong status");
+        require(window >= 1 days && window <= 30 days, "Invalid window");
+        jobDisputeWindow[jobId] = window;
+        emit DisputeWindowSet(jobId, window);
+    }
+
+    /**
+     * @dev Set non-responsiveness slash percentage for a job
+     * @param jobId The job ID
+     * @param slashBP Slash percentage in basis points (100 = 1%)
+     */
+    function setNonResponsiveSlashBP(uint256 jobId, uint256 slashBP) external onlyClient(jobId) {
+        require(jobs[jobId].status == JobStatus.Funded, "Wrong status");
+        require(slashBP <= 1000, "Max 10% slash"); // Max 10%
+        jobNonResponsiveSlashBP[jobId] = slashBP;
+        emit NonResponsiveSlashSet(jobId, slashBP);
     }
 
     function reject(uint256 jobId, bytes32 reason) external nonReentrant {
@@ -464,153 +516,16 @@ contract AgenticCommerceV6 is
     }
 
     /***********************************/
-    /* Bidding Functions */
+    /* Bidding Functions - DISABLED in V6.1 for size optimization */
     /***********************************/
     
-    /**
-     * @dev Calculate stake amount (1% of max budget)
-     */
-    function calculateStake(uint256 maxBudget) public pure returns (uint256) {
-        return (maxBudget * MIN_STAKE_BP) / FEE_DENOMINATOR;
-    }
-
-    /**
-     * @dev Commit a sealed bid (before deadline)
-     */
-    function commitBid(uint256 jobId, bytes32 commitHash) external payable nonReentrant {
-        Job storage job = jobs[jobId];
-        require(job.id != 0, "Invalid job");
-        require(jobTypes[jobId] == JobType.Open, "Not open job");
-        require(uint256(job.status) == 0, "Wrong status");
-        require(block.timestamp < job.expiredAt, "Commit expired");
-        require(commitHash != bytes32(0), "Zero commitment");
-        
-        if (bidderToBidIndex[jobId][_msgSender()] != 0) {
-            revert AlreadyBid();
-        }
-        
-        uint256 stakeAmount = calculateStake(jobMaxBudget[jobId]);
-        
-        if (address(job.paymentToken) == address(0)) {
-            require(msg.value >= stakeAmount, "Insufficient stake");
-            if (msg.value > stakeAmount) {
-                payable(_msgSender()).transfer(msg.value - stakeAmount);
-            }
-        } else {
-            require(msg.value == 0, "ETH not accepted for ERC20");
-            job.paymentToken.safeTransferFrom(_msgSender(), address(this), stakeAmount);
-        }
-        
-        uint256 bidId = ++jobBidCount[jobId];
-        bidderToBidIndex[jobId][_msgSender()] = bidId;
-        validCommits[jobId][commitHash] = true;
-        
-        jobBids[jobId].push(Bid({
-            bidId: bidId,
-            bidder: _msgSender(),
-            proposedAmount: 0,
-            stake: stakeAmount,
-            message: "",
-            commitHash: commitHash,
-            revealed: false,
-            accepted: false,
-            withdrawn: false,
-            timestamp: block.timestamp
-        }));
-        
-        totalStakesHeld[jobId] += stakeAmount;
-        
-        emit BidCommitted(jobId, _msgSender(), stakeAmount, commitHash);
-    }
-
-    /**
-     * @dev Reveal a committed bid (after deadline)
-     */
-    function revealBid(
-        uint256 jobId, 
-        uint256 amount, 
-        string calldata message,
-        bytes32 salt
-    ) external nonReentrant {
-        Job storage job = jobs[jobId];
-        require(job.id != 0, "Invalid job");
-        require(jobTypes[jobId] == JobType.Open, "Not open job");
-        require(block.timestamp >= job.expiredAt, "Deadline not passed");
-        require(block.timestamp < job.expiredAt + REVEAL_WINDOW, "Reveal window closed");
-        
-        uint256 bidIndex = bidderToBidIndex[jobId][_msgSender()];
-        require(bidIndex != 0, "No bid found");
-        
-        Bid storage bid = jobBids[jobId][bidIndex - 1];
-        require(!bid.revealed, "Already revealed");
-        
-        bytes32 expectedHash = keccak256(abi.encode(amount, message, salt));
-        require(validCommits[jobId][expectedHash], "Invalid commitment");
-        
-        require(amount <= jobMaxBudget[jobId], "Amount exceeds max budget");
-        
-        bid.proposedAmount = amount;
-        bid.message = message;
-        bid.revealed = true;
-        
-        emit BidRevealed(jobId, _msgSender(), amount, message);
-    }
-
-    /**
-     * @dev Accept a revealed bid (client only)
-     */
-    function acceptBid(uint256 jobId, uint256 bidId) external onlyClient(jobId) nonReentrant {
-        Job storage job = jobs[jobId];
-        require(job.id != 0, "Invalid job");
-        require(jobTypes[jobId] == JobType.Open, "Not open job");
-        
-        Bid storage bid = jobBids[jobId][bidId - 1];
-        require(bid.bidder != address(0), "Bid not found");
-        require(bid.revealed, "Bid not revealed");
-        require(!bid.accepted, "Bid already accepted");
-        
-        job.provider = bid.bidder;
-        job.budget = bid.proposedAmount;
-        bid.accepted = true;
-        
-        emit ProviderSet(jobId, bid.bidder);
-        emit BudgetSet(jobId, bid.proposedAmount);
-        emit BidAccepted(jobId, bid.bidder, bidId, bid.proposedAmount);
-        
-        uint256 stakeAmount = bid.stake;
-        bid.stake = 0;
-        totalStakesHeld[jobId] -= stakeAmount;
-        _transferPayment(job.paymentToken, bid.bidder, stakeAmount);
-        emit StakesReturned(jobId, bid.bidder, stakeAmount);
-    }
-
-    /**
-     * @dev Withdraw stake for rejected/unrevealed bids (V6 new feature)
-     * Allows bidders to reclaim their stake after reveal window closes
-     */
-    function withdrawStake(uint256 jobId) external nonReentrant {
-        Job storage job = jobs[jobId];
-        require(job.id != 0, "Invalid job");
-        require(jobTypes[jobId] == JobType.Open, "Not open job");
-        require(block.timestamp >= job.expiredAt + REVEAL_WINDOW, "Reveal window still open");
-        
-        uint256 bidIndex = bidderToBidIndex[jobId][_msgSender()];
-        require(bidIndex != 0, "No bid found");
-        
-        Bid storage bid = jobBids[jobId][bidIndex - 1];
-        require(!bid.withdrawn, "Stake already withdrawn");
-        require(!bid.accepted, "Cannot withdraw accepted bid");
-        
-        uint256 stakeAmount = bid.stake;
-        require(stakeAmount > 0, "No stake to withdraw");
-        
-        bid.stake = 0;
-        bid.withdrawn = true;
-        totalStakesHeld[jobId] -= stakeAmount;
-        
-        _transferPayment(job.paymentToken, _msgSender(), stakeAmount);
-        
-        emit BidWithdrawn(jobId, _msgSender(), stakeAmount);
+    function calculateStake(uint256) public pure returns (uint256) { revert("Bidding disabled"); }
+    function commitBid(uint256, bytes32) external payable { revert("Bidding disabled"); }
+    function revealBid(uint256, uint256, string calldata, bytes32) external { revert("Bidding disabled"); }
+    function acceptBid(uint256, uint256) external { revert("Bidding disabled"); }
+    function withdrawStake(uint256) external { revert("Bidding disabled"); }
+    function getUserBid(uint256, address) external pure returns (Bid memory) {
+        return Bid({bidId: 0, bidder: address(0), proposedAmount: 0, stake: 0, message: "", commitHash: bytes32(0), revealed: false, accepted: false, withdrawn: false, timestamp: 0});
     }
 
     /***********************************/
@@ -643,25 +558,6 @@ contract AgenticCommerceV6 is
     
     function getClientJobCount(address client) external view returns (uint256) {
         return clientJobCount[client];
-    }
-    
-    function getUserBid(uint256 jobId, address user) external view returns (Bid memory) {
-        uint256 bidIndex = bidderToBidIndex[jobId][user];
-        if (bidIndex == 0) {
-            return Bid({
-                bidId: 0,
-                bidder: address(0),
-                proposedAmount: 0,
-                stake: 0,
-                message: "",
-                commitHash: bytes32(0),
-                revealed: false,
-                accepted: false,
-                withdrawn: false,
-                timestamp: 0
-            });
-        }
-        return jobBids[jobId][bidIndex - 1];
     }
 
     function isEvaluatorFeeEnabled(uint256 jobId) external view returns (bool) {

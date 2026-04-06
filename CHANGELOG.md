@@ -5,6 +5,83 @@ All notable changes to the Kokonut Agent Economy Stack are documented in this fi
 The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.0.0/),
 and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0.html).
 
+## [2026-04-06] - Security Audit Fixes (External Audit Round 3)
+
+### 🔒 Security Fixes
+
+**Priority 1 - Critical**
+
+1. **Client-Evaluator-Provider Collusion Prevention**
+   - Added `RolesMustBeDistinct` error in `AgenticCommerceV6.sol`
+   - Added `_validateJobCreation()` to prevent client == provider, client == evaluator, provider == evaluator
+   - Applied to `createJob()` and `setProvider()`
+
+2. **Job Completion Deadlock Resolution**
+   - Added `completeAfterTimeout()` function for automatic job completion after timeout
+   - Added configurable `setDisputeWindow()` (default: 7 days) and `setNonResponsiveSlashBP()` (default: 1%)
+   - Added `jobDisputeWindow` and `jobNonResponsiveSlashBP` state variables
+   - Added `jobSubmittedAt` tracking for timeout calculations
+
+3. **Winner Payment Pull Pattern (AgentReviewV5)**
+   - Created new `AgentReviewV5.sol` (UUPS upgradeable)
+   - Added `rewardAmount` field to Evaluation struct
+   - Winner must call `claimReward()` to pull their payment
+   - Losers call `releaseStake()` to reclaim their stake
+
+**Priority 2 - High**
+
+4. **SlashManager Integration (AgentReviewV5)**
+   - Added `slashManager` address state variable
+   - Added `setSlashManager()` function for governance control
+   - Changed `slashEvaluator()` from `onlyOwner` to `onlySlashManager`
+   - Emits `SlashManagerSet` event
+
+5. **withdrawETH Rug-Pull Prevention (AgentReviewV5)**
+   - Added `getTotalLockedETH()` function to calculate locked funds
+   - Secure `withdrawETH()` validates against locked funds
+   - Cannot withdraw more than `balance - locked`
+
+6. **AgentReviewV5 Made Upgradeable**
+   - Full rewrite with OwnableUpgradeable, UUPSUpgradeable, ContextUpgradeable
+   - Uses OpenZeppelin v5 upgradeable pattern
+   - ERC1967 compatible proxy support
+
+7. **AgenticCommerceV6.1 Deployment**
+   - Contract size optimization: 26,437 bytes → 19,010 bytes
+   - Bidding functionality disabled (users should use V5 for bidding)
+   - All security fixes preserved: RolesMustBeDistinct, completeAfterTimeout, dispute window
+
+**SDK Updates**
+
+7. **TypeScript SDK ABI Sync (v0.2.0)**
+   - Fixed function names: `fundJob` → `fund`, `submitJob` → `submit`, `completeJob` → `complete`, `rejectJob` → `reject`
+   - Added V5 functions: `claimReward`, `releaseStake`, `slashEvaluator`, `setSlashManager`, `withdrawETH`, `getTotalLockedETH`
+   - Added V5 events and Evaluation struct updates
+
+8. **Python SDK ABI Sync**
+   - Fixed function names matching TypeScript SDK
+   - Added V5 functions and updated Evaluation struct
+   - Added new events: RewardClaimed, StakeReleased, SlashManagerSet, ETHWithdrawn
+
+### Files Changed
+
+| File                                          | Change                                          |
+| --------------------------------------------- | ----------------------------------------------- |
+| `contracts/shared/AgenticCommerceV6.sol`      | Added collusion prevention, deadlock resolution |
+| `contracts/shared/AgentReviewV5.sol`          | **NEW** - Security fixes, UUPS upgradeable      |
+| `contracts/interfaces/IAgenticCommerceV6.sol` | Added new functions/events                      |
+| `sdk/typescript/client.ts`                    | ABI sync to v0.2.0                              |
+| `sdk/python/kokonut/client.py`                | ABI sync for V5                                 |
+| `sdk/python/kokonut/types.py`                 | Updated Evaluation class                        |
+
+### New Contracts
+
+| Contract        | Address | Purpose                              |
+| --------------- | ------- | ------------------------------------ |
+| `AgentReviewV5` | TBD     | UUPS upgradeable with security fixes |
+
+---
+
 ## [2026-04-06] - Critical Bug Fixes (External Audit Round 2)
 
 ### 🚨 Codebase Cleanup & Integration Fixes
