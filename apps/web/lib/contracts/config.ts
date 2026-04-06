@@ -25,8 +25,58 @@ export const CONTRACT_ADDRESSES = {
   },
 } as const;
 
-// Helper function to get address with fallback
+// Env var names for contract addresses - centralized reference
+export const CONTRACT_ENV_VARS = {
+  ERC8004_REGISTRY: 'NEXT_PUBLIC_8004_REGISTRY_ADDRESS',
+  ERC8004_REPUTATION: 'NEXT_PUBLIC_8004_REPUTATION_ADDRESS',
+  SKILL_REGISTRY: 'NEXT_PUBLIC_SKILL_REGISTRY_ADDRESS',
+  SERVICE_REGISTRY: 'NEXT_PUBLIC_SERVICE_REGISTRY_ADDRESS',
+  AGENTIC_COMMERCE: 'NEXT_PUBLIC_AGENTIC_COMMERCE_ADDRESS',
+  AGENT_REVIEW: 'NEXT_PUBLIC_AGENT_REVIEW_ADDRESS',
+  PRICE_ORACLE: 'NEXT_PUBLIC_PRICE_ORACLE_ADDRESS',
+  COMMIT_REVEAL: 'NEXT_PUBLIC_COMMIT_REVEAL_ADDRESS',
+  SLASH_MANAGER: 'NEXT_PUBLIC_SLASH_MANAGER_ADDRESS',
+  USDC: 'NEXT_PUBLIC_USDC_ADDRESS',
+} as const;
+
+// Map env vars to their fallback addresses
+const ENV_TO_FALLBACK: Record<keyof typeof CONTRACT_ENV_VARS, string> = {
+  ERC8004_REGISTRY: CONTRACT_ADDRESSES.sepolia.erc8004Registry,
+  ERC8004_REPUTATION: CONTRACT_ADDRESSES.sepolia.erc8004Reputation,
+  SKILL_REGISTRY: CONTRACT_ADDRESSES.sepolia.skillRegistry,
+  SERVICE_REGISTRY: CONTRACT_ADDRESSES.sepolia.serviceRegistry,
+  AGENTIC_COMMERCE: CONTRACT_ADDRESSES.sepolia.agenticCommerce,
+  AGENT_REVIEW: CONTRACT_ADDRESSES.sepolia.agentReview,
+  PRICE_ORACLE: CONTRACT_ADDRESSES.sepolia.priceOracle,
+  COMMIT_REVEAL: CONTRACT_ADDRESSES.sepolia.commitReveal,
+  SLASH_MANAGER: CONTRACT_ADDRESSES.sepolia.slashManager,
+  USDC: CONTRACT_ADDRESSES.sepolia.usdc,
+};
+
+// Centralized function to get contract address with fallback
+export function getContractAddress(key: keyof typeof CONTRACT_ENV_VARS): `0x${string}`;
 export function getContractAddress(
+  envVar: string | undefined,
+  fallbackAddress: string
+): `0x${string}`;
+export function getContractAddress(
+  keyOrEnvVar: keyof typeof CONTRACT_ENV_VARS | string | undefined,
+  fallbackOrKey?: string
+): `0x${string}` {
+  // New signature: getContractAddress('ERC8004_REGISTRY')
+  if (typeof keyOrEnvVar === 'string' && Object.keys(CONTRACT_ENV_VARS).includes(keyOrEnvVar)) {
+    const key = keyOrEnvVar as keyof typeof CONTRACT_ENV_VARS;
+    const envVar = CONTRACT_ENV_VARS[key];
+    const fallback = ENV_TO_FALLBACK[key];
+    return (process.env[envVar] || fallback) as `0x${string}`;
+  }
+
+  // Legacy signature: getContractAddress(process.env.X, fallbackAddress)
+  return (keyOrEnvVar || fallbackOrKey) as `0x${string}`;
+}
+
+// Legacy helper for backward compatibility
+export function getContractAddressFromEnv(
   envVar: string | undefined,
   fallbackAddress: string
 ): `0x${string}` {

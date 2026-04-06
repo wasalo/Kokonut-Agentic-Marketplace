@@ -4,13 +4,10 @@ import { useState, useEffect, useCallback } from 'react';
 import { useReadContract, useWriteContract } from 'wagmi';
 import { ERC8004_ABI } from '@/lib/8004contracts';
 import { decodeAgentMetadata, type AgentMetadata8004 } from '@/lib/metadata';
-import { CONTRACT_ADDRESSES, getContractAddress, debugLog } from '@/lib/contracts/config';
+import { getContractAddress, debugLog } from '@/lib/contracts/config';
 import type { AgentListResponse, AgentResponse } from '@/lib/types/api';
 
-const ERC8004_ADDRESS = getContractAddress(
-  process.env.NEXT_PUBLIC_8004_REGISTRY_ADDRESS,
-  CONTRACT_ADDRESSES.sepolia.erc8004Registry
-);
+const ERC8004_ADDRESS = getContractAddress('ERC8004_REGISTRY');
 
 export interface Agent {
   id: number;

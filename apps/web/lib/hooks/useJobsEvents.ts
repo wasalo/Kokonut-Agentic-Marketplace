@@ -3,13 +3,10 @@
 import { useState, useEffect, useCallback } from 'react';
 import { usePublicClient } from 'wagmi';
 import { parseAbiItem } from 'viem';
-import { CONTRACT_ADDRESSES, getContractAddress, debugLog } from '@/lib/contracts/config';
+import { getContractAddress, debugLog } from '@/lib/contracts/config';
 import { AGENTIC_COMMERCE_ABI } from '@/lib/contracts/abis';
 
-const AGENTIC_COMMERCE_ADDRESS = getContractAddress(
-  process.env.NEXT_PUBLIC_AGENTIC_COMMERCE_ADDRESS,
-  CONTRACT_ADDRESSES.sepolia.agenticCommerce
-);
+const AGENTIC_COMMERCE_ADDRESS = getContractAddress('AGENTIC_COMMERCE');
 
 // From block 9989393 as specified by user
 const FROM_BLOCK = BigInt(9989393);

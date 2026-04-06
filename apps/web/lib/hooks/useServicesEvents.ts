@@ -3,13 +3,10 @@
 import { useState, useEffect, useCallback } from 'react';
 import { usePublicClient } from 'wagmi';
 import { parseAbiItem } from 'viem';
-import { CONTRACT_ADDRESSES, getContractAddress, debugLog } from '@/lib/contracts/config';
+import { getContractAddress, debugLog } from '@/lib/contracts/config';
 import { SERVICE_REGISTRY_ABI } from '@/lib/contracts/abis';
 
-const SERVICE_REGISTRY_ADDRESS = getContractAddress(
-  process.env.NEXT_PUBLIC_SERVICE_REGISTRY_ADDRESS,
-  CONTRACT_ADDRESSES.sepolia.serviceRegistry
-);
+const SERVICE_REGISTRY_ADDRESS = getContractAddress('SERVICE_REGISTRY');
 
 // From block 9989393 as specified by user
 const FROM_BLOCK = BigInt(9989393);

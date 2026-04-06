@@ -1,6 +1,7 @@
 import { http, createConfig, fallback } from 'wagmi';
 import { sepolia } from 'wagmi/chains';
 import { injected, walletConnect } from 'wagmi/connectors';
+import { getContractAddress } from '@/lib/contracts/config';
 
 const projectId = process.env.NEXT_PUBLIC_WALLETCONNECT_PROJECT_ID || 'demo';
 
@@ -42,16 +43,16 @@ export const config = createConfig({
 
 export const CONTRACTS = {
   11155111: {
-    identityRegistry: process.env.NEXT_PUBLIC_8004_REGISTRY_ADDRESS,
-    reputationRegistry: process.env.NEXT_PUBLIC_8004_REPUTATION_ADDRESS,
-    skillRegistry: process.env.NEXT_PUBLIC_SKILL_REGISTRY_ADDRESS,
-    serviceRegistry: process.env.NEXT_PUBLIC_SERVICE_REGISTRY_ADDRESS,
-    agenticCommerce: process.env.NEXT_PUBLIC_AGENTIC_COMMERCE_ADDRESS,
-    agentReview: process.env.NEXT_PUBLIC_AGENT_REVIEW_ADDRESS,
-    priceOracle: process.env.NEXT_PUBLIC_PRICE_ORACLE_ADDRESS,
-    commitReveal: process.env.NEXT_PUBLIC_COMMIT_REVEAL_ADDRESS,
-    slashManager: process.env.NEXT_PUBLIC_SLASH_MANAGER_ADDRESS,
-    usdc: process.env.NEXT_PUBLIC_USDC_ADDRESS,
+    identityRegistry: getContractAddress('ERC8004_REGISTRY'),
+    reputationRegistry: getContractAddress('ERC8004_REPUTATION'),
+    skillRegistry: getContractAddress('SKILL_REGISTRY'),
+    serviceRegistry: getContractAddress('SERVICE_REGISTRY'),
+    agenticCommerce: getContractAddress('AGENTIC_COMMERCE'),
+    agentReview: getContractAddress('AGENT_REVIEW'),
+    priceOracle: getContractAddress('PRICE_ORACLE'),
+    commitReveal: getContractAddress('COMMIT_REVEAL'),
+    slashManager: getContractAddress('SLASH_MANAGER'),
+    usdc: getContractAddress('USDC'),
   },
 } as const;
 

@@ -1,16 +1,13 @@
 import { useState, useEffect, useCallback } from 'react';
 import { useReadContract, useReadContracts, useWriteContract, usePublicClient } from 'wagmi';
 import { SERVICE_REGISTRY_ABI } from '@/lib/contracts/abis';
-import { CONTRACT_ADDRESSES, getContractAddress } from '@/lib/contracts/config';
+import { getContractAddress } from '@/lib/contracts/config';
 import { getQueryConfig } from '@/lib/queryConfig';
 import { debugLog, debugError } from '@/lib/debug';
 
 /* eslint-disable @typescript-eslint/no-explicit-any */
 
-const SERVICE_REGISTRY_ADDRESS = getContractAddress(
-  process.env.NEXT_PUBLIC_SERVICE_REGISTRY_ADDRESS,
-  CONTRACT_ADDRESSES.sepolia.serviceRegistry
-);
+const SERVICE_REGISTRY_ADDRESS = getContractAddress('SERVICE_REGISTRY');
 
 export interface Service {
   id: bigint;

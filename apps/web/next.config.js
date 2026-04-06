@@ -1,24 +1,13 @@
 /** @type {import('next').NextConfig} */
 const nextConfig = {
-  typescript: {
-    ignoreBuildErrors: true,
-  },
-
   // Allow dev server to be accessed from any network origin
   allowedDevOrigins: ['*'],
 
-  // Use webpack for now (Turbopack migration can be done later)
+  // Use Turbopack for fast builds
   turbopack: {},
 
-  webpack: config => {
-    config.ignoreWarnings = [
-      // @metamask/sdk bundles require() for a React Native-only dep in a try/catch
-      { module: /@metamask\/sdk/ },
-      // pino (used by @walletconnect) tries to require pino-pretty in a try/catch
-      { message: /Can't resolve 'pino-pretty'/ },
-    ];
-    return config;
-  },
+  // Fix lockfile warning for monorepo with multiple lockfiles
+  outputFileTracingRoot: __dirname,
 
   // Phase 3: Security Headers
   // CSP is in report-only mode for testing phase
@@ -32,7 +21,12 @@ const nextConfig = {
         .split(',')
         .map(host => host.trim())
         .filter(Boolean)
-        .map(host => host.replace(/^https?:\/\//, '').replace(/^wss?:\/\//, '').replace(/\/$/, ''))
+        .map(host =>
+          host
+            .replace(/^https?:\/\//, '')
+            .replace(/^wss?:\/\//, '')
+            .replace(/\/$/, '')
+        )
         .filter(Boolean);
 
     const devHosts = parseDevHosts(devHostEnv);

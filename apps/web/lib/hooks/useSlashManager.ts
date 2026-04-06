@@ -1,11 +1,8 @@
 import { useReadContract, useWriteContract } from 'wagmi';
-import { CONTRACT_ADDRESSES, getContractAddress } from '@/lib/contracts/config';
+import { getContractAddress } from '@/lib/contracts/config';
 import { SLASH_MANAGER_ABI } from '@/lib/contracts/abis';
 
-const SLASH_MANAGER_ADDRESS = getContractAddress(
-  process.env.NEXT_PUBLIC_SLASH_MANAGER_ADDRESS,
-  CONTRACT_ADDRESSES.sepolia.slashManager
-);
+const SLASH_MANAGER_ADDRESS = getContractAddress('SLASH_MANAGER');
 
 /**
  * Hook to check if an address is a registered signer

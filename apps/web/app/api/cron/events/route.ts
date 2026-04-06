@@ -2,7 +2,7 @@ import { NextRequest, NextResponse } from 'next/server';
 import { createPublicClient, http, type Log } from 'viem';
 import { sepolia } from 'viem/chains';
 import { AGENTIC_COMMERCE_ABI } from '@/lib/contracts/abis';
-import { getContractAddress, CONTRACT_ADDRESSES } from '@/lib/contracts/config';
+import { getContractAddress } from '@/lib/contracts/config';
 import {
   getLastProcessedBlock,
   updateLastProcessedBlock,
@@ -14,10 +14,7 @@ import {
 import { triggerWebhooks } from '@/lib/webhooks/trigger';
 
 const CHAIN_ID = 11155111;
-const AGENTIC_COMMERCE_ADDRESS = getContractAddress(
-  process.env.NEXT_PUBLIC_AGENTIC_COMMERCE_ADDRESS,
-  CONTRACT_ADDRESSES.sepolia.agenticCommerce
-);
+const AGENTIC_COMMERCE_ADDRESS = getContractAddress('AGENTIC_COMMERCE');
 
 const client = createPublicClient({
   chain: sepolia,

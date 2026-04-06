@@ -4,13 +4,10 @@ import { useState, useCallback } from 'react';
 import { usePublicClient, useWriteContract, useWaitForTransactionReceipt } from 'wagmi';
 import { ERC8004_ABI } from '@/lib/8004contracts';
 import { decodeAgentMetadata, generateAgentMetadata, type AgentMetadata8004 } from '@/lib/metadata';
-import { CONTRACT_ADDRESSES, getContractAddress } from '@/lib/contracts/config';
+import { getContractAddress } from '@/lib/contracts/config';
 import { useDebug } from '@/contexts/DebugContext';
 
-const ERC8004_ADDRESS = getContractAddress(
-  process.env.NEXT_PUBLIC_8004_REGISTRY_ADDRESS,
-  CONTRACT_ADDRESSES.sepolia.erc8004Registry
-);
+const ERC8004_ADDRESS = getContractAddress('ERC8004_REGISTRY');
 
 interface UseAddKokonutTagReturn {
   addTag: (agentId: number) => Promise<void>;

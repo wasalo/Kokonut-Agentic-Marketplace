@@ -3,16 +3,13 @@
 import { useState, useEffect, useCallback } from 'react';
 import { useReadContract, useWriteContract, usePublicClient } from 'wagmi';
 import { AGENT_REVIEW_ABI } from '@/lib/contracts/abis';
-import { CONTRACT_ADDRESSES, getContractAddress, debugLog } from '@/lib/contracts/config';
+import { getContractAddress, debugLog } from '@/lib/contracts/config';
 import { debugError } from '@/lib/debug';
 import { getQueryConfig } from '@/lib/queryConfig';
 
 /* eslint-disable @typescript-eslint/no-explicit-any */
 
-const AGENT_REVIEW_ADDRESS = getContractAddress(
-  process.env.NEXT_PUBLIC_AGENT_REVIEW_ADDRESS,
-  CONTRACT_ADDRESSES.sepolia.agentReview
-);
+const AGENT_REVIEW_ADDRESS = getContractAddress('AGENT_REVIEW');
 
 export interface Proposal {
   id: bigint;

@@ -1,11 +1,8 @@
 import { useReadContract } from 'wagmi';
-import { CONTRACT_ADDRESSES, getContractAddress } from '@/lib/contracts/config';
+import { getContractAddress } from '@/lib/contracts/config';
 import { AGENTIC_COMMERCE_ABI } from '@/lib/contracts/abis';
 
-const AGENTIC_COMMERCE_ADDRESS = getContractAddress(
-  process.env.NEXT_PUBLIC_AGENTIC_COMMERCE_ADDRESS,
-  CONTRACT_ADDRESSES.sepolia.agenticCommerce
-);
+const AGENTIC_COMMERCE_ADDRESS = getContractAddress('AGENTIC_COMMERCE');
 
 export const MAX_JOBS_PER_CLIENT = 100;
 

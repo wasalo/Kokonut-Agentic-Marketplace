@@ -1,13 +1,10 @@
 import { useReadContract, useWriteContract } from 'wagmi';
 import { AGENT_SKILL_REGISTRY_ABI } from '@/lib/contracts/abis';
-import { CONTRACT_ADDRESSES, getContractAddress, debugLog } from '@/lib/contracts/config';
+import { getContractAddress, debugLog } from '@/lib/contracts/config';
 
 /* eslint-disable @typescript-eslint/no-explicit-any */
 
-const SKILL_REGISTRY_ADDRESS = getContractAddress(
-  process.env.NEXT_PUBLIC_SKILL_REGISTRY_ADDRESS,
-  CONTRACT_ADDRESSES.sepolia.skillRegistry
-);
+const SKILL_REGISTRY_ADDRESS = getContractAddress('SKILL_REGISTRY');
 
 export interface Skill {
   agentId: bigint;

@@ -3,14 +3,11 @@
 import { useReadContract, useReadContracts } from 'wagmi';
 import { ERC8004_ABI } from '@/lib/8004contracts';
 import { useKokonutAgents } from './useKokonutAgents';
-import { CONTRACT_ADDRESSES, getContractAddress, debugLog } from '@/lib/contracts/config';
+import { getContractAddress, debugLog } from '@/lib/contracts/config';
 
 /* eslint-disable @typescript-eslint/no-explicit-any */
 
-const ERC8004_REPUTATION_ADDRESS = getContractAddress(
-  process.env.NEXT_PUBLIC_8004_REPUTATION_ADDRESS,
-  CONTRACT_ADDRESSES.sepolia.erc8004Reputation
-);
+const ERC8004_REPUTATION_ADDRESS = getContractAddress('ERC8004_REPUTATION');
 
 export interface ReputationData {
   feedbackCount: number;

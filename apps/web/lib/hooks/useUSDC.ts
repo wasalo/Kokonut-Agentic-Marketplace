@@ -1,13 +1,10 @@
 import { useReadContract, useWriteContract } from 'wagmi';
-import { CONTRACT_ADDRESSES, getContractAddress } from '@/lib/contracts/config';
+import { getContractAddress } from '@/lib/contracts/config';
 import { ERC20_ABI } from '@/lib/contracts/abis';
 
 /* eslint-disable @typescript-eslint/no-explicit-any */
 
-const USDC_ADDRESS = getContractAddress(
-  process.env.NEXT_PUBLIC_USDC_ADDRESS,
-  CONTRACT_ADDRESSES.sepolia.usdc
-);
+const USDC_ADDRESS = getContractAddress('USDC');
 
 /**
  * Hook to get USDC balance for an address

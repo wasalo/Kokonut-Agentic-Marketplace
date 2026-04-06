@@ -1,12 +1,9 @@
 import { useReadContract, useWriteContract } from 'wagmi';
 import { encodeAbiParameters, keccak256, toHex } from 'viem';
-import { CONTRACT_ADDRESSES, getContractAddress } from '@/lib/contracts/config';
+import { getContractAddress } from '@/lib/contracts/config';
 import { COMMIT_REVEAL_ABI } from '@/lib/contracts/abis';
 
-const COMMIT_REVEAL_ADDRESS = getContractAddress(
-  process.env.NEXT_PUBLIC_COMMIT_REVEAL_ADDRESS,
-  CONTRACT_ADDRESSES.sepolia.commitReveal
-);
+const COMMIT_REVEAL_ADDRESS = getContractAddress('COMMIT_REVEAL');
 
 /**
  * Hook to make a commitment (front-running protection)

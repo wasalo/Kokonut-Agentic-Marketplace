@@ -6,7 +6,7 @@
     "lib": ["ES2022"],
     "declaration": false,
     "outDir": "./dist",
-    "rootDir": "..",
+    "rootDir": ".",
     "strict": false,
     "noImplicitAny": false,
     "strictNullChecks": false,
@@ -20,6 +20,6 @@
     "noImplicitReturns": false,
     "allowJs": true
   },
-  "include": ["./**/*.ts", "../config/**/*.ts"],
+  "include": ["./**/*.ts"],
   "exclude": ["node_modules", "dist"]
 }

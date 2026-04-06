@@ -1,13 +1,10 @@
 import { useReadContract } from 'wagmi';
-import { CONTRACT_ADDRESSES, getContractAddress } from '@/lib/contracts/config';
+import { getContractAddress } from '@/lib/contracts/config';
 import { PRICE_ORACLE_ABI } from '@/lib/contracts/abis';
 
 /* eslint-disable @typescript-eslint/no-explicit-any */
 
-const PRICE_ORACLE_ADDRESS = getContractAddress(
-  process.env.NEXT_PUBLIC_PRICE_ORACLE_ADDRESS,
-  CONTRACT_ADDRESSES.sepolia.priceOracle
-);
+const PRICE_ORACLE_ADDRESS = getContractAddress('PRICE_ORACLE');
 
 /**
  * Hook to get the current USDC price from the oracle

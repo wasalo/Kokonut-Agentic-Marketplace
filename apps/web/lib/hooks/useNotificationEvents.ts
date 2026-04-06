@@ -3,25 +3,14 @@
 import { useEffect, useCallback, useRef } from 'react';
 import { usePublicClient, useAccount } from 'wagmi';
 import { parseAbiItem } from 'viem';
-import { CONTRACT_ADDRESSES, getContractAddress, debugLog } from '@/lib/contracts/config';
+import { getContractAddress, debugLog } from '@/lib/contracts/config';
 import { useNotifications } from '@/lib/hooks/useNotifications';
 import { triggerWebhooks, getWebhookEventFromNotification } from '@/lib/webhooks/trigger';
 import { sendNotificationEmail } from '@/lib/emails/notification-bridge';
 
-const AGENTIC_COMMERCE_ADDRESS = getContractAddress(
-  process.env.NEXT_PUBLIC_AGENTIC_COMMERCE_ADDRESS,
-  CONTRACT_ADDRESSES.sepolia.agenticCommerce
-);
-
-const SERVICE_REGISTRY_ADDRESS = getContractAddress(
-  process.env.NEXT_PUBLIC_SERVICE_REGISTRY_ADDRESS,
-  CONTRACT_ADDRESSES.sepolia.serviceRegistry
-);
-
-const AGENT_REVIEW_ADDRESS = getContractAddress(
-  process.env.NEXT_PUBLIC_AGENT_REVIEW_ADDRESS,
-  CONTRACT_ADDRESSES.sepolia.agentReview
-);
+const AGENTIC_COMMERCE_ADDRESS = getContractAddress('AGENTIC_COMMERCE');
+const SERVICE_REGISTRY_ADDRESS = getContractAddress('SERVICE_REGISTRY');
+const AGENT_REVIEW_ADDRESS = getContractAddress('AGENT_REVIEW');
 
 const STORAGE_KEY = 'kokonut_last_notification_block';
 

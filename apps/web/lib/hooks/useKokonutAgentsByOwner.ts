@@ -4,16 +4,13 @@ import { useCallback } from 'react';
 import { useQuery, useQueryClient } from '@tanstack/react-query';
 import { usePublicClient } from 'wagmi';
 import { decodeAgentMetadata } from '@/lib/metadata';
-import { CONTRACT_ADDRESSES, getContractAddress } from '@/lib/contracts/config';
+import { getContractAddress } from '@/lib/contracts/config';
 import { debugLog, debugError } from '@/lib/debug';
 import { ERC8004_ABI } from '@/lib/8004contracts';
 
 const API_KEY = process.env.NEXT_PUBLIC_8004_API_KEY || '';
 const API_BASE = 'https://8004scan.io/api/v1/public';
-const ERC8004_ADDRESS = getContractAddress(
-  process.env.NEXT_PUBLIC_8004_REGISTRY_ADDRESS,
-  CONTRACT_ADDRESSES.sepolia.erc8004Registry
-);
+const ERC8004_ADDRESS = getContractAddress('ERC8004_REGISTRY');
 
 const STALE_TIME = 5 * 60 * 1000; // 5 minutes
 const GC_TIME = 30 * 60 * 1000; // 30 minutes

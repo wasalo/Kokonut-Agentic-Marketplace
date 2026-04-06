@@ -31,7 +31,9 @@
     "security:check": "npm audit --audit-level=high && npm outdated"
   },
   "workspaces": [
-    "apps/*"
+    "apps/*",
+    "packages/*",
+    "sdk/typescript"
   ],
   "keywords": [
     "kokonut",
@@ -86,7 +88,7 @@
     "tailwindcss": "^4.2.2",
     "uuid": "^9.0.1",
     "viem": "^2.47.6",
-    "wagmi": "^3.6.0",
+    "wagmi": "^2.9.0",
     "ws": "^8.20.0"
   },
   "devDependencies": {

@@ -5,6 +5,61 @@ All notable changes to the Kokonut Agent Economy Stack are documented in this fi
 The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.0.0/),
 and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0.html).
 
+## [2026-04-05] - Critical Bug Fixes (External Audit)
+
+### 🚨 Bug Fixes
+
+**Bug 1: wagmi Version Conflict (Critical)**
+
+- Changed `wagmi` from `^3.6.0` to `^2.9.0` in both `package.json` and `apps/web/package.json`
+- RainbowKit v2 requires wagmi v2 as a peer dependency
+
+**Bug 2: Missing Workspace Entries (High)**
+
+- Added `packages/*` and `sdk/typescript` to root `package.json` workspaces
+- CLI, MCP server, A2A protocol, and TypeScript SDK now properly linked
+
+**Bug 3: Turbopack + Webpack Conflict (Critical)**
+
+- Removed webpack configuration from `next.config.js`
+- Kept turbopack for faster builds
+
+**Bug 4: ignoreBuildErrors Masking Types (High)**
+
+- Removed `typescript: { ignoreBuildErrors: true }` from `next.config.js`
+- TypeScript now runs fully on every build
+
+**Bug 5: Duplicate eslint-config-next (Medium)**
+
+- Removed duplicate `eslint-config-next` from `dependencies` section
+- Kept only in `devDependencies` where it belongs
+
+**Bug 6: Wrong rootDir in CLI (High)**
+
+- Fixed `cli/tsconfig.json` `rootDir` from `".."` to `"."`
+- CLI can now be built correctly
+
+**Bug 7: Centralized Address Utility (Medium)**
+
+- Created centralized `getContractAddress()` function in `lib/contracts/config.ts`
+- All 10 contract address env vars now use fallbacks
+- Updated 20+ hooks to use centralized address utility
+- No more `undefined` contract addresses at runtime
+
+### Files Changed
+
+| File                      | Change                              |
+| ------------------------- | ----------------------------------- |
+| `package.json`            | wagmi v2, workspaces                |
+| `apps/web/package.json`   | wagmi v2, eslint fix                |
+| `apps/web/next.config.js` | Removed webpack, ignoreBuildErrors  |
+| `cli/tsconfig.json`       | Fixed rootDir                       |
+| `lib/contracts/config.ts` | Centralized address utility         |
+| `lib/hooks/*.ts`          | 20+ files use centralized addresses |
+| `lib/wagmi.ts`            | Updated CONTRACTS object            |
+
+---
+
 ## [2026-04-05] - Communication Infrastructure Complete
 
 ### Storage Architecture Migration

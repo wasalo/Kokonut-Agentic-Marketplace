@@ -1,5 +1,5 @@
 import { NextRequest, NextResponse } from 'next/server';
-import { getWebhooksForEvent, recordDelivery } from '@/lib/db/webhook-store';
+import { getWebhooksForEvent, recordDelivery } from '@/lib/db/webhooks';
 
 const RETRY_DELAYS = [0, 60000, 300000, 1800000, 7200000];
 const MAX_RETRY_ATTEMPTS = 5;

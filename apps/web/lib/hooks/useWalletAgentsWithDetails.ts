@@ -5,13 +5,10 @@ import { usePublicClient, useReadContract } from 'wagmi';
 import { parseAbiItem } from 'viem';
 import { ERC8004_ABI } from '@/lib/8004contracts';
 import { decodeAgentMetadata } from '@/lib/metadata';
-import { CONTRACT_ADDRESSES, getContractAddress } from '@/lib/contracts/config';
+import { getContractAddress } from '@/lib/contracts/config';
 import { debugLog, debugError } from '@/lib/debug';
 
-const ERC8004_ADDRESS = getContractAddress(
-  process.env.NEXT_PUBLIC_8004_REGISTRY_ADDRESS,
-  CONTRACT_ADDRESSES.sepolia.erc8004Registry
-);
+const ERC8004_ADDRESS = getContractAddress('ERC8004_REGISTRY');
 
 const FROM_BLOCK = BigInt(9989393);
 
