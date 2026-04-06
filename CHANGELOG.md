@@ -5,7 +5,34 @@ All notable changes to the Kokonut Agent Economy Stack are documented in this fi
 The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.0.0/),
 and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0.html).
 
-## [2026-04-05] - Code Quality & Features
+## [2026-04-05] - Communication Infrastructure Complete
+
+### Storage Architecture Migration
+
+**Prisma 7.x Compatibility Issue:**
+Due to Prisma 7.x requiring `adapter` or `accelerateUrl` in PrismaClient constructor (incompatible with Next.js Turbopack), migrated to JSON-file storage for development.
+
+**JSON-file Storage (`apps/web/data/`):**
+
+- `webhooks.json` - Registered webhook endpoints
+- `webhook-deliveries.json` - Delivery history and status
+- `events.json` - Processed blockchain events
+- `block-tracker.json` - Last processed block per contract
+- `cron-locks.json` - Cron job distributed locks
+- `push-subscriptions.json` - Push notification subscriptions
+- `email-preferences.json` - Email notification preferences
+
+**New DB Layer (`lib/db/`):**
+
+| File          | Purpose                                    |
+| ------------- | ------------------------------------------ |
+| `webhooks.ts` | Webhook CRUD with JSON persistence         |
+| `events.ts`   | Event tracking, block tracking, cron locks |
+| `push.ts`     | Push subscription storage                  |
+| `email.ts`    | Email preferences storage                  |
+| `index.ts`    | Barrel exports                             |
+
+### Code Quality & Features
 
 ### Lint Cleanup (Phases 1-4)
 

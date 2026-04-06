@@ -1,14 +1,7 @@
 import { NextRequest, NextResponse } from 'next/server';
-import { useWebhookStore, type WebhookRegistration, type WebhookEventType } from '@/lib/webhooks';
-import { z } from 'zod';
+import { createWebhook, getWebhooks, getDeliveries } from '@/lib/db/webhooks';
 
-const registrationSchema = z.object({
-  url: z.string().url().max(500),
-  events: z.array(z.string()).min(1).max(20),
-  metadata: z.record(z.unknown()).optional(),
-});
-
-const VALID_EVENTS: WebhookEventType[] = [
+const VALID_EVENTS = [
   'job.created',
   'job.funded',
   'job.submitted',
@@ -28,18 +21,17 @@ const VALID_EVENTS: WebhookEventType[] = [
 export async function POST(request: NextRequest) {
   try {
     const body = await request.json();
+    const { url, events, metadata } = body;
 
-    const validation = registrationSchema.safeParse(body);
-    if (!validation.success) {
-      return NextResponse.json(
-        { error: 'Invalid request body', details: validation.error.errors },
-        { status: 400 }
-      );
+    if (!url || !url.startsWith('https://')) {
+      return NextResponse.json({ error: 'Webhook URL must use HTTPS' }, { status: 400 });
     }
 
-    const { url, events, metadata } = validation.data;
+    if (!events || !Array.isArray(events) || events.length === 0) {
+      return NextResponse.json({ error: 'At least one event is required' }, { status: 400 });
+    }
 
-    const invalidEvents = events.filter(e => !VALID_EVENTS.includes(e as WebhookEventType));
+    const invalidEvents = events.filter((e: string) => !VALID_EVENTS.includes(e));
     if (invalidEvents.length > 0) {
       return NextResponse.json({ error: 'Invalid event types', invalidEvents }, { status: 400 });
     }
@@ -52,22 +44,12 @@ export async function POST(request: NextRequest) {
       );
     }
 
-    if (!url.startsWith('https://')) {
-      return NextResponse.json({ error: 'Webhook URL must use HTTPS' }, { status: 400 });
-    }
-
-    const webhook = useWebhookStore.getState().registerWebhook(owner, {
+    const webhook = await createWebhook({
+      owner,
       url,
-      events: events as WebhookEventType[],
-      metadata,
+      events,
+      metadata: metadata ? JSON.stringify(metadata) : undefined,
     });
-
-    if (!webhook) {
-      return NextResponse.json(
-        { error: 'Maximum webhooks reached (10 per agent)' },
-        { status: 429 }
-      );
-    }
 
     return NextResponse.json({
       success: true,
@@ -96,19 +78,24 @@ export async function GET(request: NextRequest) {
       );
     }
 
-    const webhooks = useWebhookStore.getState().getWebhooksByOwner(owner);
+    const webhooks = await getWebhooks(owner);
 
-    return NextResponse.json({
-      webhooks: webhooks.map(w => ({
-        id: w.id,
-        url: w.url,
-        events: w.events,
-        isActive: w.isActive,
-        createdAt: w.createdAt,
-        updatedAt: w.updatedAt,
-        metadata: w.metadata,
-      })),
-    });
+    const webhooksWithDeliveries = await Promise.all(
+      webhooks.map(async w => {
+        const deliveries = await getDeliveries(w.id, 5);
+        return {
+          id: w.id,
+          url: w.url,
+          events: w.events,
+          isActive: w.isActive,
+          createdAt: w.createdAt,
+          updatedAt: w.updatedAt,
+          recentDeliveries: deliveries,
+        };
+      })
+    );
+
+    return NextResponse.json({ webhooks: webhooksWithDeliveries });
   } catch (error) {
     console.error('Webhook listing error:', error);
     return NextResponse.json({ error: 'Internal server error' }, { status: 500 });

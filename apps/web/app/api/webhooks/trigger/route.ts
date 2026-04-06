@@ -1,22 +1,19 @@
 import { NextRequest, NextResponse } from 'next/server';
-import {
-  useWebhookStore,
-  generateWebhookId,
-  type WebhookPayload,
-  type WebhookEventType,
-} from '@/lib/webhooks';
+import { getWebhooksForEvent, recordDelivery } from '@/lib/db/webhook-store';
 
 const RETRY_DELAYS = [0, 60000, 300000, 1800000, 7200000];
 const MAX_RETRY_ATTEMPTS = 5;
 
+function generateId(): string {
+  return `wh_${Date.now()}_${Math.random().toString(36).substring(2, 15)}`;
+}
+
 async function deliverWebhook(
-  webhookId: string,
   url: string,
   secret: string,
-  payload: WebhookPayload
+  payload: Record<string, unknown>
 ): Promise<{ status: number; body: string }> {
   const body = JSON.stringify(payload);
-
   const signature = await generateSignature(body, secret);
 
   const response = await fetch(url, {
@@ -24,8 +21,8 @@ async function deliverWebhook(
     headers: {
       'Content-Type': 'application/json',
       'X-Kokonut-Signature': signature,
-      'X-Kokonut-Event': payload.event,
-      'X-Kokonut-Delivery-Id': payload.id,
+      'X-Kokonut-Event': payload.event as string,
+      'X-Kokonut-Delivery-Id': payload.id as string,
     },
     body,
   });
@@ -40,7 +37,6 @@ async function deliverWebhook(
 
 async function generateSignature(payload: string, secret: string): Promise<string> {
   const encoder = new TextEncoder();
-  const keyData = encoder.encode(secret);
   const payloadData = encoder.encode(payload);
 
   const hashBuffer = await crypto.subtle.digest('SHA-256', payloadData);
@@ -67,17 +63,15 @@ export async function POST(request: NextRequest) {
       return NextResponse.json({ error: 'Event type required' }, { status: 400 });
     }
 
-    const webhooks = useWebhookStore
-      .getState()
-      .getActiveWebhooksForEvent(event as WebhookEventType);
+    const webhooks = await getWebhooksForEvent(event);
 
     if (webhooks.length === 0) {
       return NextResponse.json({ message: 'No webhooks registered for this event' });
     }
 
-    const payload: WebhookPayload = {
-      id: generateWebhookId(),
-      event: event as WebhookEventType,
+    const payload = {
+      id: generateId(),
+      event,
       timestamp: Date.now(),
       chainId,
       data: data || {},
@@ -85,10 +79,6 @@ export async function POST(request: NextRequest) {
 
     const results = await Promise.allSettled(
       webhooks.map(async webhook => {
-        const deliveryId = generateWebhookId();
-
-        useWebhookStore.getState().addDelivery(webhook.id, payload);
-
         let attempt = 0;
         let lastError: Error | null = null;
 
@@ -98,18 +88,21 @@ export async function POST(request: NextRequest) {
               await new Promise(resolve => setTimeout(resolve, RETRY_DELAYS[attempt]));
             }
 
-            const result = await deliverWebhook(webhook.id, webhook.url, webhook.secret, payload);
+            const result = await deliverWebhook(webhook.url, webhook.secret, payload);
 
-            useWebhookStore.getState().updateDelivery(deliveryId, {
+            await recordDelivery({
+              webhookId: webhook.id,
+              event,
+              payload: JSON.stringify(payload),
+              status: result.status >= 200 && result.status < 300 ? 'success' : 'failed',
+              statusCode: result.status,
+              response: result.body,
               attempts: attempt + 1,
-              lastAttempt: Date.now(),
-              status: result.status >= 200 && result.status < 300 ? 'delivered' : 'failed',
-              responseStatus: result.status,
-              responseBody: result.body,
+              lastAttempt: new Date().toISOString(),
             });
 
             if (result.status >= 200 && result.status < 300) {
-              return { webhookId: webhook.id, status: 'delivered', deliveryId };
+              return { webhookId: webhook.id, status: 'success' };
             }
 
             lastError = new Error(`HTTP ${result.status}: ${result.body}`);
@@ -120,16 +113,12 @@ export async function POST(request: NextRequest) {
           attempt++;
         }
 
-        useWebhookStore.getState().updateDelivery(deliveryId, {
-          status: 'failed',
-        });
-
-        return { webhookId: webhook.id, status: 'failed', deliveryId, error: lastError?.message };
+        return { webhookId: webhook.id, status: 'failed', error: lastError?.message };
       })
     );
 
     const delivered = results.filter(
-      r => r.status === 'fulfilled' && (r.value as any).status === 'delivered'
+      r => r.status === 'fulfilled' && (r.value as { status: string }).status === 'success'
     ).length;
     const failed = results.length - delivered;
 
@@ -138,7 +127,6 @@ export async function POST(request: NextRequest) {
       total: results.length,
       delivered,
       failed,
-      results,
     });
   } catch (error) {
     console.error('Webhook trigger error:', error);

@@ -7,7 +7,8 @@
     "url": "https://github.com/wasalo/Kokonut-Agentic-Marketplace"
   },
   "scripts": {
-    "dev": "next dev",
+    "dev": "next dev --webpack",
+    "dev:turbo": "next dev",
     "build": "next build",
     "start": "next start",
     "lint": "next lint",
@@ -39,10 +40,12 @@
     "react": "^19.2.4",
     "react-dom": "^19.2.4",
     "react-hook-form": "^7.53.0",
+    "resend": "^6.10.0",
     "tailwind-merge": "^3.5.0",
     "tailwindcss": "^4.2.2",
     "viem": "^2.47.6",
     "wagmi": "^3.6.0",
+    "web-push": "^3.6.7",
     "ws": "^8.20.0",
     "zod": "^3.23.0",
     "zustand": "^5.0.0"
@@ -52,6 +55,7 @@
     "@types/node": "^22.19.15",
     "@types/react": "^19.2.14",
     "@types/react-dom": "^19.2.3",
+    "@types/web-push": "^3.6.4",
     "autoprefixer": "^10.4.20",
     "eslint": "^9",
     "eslint-config-next": "^16.2.2",

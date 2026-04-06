@@ -38,7 +38,7 @@ async function sendViaResend(
         'Content-Type': 'application/json',
       },
       body: JSON.stringify({
-        from: 'Kokonut Network <noreply@kokonut.network>',
+        from: 'Kokonut Network <noreply@market.kokonut.network>',
         to: [to],
         subject,
         html,

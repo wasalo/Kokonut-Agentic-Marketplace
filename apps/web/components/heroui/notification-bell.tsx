@@ -2,12 +2,31 @@
 
 import { useState, useRef, useEffect } from 'react';
 import { useRouter } from 'next/navigation';
-import { Bell, BellOff, Briefcase, Server, FileText, Wallet, Check } from 'lucide-react';
+import {
+  Bell,
+  BellOff,
+  Briefcase,
+  Server,
+  FileText,
+  Wallet,
+  Check,
+  BellRing,
+  Smartphone,
+} from 'lucide-react';
 import { useNotifications } from '@/lib/hooks/useNotifications';
+import { usePushNotifications } from '@/lib/hooks/usePushNotifications';
 
 export function NotificationBell() {
   const router = useRouter();
   const { unreadCount, markAllAsRead, notifications } = useNotifications();
+  const {
+    supported,
+    subscribed,
+    loading: pushLoading,
+    subscribe,
+    unsubscribe,
+    sendTestNotification,
+  } = usePushNotifications();
   const [isOpen, setIsOpen] = useState(false);
   const dropdownRef = useRef<HTMLDivElement>(null);
 
@@ -77,15 +96,17 @@ export function NotificationBell() {
         <div className="absolute right-0 top-full mt-2 w-80 bg-content1 border border-divider rounded-lg shadow-lg overflow-hidden z-50">
           <div className="p-3 border-b border-divider flex items-center justify-between">
             <h3 className="font-semibold text-sm">Notifications</h3>
-            {unreadCount > 0 && (
-              <button
-                onClick={markAllAsRead}
-                className="text-xs text-primary hover:text-primary/80 flex items-center gap-1"
-              >
-                <Check className="w-3 h-3" />
-                Mark all read
-              </button>
-            )}
+            <div className="flex items-center gap-2">
+              {unreadCount > 0 && (
+                <button
+                  onClick={markAllAsRead}
+                  className="text-xs text-primary hover:text-primary/80 flex items-center gap-1"
+                >
+                  <Check className="w-3 h-3" />
+                  Mark all read
+                </button>
+              )}
+            </div>
           </div>
           <div className="max-h-[400px] overflow-y-auto">
             {recentNotifications.length === 0 ? (

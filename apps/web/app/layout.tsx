@@ -31,10 +31,23 @@ export default function RootLayout({
   return (
     <html lang="en" className="dark" suppressHydrationWarning>
       <head>
-        {/* Crypto polyfill MUST run before any other JavaScript */}
         <Script src="/crypto-polyfill.js" strategy="beforeInteractive" />
       </head>
       <body className={inter.className} suppressHydrationWarning>
+        <Script src="/push-sw.js" strategy="lazyOnload" />
+        <Script id="register-service-worker">{`
+          if ('serviceWorker' in navigator) {
+            window.addEventListener('load', function() {
+              navigator.serviceWorker.register('/push-sw.js')
+                .then(function(registration) {
+                  console.log('[SW] Registered successfully:', registration.scope);
+                })
+                .catch(function(error) {
+                  console.log('[SW] Registration failed:', error);
+                });
+            });
+          }
+        `}</Script>
         <ClientErrorBoundary>
           <Providers>
             <div className="min-h-screen flex flex-col bg-background">
