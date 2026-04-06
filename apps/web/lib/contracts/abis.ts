@@ -1348,3 +1348,317 @@ export const CHAINLINK_AGGREGATOR_ABI = [
     type: 'function',
   },
 ] as const;
+
+// =============================================================================
+// BIDDING SYSTEM ABI (Phase 11)
+// Standalone commit-reveal bidding contract
+// =============================================================================
+
+export const BIDDING_SYSTEM_ABI = [
+  // Enums
+  {
+    inputs: [],
+    name: 'SessionStatus',
+    outputs: [
+      { name: 'Active', type: 'uint8' },
+      { name: 'BiddingClosed', type: 'uint8' },
+      { name: 'WinnerSelected', type: 'uint8' },
+      { name: 'JobCreated', type: 'uint8' },
+      { name: 'Completed', type: 'uint8' },
+      { name: 'Cancelled', type: 'uint8' },
+    ],
+    stateMutability: 'view',
+    type: 'function',
+  },
+  // Read functions
+  {
+    inputs: [],
+    name: 'owner',
+    outputs: [{ name: '', type: 'address' }],
+    stateMutability: 'view',
+    type: 'function',
+  },
+  {
+    inputs: [],
+    name: 'commerce',
+    outputs: [{ name: '', type: 'address' }],
+    stateMutability: 'view',
+    type: 'function',
+  },
+  {
+    inputs: [],
+    name: 'treasury',
+    outputs: [{ name: '', type: 'address' }],
+    stateMutability: 'view',
+    type: 'function',
+  },
+  {
+    inputs: [],
+    name: 'revealWindow',
+    outputs: [{ name: '', type: 'uint256' }],
+    stateMutability: 'view',
+    type: 'function',
+  },
+  {
+    inputs: [],
+    name: 'platformFeeBP',
+    outputs: [{ name: '', type: 'uint256' }],
+    stateMutability: 'view',
+    type: 'function',
+  },
+  {
+    inputs: [],
+    name: 'sessionCounter',
+    outputs: [{ name: '', type: 'uint256' }],
+    stateMutability: 'view',
+    type: 'function',
+  },
+  {
+    inputs: [{ name: 'sessionId', type: 'uint256' }],
+    name: 'getSession',
+    outputs: [
+      {
+        name: '',
+        type: 'tuple',
+        components: [
+          { name: 'id', type: 'uint256' },
+          { name: 'creator', type: 'address' },
+          { name: 'evaluator', type: 'address' },
+          { name: 'maxBudget', type: 'uint256' },
+          { name: 'deadline', type: 'uint256' },
+          { name: 'revealWindowEnd', type: 'uint256' },
+          { name: 'metadata', type: 'bytes' },
+          { name: 'serviceId', type: 'uint256' },
+          { name: 'jobId', type: 'uint256' },
+          { name: 'winner', type: 'address' },
+          { name: 'winningBidId', type: 'uint256' },
+          { name: 'jobCreated', type: 'bool' },
+          { name: 'status', type: 'uint8' },
+        ],
+      },
+    ],
+    stateMutability: 'view',
+    type: 'function',
+  },
+  {
+    inputs: [
+      { name: 'sessionId', type: 'uint256' },
+      { name: 'bidId', type: 'uint256' },
+    ],
+    name: 'getBid',
+    outputs: [
+      {
+        name: '',
+        type: 'tuple',
+        components: [
+          { name: 'bidId', type: 'uint256' },
+          { name: 'bidder', type: 'address' },
+          { name: 'proposedAmount', type: 'uint256' },
+          { name: 'stake', type: 'uint256' },
+          { name: 'message', type: 'string' },
+          { name: 'commitHash', type: 'bytes32' },
+          { name: 'revealed', type: 'bool' },
+          { name: 'accepted', type: 'bool' },
+          { name: 'stakeWithdrawn', type: 'bool' },
+          { name: 'timestamp', type: 'uint256' },
+        ],
+      },
+    ],
+    stateMutability: 'view',
+    type: 'function',
+  },
+  {
+    inputs: [
+      { name: 'sessionId', type: 'uint256' },
+      { name: 'user', type: 'address' },
+    ],
+    name: 'getUserBid',
+    outputs: [
+      {
+        name: '',
+        type: 'tuple',
+        components: [
+          { name: 'bidId', type: 'uint256' },
+          { name: 'bidder', type: 'address' },
+          { name: 'proposedAmount', type: 'uint256' },
+          { name: 'stake', type: 'uint256' },
+          { name: 'message', type: 'string' },
+          { name: 'commitHash', type: 'bytes32' },
+          { name: 'revealed', type: 'bool' },
+          { name: 'accepted', type: 'bool' },
+          { name: 'stakeWithdrawn', type: 'bool' },
+          { name: 'timestamp', type: 'uint256' },
+        ],
+      },
+    ],
+    stateMutability: 'view',
+    type: 'function',
+  },
+  {
+    inputs: [{ name: 'sessionId', type: 'uint256' }],
+    name: 'getSessionCount',
+    outputs: [{ name: '', type: 'uint256' }],
+    stateMutability: 'view',
+    type: 'function',
+  },
+  {
+    inputs: [{ name: 'maxBudget', type: 'uint256' }],
+    name: 'calculateStake',
+    outputs: [{ name: '', type: 'uint256' }],
+    stateMutability: 'pure',
+    type: 'function',
+  },
+  // Write functions
+  {
+    inputs: [
+      { name: 'evaluator', type: 'address' },
+      { name: 'maxBudget', type: 'uint256' },
+      { name: 'deadline', type: 'uint256' },
+      { name: 'metadata', type: 'bytes' },
+      { name: 'serviceId', type: 'uint256' },
+    ],
+    name: 'createBiddingSession',
+    outputs: [{ name: 'sessionId', type: 'uint256' }],
+    stateMutability: 'payable',
+    type: 'function',
+  },
+  {
+    inputs: [
+      { name: 'sessionId', type: 'uint256' },
+      { name: 'commitHash', type: 'bytes32' },
+    ],
+    name: 'commitBid',
+    outputs: [],
+    stateMutability: 'payable',
+    type: 'function',
+  },
+  {
+    inputs: [
+      { name: 'sessionId', type: 'uint256' },
+      { name: 'amount', type: 'uint256' },
+      { name: 'message', type: 'string' },
+      { name: 'salt', type: 'bytes32' },
+    ],
+    name: 'revealBid',
+    outputs: [],
+    stateMutability: 'nonpayable',
+    type: 'function',
+  },
+  {
+    inputs: [
+      { name: 'sessionId', type: 'uint256' },
+      { name: 'bidId', type: 'uint256' },
+    ],
+    name: 'acceptBid',
+    outputs: [],
+    stateMutability: 'nonpayable',
+    type: 'function',
+  },
+  {
+    inputs: [
+      { name: 'sessionId', type: 'uint256' },
+      { name: 'bidId', type: 'uint256' },
+      { name: 'reason', type: 'string' },
+    ],
+    name: 'rejectBid',
+    outputs: [],
+    stateMutability: 'nonpayable',
+    type: 'function',
+  },
+  {
+    inputs: [{ name: 'sessionId', type: 'uint256' }],
+    name: 'withdrawStake',
+    outputs: [],
+    stateMutability: 'nonpayable',
+    type: 'function',
+  },
+  {
+    inputs: [{ name: 'sessionId', type: 'uint256' }],
+    name: 'claimStake',
+    outputs: [],
+    stateMutability: 'nonpayable',
+    type: 'function',
+  },
+  {
+    inputs: [
+      { name: 'sessionId', type: 'uint256' },
+      { name: 'jobExpiredAt', type: 'uint256' },
+      { name: 'description', type: 'string' },
+    ],
+    name: 'createJobAndFund',
+    outputs: [{ name: 'jobId', type: 'uint256' }],
+    stateMutability: 'payable',
+    type: 'function',
+  },
+  {
+    inputs: [{ name: 'sessionId', type: 'uint256' }],
+    name: 'cancelSession',
+    outputs: [],
+    stateMutability: 'nonpayable',
+    type: 'function',
+  },
+  {
+    inputs: [
+      { name: 'sessionId', type: 'uint256' },
+      { name: 'additionalSeconds', type: 'uint256' },
+    ],
+    name: 'extendRevealWindow',
+    outputs: [],
+    stateMutability: 'nonpayable',
+    type: 'function',
+  },
+  // Admin functions
+  {
+    inputs: [{ name: 'commerce_', type: 'address' }],
+    name: 'setCommerce',
+    outputs: [],
+    stateMutability: 'nonpayable',
+    type: 'function',
+  },
+  {
+    inputs: [{ name: 'registry_', type: 'address' }],
+    name: 'setServiceRegistry',
+    outputs: [],
+    stateMutability: 'nonpayable',
+    type: 'function',
+  },
+  {
+    inputs: [{ name: 'window_', type: 'uint256' }],
+    name: 'setRevealWindow',
+    outputs: [],
+    stateMutability: 'nonpayable',
+    type: 'function',
+  },
+  {
+    inputs: [{ name: 'basisPoints_', type: 'uint256' }],
+    name: 'setMinStakeBP',
+    outputs: [],
+    stateMutability: 'nonpayable',
+    type: 'function',
+  },
+  {
+    inputs: [{ name: 'basisPoints_', type: 'uint256' }],
+    name: 'setPlatformFeeBP',
+    outputs: [],
+    stateMutability: 'nonpayable',
+    type: 'function',
+  },
+  {
+    inputs: [
+      { name: 'to', type: 'address' },
+      { name: 'amount', type: 'uint256' },
+    ],
+    name: 'withdrawPlatformFees',
+    outputs: [],
+    stateMutability: 'nonpayable',
+    type: 'function',
+  },
+  // UUPS
+  {
+    inputs: [{ name: 'newImplementation', type: 'address' }],
+    name: 'upgradeTo',
+    outputs: [],
+    stateMutability: 'nonpayable',
+    type: 'function',
+  },
+] as const;

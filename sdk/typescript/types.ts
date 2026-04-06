@@ -27,6 +27,7 @@ export interface ContractAddresses {
   skillRegistry: `0x${string}`;
   serviceRegistry: `0x${string}`;
   agenticCommerce: `0x${string}`;
+  biddingSystem?: `0x${string}`; // Phase 11: Standalone bidding contract
   agentReview: `0x${string}`;
   priceOracle: `0x${string}`;
   commitReveal: `0x${string}`;
@@ -387,6 +388,8 @@ export const NETWORKS: Record<NetworkName, NetworkConfig> = {
       skillRegistry: '0xA84684261558f342d6871DD2CFef90A2117Aa20A',
       serviceRegistry: '0x62E1eeEa1A2Ab987004F35bDA430457Ed6077201',
       agenticCommerce: '0x948d97EA7F0c49796fB576ADff375C900627568E',
+      // Phase 11: BiddingSystem (Standalone commit-reveal bidding)
+      biddingSystem: '0x32c9d069a248a619d3EAc4D1FC76F2639AaBeF04',
       agentReview: '0x716B02447b52Eab450e31bD77103B41bC2c7bE0b',
       priceOracle: '0x5C4AC3dAF76708DCd51911BA3B33027eAB1B4047',
       commitReveal: '0x6CEd1574A3dF7ec646e43DD8408300117c453Aa3',

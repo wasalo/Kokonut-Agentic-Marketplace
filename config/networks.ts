@@ -15,6 +15,7 @@ export const NETWORKS = {
       serviceRegistry: '0x62E1eeEa1A2Ab987004F35bDA430457Ed6077201', // ServiceRegistryV2 Proxy
       agentReview: '0xefAeF01B3DDeF2041A1dbdCEbcA352eD2240920A', // Fixed Contract - March 2026
       agenticCommerce: '0x14293D31c15594bcB03d6581d26FF9353a882884', // Fixed Contract - March 2026
+      biddingSystem: '0x32c9d069a248a619d3EAc4D1FC76F2639AaBeF04', // Phase 11 - Standalone bidding
       priceOracle: '0x5C4AC3dAF76708DCd51911BA3B33027eAB1B4047',
       commitReveal: '0x6CEd1574A3dF7ec646e43DD8408300117c453Aa3',
       slashManager: '0x7Cf955900FD7a12680E90D834eAf19346f5DBcf9',
@@ -33,6 +34,7 @@ export const NETWORKS = {
       serviceRegistry: '',
       agentReview: '',
       agenticCommerce: '',
+      biddingSystem: '',
       priceOracle: '',
       commitReveal: '',
       slashManager: '',

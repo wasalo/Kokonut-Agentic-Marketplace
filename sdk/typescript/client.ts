@@ -1390,6 +1390,322 @@ class SlashManagerModule {
 }
 
 // ============================================================================
+// BiddingSystem Module (Phase 11)
+// ============================================================================
+
+interface BiddingSession {
+  id: bigint;
+  creator: Address;
+  evaluator: Address;
+  maxBudget: bigint;
+  deadline: bigint;
+  revealWindowEnd: bigint;
+  metadata: string;
+  serviceId: bigint;
+  jobId: bigint;
+  winner: Address;
+  winningBidId: bigint;
+  jobCreated: boolean;
+  status: number;
+}
+
+interface BidInfo {
+  bidId: bigint;
+  bidder: Address;
+  proposedAmount: bigint;
+  stake: bigint;
+  message: string;
+  commitHash: string;
+  revealed: boolean;
+  accepted: boolean;
+  stakeWithdrawn: boolean;
+  timestamp: bigint;
+}
+
+const BIDDING_SYSTEM_ABI = [
+  'function createBiddingSession(address evaluator, uint256 maxBudget, uint256 deadline, bytes calldata metadata, uint256 serviceId) external payable returns (uint256 sessionId)',
+  'function commitBid(uint256 sessionId, bytes32 commitHash) external payable',
+  'function revealBid(uint256 sessionId, uint256 amount, string calldata message, bytes32 salt) external',
+  'function acceptBid(uint256 sessionId, uint256 bidId) external',
+  'function rejectBid(uint256 sessionId, uint256 bidId, string calldata reason) external',
+  'function withdrawStake(uint256 sessionId) external',
+  'function claimStake(uint256 sessionId) external',
+  'function createJobAndFund(uint256 sessionId, uint256 jobExpiredAt, string calldata description) external payable returns (uint256 jobId)',
+  'function cancelSession(uint256 sessionId) external',
+  'function extendRevealWindow(uint256 sessionId, uint256 additionalSeconds) external',
+  'function getSession(uint256 sessionId) external view returns (tuple(uint256 id, address creator, address evaluator, uint256 maxBudget, uint256 deadline, uint256 revealWindowEnd, bytes metadata, uint256 serviceId, uint256 jobId, address winner, uint256 winningBidId, bool jobCreated, uint8 status))',
+  'function getUserBid(uint256 sessionId, address user) external view returns (tuple(uint256 bidId, address bidder, uint256 proposedAmount, uint256 stake, string message, bytes32 commitHash, bool revealed, bool accepted, bool stakeWithdrawn, uint256 timestamp))',
+  'function sessionCounter() external view returns (uint256)',
+  'function calculateStake(uint256 maxBudget) external pure returns (uint256)',
+  'function commerce() external view returns (address)',
+  'function treasury() external view returns (address)',
+  'function owner() external view returns (address)',
+  'event BiddingSessionCreated(uint256 indexed sessionId, address indexed creator, address indexed evaluator, uint256 maxBudget, uint256 deadline, uint256 serviceId)',
+  'event BidCommitted(uint256 indexed sessionId, address indexed bidder, bytes32 commitHash, uint256 stakeAmount)',
+  'event BidRevealed(uint256 indexed sessionId, address indexed bidder, uint256 proposedAmount, string message)',
+  'event BidAccepted(uint256 indexed sessionId, address indexed winner, uint256 amount, uint256 bidId)',
+  'event StakeWithdrawn(uint256 indexed sessionId, address indexed bidder, uint256 amount)',
+  'event StakeClaimed(uint256 indexed sessionId, address indexed winner, uint256 amount)',
+  'event JobCreatedFromSession(uint256 indexed sessionId, uint256 indexed jobId, address indexed winner, uint256 amount)',
+  'event SessionCancelled(uint256 indexed sessionId, address indexed canceller)',
+] as const;
+
+class BiddingSystemModule {
+  private wallet: ethers.Wallet;
+  private contracts: ContractAddresses;
+
+  constructor(wallet: ethers.Wallet, contracts: ContractAddresses) {
+    this.wallet = wallet;
+    this.contracts = contracts;
+  }
+
+  private get contract() {
+    return new ethers.Contract(this.contracts.biddingSystem!, BIDDING_SYSTEM_ABI, this.wallet);
+  }
+
+  async createSession(params: {
+    evaluator: Address;
+    maxBudget: bigint;
+    deadline: bigint;
+    metadata?: string;
+    serviceId?: bigint;
+  }): Promise<TransactionResult & { sessionId: bigint }> {
+    const stake = (params.maxBudget * 100n) / 10000n; // 1% stake
+    const tx = await this.contract.createBiddingSession(
+      params.evaluator,
+      params.maxBudget,
+      params.deadline,
+      params.metadata || '0x',
+      params.serviceId || 0,
+      { value: stake }
+    );
+    const receipt = await tx.wait();
+
+    // Parse session ID from event
+    const iface = new ethers.Interface(BIDDING_SYSTEM_ABI);
+    const log = receipt.logs.find((l: ethers.Log) => {
+      try {
+        const parsed = iface.parseLog(l);
+        return parsed?.name === 'BiddingSessionCreated';
+      } catch {
+        return false;
+      }
+    });
+
+    let sessionId = 0n;
+    if (log) {
+      const parsed = iface.parseLog(log);
+      sessionId = parsed?.args[0] as bigint;
+    }
+
+    return {
+      hash: tx.hash,
+      wait: () => tx.wait(),
+      sessionId,
+    };
+  }
+
+  async commitBid(params: {
+    sessionId: bigint;
+    amount: bigint;
+    message: string;
+    salt?: string;
+  }): Promise<TransactionResult> {
+    // Create commitment hash
+    const salt = params.salt || ethers.randomBytes(32).toString();
+    const commitHash = ethers.keccak256(
+      ethers.AbiCoder.defaultAbiCoder().encode(
+        ['uint256', 'string', 'bytes32'],
+        [params.amount, params.message, salt]
+      )
+    );
+
+    const stake = (params.amount * 100n) / 10000n; // 1% stake
+    const tx = await this.contract.commitBid(params.sessionId, commitHash, { value: stake });
+
+    return {
+      hash: tx.hash,
+      wait: () => tx.wait(),
+    };
+  }
+
+  async revealBid(params: {
+    sessionId: bigint;
+    amount: bigint;
+    message: string;
+    salt: string;
+  }): Promise<TransactionResult> {
+    const tx = await this.contract.revealBid(
+      params.sessionId,
+      params.amount,
+      params.message,
+      params.salt
+    );
+
+    return {
+      hash: tx.hash,
+      wait: () => tx.wait(),
+    };
+  }
+
+  async acceptBid(params: { sessionId: bigint; bidId: bigint }): Promise<TransactionResult> {
+    const tx = await this.contract.acceptBid(params.sessionId, params.bidId);
+
+    return {
+      hash: tx.hash,
+      wait: () => tx.wait(),
+    };
+  }
+
+  async rejectBid(params: {
+    sessionId: bigint;
+    bidId: bigint;
+    reason: string;
+  }): Promise<TransactionResult> {
+    const tx = await this.contract.rejectBid(params.sessionId, params.bidId, params.reason);
+
+    return {
+      hash: tx.hash,
+      wait: () => tx.wait(),
+    };
+  }
+
+  async withdrawStake(sessionId: bigint): Promise<TransactionResult> {
+    const tx = await this.contract.withdrawStake(sessionId);
+
+    return {
+      hash: tx.hash,
+      wait: () => tx.wait(),
+    };
+  }
+
+  async claimStake(sessionId: bigint): Promise<TransactionResult> {
+    const tx = await this.contract.claimStake(sessionId);
+
+    return {
+      hash: tx.hash,
+      wait: () => tx.wait(),
+    };
+  }
+
+  async createJobAndFund(params: {
+    sessionId: bigint;
+    jobExpiredAt: bigint;
+    description: string;
+    bidAmount: bigint;
+    platformFeeBP?: number;
+  }): Promise<TransactionResult & { jobId: bigint }> {
+    const platformFee = params.platformFeeBP
+      ? (params.bidAmount * BigInt(params.platformFeeBP)) / 10000n
+      : (params.bidAmount * 100n) / 10000n; // 1% default
+    const totalPayment = params.bidAmount + platformFee;
+
+    const tx = await this.contract.createJobAndFund(
+      params.sessionId,
+      params.jobExpiredAt,
+      params.description,
+      { value: totalPayment }
+    );
+    const receipt = await tx.wait();
+
+    // Parse job ID from event
+    const iface = new ethers.Interface(BIDDING_SYSTEM_ABI);
+    const log = receipt.logs.find((l: ethers.Log) => {
+      try {
+        const parsed = iface.parseLog(l);
+        return parsed?.name === 'JobCreatedFromSession';
+      } catch {
+        return false;
+      }
+    });
+
+    let jobId = 0n;
+    if (log) {
+      const parsed = iface.parseLog(log);
+      jobId = parsed?.args[1] as bigint;
+    }
+
+    return {
+      hash: tx.hash,
+      wait: () => tx.wait(),
+      jobId,
+    };
+  }
+
+  async cancelSession(sessionId: bigint): Promise<TransactionResult> {
+    const tx = await this.contract.cancelSession(sessionId);
+
+    return {
+      hash: tx.hash,
+      wait: () => tx.wait(),
+    };
+  }
+
+  async extendRevealWindow(params: {
+    sessionId: bigint;
+    additionalSeconds: bigint;
+  }): Promise<TransactionResult> {
+    const tx = await this.contract.extendRevealWindow(params.sessionId, params.additionalSeconds);
+
+    return {
+      hash: tx.hash,
+      wait: () => tx.wait(),
+    };
+  }
+
+  async getSession(sessionId: bigint): Promise<BiddingSession | null> {
+    try {
+      const session = await this.contract.getSession(sessionId);
+      return {
+        id: session[0],
+        creator: session[1],
+        evaluator: session[2],
+        maxBudget: session[3],
+        deadline: session[4],
+        revealWindowEnd: session[5],
+        metadata: session[6],
+        serviceId: session[7],
+        jobId: session[8],
+        winner: session[9],
+        winningBidId: session[10],
+        jobCreated: session[11],
+        status: Number(session[12]),
+      };
+    } catch {
+      return null;
+    }
+  }
+
+  async getUserBid(sessionId: bigint, user: Address): Promise<BidInfo | null> {
+    try {
+      const bid = await this.contract.getUserBid(sessionId, user);
+      return {
+        bidId: bid[0],
+        bidder: bid[1],
+        proposedAmount: bid[2],
+        stake: bid[3],
+        message: bid[4],
+        commitHash: bid[5],
+        revealed: bid[6],
+        accepted: bid[7],
+        stakeWithdrawn: bid[8],
+        timestamp: bid[9],
+      };
+    } catch {
+      return null;
+    }
+  }
+
+  async getSessionCount(): Promise<number> {
+    return Number(await this.contract.sessionCounter());
+  }
+
+  calculateStake(maxBudget: bigint): bigint {
+    return (maxBudget * 100n) / 10000n; // 1% stake
+  }
+}
+
+// ============================================================================
 // Exports
 // ============================================================================
 

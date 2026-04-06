@@ -2861,6 +2861,315 @@ program
     }
   });
 
+// =============================================================================
+// BIDDING SYSTEM COMMANDS (Phase 11 - Standalone Bidding)
+// =============================================================================
+
+const BIDDING_SYSTEM_ABI = [
+  'function createBiddingSession(address evaluator, uint256 maxBudget, uint256 deadline, bytes calldata metadata, uint256 serviceId) external payable returns (uint256 sessionId)',
+  'function commitBid(uint256 sessionId, bytes32 commitHash) external payable',
+  'function revealBid(uint256 sessionId, uint256 amount, string calldata message, bytes32 salt) external',
+  'function acceptBid(uint256 sessionId, uint256 bidId) external',
+  'function withdrawStake(uint256 sessionId) external',
+  'function claimStake(uint256 sessionId) external',
+  'function createJobAndFund(uint256 sessionId, uint256 jobExpiredAt, string calldata description) external payable returns (uint256 jobId)',
+  'function cancelSession(uint256 sessionId) external',
+  'function getSession(uint256 sessionId) external view returns (tuple(uint256 id, address creator, address evaluator, uint256 maxBudget, uint256 deadline, uint256 revealWindowEnd, bytes metadata, uint256 serviceId, uint256 jobId, address winner, uint256 winningBidId, bool jobCreated, uint8 status))',
+  'function getUserBid(uint256 sessionId, address user) external view returns (tuple(uint256 bidId, address bidder, uint256 proposedAmount, uint256 stake, string message, bytes32 commitHash, bool revealed, bool accepted, bool stakeWithdrawn, uint256 timestamp))',
+  'function sessionCounter() external view returns (uint256)',
+  'function calculateStake(uint256 maxBudget) external pure returns (uint256)',
+] as const;
+
+program
+  .command('create-bidding-session')
+  .description('Create a new bidding session')
+  .requiredOption('--evaluator <address>', 'Evaluator address')
+  .requiredOption('--max-budget <amount>', 'Maximum budget in ETH (e.g., 5)', parseFloat)
+  .requiredOption('--deadline <timestamp>', 'Deadline timestamp (Unix epoch)', parseInt)
+  .option('--metadata <string>', 'IPFS or data URI for job metadata')
+  .option('--service-id <id>', 'Linked service ID', parseInt)
+  .action(async options => {
+    try {
+      initWallet();
+
+      if (!config.contracts.biddingSystem) {
+        console.error(chalk.red('❌ BiddingSystem not configured'));
+        process.exit(1);
+      }
+
+      const contract = new ethers.Contract(
+        config.contracts.biddingSystem,
+        BIDDING_SYSTEM_ABI,
+        config.signer
+      );
+      const maxBudget = ethers.parseEther(options.maxBudget.toString());
+      const stake = (maxBudget * 100n) / 10000n; // 1% stake
+
+      console.log(chalk.cyan('Creating bidding session...'));
+      console.log(chalk.dim('  Evaluator:'), options.evaluator);
+      console.log(chalk.dim('  Max Budget:'), options.maxBudget, 'ETH');
+      console.log(chalk.dim('  Stake:'), ethers.formatEther(stake), 'ETH');
+      console.log(chalk.dim('  Deadline:'), new Date(options.deadline * 1000).toISOString());
+
+      const tx = await contract.createBiddingSession(
+        options.evaluator,
+        maxBudget,
+        options.deadline,
+        options.metadata || '0x',
+        options.serviceId || 0,
+        { value: stake }
+      );
+
+      console.log(chalk.cyan('Transaction sent:'), tx.hash);
+      const receipt = await tx.wait();
+
+      // Parse session ID from event
+      const iface = contract.interface;
+      const log = receipt.logs.find(l => {
+        try {
+          const parsed = iface.parseLog(l);
+          return parsed?.name === 'BiddingSessionCreated';
+        } catch {
+          return false;
+        }
+      });
+
+      if (log) {
+        const parsed = iface.parseLog(log);
+        const sessionId = parsed?.args[0];
+        console.log(chalk.green('✅ Bidding session created!'));
+        console.log(chalk.cyan('Session ID:'), sessionId.toString());
+      } else {
+        console.log(chalk.green('✅ Bidding session created!'));
+      }
+      console.log(chalk.cyan('Gas used:'), receipt.gasUsed.toString());
+    } catch (error: unknown) {
+      const err = error as { message?: string; reason?: string };
+      console.error(chalk.red('❌ Error:'), err.message);
+      if (err.reason) console.error(chalk.red('Reason:'), err.reason);
+      process.exit(1);
+    }
+  });
+
+program
+  .command('commit-bidding')
+  .description('Commit a sealed bid to a bidding session')
+  .requiredOption('--session <id>', 'Session ID', parseInt)
+  .requiredOption('--amount <amount>', 'Bid amount in ETH', parseFloat)
+  .requiredOption('--message <string>', 'Bid message/proposal')
+  .action(async options => {
+    try {
+      initWallet();
+
+      if (!config.contracts.biddingSystem) {
+        console.error(chalk.red('❌ BiddingSystem not configured'));
+        process.exit(1);
+      }
+
+      const contract = new ethers.Contract(
+        config.contracts.biddingSystem,
+        BIDDING_SYSTEM_ABI,
+        config.signer
+      );
+      const amount = ethers.parseEther(options.amount.toString());
+      const stake = (amount * 100n) / 10000n; // 1% stake
+      const salt = ethers.randomBytes(32);
+      const commitHash = ethers.keccak256(
+        ethers.AbiCoder.defaultAbiCoder().encode(
+          ['uint256', 'string', 'bytes32'],
+          [amount, options.message, salt]
+        )
+      );
+
+      console.log(chalk.cyan('Committing bid...'));
+      console.log(chalk.dim('  Session ID:'), options.session);
+      console.log(chalk.dim('  Amount:'), options.amount, 'ETH');
+      console.log(chalk.dim('  Stake:'), ethers.formatEther(stake), 'ETH');
+      console.log(chalk.dim('  Commit Hash:'), commitHash);
+      console.log(chalk.yellow('  ⚠️  Save your salt for reveal:'), salt.toString());
+
+      const tx = await contract.commitBid(options.session, commitHash, { value: stake });
+
+      console.log(chalk.cyan('Transaction sent:'), tx.hash);
+      const receipt = await tx.wait();
+      console.log(chalk.green('✅ Bid committed!'));
+      console.log(chalk.cyan('Gas used:'), receipt.gasUsed.toString());
+    } catch (error: unknown) {
+      const err = error as { message?: string; reason?: string };
+      console.error(chalk.red('❌ Error:'), err.message);
+      if (err.reason) console.error(chalk.red('Reason:'), err.reason);
+      process.exit(1);
+    }
+  });
+
+program
+  .command('reveal-bidding')
+  .description('Reveal your committed bid')
+  .requiredOption('--session <id>', 'Session ID', parseInt)
+  .requiredOption('--amount <amount>', 'Bid amount in ETH', parseFloat)
+  .requiredOption('--message <string>', 'Bid message/proposal')
+  .requiredOption('--salt <hex>', 'Salt used in commit (hex string)')
+  .action(async options => {
+    try {
+      initWallet();
+
+      if (!config.contracts.biddingSystem) {
+        console.error(chalk.red('❌ BiddingSystem not configured'));
+        process.exit(1);
+      }
+
+      const contract = new ethers.Contract(
+        config.contracts.biddingSystem,
+        BIDDING_SYSTEM_ABI,
+        config.signer
+      );
+      const amount = ethers.parseEther(options.amount.toString());
+      const salt = options.salt.startsWith('0x') ? options.salt : `0x${options.salt}`;
+
+      console.log(chalk.cyan('Revealing bid...'));
+      console.log(chalk.dim('  Session ID:'), options.session);
+      console.log(chalk.dim('  Amount:'), options.amount, 'ETH');
+      console.log(chalk.dim('  Message:'), options.message);
+
+      const tx = await contract.revealBid(options.session, amount, options.message, salt);
+
+      console.log(chalk.cyan('Transaction sent:'), tx.hash);
+      const receipt = await tx.wait();
+      console.log(chalk.green('✅ Bid revealed!'));
+      console.log(chalk.cyan('Gas used:'), receipt.gasUsed.toString());
+    } catch (error: unknown) {
+      const err = error as { message?: string; reason?: string };
+      console.error(chalk.red('❌ Error:'), err.message);
+      if (err.reason) console.error(chalk.red('Reason:'), err.reason);
+      process.exit(1);
+    }
+  });
+
+program
+  .command('accept-bidding')
+  .description('Accept a winning bid (session creator only)')
+  .requiredOption('--session <id>', 'Session ID', parseInt)
+  .requiredOption('--bid-id <id>', 'Bid ID to accept', parseInt)
+  .action(async options => {
+    try {
+      initWallet();
+
+      if (!config.contracts.biddingSystem) {
+        console.error(chalk.red('❌ BiddingSystem not configured'));
+        process.exit(1);
+      }
+
+      const contract = new ethers.Contract(
+        config.contracts.biddingSystem,
+        BIDDING_SYSTEM_ABI,
+        config.signer
+      );
+
+      console.log(chalk.cyan('Accepting bid...'));
+      console.log(chalk.dim('  Session ID:'), options.session);
+      console.log(chalk.dim('  Bid ID:'), options.bidId);
+
+      const tx = await contract.acceptBid(options.session, options.bidId);
+
+      console.log(chalk.cyan('Transaction sent:'), tx.hash);
+      const receipt = await tx.wait();
+      console.log(chalk.green('✅ Bid accepted! Winner can now claim stake.'));
+      console.log(chalk.cyan('Gas used:'), receipt.gasUsed.toString());
+    } catch (error: unknown) {
+      const err = error as { message?: string; reason?: string };
+      console.error(chalk.red('❌ Error:'), err.message);
+      if (err.reason) console.error(chalk.red('Reason:'), err.reason);
+      process.exit(1);
+    }
+  });
+
+program
+  .command('get-bidding-session')
+  .description('Get bidding session details')
+  .requiredOption('--session <id>', 'Session ID', parseInt)
+  .action(async options => {
+    try {
+      initWallet();
+
+      if (!config.contracts.biddingSystem) {
+        console.error(chalk.red('❌ BiddingSystem not configured'));
+        process.exit(1);
+      }
+
+      const contract = new ethers.Contract(
+        config.contracts.biddingSystem,
+        BIDDING_SYSTEM_ABI,
+        config.provider
+      );
+
+      const session = await contract.getSession(options.session);
+
+      const statusNames = [
+        'Active',
+        'BiddingClosed',
+        'WinnerSelected',
+        'JobCreated',
+        'Completed',
+        'Cancelled',
+      ];
+
+      console.log(chalk.bold('\n📋 Bidding Session Details'));
+      console.log(chalk.dim('  Session ID:'), options.session);
+      console.log(chalk.dim('  Creator:'), session[1]);
+      console.log(chalk.dim('  Evaluator:'), session[2]);
+      console.log(chalk.dim('  Max Budget:'), ethers.formatEther(session[3]), 'ETH');
+      console.log(chalk.dim('  Deadline:'), new Date(Number(session[4]) * 1000).toISOString());
+      console.log(
+        chalk.dim('  Reveal Window End:'),
+        new Date(Number(session[5]) * 1000).toISOString()
+      );
+      console.log(chalk.dim('  Winner:'), session[9] || 'None');
+      console.log(chalk.dim('  Status:'), statusNames[Number(session[12])] || 'Unknown');
+      console.log(chalk.dim('  Job Created:'), session[11]);
+    } catch (error: unknown) {
+      const err = error as { message?: string; reason?: string };
+      console.error(chalk.red('❌ Error:'), err.message);
+      if (err.reason) console.error(chalk.red('Reason:'), err.reason);
+      process.exit(1);
+    }
+  });
+
+program
+  .command('withdraw-bidding-stake')
+  .description('Withdraw your stake from a bidding session (losers only)')
+  .requiredOption('--session <id>', 'Session ID', parseInt)
+  .action(async options => {
+    try {
+      initWallet();
+
+      if (!config.contracts.biddingSystem) {
+        console.error(chalk.red('❌ BiddingSystem not configured'));
+        process.exit(1);
+      }
+
+      const contract = new ethers.Contract(
+        config.contracts.biddingSystem,
+        BIDDING_SYSTEM_ABI,
+        config.signer
+      );
+
+      console.log(chalk.cyan('Withdrawing stake...'));
+      console.log(chalk.dim('  Session ID:'), options.session);
+
+      const tx = await contract.withdrawStake(options.session);
+
+      console.log(chalk.cyan('Transaction sent:'), tx.hash);
+      const receipt = await tx.wait();
+      console.log(chalk.green('✅ Stake withdrawn!'));
+      console.log(chalk.cyan('Gas used:'), receipt.gasUsed.toString());
+    } catch (error: unknown) {
+      const err = error as { message?: string; reason?: string };
+      console.error(chalk.red('❌ Error:'), err.message);
+      if (err.reason) console.error(chalk.red('Reason:'), err.reason);
+      process.exit(1);
+    }
+  });
+
 // 🎯 HELP COMMAND
 program
   .command('help')
@@ -2905,6 +3214,13 @@ program
     console.log(chalk.cyan('  get-my-bid') + '             Get your bid for a job');
     console.log(chalk.cyan('  get-job-bid-count') + '      Get number of bids on a job');
     console.log(chalk.cyan('  get-client-job-count') + '   Get job count for a client');
+    console.log(chalk.cyan('  -- BiddingSystem (Phase 11) --'));
+    console.log(chalk.cyan('  create-bidding-session') + '  Create a new bidding session');
+    console.log(chalk.cyan('  commit-bidding') + '         Commit a sealed bid');
+    console.log(chalk.cyan('  reveal-bidding') + '         Reveal your committed bid');
+    console.log(chalk.cyan('  accept-bidding') + '         Accept a winning bid');
+    console.log(chalk.cyan('  get-bidding-session') + '    Get session details');
+    console.log(chalk.cyan('  withdraw-bidding-stake') + '  Withdraw your stake');
     console.log(chalk.cyan('  activate-service') + '       Activate a deactivated service');
     console.log(chalk.cyan('  get-service-counter') + '   Get total service counter');
     console.log(chalk.cyan('  claim-proposal-reward') + '  Claim reward for a winning proposal');

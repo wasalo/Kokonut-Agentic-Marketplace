@@ -324,3 +324,63 @@ contract MockServiceRegistry {
         emit ServiceDeactivated(serviceId);
     }
 }
+
+/**
+ * @title MockAgenticCommerceV6
+ * @dev Mock AgenticCommerceV6 for testing BiddingSystem integration
+ */
+contract MockAgenticCommerceV6 {
+    uint256 public jobCounter;
+    uint256 public platformTreasury;
+    
+    struct MockJob {
+        uint256 id;
+        address client;
+        address provider;
+        address evaluator;
+        uint256 budget;
+        uint256 expiredAt;
+        bool funded;
+    }
+    
+    mapping(uint256 => MockJob) public jobs;
+    
+    event JobCreated(uint256 indexed jobId, address indexed client, address indexed provider, address evaluator, uint256 expiredAt);
+    event JobFunded(uint256 indexed jobId, uint256 amount);
+    
+    function createJob(
+        address provider,
+        address evaluator,
+        uint256 expiredAt,
+        string calldata,
+        address,
+        bool
+    ) external payable returns (uint256 jobId) {
+        jobId = ++jobCounter;
+        jobs[jobId] = MockJob({
+            id: jobId,
+            client: msg.sender,
+            provider: provider,
+            evaluator: evaluator,
+            budget: 0,
+            expiredAt: expiredAt,
+            funded: false
+        });
+        
+        emit JobCreated(jobId, msg.sender, provider, evaluator, expiredAt);
+    }
+    
+    function setBudget(uint256 jobId, uint256 amount) external {
+        jobs[jobId].budget = amount;
+    }
+    
+    function fund(uint256 jobId) external payable {
+        require(jobs[jobId].id != 0, "Invalid job");
+        jobs[jobId].funded = true;
+        emit JobFunded(jobId, msg.value);
+    }
+    
+    function getJob(uint256 jobId) external view returns (MockJob memory) {
+        return jobs[jobId];
+    }
+}

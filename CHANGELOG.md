@@ -5,6 +5,80 @@ All notable changes to the Kokonut Agent Economy Stack are documented in this fi
 The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.0.0/),
 and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0.html).
 
+## [2026-04-06] - Phase 11: Standalone BiddingSystem
+
+### 🎯 Feature: BiddingSystem Contract
+
+**Problem:**
+
+- AgenticCommerceV6 exceeded 24,576 bytes contract size limit (was 26,437 bytes)
+- Bidding functionality was disabled in V6.1 to reduce size
+
+**Solution:**
+
+1. **Standalone BiddingSystem Contract**
+   - Created `contracts/shared/BiddingSystem.sol` (UUPS upgradeable)
+   - Created `contracts/interfaces/IBiddingSystem.sol` (complete interface)
+   - Contract size: 22,456 bytes (well under 24,576 limit)
+
+2. **Commit-Reveal Bidding**
+   - `createBiddingSession()` - Create bidding session with evaluator and max budget
+   - `commitBid()` - Commit sealed bid with 1% stake (ETH)
+   - `revealBid()` - Reveal bid after deadline (1-hour window)
+   - `acceptBid()` - Session creator accepts winning bid
+   - `rejectBid()` - Reject a bid with reason
+
+3. **Stake Management (Pull Pattern)**
+   - `withdrawStake()` - Losers reclaim their stake
+   - `claimStake()` - Winner claims their bid as job funding
+   - `calculateStake()` - View stake amount for a given max budget
+
+4. **Job Integration**
+   - `createJobAndFund()` - Creates job in AgenticCommerce and funds from winning bid
+   - Bid amount + platform fee = total ETH sent with transaction
+
+### Contract Addresses (Sepolia)
+
+| Contract               | Address                                      | Purpose        |
+| ---------------------- | -------------------------------------------- | -------------- |
+| `BiddingSystem`        | `0x32c9d069a248a619d3EAc4D1FC76F2639AaBeF04` | UUPS Proxy     |
+| `BiddingSystem` (Impl) | `0x0A09e4Ff6DAa0eeA49526560e2c946Ea32a293Bb` | Implementation |
+
+### Files Created
+
+| File                                          | Purpose                     |
+| --------------------------------------------- | --------------------------- |
+| `contracts/shared/BiddingSystem.sol`          | Main contract (619 lines)   |
+| `contracts/interfaces/IBiddingSystem.sol`     | Interface (282 lines)       |
+| `contracts/test/BiddingSystem.t.sol`          | Tests (721 lines, 45 tests) |
+| `contracts/scripts/DeployBiddingSystem.s.sol` | Deployment scripts          |
+| `apps/web/lib/hooks/useBiddingSystem.ts`      | Frontend hooks (14 hooks)   |
+
+### Frontend Integration
+
+- Added `BIDDING_SYSTEM_ABI` to `lib/contracts/abis.ts`
+- Added `biddingSystem` to `lib/contracts/config.ts`
+- Created `useBiddingSystem.ts` with 14 hooks:
+  - `useBiddingSessionCount`, `useBiddingSession`, `useBiddingUserBid`, `useBiddingCalculateStake`
+  - `useCreateBiddingSession`, `useBiddingCommitBid`, `useBiddingRevealBid`, `useBiddingAcceptBid`
+  - `useBiddingRejectBid`, `useBiddingWithdrawStake`, `useBiddingClaimStake`
+  - `useBiddingCreateJobAndFund`, `useBiddingCancelSession`, `useBiddingExtendRevealWindow`
+
+### SDK Integration
+
+- Added `BiddingSystemModule` to `sdk/typescript/client.ts`
+- Added `biddingSystem` to `sdk/typescript/types.ts`
+- Added 6 new CLI commands:
+  - `create-bidding-session`, `commit-bidding`, `reveal-bidding`
+  - `accept-bidding`, `get-bidding-session`, `withdraw-bidding-stake`
+
+### Tests
+
+- 45 passing tests covering all bidding flows
+- Total test suite: 318 tests
+
+---
+
 ## [2026-04-06] - Security Audit Fixes (External Audit Round 3)
 
 ### 🔒 Security Fixes

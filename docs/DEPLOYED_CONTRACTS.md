@@ -1,9 +1,10 @@
 # Deployed Contracts Reference
 
-> Last Updated: 2026-03-30
+> Last Updated: 2026-04-06
 > Network: Sepolia Testnet (Chain ID: 11155111)
-> ✅ **Security Audit Complete** - All critical vulnerabilities fixed
-> ✅ **Test Suite Complete** - 201 tests passing, 87%+ coverage
+> ✅ **Phase 11 Complete** - BiddingSystem deployed
+> ✅ **Security Audit Round 3 Complete** - All critical vulnerabilities fixed
+> ✅ **Test Suite Complete** - 318 tests passing, 87%+ coverage
 
 This document serves as the single source of truth for all deployed contract addresses. All other documentation should reference this file.
 
@@ -11,20 +12,14 @@ This document serves as the single source of truth for all deployed contract add
 
 | Contract          | Coverage | Tests   | Status |
 | ----------------- | -------- | ------- | ------ |
+| BiddingSystem     | ✅       | 45      | ✅     |
 | AgenticCommerceV4 | 89.25%   | 50      | ✅     |
-| AgentReviewV4     | 91.24%   | 46      | ✅     |
+| AgentReviewV4/V5  | 91.24%   | 77      | ✅     |
 | ServiceRegistryV2 | 83.33%   | 29      | ✅     |
-| **Total**         | **87%+** | **201** | ✅     |
+| **Total**         | **87%+** | **318** | ✅     |
 
-> **Note**: All V3 contracts have been removed from production. Use V4 addresses only.
-
----
-
-## Quick Reference
-
-| Contract | Address                                      | Environment Variable       |
-| -------- | -------------------------------------------- | -------------------------- |
-| USDC     | `0x1c7D4B196Cb0C7B01d743Fbc6116a902379C7238` | `NEXT_PUBLIC_USDC_ADDRESS` |
+> **Note**: AgentReviewV4 is deprecated. Use AgentReviewV5 (UUPS upgradeable with security fixes).
+> **Note**: V6 contracts deployed with ERC-2771 meta-transactions, evaluator fees.
 
 ---
 
@@ -39,24 +34,57 @@ These are the official ERC-8004 identity and reputation registries that all Koko
 
 ---
 
-## Kokonut Contracts
+## Kokonut Contracts (Phase 11 - Latest)
 
-### Core Contracts (Phase 4)
+### Identity & Skills
 
-| Contract              | Address                                      | Environment Variable                   | Description                             | Version |
-| --------------------- | -------------------------------------------- | -------------------------------------- | --------------------------------------- | ------- |
-| AgentSkillRegistry    | `0x7cf16C00ed4831EB9eE3a8765831968F0a28f53D` | `NEXT_PUBLIC_SKILL_REGISTRY_ADDRESS`   | Skills/capabilities (wired to ERC-8004) | Live    |
-| **ServiceRegistryV2** | `0x62E1eeEa1A2Ab987004F35bDA430457Ed6077201` | `NEXT_PUBLIC_SERVICE_REGISTRY_ADDRESS` | Service listings (UUPS Proxy, ERC-8004) | V2      |
-| AgentReview           | `0x716B02447b52Eab450e31bD77103B41bC2c7bE0b` | `NEXT_PUBLIC_AGENT_REVIEW_ADDRESS`     | A/B evaluation with staking (V4)        | V4      |
-| AgenticCommerce       | `0xA7E8F13AC8E659356333Bf3e579BF3f39334821e` | `NEXT_PUBLIC_AGENTIC_COMMERCE_ADDRESS` | Job escrow with USDC (V4)               | V4      |
+| Contract             | Address                                      | Environment Variable                 | Description                      | Version |
+| -------------------- | -------------------------------------------- | ------------------------------------ | -------------------------------- | ------- |
+| AgentSkillRegistryV2 | `0xA84684261558f342d6871DD2CFef90A2117Aa20A` | `NEXT_PUBLIC_SKILL_REGISTRY_ADDRESS` | Skills/capabilities (UUPS Proxy) | V2      |
+| AgentSkillRegistryV2 | `0x3Eec6BAF9FAc410B9C580d3Eb8c971a14298BC87` | —                                    | Implementation (ownerOf fix)     | V2      |
 
-### Supporting Contracts
+### Marketplace
 
-| Contract     | Address                                      | Environment Variable                | Description                                  | Version |
-| ------------ | -------------------------------------------- | ----------------------------------- | -------------------------------------------- | ------- |
-| PriceOracle  | `0x5C4AC3dAF76708DCd51911BA3B33027eAB1B4047` | `NEXT_PUBLIC_PRICE_ORACLE_ADDRESS`  | Price feeds (Chainlink on Sepolia & mainnet) | Live    |
-| CommitReveal | `0x6CEd1574A3dF7ec646e43DD8408300117c453Aa3` | `NEXT_PUBLIC_COMMIT_REVEAL_ADDRESS` | Front-running protection (12-block delay)    | Live    |
-| SlashManager | `0x7Cf955900FD7a12680E90D834eAf19346f5DBcf9` | `NEXT_PUBLIC_SLASH_MANAGER_ADDRESS` | 3-of-5 multisig governance                   | V1      |
+| Contract               | Address                                      | Environment Variable                   | Description                             | Version |
+| ---------------------- | -------------------------------------------- | -------------------------------------- | --------------------------------------- | ------- |
+| ServiceRegistryV2      | `0x62E1eeEa1A2Ab987004F35bDA430457Ed6077201` | `NEXT_PUBLIC_SERVICE_REGISTRY_ADDRESS` | Service listings (UUPS Proxy, ERC-8004) | V2      |
+| ServiceRegistryV2 Impl | `0xe2fB4aDA35B8d5FbB041a9C0ED4a655Be329a457` | —                                      | Implementation (activateService added)  | V2      |
+
+### Commerce (Jobs & Escrow)
+
+| Contract             | Address                                      | Environment Variable                   | Description                     | Version |
+| -------------------- | -------------------------------------------- | -------------------------------------- | ------------------------------- | ------- |
+| AgenticCommerce      | `0x948d97EA7F0c49796fB576ADff375C900627568E` | `NEXT_PUBLIC_AGENTIC_COMMERCE_ADDRESS` | Job escrow (UUPS Proxy)         | V6.1    |
+| AgenticCommerce Impl | `0x28704E1547f97b7A27d08dfd24a24fecfB7C0433` | —                                      | Implementation (Security Fixes) | V6.1    |
+
+### Bidding (Phase 11 - NEW)
+
+| Contract           | Address                                      | Environment Variable                 | Description                        | Version |
+| ------------------ | -------------------------------------------- | ------------------------------------ | ---------------------------------- | ------- |
+| BiddingSystem      | `0x32c9d069a248a619d3EAc4D1FC76F2639AaBeF04` | `NEXT_PUBLIC_BIDDING_SYSTEM_ADDRESS` | Commit-reveal bidding (UUPS Proxy) | V1      |
+| BiddingSystem Impl | `0x0A09e4Ff6DAa0eeA49526560e2c946Ea32a293Bb` | —                                    | Implementation                     | V1      |
+
+### Review & Coordination
+
+| Contract                   | Address                                      | Environment Variable               | Description                               | Version |
+| -------------------------- | -------------------------------------------- | ---------------------------------- | ----------------------------------------- | ------- |
+| AgentReviewV5              | `0x5CDb592Fd37749bF87448FBf5725D1Cd986dd1Cb` | `NEXT_PUBLIC_AGENT_REVIEW_ADDRESS` | A/B evaluation (UUPS + Pull Pattern)      | V5      |
+| AgentReviewV5 Impl         | `0xE997529ED48B2612Fb4134048c45a767B8B9cE47` | —                                  | Implementation (SlashManager, Locked ETH) | V5      |
+| AgentReviewV4 (deprecated) | `0x716B02447b52Eab450e31bD77103B41bC2c7bE0b` | —                                  | Legacy version (do not use)               | V4 ⚠️   |
+
+### Infrastructure
+
+| Contract     | Address                                      | Environment Variable                | Description                               | Version |
+| ------------ | -------------------------------------------- | ----------------------------------- | ----------------------------------------- | ------- |
+| PriceOracle  | `0x5C4AC3dAF76708DCd51911BA3B33027eAB1B4047` | `NEXT_PUBLIC_PRICE_ORACLE_ADDRESS`  | Price feeds (Chainlink on Sepolia)        | Live    |
+| CommitReveal | `0x6CEd1574A3dF7ec646e43DD8408300117c453Aa3` | `NEXT_PUBLIC_COMMIT_REVEAL_ADDRESS` | Front-running protection (12-block delay) | Live    |
+| SlashManager | `0x7Cf955900FD7a12680E90D834eAf19346f5DBcf9` | `NEXT_PUBLIC_SLASH_MANAGER_ADDRESS` | 3-of-5 multisig governance                | V1      |
+
+### Tokens
+
+| Contract | Address                                      | Environment Variable       | Description  |
+| -------- | -------------------------------------------- | -------------------------- | ------------ |
+| USDC     | `0x1c7D4B196Cb0C7B01d743Fbc6116a902379C7238` | `NEXT_PUBLIC_USDC_ADDRESS` | Sepolia USDC |
 
 ---
 
@@ -70,53 +98,62 @@ These are the official ERC-8004 identity and reputation registries that all Koko
 
 ## Environment Setup
 
-Copy these values into `apps/web/.env.local`:
+Copy these values into `apps/web/.env.local` and project `.env`:
 
 ```env
-NEXT_PUBLIC_WALLETCONNECT_PROJECT_ID=your_walletconnect_project_id
+# Wallet (for deployment only)
+PRIVATE_KEY=your_private_key_here
 
-# Sepolia Contract Addresses (Phase 4 - 201 Tests Passing, 87%+ Coverage)
-NEXT_PUBLIC_SKILL_REGISTRY_ADDRESS=0x7cf16C00ed4831EB9eE3a8765831968F0a28f53D
-NEXT_PUBLIC_SERVICE_REGISTRY_ADDRESS=0x62E1eeEa1A2Ab987004F35bDA430457Ed6077201
-NEXT_PUBLIC_AGENT_REVIEW_ADDRESS=0x716B02447b52Eab450e31bD77103B41bC2c7bE0b
-NEXT_PUBLIC_AGENTIC_COMMERCE_ADDRESS=0xA7E8F13AC8E659356333Bf3e579BF3f39334821e
-NEXT_PUBLIC_USDC_ADDRESS=0x1c7D4B196Cb0C7B01d743Fbc6116a902379C7238
+# Sepolia RPC
+SEPOLIA_RPC_URL=https://ethereum-sepolia.publicnode.com
 
-# ERC-8004 Official Registry (Sepolia)
+# ERC-8004 Official Registry
 NEXT_PUBLIC_8004_REGISTRY_ADDRESS=0x8004A818BFB912233c491871b3d84c89A494BD9e
 NEXT_PUBLIC_8004_REPUTATION_ADDRESS=0x8004B663056A597Dffe9eCcC1965A193B7388713
 
-# Supporting Contracts
+# Kokonut Core Contracts (Phase 11)
+NEXT_PUBLIC_SKILL_REGISTRY_ADDRESS=0xA84684261558f342d6871DD2CFef90A2117Aa20A
+NEXT_PUBLIC_SERVICE_REGISTRY_ADDRESS=0x62E1eeEa1A2Ab987004F35bDA430457Ed6077201
+NEXT_PUBLIC_AGENTIC_COMMERCE_ADDRESS=0x948d97EA7F0c49796fB576ADff375C900627568E
+NEXT_PUBLIC_BIDDING_SYSTEM_ADDRESS=0x32c9d069a248a619d3EAc4D1FC76F2639AaBeF04
+NEXT_PUBLIC_AGENT_REVIEW_ADDRESS=0x5CDb592Fd37749bF87448FBf5725D1Cd986dd1Cb
+
+# Infrastructure
 NEXT_PUBLIC_PRICE_ORACLE_ADDRESS=0x5C4AC3dAF76708DCd51911BA3B33027eAB1B4047
 NEXT_PUBLIC_COMMIT_REVEAL_ADDRESS=0x6CEd1574A3dF7ec646e43DD8408300117c453Aa3
 NEXT_PUBLIC_SLASH_MANAGER_ADDRESS=0x7Cf955900FD7a12680E90D834eAf19346f5DBcf9
 
-# RPC URLs
-NEXT_PUBLIC_SEPOLIA_RPC_URL=https://ethereum-sepolia.publicnode.com
+# Tokens
+NEXT_PUBLIC_USDC_ADDRESS=0x1c7D4B196Cb0C7B01d743Fbc6116a902379C7238
+
+# WalletConnect
+NEXT_PUBLIC_WALLETCONNECT_PROJECT_ID=your_walletconnect_project_id
 ```
 
 ---
 
 ## Contract Wiring
 
-The contracts are wired together as follows:
-
 ```
 ERC-8004 Identity (0x8004...)
        │
-       ├──► AgentSkillRegistry
+       ├──► AgentSkillRegistryV2
        │         │
-       │         └──► Uses identity for agent verification
+       │         └──► Uses ownerOf() for agent verification
        │
-       └──► ServiceRegistry
+       └──► ServiceRegistryV2
                  │
-                 └──► AgenticCommerce
+                 └──► AgenticCommerceV6.1
                            │
                            └──► Jobs reference services
-```
 
-```
-AgentReview
+BiddingSystem (Phase 11)
+       │
+       └──► Standalone commit-reveal bidding
+                 │
+                 └──► createJobAndFund() → AgenticCommerceV6.1
+
+AgentReviewV5
        │
        └──► SlashManager
                  │
@@ -125,23 +162,28 @@ AgentReview
 
 ---
 
-## Important Updates
+## Security Features (Phase 11)
 
-### March 29, 2026 - ServiceRegistryV2 Deployment
+| Feature              | Implementation                                      |
+| -------------------- | --------------------------------------------------- |
+| Collusion Prevention | V6.1: `RolesMustBeDistinct` in job creation         |
+| Deadlock Resolution  | V6.1: `completeAfterTimeout()` after dispute window |
+| Winner Pull Pattern  | V5: `claimReward()` instead of automatic transfer   |
+| SlashManager         | V5: 3-of-5 multisig controls all slashing           |
+| Locked ETH Guard     | V5: `withdrawETH()` validates against locked funds  |
+| UUPS Upgradeable     | V5, BiddingSystem: OpenZeppelin v5 upgradeable      |
 
-**ServiceRegistryV2** has been deployed to fix a critical ABI bug in V1.
+---
 
-**Changes:**
+## Deprecation Notice
 
-- **Proxy**: `0x62E1eeEa1A2Ab987004F35bDA430457Ed6077201` (UUPS pattern)
-- **Implementation**: `0xcF7f9685d1BB8De46e48D20f06820B4eCa660F6c`
-- **Bug Fixed**: Old contract called `identityRegistry.getAgent()` which doesn't exist in ERC-8004
-- **Solution**: New contract uses `IERC721.ownerOf()` for proper agent verification
+| Contract              | Status        | Use Instead          |
+| --------------------- | ------------- | -------------------- |
+| AgentReviewV4         | ⚠️ DEPRECATED | AgentReviewV5        |
+| AgenticCommerce V5    | ⚠️ DEPRECATED | AgenticCommerce V6.1 |
+| AgentSkillRegistry V1 | ⚠️ DEPRECATED | AgentSkillRegistryV2 |
 
-**Action Required:**
-
-- AgenticCommerce and CommitReveal need to update their ServiceRegistry reference
-- See `docs/SERVICEREGISTRYV2_DEPLOYMENT.md` for update commands
+---
 
 ## Updating This Document
 

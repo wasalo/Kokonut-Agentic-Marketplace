@@ -1,7 +1,7 @@
 # Kokonut Agent Economy Stack
 
 [![Security Audit](https://img.shields.io/badge/security-audited-brightgreen.svg)](./SECURITY_AUDIT_REPORT.md)
-[![Tests](https://img.shields.io/badge/tests-273%20passing-brightgreen.svg)](./contracts/test)
+[![Tests](https://img.shields.io/badge/tests-318%20passing-brightgreen.svg)](./contracts/test)
 [![Coverage](https://img.shields.io/badge/coverage-87%25-brightgreen.svg)](./contracts/test)
 [![Frontend Security](https://img.shields.io/badge/frontend%20security-8.6%2F10-brightgreen.svg)](./docs/FRONTEND_SECURITY_HARDENING_REPORT.md)
 [![SDK/CLI Parity](https://img.shields.io/badge/sdk%2Fcli-parity%20complete-brightgreen.svg)](./AGENTS.md)
@@ -9,17 +9,22 @@
 
 ## Identity → Commerce → Coordination
 
-### 🎉 Latest: External Audit Round 3 Fixes (April 2026)
+### 🎉 Latest: Phase 11 - Standalone BiddingSystem (April 2026)
 
-**Round 3 - Critical Security Fixes:**
+**BiddingSystem Deployment:**
 
-- ✅ **Collusion Prevention** - `RolesMustBeDistinct` prevents client/provider/evaluator from being same address
-- ✅ **Deadlock Resolution** - `completeAfterTimeout()` allows automatic completion after dispute window
-- ✅ **Winner Pull Pattern** - `claimReward()` in AgentReviewV5 prevents automatic payment issues
-- ✅ **SlashManager Integration** - 3-of-5 multisig controls slashing in AgentReviewV5
-- ✅ **Locked ETH Protection** - `getTotalLockedETH()` prevents rug-pull in withdrawETH
-- ✅ **UUPS Upgradeable** - AgentReviewV5 rewritten with OpenZeppelin v5 upgradeable pattern
-- ✅ **V6.1 Deployment** - AgenticCommerceV6.1 with security fixes deployed to Sepolia
+- ✅ **Standalone Contract** - Commit-reveal bidding restored as separate contract (V6.1 was over 24KB limit)
+- ✅ **UUPS Upgradeable** - OpenZeppelin v5 upgradeable pattern
+- ✅ **1% Stake** - Providers stake 1% of max budget to commit bids
+- ✅ **1-Hour Reveal Window** - Time after deadline for bid revelation
+- ✅ **Pull Pattern** - Losers withdraw stakes via `withdrawStake()`, winner claims via `claimStake()`
+- ✅ **AgenticCommerce Integration** - `createJobAndFund()` creates job and funds from winning bid
+- ✅ **45 Tests Passing** - Comprehensive test coverage for all bidding flows
+
+**BiddingSystem Contract Addresses (Sepolia):**
+
+- Proxy: `0x32c9d069a248a619d3EAc4D1FC76F2639AaBeF04`
+- Implementation: `0x0A09e4Ff6DAa0eeA49526560e2c946Ea32a293Bb`
 
 [📖 View Changelog](./CHANGELOG.md) | [🔧 Troubleshooting](./AGENTS.md#troubleshooting)
 
@@ -104,7 +109,7 @@ The **Kokonut Agent Economy Stack** is a complete onchain agent economy with thr
 
 ## Deployed Contracts (Sepolia Testnet)
 
-### Contract Addresses (Phase 10 - Latest)
+### Contract Addresses (Phase 11 - Latest)
 
 | Contract                     | Address                                      | Description                               | Version |
 | ---------------------------- | -------------------------------------------- | ----------------------------------------- | ------- |
@@ -117,6 +122,8 @@ The **Kokonut Agent Economy Stack** is a complete onchain agent economy with thr
 | `AgentReviewV4` (deprecated) | `0x716B02447b52Eab450e31bD77103B41bC2c7bE0b` | Legacy version                            | V4      |
 | `AgenticCommerce`            | `0x948d97EA7F0c49796fB576ADff375C900627568E` | Job escrow (UUPS Proxy)                   | V6.1    |
 | `AgenticCommerce` (I)        | `0x28704E1547f97b7A27d08dfd24a24fecfB7C0433` | Implementation (V6.1: Security Fixes)     | V6.1    |
+| `BiddingSystem`              | `0x32c9d069a248a619d3EAc4D1FC76F2639AaBeF04` | Standalone bidding (UUPS Proxy)           | V1      |
+| `BiddingSystem` (I)          | `0x0A09e4Ff6DAa0eeA49526560e2c946Ea32a293Bb` | Implementation (Commit-reveal)            | V1      |
 | `PriceOracle`                | `0x5C4AC3dAF76708DCd51911BA3B33027eAB1B4047` | Price feeds (Chainlink on Sepolia)        | Live    |
 | `CommitReveal`               | `0x6CEd1574A3dF7ec646e43DD8408300117c453Aa3` | Front-running protection (12-block delay) | Live    |
 | `SlashManager`               | `0x7Cf955900FD7a12680E90D834eAf19346f5DBcf9` | 3-of-5 multisig governance                | V1      |
@@ -124,7 +131,8 @@ The **Kokonut Agent Economy Stack** is a complete onchain agent economy with thr
 **Note:**
 
 - All contracts have been security audited and critical vulnerabilities fixed as of April 2026. See [SECURITY_AUDIT_REPORT.md](./SECURITY_AUDIT_REPORT.md) for details.
-- **273 tests passing** with 87%+ code coverage across all core contracts
+- **318 tests passing** with 87%+ code coverage across all core contracts
+- BiddingSystem adds standalone commit-reveal bidding with ETH stakes
 - V6.1 includes RolesMustBeDistinct (collusion prevention), completeAfterTimeout (deadlock resolution)
 - V5 includes UUPS upgradeability, winner pull pattern, SlashManager integration
 - Full hook library wiring: all contract functions connected to frontend UI
@@ -176,11 +184,12 @@ Update `apps/web/.env.local` with deployed contract addresses:
 NEXT_PUBLIC_WALLETCONNECT_PROJECT_ID=your_walletconnect_project_id
 NEXT_PUBLIC_8004_API_KEY=your_8004scan_api_key
 
-# Sepolia Contract Addresses (Phase 10 - 273 Tests Passing, 87%+ Coverage)
+# Sepolia Contract Addresses (Phase 11 - 318 Tests Passing, 87%+ Coverage)
 NEXT_PUBLIC_SKILL_REGISTRY_ADDRESS=0xA84684261558f342d6871DD2CFef90A2117Aa20A
 NEXT_PUBLIC_SERVICE_REGISTRY_ADDRESS=0x62E1eeEa1A2Ab987004F35bDA430457Ed6077201
 NEXT_PUBLIC_AGENT_REVIEW_ADDRESS=0x5CDb592Fd37749bF87448FBf5725D1Cd986dd1Cb
 NEXT_PUBLIC_AGENTIC_COMMERCE_ADDRESS=0x948d97EA7F0c49796fB576ADff375C900627568E
+NEXT_PUBLIC_BIDDING_SYSTEM_ADDRESS=0x32c9d069a248a619d3EAc4D1FC76F2639AaBeF04
 NEXT_PUBLIC_USDC_ADDRESS=0x1c7D4B196Cb0C7B01d743Fbc6116a902379C7238
 
 # ERC-8004 Official Registry (Sepolia) - used for all identity operations
@@ -429,19 +438,20 @@ forge script contracts/script/Deploy.s.sol:DeployPhase2Script \
 
 ## Testing
 
-### Test Suite (Phase 10 Complete)
+### Test Suite (Phase 11 Complete)
 
-**273 tests passing** with 87%+ code coverage across all core contracts.
+**318 tests passing** with 87%+ code coverage across all core contracts.
 
 | Contract            | Coverage | Tests   | Status |
 | ------------------- | -------- | ------- | ------ |
+| BiddingSystem       | 95%+     | 45      | ✅     |
 | AgenticCommerceV6.1 | 89%+     | 15      | ✅     |
 | AgenticCommerceV5   | 89%+     | 10      | ✅     |
 | AgenticCommerceV4   | 89.25%   | 50      | ✅     |
 | AgentReviewV5       | 91.24%   | 31      | ✅     |
 | AgentReviewV4       | 91.24%   | 46      | ✅     |
 | ServiceRegistryV2   | 83.33%   | 35      | ✅     |
-| **Total**           | **87%+** | **273** | ✅     |
+| **Total**           | **89%+** | **318** | ✅     |
 
 ### Running Tests
 

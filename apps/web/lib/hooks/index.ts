@@ -9,6 +9,7 @@ export * from './usePriceOracle';
 export * from './useUSDC';
 export * from './useCommitReveal';
 export * from './useSlashManager';
+export * from './useBiddingSystem';
 
 // Additional hooks that were missing from index
 export * from './useActivityFeed';
