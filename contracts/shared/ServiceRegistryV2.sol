@@ -3,8 +3,8 @@ pragma solidity ^0.8.20;
 
 import "@openzeppelin/contracts-upgradeable/access/OwnableUpgradeable.sol";
 import "@openzeppelin/contracts-upgradeable/proxy/utils/UUPSUpgradeable.sol";
-import "@openzeppelin/contracts/token/ERC721/IERC721.sol";
 import {ERC1967Utils} from "@openzeppelin/contracts/proxy/ERC1967/ERC1967Utils.sol";
+import {IIdentityRegistry} from "../interfaces/IIdentityRegistry.sol";
 
 /**
  * @title IServiceRegistryV2
@@ -31,7 +31,7 @@ interface IServiceRegistryV2 {
         string calldata metadataURI,
         uint256 price,
         address paymentToken
-    ) external returns (uint256 serviceId);
+    ) external payable returns (uint256 serviceId);
     
     function updateService(
         uint256 serviceId,
@@ -66,7 +66,7 @@ interface IServiceRegistryV2 {
  * @dev Upgradeable marketplace service listings compatible with ERC-8004 IdentityRegistry.
  * 
  * Features:
- * - Uses IERC721.ownerOf() for ERC-8004 compatibility
+ * - Uses IIdentityRegistry.getAgent() for ERC-8004 compatibility (includes isActive check)
  * - UUPS proxy pattern for upgradeability
  * - O(1) active service count caching
  * - Storage slot fix for _activeServiceCount
@@ -74,6 +74,7 @@ interface IServiceRegistryV2 {
  * Security fixes:
  * - M1: initializeActiveServiceCount() can only be called once
  * - L7: Uses OZ _getImplementation() instead of inline assembly
+ * - M2: Uses IIdentityRegistry.getAgent() to check isActive status (Phase 13)
  */
 contract ServiceRegistryV2 is 
     IServiceRegistryV2, 
@@ -93,13 +94,16 @@ contract ServiceRegistryV2 is
         uint256 createdAt;
     }
     
-    // Use IERC721 interface for ERC-8004 compatibility
-    IERC721 public identityRegistry;
+    // Use IIdentityRegistry for ERC-8004 compatibility (includes isActive check)
+    IIdentityRegistry public identityRegistry;
     
     mapping(uint256 => ServiceData) private _services;
     mapping(address => uint256[]) private _providerServices;
     mapping(uint256 => uint256[]) private _agentServices;
     uint256 private _serviceCounter;
+    
+    // M3 Fix: Track service bonds for refund on completion
+    mapping(uint256 => uint256) private _serviceBonds;
     
     // L3 Fix: Moved _activeServiceCount before __gap to maintain proper storage layout
     /// @notice Cached count of active services (O(1) vs O(n))
@@ -112,9 +116,15 @@ contract ServiceRegistryV2 is
     address public agenticCommerce;
     address public slashManager;
     
+    // M3 Fix: Service listing bond (in native token/ETH)
+    uint256 public constant SERVICE_BOND_AMOUNT = 0.01 ether;
+    
     // Events are defined in the IServiceRegistryV2 interface
     event DependencyUpdated(string name, address newAddress);
     event IdentityRegistryUpdated(address newRegistry);
+    event AgentServicesDeactivated(uint256 indexed agentId, uint256[] serviceIds);
+    event ServiceBondDeposited(uint256 indexed serviceId, address indexed provider, uint256 amount);
+    event ServiceBondRefunded(uint256 indexed serviceId, address indexed provider, uint256 amount);
 
     /// @custom:oz-upgrades-unsafe-allow constructor
     constructor() {
@@ -131,7 +141,7 @@ contract ServiceRegistryV2 is
         
         __Ownable_init(initialOwner);
         
-        identityRegistry = IERC721(_identityRegistry);
+        identityRegistry = IIdentityRegistry(_identityRegistry);
         _serviceCounter = 0;
         _activeServiceCount = 0;
         _activeCountInitialized = false;
@@ -143,19 +153,19 @@ contract ServiceRegistryV2 is
     function _authorizeUpgrade(address newImplementation) internal override onlyOwner {}
     
     /**
-     * @dev Verify agent ownership using IERC721.ownerOf()
+     * @dev Verify agent ownership and active status using IIdentityRegistry.getAgent()
+     * M2 Fix: Now checks isActive status - deactivated agents cannot create services
      */
     function _verifyAgentOwnership(uint256 agentId) internal view returns (address) {
-        try identityRegistry.ownerOf(agentId) returns (address owner) {
-            require(owner != address(0), "Invalid agent");
-            return owner;
-        } catch {
-            revert("Agent does not exist");
-        }
+        (address owner, , , bool isActive) = identityRegistry.getAgent(agentId);
+        require(owner != address(0), "Invalid agent");
+        require(isActive, "Agent inactive"); // M2 Fix: Check active status
+        return owner;
     }
     
     /**
-     * @dev Create a new service listing. 
+     * @dev Create a new service listing.
+     * M3 Fix: Requires SERVICE_BOND_AMOUNT ETH deposit, refunded on service completion
      */
     function createService(
         uint256 agentId,
@@ -164,11 +174,12 @@ contract ServiceRegistryV2 is
         string calldata metadataURI,
         uint256 price,
         address paymentToken
-    ) external returns (uint256 serviceId) {
+    ) external payable returns (uint256 serviceId) {
         require(bytes(name).length > 0, "Name required");
         require(bytes(description).length > 0, "Description required");
         require(price > 0, "Price must be greater than 0");
         require(paymentToken != address(0), "Invalid payment token");
+        require(msg.value >= SERVICE_BOND_AMOUNT, "Bond required"); // M3 Fix
         
         address agentOwner = _verifyAgentOwnership(agentId);
         require(agentOwner == msg.sender, "Not agent owner");
@@ -187,6 +198,9 @@ contract ServiceRegistryV2 is
             createdAt: block.timestamp
         });
         
+        // M3 Fix: Track bond
+        _serviceBonds[serviceId] = msg.value;
+        
         _providerServices[msg.sender].push(serviceId);
         _agentServices[agentId].push(serviceId);
         
@@ -194,6 +208,7 @@ contract ServiceRegistryV2 is
         _activeServiceCount++;
         
         emit ServiceCreated(serviceId, msg.sender, agentId, name, price);
+        emit ServiceBondDeposited(serviceId, msg.sender, msg.value);
     }
     
     /**
@@ -252,6 +267,55 @@ contract ServiceRegistryV2 is
         emit ServiceActivated(serviceId);
     }
     
+    /**
+     * @dev Deactivate all services when agent is deactivated (callback from IdentityRegistry)
+     * M2 Fix: Called when agent's identity is deactivated
+     */
+    function deactivateAgentServices(uint256 agentId) external {
+        require(msg.sender == address(identityRegistry), "Not identity registry");
+        
+        uint256[] storage services = _agentServices[agentId];
+        uint256[] memory deactivatedIds = new uint256[](services.length);
+        uint256 deactivatedCount = 0;
+        
+        for (uint256 i = 0; i < services.length; i++) {
+            uint256 serviceId = services[i];
+            if (_services[serviceId].isActive) {
+                _services[serviceId].isActive = false;
+                _activeServiceCount--;
+                deactivatedIds[deactivatedCount++] = serviceId;
+            }
+        }
+        
+        emit AgentServicesDeactivated(agentId, deactivatedIds);
+    }
+    
+    /**
+     * @dev Refund bond when service is completed (called by AgenticCommerce)
+     * M3 Fix: Returns bond to provider after successful job completion
+     */
+    function refundServiceBond(uint256 serviceId) external {
+        require(msg.sender == agenticCommerce, "Not agentic commerce");
+        require(serviceId < _serviceCounter, "Invalid serviceId");
+        require(_serviceBonds[serviceId] > 0, "No bond");
+        
+        address provider = _services[serviceId].provider;
+        uint256 bondAmount = _serviceBonds[serviceId];
+        _serviceBonds[serviceId] = 0;
+        
+        (bool success, ) = provider.call{value: bondAmount}("");
+        require(success, "Bond refund failed");
+        
+        emit ServiceBondRefunded(serviceId, provider, bondAmount);
+    }
+    
+    /**
+     * @dev Get service bond amount
+     */
+    function getServiceBond(uint256 serviceId) external view returns (uint256) {
+        return _serviceBonds[serviceId];
+    }
+    
     // ============ View Functions ============
     
     function getService(uint256 serviceId) external view override returns (Service memory) {
@@ -306,7 +370,7 @@ contract ServiceRegistryV2 is
      */
     function setIdentityRegistry(address _identityRegistry) external onlyOwner {
         require(_identityRegistry != address(0), "Invalid address");
-        identityRegistry = IERC721(_identityRegistry);
+        identityRegistry = IIdentityRegistry(_identityRegistry);
         emit IdentityRegistryUpdated(_identityRegistry);
     }
     

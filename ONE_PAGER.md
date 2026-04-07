@@ -1,6 +1,6 @@
 # Kokonut Agent Economy Stack — One Pager
 
-> Last updated: 2026-04-06 | Phase 12 Complete - Security Audit Fixes
+> Last updated: 2026-04-07 | Phase 14 Complete - Security & Performance
 
 ## What Is This?
 
@@ -61,7 +61,7 @@ Client (buyer)          Contract (locked box)         Provider (seller)
 
 ### What If Nobody Acts?
 
-The `claimRefund()` function is the **safety valve**. After the deadline passes, ANYONE can trigger it, and the money goes back to the client. No human intervention needed — the code handles it.
+The `refundExpired()` function is the **safety valve**. After the deadline passes, ANYONE can trigger it, and the money goes back to the client. No human intervention needed — the code handles it.
 
 ---
 
@@ -456,6 +456,57 @@ Agent's reputation increases — more trust — more clients
 
 ---
 
+## Phase 14: Security & Performance (April 2026)
+
+### Permissionless Operations
+
+| Feature                | Description                                                 | Contract             |
+| ---------------------- | ----------------------------------------------------------- | -------------------- |
+| **refundExpired()**    | Permissionless function to trigger refunds for expired jobs | AgenticCommerceV6    |
+| **finalizeDecision()** | Permissionless finalization after 7-day grace period        | AgentReviewV5        |
+| **Owner OR Signers**   | Both owner and signers can create slash proposals           | SlashManager         |
+| **O(1) Skill Lookup**  | `_domainToSkills` mapping for efficient skill queries       | AgentSkillRegistryV2 |
+| **SDK Multicall**      | viem multicall for batch contract calls                     | TypeScript SDK       |
+
+### Grace Period Finalization
+
+The `finalizeDecision()` function allows anyone to finalize stuck proposals after a 7-day grace period:
+
+```
+Decision Deadline passes
+        │
+        ▼
+7-day Grace Period begins
+        │
+        ▼
+After grace period: ANYONE can call finalizeDecision()
+        │
+        ▼
+Median evaluator selected as winner
+        │
+        ▼
+Rewards distributed automatically
+```
+
+### Permissionless Refunds
+
+The `refundExpired()` function ensures expired jobs are always resolved:
+
+```
+Job deadline passes
+        │
+        ▼
+ANYONE can call refundExpired(jobId)
+        │
+        ▼
+Contract checks: jobExpiredAt < now
+        │
+        ▼
+If expired: Client refunded, provider slashed (if non-responsive)
+```
+
+---
+
 ## Security Audit Round 3 Fixes (April 2026)
 
 ### Critical Security Fixes Deployed
@@ -475,6 +526,19 @@ Agent's reputation increases — more trust — more clients
 | ---------------------- | ------- | --------- | -------------------------------- |
 | `disputeWindow`        | 7 days  | 1-30 days | Time before auto-completion      |
 | `nonResponsiveSlashBP` | 1%      | 0-10%     | Slash for unresponsive evaluator |
+
+---
+
+## Phase 13: CEI Pattern & Proportional Rewards (April 2026)
+
+### CEI Pattern Fix
+
+| Issue             | Fix                                                             | Contract          |
+| ----------------- | --------------------------------------------------------------- | ----------------- |
+| **CEI Pattern**   | Hook calls moved AFTER status updates in fund(), submit(), etc. | AgenticCommerceV6 |
+| **Service Bond**  | 0.01 ETH bond for service listing, isActive check               | ServiceRegistryV2 |
+| **Proportional**  | 60/40 split between top evaluator and pool                      | AgentReviewV5     |
+| **Median Winner** | Winner selected by median confidence score                      | AgentReviewV5     |
 
 ---
 
@@ -551,37 +615,44 @@ AgenticCommerceV6.1 exceeded the 24KB contract size limit, so bidding was moved 
 | Identity   | `0x8004A818BFB912233c491871b3d84c89A494BD9e` |
 | Reputation | `0x8004B663056A597Dffe9eCcC1965A193B7388713` |
 
-### Kokonut Contracts (Phase 12 - Latest)
+### Kokonut Contracts (Phase 14 - Latest)
 
-| Contract                   | Address                                      | Wired To                        | Verification                                                                                      |
-| -------------------------- | -------------------------------------------- | ------------------------------- | ------------------------------------------------------------------------------------------------- |
-| **AgentSkillRegistryV2**   | `0xA84684261558f342d6871DD2CFef90A2117Aa20A` | ERC-8004 Identity (UUPS Proxy)  | [Etherscan](https://sepolia.etherscan.io/address/0xA84684261558f342d6871DD2CFef90A2117Aa20A#code) |
-| **ServiceRegistryV2**      | `0x62E1eeEa1A2Ab987004F35bDA430457Ed6077201` | ERC-8004 Identity (UUPS Proxy)  | [Etherscan](https://sepolia.etherscan.io/address/0x62E1eeEa1A2Ab987004F35bDA430457Ed6077201#code) |
-| **ServiceRegistryV2** (I)  | `0x4170cfcC9d453B58faB1AE736ffFd82BDf49E979` | Phase 12 Guard                  | [Etherscan](https://sepolia.etherscan.io/address/0x4170cfcC9d453B58faB1AE736ffFd82BDf49E979#code) |
-| **AgentReviewV5**          | `0x5CDb592Fd37749bF87448FBf5725D1Cd986dd1Cb` | SlashManager (UUPS Proxy)       | [Etherscan](https://sepolia.etherscan.io/address/0x5CDb592Fd37749bF87448FBf5725D1Cd986dd1Cb#code) |
-| **AgentReviewV5** (Impl)   | `0x38700f4E4cC5f9CB9F9f02aE02Cda21C119b91Ad` | MAX_REWARD + Pausable           | [Etherscan](https://sepolia.etherscan.io/address/0x38700f4E4cC5f9CB9F9f02aE02Cda21C119b91Ad#code) |
-| **AgentReviewV4** (legacy) | `0x716B02447b52Eab450e31bD77103B41bC2c7bE0b` | —                               | -                                                                                                 |
-| **AgenticCommerce (V6.1)** | `0x948d97EA7F0c49796fB576ADff375C900627568E` | ServiceRegistry (UUPS Proxy)    | [Etherscan](https://sepolia.etherscan.io/address/0x948d97EA7F0c49796fB576ADff375C900627568E#code) |
-| **AgenticCommerce** (Impl) | `0x28442fd0c2AB2fe0Df0F4387EbA12EaF95AaC297` | Token Allowlist + Custom Errors | [Etherscan](https://sepolia.etherscan.io/address/0x28442fd0c2AB2fe0Df0F4387EbA12EaF95AaC297#code) |
-| **BiddingSystem**          | `0x32c9d069a248a619d3EAc4D1FC76F2639AaBeF04` | AgenticCommerce (UUPS Proxy)    | [Etherscan](https://sepolia.etherscan.io/address/0x32c9d069a248a619d3EAc4D1FC76F2639AaBeF04#code) |
-| **BiddingSystem** (Impl)   | `0x0A09e4Ff6DAa0eeA49526560e2c946Ea32a293Bb` | Commit-reveal bidding           | [Etherscan](https://sepolia.etherscan.io/address/0x0A09e4Ff6DAa0eeA49526560e2c946Ea32a293Bb#code) |
-| PriceOracle                | `0x5C4AC3dAF76708DCd51911BA3B33027eAB1B4047` | Chainlink                       | [Etherscan](https://sepolia.etherscan.io/address/0x5C4AC3dAF76708DCd51911BA3B33027eAB1B4047#code) |
-| CommitReveal               | `0x85F193670fCb7B0c97D55E70Bf2a950b1065Fb3a` | UUPS, Cleanup (anyone call)     | [Etherscan](https://sepolia.etherscan.io/address/0x85F193670fCb7B0c97D55E70Bf2a950b1065Fb3a#code) |
-| CommitReveal (Impl)        | `0xd9efa18c45357CC3d218E1FEC86E0C851270d33D` | UUPS implementation             | [Etherscan](https://sepolia.etherscan.io/address/0xd9efa18c45357CC3d218E1FEC86E0C851270d33D#code) |
-| SlashManager               | `0x1B8373cDF4f2eD740c3478e0129f0B8494CE4Fa3` | O(1) lookup + UUPS + Pausable   | [Etherscan](https://sepolia.etherscan.io/address/0x1B8373cDF4f2eD740c3478e0129f0B8494CE4Fa3#code) |
-| SlashManager (Impl)        | `0x79eeaA4c95Fa842Ea07D36E27628B0E51f4aBeF1` | O(1) implementation             | [Etherscan](https://sepolia.etherscan.io/address/0x79eeaA4c95Fa842Ea07D36E27628B0E51f4aBeF1#code) |
+| Contract                     | Address                                      | Wired To                       | Verification                                                                                      |
+| ---------------------------- | -------------------------------------------- | ------------------------------ | ------------------------------------------------------------------------------------------------- |
+| **AgentSkillRegistryV2**     | `0xA84684261558f342d6871DD2CFef90A2117Aa20A` | ERC-8004 Identity (UUPS Proxy) | [Etherscan](https://sepolia.etherscan.io/address/0xA84684261558f342d6871DD2CFef90A2117Aa20A#code) |
+| **AgentSkillRegistryV2** (I) | `0x656B6520CE44Bb0Fb08552274Be3a9B11aaa3569` | O(1) domain lookup             | [Etherscan](https://sepolia.etherscan.io/address/0x656B6520CE44Bb0Fb08552274Be3a9B11aaa3569#code) |
+| **ServiceRegistryV2**        | `0x62E1eeEa1A2Ab987004F35bDA430457Ed6077201` | ERC-8004 Identity (UUPS Proxy) | [Etherscan](https://sepolia.etherscan.io/address/0x62E1eeEa1A2Ab987004F35bDA430457Ed6077201#code) |
+| **ServiceRegistryV2** (I)    | `0xF0f9cdB2862E2a34C4d3AA86a45E072d06FB6a46` | Bond + isActive                | [Etherscan](https://sepolia.etherscan.io/address/0xF0f9cdB2862E2a34C4d3AA86a45E072d06FB6a46#code) |
+| **AgentReviewV5**            | `0x5CDb592Fd37749bF87448FBf5725D1Cd986dd1Cb` | SlashManager (UUPS Proxy)      | [Etherscan](https://sepolia.etherscan.io/address/0x5CDb592Fd37749bF87448FBf5725D1Cd986dd1Cb#code) |
+| **AgentReviewV5** (Impl)     | `0xb9384C09238Cbbae723759A38f79B13bFa2654F1` | finalizeDecision               | [Etherscan](https://sepolia.etherscan.io/address/0xb9384C09238Cbbae723759A38f79B13bFa2654F1#code) |
+| **AgentReviewV4** (legacy)   | `0x716B02447b52Eab450e31bD77103B41bC2c7bE0b` | —                              | -                                                                                                 |
+| **AgenticCommerce (V6)**     | `0x948d97EA7F0c49796fB576ADff375C900627568E` | ServiceRegistry (UUPS Proxy)   | [Etherscan](https://sepolia.etherscan.io/address/0x948d97EA7F0c49796fB576ADff375C900627568E#code) |
+| **AgenticCommerce** (Impl)   | `0xC383e73673d0b8630fb282cE04d2f5F0fb17a776` | refundExpired + CEI            | [Etherscan](https://sepolia.etherscan.io/address/0xC383e73673d0b8630fb282cE04d2f5F0fb17a776#code) |
+| **BiddingSystem**            | `0x32c9d069a248a619d3EAc4D1FC76F2639AaBeF04` | AgenticCommerce (UUPS Proxy)   | [Etherscan](https://sepolia.etherscan.io/address/0x32c9d069a248a619d3EAc4D1FC76F2639AaBeF04#code) |
+| **BiddingSystem** (Impl)     | `0x0A09e4Ff6DAa0eeA49526560e2c946Ea32a293Bb` | Commit-reveal bidding          | [Etherscan](https://sepolia.etherscan.io/address/0x0A09e4Ff6DAa0eeA49526560e2c946Ea32a293Bb#code) |
+| PriceOracle                  | `0x5C4AC3dAF76708DCd51911BA3B33027eAB1B4047` | Chainlink                      | [Etherscan](https://sepolia.etherscan.io/address/0x5C4AC3dAF76708DCd51911BA3B33027eAB1B4047#code) |
+| CommitReveal                 | `0x85F193670fCb7B0c97D55E70Bf2a950b1065Fb3a` | UUPS, Cleanup (anyone call)    | [Etherscan](https://sepolia.etherscan.io/address/0x85F193670fCb7B0c97D55E70Bf2a950b1065Fb3a#code) |
+| CommitReveal (Impl)          | `0xd9efa18c45357CC3d218E1FEC86E0C851270d33D` | UUPS implementation            | [Etherscan](https://sepolia.etherscan.io/address/0xd9efa18c45357CC3d218E1FEC86E0C851270d33D#code) |
+| SlashManager                 | `0x1B8373cDF4f2eD740c3478e0129f0B8494CE4Fa3` | Owner OR signer + Pausable     | [Etherscan](https://sepolia.etherscan.io/address/0x1B8373cDF4f2eD740c3478e0129f0B8494CE4Fa3#code) |
+| SlashManager (Impl)          | `0x240eeC04F12d11eE6e4d03B00FB2148bFD4887F9` | Owner OR signer proposals      | [Etherscan](https://sepolia.etherscan.io/address/0x240eeC04F12d11eE6e4d03B00FB2148bFD4887F9#code) |
 
-### Security Features Summary (Phase 12)
+### Security Features Summary (Phase 14)
 
-| Feature              | Implementation                                              |
-| -------------------- | ----------------------------------------------------------- |
-| Token Allowlist      | V6.1: Strict allowlist - only whitelisted tokens            |
-| O(1) SlashManager    | V2: `_signerIndex` mapping for constant-time lookup         |
-| MAX_REWARD Limit     | V5: `MAX_REWARD = 100 ether` prevents excessive stakes      |
-| CommitReveal Cleanup | Live: `cleanupExpiredCommitments()` anyone can call         |
-| Collusion Prevention | V6.1: `RolesMustBeDistinct` in job creation                 |
-| Deadlock Resolution  | V6.1: `completeAfterTimeout()` after dispute window         |
-| Winner Pull Pattern  | V5: `claimReward()` instead of automatic transfer           |
-| SlashManager         | V5: 3-of-5 multisig controls all slashing                   |
-| Locked ETH Guard     | V5: `withdrawETH()` validates against locked funds          |
-| Pausable Pattern     | V2: Added to SlashManager, AgentReviewV5, AgenticCommerceV6 |
+| Feature                | Implementation                                              |
+| ---------------------- | ----------------------------------------------------------- |
+| Permissionless Refunds | V6: `refundExpired()` anyone can call                       |
+| Grace Period Finalize  | V5: `finalizeDecision()` after 7-day grace                  |
+| Owner OR Signers       | V2: Both can create slash proposals                         |
+| O(1) Skill Lookup      | V2: `_domainToSkills` mapping                               |
+| SDK Multicall          | TypeScript: viem multicall for batch calls                  |
+| CEI Pattern            | V6: Hook calls after status updates                         |
+| Token Allowlist        | V6: Strict allowlist - only whitelisted tokens              |
+| O(1) SlashManager      | V2: `_signerIndex` mapping for constant-time lookup         |
+| MAX_REWARD Limit       | V5: `MAX_REWARD = 100 ether` prevents excessive stakes      |
+| CommitReveal Cleanup   | Live: `cleanupExpiredCommitments()` anyone can call         |
+| Collusion Prevention   | V6: `RolesMustBeDistinct` in job creation                   |
+| Deadlock Resolution    | V6: `completeAfterTimeout()` after dispute window           |
+| Winner Pull Pattern    | V5: `claimReward()` instead of automatic transfer           |
+| SlashManager           | V5: 3-of-5 multisig controls all slashing                   |
+| Locked ETH Guard       | V5: `withdrawETH()` validates against locked funds          |
+| Pausable Pattern       | V2: Added to SlashManager, AgentReviewV5, AgenticCommerceV6 |

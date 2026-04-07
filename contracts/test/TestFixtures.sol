@@ -41,6 +41,7 @@ contract TestFixtures is Test {
     uint256 constant INITIAL_ETH = 100 ether;
     uint256 constant INITIAL_USDC = 1_000_000_000; // 1000 USDC (6 decimals)
     uint256 constant MIN_STAKE = 0.001 ether;
+    uint256 constant SERVICE_BOND = 0.01 ether;
     
     function setUp() public virtual {
         // Create test accounts
@@ -120,7 +121,7 @@ contract TestFixtures is Test {
         uint256 price
     ) internal returns (uint256 serviceId) {
         vm.prank(serviceProvider);
-        serviceId = serviceRegistry.createService(
+        serviceId = serviceRegistry.createService{value: SERVICE_BOND}(
             1, // agentId
             name,
             "Test service description",

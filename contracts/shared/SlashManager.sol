@@ -7,20 +7,22 @@ import {UUPSUpgradeable} from "@openzeppelin/contracts-upgradeable/proxy/utils/U
 import {PausableUpgradeable} from "@openzeppelin/contracts-upgradeable/utils/PausableUpgradeable.sol";
 import {IAgentReviewV5} from "./AgentReviewV5.sol";
 
-/**
- * @title SlashManager
- * @dev Governance-based slashing with 3-of-5 multisig
- * 
- * Security features:
- * - 3-of-5 multisig requirement for slashing
- * - Timelock delay before execution
- * - ReentrancyGuard on execute
- * - CEI pattern
- * - Input validation
- * - Role-based access control
- * - UUPS Upgradeable for future fixes
- * - Pausable for emergency stops
- */
+    /**
+     * @title SlashManager
+     * @dev Governance-based slashing with 3-of-5 multisig
+     * 
+     * Security features:
+     * - 3-of-5 multisig requirement for slashing
+     * - Timelock delay before execution
+     * - ReentrancyGuard on execute
+     * - CEI pattern
+     * - Input validation
+     * - Role-based access control
+     * - UUPS Upgradeable for future fixes
+     * - Pausable for emergency stops
+     * 
+     * M1 Fix: Pass configurable slash basis points to AgentReviewV5
+     */
 contract SlashManager is ReentrancyGuard, OwnableUpgradeable, UUPSUpgradeable, PausableUpgradeable {
     // Multisig configuration
     uint256 public constant REQUIRED_SIGNATURES = 3;
@@ -61,6 +63,11 @@ contract SlashManager is ReentrancyGuard, OwnableUpgradeable, UUPSUpgradeable, P
     
     // Maximum age of a slash proposal (30 days)
     uint256 public constant MAX_PROPOSAL_AGE = 30 days;
+    
+    // M1 Fix: Configurable slash percentages (basis points)
+    uint256 public constant DEFAULT_SLASH_BP = 5000; // 50%
+    uint256 public constant MIN_SLASH_BP = 2500;      // 25%
+    uint256 public constant FEE_DENOMINATOR = 10000;  // 100%
 
     // AgentReview contract
     address public agentReview;
@@ -135,13 +142,16 @@ contract SlashManager is ReentrancyGuard, OwnableUpgradeable, UUPSUpgradeable, P
      * @dev Create a slash proposal
      * L6 Fix: Uses nonce instead of block.timestamp for unique hash
      * M2 Fix: Sets up direct lookup mapping
+     * M5 Fix: Allows both owner and signers to create proposals
      */
     function createProposal(
         address evaluator,
         uint256 _proposalId,
         uint256 amount,
         string calldata reason
-    ) external onlyOwner whenNotPaused returns (bytes32 proposalHash) {
+    ) external whenNotPaused returns (bytes32 proposalHash) {
+        // M5 Fix: Allow both owner and signers to create proposals
+        require(msg.sender == owner() || isSigner[msg.sender], "Not owner or signer");
         require(evaluator != address(0), "Zero evaluator");
         require(amount > 0, "Zero amount");
         require(amount <= MAX_SLASH_AMOUNT, "Amount too high");
@@ -198,6 +208,7 @@ contract SlashManager is ReentrancyGuard, OwnableUpgradeable, UUPSUpgradeable, P
 
     /**
      * @dev Execute a slash (calls AgentReview to perform actual slashing)
+     * M1 Fix: Now passes slashBP to AgentReviewV5 for configurable slash percentage
      */
     function executeSlash(bytes32 proposalHash) external nonReentrant whenNotPaused {
         SlashProposal storage proposal = proposals[proposalHash];
@@ -208,10 +219,19 @@ contract SlashManager is ReentrancyGuard, OwnableUpgradeable, UUPSUpgradeable, P
 
         proposal.executed = true;
 
-        // Call AgentReview to perform the slash
+        // M1 Fix: Calculate slash BP from amount vs max, default to 50%
+        uint256 slashBP = DEFAULT_SLASH_BP;
+        if (proposal.amount > 0 && proposal.amount <= MAX_SLASH_AMOUNT) {
+            // Scale slash BP based on proposal amount (higher amount = higher slash %)
+            slashBP = (proposal.amount * FEE_DENOMINATOR) / MAX_SLASH_AMOUNT;
+            if (slashBP < MIN_SLASH_BP) slashBP = MIN_SLASH_BP;
+        }
+
+        // Call AgentReview to perform the slash with configurable BP
         IAgentReviewV5(agentReview).slashEvaluator(
             proposal.evaluator,
             proposal.proposalId,
+            slashBP,
             proposal.reason
         );
 

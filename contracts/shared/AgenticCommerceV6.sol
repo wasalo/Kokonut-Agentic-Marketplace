@@ -102,6 +102,13 @@ contract AgenticCommerceV6 is
 
     // M3 Fix: Token allowlist for payment tokens
     mapping(address => bool) public allowedTokens;
+    
+    // M5 Fix: Evaluator registry for random selection
+    address[] public evaluatorPool;
+    mapping(address => bool) public isRegisteredEvaluator;
+    
+    // Minimum reputation score required to be an evaluator
+    uint256 public constant MIN_EVALUATOR_REPUTATION = 50;
 
     /***********************************/
     /* Errors */
@@ -336,15 +343,16 @@ contract AgenticCommerceV6 is
         Job storage job = jobs[jobId];
         _validateFund(job);
 
-        // Cache budget BEFORE hook call to prevent manipulation via reentrancy
         uint256 cachedBudget = job.budget;
 
+        // CEI Fix: Effects before Interactions - update status BEFORE hook call
+        JobStatus oldStatus = job.status;
+        job.status = JobStatus.Funded;
+        
+        // Interaction: Call hook AFTER status update (CEI pattern)
         if (job.hook != address(0)) {
             IACPHook(job.hook).beforeAction(jobId, this.fund.selector, "");
         }
-
-        JobStatus oldStatus = job.status;
-        job.status = JobStatus.Funded;
         
         if (address(job.paymentToken) == address(0)) {
             if (msg.value < cachedBudget) revert BudgetTooLow();
@@ -377,14 +385,16 @@ contract AgenticCommerceV6 is
         if (job.id == 0) revert InvalidJob();
         if (job.status != JobStatus.Funded) revert WrongStatus();
 
-        if (job.hook != address(0)) {
-            IACPHook(job.hook).beforeAction(jobId, this.submit.selector, abi.encode(deliverable));
-        }
-
+        // CEI Fix: Effects before Interactions - update status BEFORE hook call
         JobStatus oldStatus = job.status;
         job.status = JobStatus.Submitted;
         job.deliverable = deliverable;
         jobSubmittedAt[jobId] = block.timestamp;
+        
+        // Interaction: Call hook AFTER status update (CEI pattern)
+        if (job.hook != address(0)) {
+            IACPHook(job.hook).beforeAction(jobId, this.submit.selector, abi.encode(deliverable));
+        }
         
         emit JobSubmitted(jobId, _msgSender(), deliverable);
         emit JobStatusChanged(jobId, oldStatus, JobStatus.Submitted, block.timestamp);
@@ -394,10 +404,6 @@ contract AgenticCommerceV6 is
         Job storage job = jobs[jobId];
         if (job.id == 0) revert InvalidJob();
         if (job.status != JobStatus.Submitted) revert WrongStatus();
-
-        if (job.hook != address(0)) {
-            IACPHook(job.hook).beforeAction(jobId, this.complete.selector, abi.encode(reason));
-        }
 
         uint256 amount = job.budget;
         uint256 platformFee = (amount * 100) / FEE_DENOMINATOR; // 1% platform fee
@@ -411,10 +417,16 @@ contract AgenticCommerceV6 is
             net -= evaluatorFee;
         }
 
+        // CEI Fix: Effects before Interactions - update status BEFORE hook call
         job.budget = 0;
         job.status = JobStatus.Completed;
         
         _decrementJobCount(jobId);
+
+        // Interaction: Call hook AFTER status update (CEI pattern)
+        if (job.hook != address(0)) {
+            IACPHook(job.hook).beforeAction(jobId, this.complete.selector, abi.encode(reason));
+        }
 
         if (platformFee > 0) {
             _transferPayment(paymentToken, platformTreasury, platformFee);
@@ -445,10 +457,6 @@ contract AgenticCommerceV6 is
         
         if (block.timestamp < submittedAt + disputeWindow) revert WrongStatus();
         
-        if (job.hook != address(0)) {
-            IACPHook(job.hook).beforeAction(jobId, this.completeAfterTimeout.selector, abi.encode(reason));
-        }
-        
         uint256 amount = job.budget;
         uint256 platformFee = (amount * 100) / FEE_DENOMINATOR;
         uint256 slashAmount = 0;
@@ -461,10 +469,16 @@ contract AgenticCommerceV6 is
         address prov = job.provider;
         IERC20 paymentToken = job.paymentToken;
 
+        // CEI Fix: Effects before Interactions - update status BEFORE hook call
         job.budget = 0;
         job.status = JobStatus.Completed;
         
         _decrementJobCount(jobId);
+
+        // Interaction: Call hook AFTER status update (CEI pattern)
+        if (job.hook != address(0)) {
+            IACPHook(job.hook).beforeAction(jobId, this.completeAfterTimeout.selector, abi.encode(reason));
+        }
 
         if (platformFee > 0) {
             _transferPayment(paymentToken, platformTreasury, platformFee);
@@ -544,6 +558,34 @@ contract AgenticCommerceV6 is
         emit JobExpired(jobId);
         emit JobStatusChanged(jobId, oldStatus, JobStatus.Expired, block.timestamp);
     }
+    
+    /**
+     * @dev M5 Fix: Permissionless refund - anyone can trigger refund for expired jobs
+     * Refund goes to original client, not the caller
+     */
+    function refundExpired(uint256 jobId) external nonReentrant {
+        Job storage job = jobs[jobId];
+        if (job.id == 0) revert InvalidJob();
+        if (job.status != JobStatus.Funded && job.status != JobStatus.Submitted) revert WrongStatus();
+        if (block.timestamp < job.expiredAt) revert WrongStatus();
+        
+        address client = job.client;
+        require(client != address(0), "No client");
+
+        JobStatus oldStatus = job.status;
+        uint256 refundAmount = job.budget;
+        job.budget = 0;
+        job.status = JobStatus.Expired;
+        
+        _decrementJobCount(jobId);
+        
+        _transferPayment(job.paymentToken, client, refundAmount);
+        
+        emit PermissionlessRefund(jobId, client, refundAmount, _msgSender());
+        emit Refunded(jobId, client, refundAmount);
+        emit JobExpired(jobId);
+        emit JobStatusChanged(jobId, oldStatus, JobStatus.Expired, block.timestamp);
+    }
 
     /***********************************/
     /* Bidding Functions - DISABLED */
@@ -602,10 +644,90 @@ contract AgenticCommerceV6 is
         if (treasury == address(0)) revert ZeroAddress();
         platformTreasury = treasury;
     }
+    
+    // M5 Fix: Register as evaluator
+    function registerAsEvaluator() external {
+        require(!isRegisteredEvaluator[msg.sender], "Already registered");
+        evaluatorPool.push(msg.sender);
+        isRegisteredEvaluator[msg.sender] = true;
+        emit EvaluatorRegistered(msg.sender);
+    }
+    
+    // M5 Fix: Unregister as evaluator
+    function unregisterAsEvaluator() external {
+        require(isRegisteredEvaluator[msg.sender], "Not registered");
+        isRegisteredEvaluator[msg.sender] = false;
+        emit EvaluatorUnregistered(msg.sender);
+    }
+    
+    // M5 Fix: Random evaluator selection using block-based randomness
+    function _selectRandomEvaluator() internal returns (address evaluator) {
+        require(evaluatorPool.length > 0, "No evaluators available");
+        uint256 randomIndex = uint256(keccak256(abi.encodePacked(
+            blockhash(block.number - 1),
+            block.timestamp,
+            msg.sender
+        ))) % evaluatorPool.length;
+        return evaluatorPool[randomIndex];
+    }
+    
+    /**
+     * @dev Get evaluator pool size
+     */
+    function getEvaluatorPoolSize() external view returns (uint256) {
+        return evaluatorPool.length;
+    }
+    
+    // M5 Fix: Create job with random evaluator selection
+    function createJobWithRandomEvaluator(
+        address provider,
+        uint256 expiredAt,
+        string calldata description,
+        address hook,
+        bool evaluatorFee
+    ) external nonReentrant whenNotPaused returns (uint256 jobId) {
+        // First create the job with address(0) as evaluator placeholder
+        _validateJobCreation(provider, address(0), expiredAt, description, hook);
+        
+        if (clientJobCount[_msgSender()] >= MAX_JOBS_PER_CLIENT) {
+            emit JobLimitExceeded(_msgSender(), clientJobCount[_msgSender()] + 1, MAX_JOBS_PER_CLIENT);
+            revert MaxJobsPerClient(_msgSender(), clientJobCount[_msgSender()]);
+        }
+        
+        jobId = ++jobCounter;
+        jobs[jobId] = Job({
+            id: jobId,
+            client: _msgSender(),
+            provider: provider,
+            evaluator: address(0), // Will be set randomly
+            serviceId: 0,
+            paymentToken: IERC20(address(0)),
+            description: description,
+            budget: 0,
+            expiredAt: expiredAt,
+            status: JobStatus.Open,
+            hook: hook,
+            deliverable: bytes32(0)
+        });
+        
+        evaluatorFeeEnabled[jobId] = evaluatorFee;
+        jobClient[jobId] = _msgSender();
+        clientJobCount[_msgSender()]++;
+        
+        // Randomly select evaluator
+        address randomEvaluator = _selectRandomEvaluator();
+        jobs[jobId].evaluator = randomEvaluator;
+        
+        emit JobCreated(jobId, _msgSender(), provider, randomEvaluator, 0, expiredAt);
+        emit EvaluatorRandomlySelected(jobId, randomEvaluator);
+    }
 
     /***********************************/
     /* Events */
     /***********************************/
     
     event TokenAllowlistUpdated(address indexed token, bool allowed);
+    event EvaluatorRegistered(address indexed evaluator);
+    event EvaluatorUnregistered(address indexed evaluator);
+    event EvaluatorRandomlySelected(uint256 indexed jobId, address indexed evaluator);
 }

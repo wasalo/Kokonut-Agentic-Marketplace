@@ -447,6 +447,107 @@ contract SecurityFixesTest is Test {
     }
     
     // ==========================================
+    // M5: AgenticCommerceV6 permissionless refundExpired
+    // ==========================================
+    
+    function test_M5_refundExpired_AnyoneCanCall() public {
+        // Create and fund a job
+        vm.prank(client);
+        uint256 jobId = agenticCommerce.createJob(
+            provider,
+            evaluator,
+            block.timestamp + 7 days,
+            "Test job",
+            address(0),
+            false
+        );
+        
+        // Set budget and fund
+        vm.prank(client);
+        agenticCommerce.setBudget(jobId, 0.01 ether);
+        
+        vm.deal(client, 10 ether);
+        vm.prank(client);
+        agenticCommerce.fund{value: 0.01 ether}(jobId);
+        
+        uint256 clientBalanceBefore = client.balance;
+        
+        // Fast forward past expiry
+        vm.warp(block.timestamp + 8 days);
+        
+        // Anyone (not just client) can call refundExpired
+        address stranger = makeAddr("stranger");
+        vm.deal(stranger, 1 ether);
+        uint256 strangerBalanceBefore = stranger.balance;
+        
+        vm.prank(stranger);
+        agenticCommerce.refundExpired(jobId);
+        
+        // Refund goes to original client, not stranger
+        assertEq(stranger.balance, strangerBalanceBefore);
+        assertEq(client.balance, clientBalanceBefore + 0.01 ether);
+    }
+    
+    function test_M5_refundExpired_RefundGoesToClient() public {
+        // Create and fund a job
+        vm.prank(client);
+        uint256 jobId = agenticCommerce.createJob(
+            provider,
+            evaluator,
+            block.timestamp + 7 days,
+            "Test job",
+            address(0),
+            false
+        );
+        
+        // Set budget and fund
+        vm.prank(client);
+        agenticCommerce.setBudget(jobId, 0.05 ether);
+        
+        vm.deal(client, 10 ether);
+        vm.prank(client);
+        agenticCommerce.fund{value: 0.05 ether}(jobId);
+        
+        uint256 clientBalanceBefore = client.balance;
+        
+        // Fast forward past expiry
+        vm.warp(block.timestamp + 8 days);
+        
+        // Stranger calls refundExpired
+        vm.prank(makeAddr("stranger"));
+        agenticCommerce.refundExpired(jobId);
+        
+        // Client receives the refund
+        assertEq(client.balance, clientBalanceBefore + 0.05 ether);
+    }
+    
+    function test_M5_refundExpired_RevertIfNotExpired() public {
+        // Create and fund a job
+        vm.prank(client);
+        uint256 jobId = agenticCommerce.createJob(
+            provider,
+            evaluator,
+            block.timestamp + 7 days,
+            "Test job",
+            address(0),
+            false
+        );
+        
+        // Set budget and fund
+        vm.prank(client);
+        agenticCommerce.setBudget(jobId, 0.01 ether);
+        
+        vm.deal(client, 1 ether);
+        vm.prank(client);
+        agenticCommerce.fund{value: 0.01 ether}(jobId);
+        
+        // Try to refund before expiry - should fail
+        vm.prank(makeAddr("stranger"));
+        vm.expectRevert();
+        agenticCommerce.refundExpired(jobId);
+    }
+    
+    // ==========================================
     // L5: CommitReveal cleanupExpiredCommitments
     // ==========================================
     
@@ -614,6 +715,57 @@ contract SecurityFixesTest is Test {
     function test_L6_proposalNonce_IncrementsOnEachProposal() public {
         uint256 nonce = slashManager.proposalNonce();
         assertEq(nonce, 0);
+    }
+    
+    // ==========================================
+    // M5: SlashManager signer-based proposal creation
+    // ==========================================
+    
+    function test_M5_SlashManager_SignerCanCreateProposal() public {
+        vm.prank(owner);
+        slashManager.setAgentReview(address(agentReview));
+        
+        // Signer 1 creates proposal
+        vm.prank(signer1);
+        bytes32 hash = slashManager.createProposal(
+            evaluator,
+            1,
+            1 ether,
+            "Test reason"
+        );
+        
+        assertTrue(hash != bytes32(0));
+    }
+    
+    function test_M5_SlashManager_NonSignerCannotCreateProposal() public {
+        vm.prank(owner);
+        slashManager.setAgentReview(address(agentReview));
+        
+        // Non-signer tries to create proposal
+        vm.prank(client);
+        vm.expectRevert("Not owner or signer");
+        slashManager.createProposal(
+            evaluator,
+            1,
+            1 ether,
+            "Test reason"
+        );
+    }
+    
+    function test_M5_SlashManager_OwnerCanCreateProposal() public {
+        vm.prank(owner);
+        slashManager.setAgentReview(address(agentReview));
+        
+        // Owner creates proposal
+        vm.prank(owner);
+        bytes32 hash = slashManager.createProposal(
+            evaluator,
+            1,
+            1 ether,
+            "Test reason"
+        );
+        
+        assertTrue(hash != bytes32(0));
     }
     
     // ==========================================

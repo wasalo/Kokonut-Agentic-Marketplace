@@ -91,6 +91,7 @@ interface IAgenticCommerceV6 {
     event JobExpired(uint256 indexed jobId);
     event PaymentReleased(uint256 indexed jobId, address indexed provider, uint256 amount);
     event Refunded(uint256 indexed jobId, address indexed client, uint256 amount);
+    event PermissionlessRefund(uint256 indexed jobId, address indexed client, uint256 amount, address indexed caller);
     
     event JobStatusChanged(
         uint256 indexed jobId, 

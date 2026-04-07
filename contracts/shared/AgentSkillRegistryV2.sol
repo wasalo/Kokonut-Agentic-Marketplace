@@ -91,6 +91,7 @@ contract AgentSkillRegistryV2 is
     
     mapping(uint256 => SkillData) private _skills;
     mapping(uint256 => uint256[]) private _agentSkills;
+    mapping(bytes32 => uint256[]) private _domainToSkills;
     uint256 private _skillCounter;
     
     // Gap for future storage variables (upgradeability best practice)
@@ -146,6 +147,7 @@ contract AgentSkillRegistryV2 is
     /**
      * @dev Register a skill for an agent.
      * FIXED: Uses IERC721.ownerOf() instead of non-existent getAgent()
+     * M1 Fix: Also indexes skill by domain for O(1) findSkillsByDomain lookups
      */
     function registerSkill(
         uint256 agentId,
@@ -183,13 +185,44 @@ contract AgentSkillRegistryV2 is
         
         _agentSkills[agentId].push(skillId);
         
+        // M1 Fix: Index skill by each domain for O(1) lookup
+        _indexSkillByDomains(skillId, domains);
+        
         emit SkillRegistered(agentId, skillId, name, version, msg.sender);
         
         return skillId;
     }
     
     /**
+     * @dev M1 Fix: Index skill by domains
+     */
+    function _indexSkillByDomains(uint256 skillId, string[] memory domains) internal {
+        for (uint256 i = 0; i < domains.length; i++) {
+            bytes32 domainKey = keccak256(abi.encodePacked(domains[i]));
+            _domainToSkills[domainKey].push(skillId);
+        }
+    }
+    
+    /**
+     * @dev M1 Fix: Remove skill from domain indexes
+     */
+    function _unindexSkillByDomains(uint256 skillId, string[] memory domains) internal {
+        for (uint256 i = 0; i < domains.length; i++) {
+            bytes32 domainKey = keccak256(abi.encodePacked(domains[i]));
+            uint256[] storage skillList = _domainToSkills[domainKey];
+            for (uint256 j = 0; j < skillList.length; j++) {
+                if (skillList[j] == skillId) {
+                    skillList[j] = skillList[skillList.length - 1];
+                    skillList.pop();
+                    break;
+                }
+            }
+        }
+    }
+    
+    /**
      * @dev Update an existing skill
+     * M1 Fix: Updates domain indexes for O(1) lookup
      */
     function updateSkill(
         uint256 skillId,
@@ -206,11 +239,16 @@ contract AgentSkillRegistryV2 is
         require(bytes(version).length > 0, "Version required");
         
         SkillData storage skill = _skills[skillId];
+        
+        // M1 Fix: Update domain indexes
+        _unindexSkillByDomains(skillId, skill.domains);
+        skill.domains = domains;
+        _indexSkillByDomains(skillId, domains);
+        
         skill.name = name;
         skill.version = version;
         skill.description = description;
         skill.endpoint = endpoint;
-        skill.domains = domains;
         skill.updatedAt = block.timestamp;
         
         emit SkillUpdated(skillId);
@@ -245,6 +283,9 @@ contract AgentSkillRegistryV2 is
         require(_skills[skillId].registeredBy == msg.sender, "Not registered by caller");
         require(_skills[skillId].isActive, "Already inactive");
         
+        // M1 Fix: Remove from domain indexes
+        _unindexSkillByDomains(skillId, _skills[skillId].domains);
+        
         _skills[skillId].isActive = false;
         
         emit SkillDeactivated(skillId, msg.sender);
@@ -265,20 +306,23 @@ contract AgentSkillRegistryV2 is
         return count;
     }
     
+    /**
+     * @dev M1 Fix: O(1) lookup by domain using pre-indexed mapping
+     * Before: O(n*m) - iterate all skills, all domains
+     * After: O(1) - direct mapping lookup
+     */
     function findSkillsByDomain(string calldata domain) external view override returns (uint256[] memory) {
-        uint256 matchCount = 0;
-        uint256[] memory tempResults = new uint256[](_skillCounter);
+        bytes32 domainKey = keccak256(abi.encodePacked(domain));
+        uint256[] storage skillIds = _domainToSkills[domainKey];
         
-        for (uint256 i = 0; i < _skillCounter; i++) {
-            if (_skills[i].isActive) {
-                for (uint256 j = 0; j < _skills[i].domains.length; j++) {
-                    if (keccak256(abi.encodePacked(_skills[i].domains[j])) == 
-                        keccak256(abi.encodePacked(domain))) {
-                        tempResults[matchCount] = i;
-                        matchCount++;
-                        break;
-                    }
-                }
+        // Filter to only active skills
+        uint256 matchCount = 0;
+        uint256[] memory tempResults = new uint256[](skillIds.length);
+        
+        for (uint256 i = 0; i < skillIds.length; i++) {
+            if (_skills[skillIds[i]].isActive) {
+                tempResults[matchCount] = skillIds[i];
+                matchCount++;
             }
         }
         

@@ -8,6 +8,7 @@ import {SlashManager} from "../shared/SlashManager.sol";
 import {ServiceRegistryV2} from "../shared/ServiceRegistryV2.sol";
 import {AgentReviewV5} from "../shared/AgentReviewV5.sol";
 import {AgenticCommerceV6} from "../shared/AgenticCommerceV6.sol";
+import {AgentSkillRegistryV2} from "../shared/AgentSkillRegistryV2.sol";
 
 /**
  * @title DeploySecurityFixes
@@ -208,5 +209,60 @@ contract DeployCommitRevealOnly is Script {
         vm.stopBroadcast();
         
         console.log("CommitReveal deployed:", address(proxy));
+    }
+}
+
+/**
+ * @title UpgradePhase14
+ * @dev Upgrade Phase 14 fixes
+ * 
+ * Phase 14 fixes:
+ * - M5: AgenticCommerceV6 - permissionless refundExpired()
+ * - M5: AgentReviewV5 - finalizeDecision() permissionless fallback (7 day grace)
+ * - M5: SlashManager - allow owner AND signers to create proposals
+ * - M1: AgentSkillRegistryV2 - O(1) domain lookup via domain->skills mapping
+ * 
+ * Run:
+ *   forge script scripts/DeploySecurityFixes.s.sol:UpgradePhase14 \
+ *     --rpc-url $SEPOLIA_RPC_URL \
+ *     --private-key $PRIVATE_KEY \
+ *     --broadcast
+ */
+contract UpgradePhase14 is Script {
+    address payable constant EXISTING_AGENTIC_COMMERCE = payable(0x948d97EA7F0c49796fB576ADff375C900627568E);
+    address payable constant EXISTING_AGENT_REVIEW = payable(0x5CDb592Fd37749bF87448FBf5725D1Cd986dd1Cb);
+    address payable constant EXISTING_SLASH_MANAGER = payable(0x1B8373cDF4f2eD740c3478e0129f0B8494CE4Fa3);
+    address payable constant EXISTING_SKILL_REGISTRY = payable(0xA84684261558f342d6871DD2CFef90A2117Aa20A);
+    
+    function run() external {
+        uint256 pk = vm.envUint("PRIVATE_KEY");
+        
+        console.log("Upgrading Phase 14 fixes...");
+        
+        vm.startBroadcast(pk);
+        
+        // Upgrade AgenticCommerceV6 (refundExpired)
+        AgenticCommerceV6 newAcImpl = new AgenticCommerceV6();
+        AgenticCommerceV6(EXISTING_AGENTIC_COMMERCE).upgradeToAndCall(address(newAcImpl), "");
+        console.log("AgenticCommerceV6 upgraded:", address(newAcImpl));
+        
+        // Upgrade AgentReviewV5 (finalizeDecision)
+        AgentReviewV5 newArImpl = new AgentReviewV5();
+        AgentReviewV5(EXISTING_AGENT_REVIEW).upgradeToAndCall(address(newArImpl), "");
+        console.log("AgentReviewV5 upgraded:", address(newArImpl));
+        
+        // Upgrade SlashManager (signer-based proposal creation)
+        SlashManager newSmImpl = new SlashManager();
+        SlashManager(EXISTING_SLASH_MANAGER).upgradeToAndCall(address(newSmImpl), "");
+        console.log("SlashManager upgraded:", address(newSmImpl));
+        
+        // Upgrade AgentSkillRegistryV2 (O(1) domain lookup)
+        AgentSkillRegistryV2 newSrImpl = new AgentSkillRegistryV2();
+        AgentSkillRegistryV2(EXISTING_SKILL_REGISTRY).upgradeToAndCall(address(newSrImpl), "");
+        console.log("AgentSkillRegistryV2 upgraded:", address(newSrImpl));
+        
+        vm.stopBroadcast();
+        
+        console.log("Phase 14 upgrades complete!");
     }
 }

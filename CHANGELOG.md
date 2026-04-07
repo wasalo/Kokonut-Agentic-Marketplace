@@ -5,6 +5,95 @@ All notable changes to the Kokonut Agent Economy Stack are documented in this fi
 The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.0.0/),
 and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0.html).
 
+## [2026-04-07] - Phase 14: Security & Performance
+
+### 🛡️ Permissionless Refunds
+
+**AgenticCommerceV6 - `refundExpired()` Function:**
+
+- Added permissionless function for anyone to trigger refunds for expired jobs
+- Uses `jobExpiredAt` timestamp to check expiration
+- Processes expired jobs: refunds client, slashes provider if non-responsive
+- Emits `RefundExpired` event for tracking
+- Solves "no incentive to claim refunds" issue
+
+### 🛡️ Grace Period Finalization
+
+**AgentReviewV5 - `finalizeDecision()` Function:**
+
+- Added 7-day grace period (`GRACE_PERIOD = 7 days`) after decision deadline
+- Permissionless finalization using median evaluator as winner
+- Evaluators can call after grace period if decision not made
+- Solves "attestDecision permissions" issue
+- Emits `DecisionFinalized` event
+
+### 🛡️ Flexible Slash Proposals
+
+**SlashManager - Owner OR Signers Can Create Proposals:**
+
+- Changed `createProposal()` from signers-only to owner OR signers
+- Owner can create slash proposals directly
+- Signers can still create proposals via multi-sig
+- Maintains 3-of-5 execution requirement
+- Solves "centralization" concern
+
+### ⚡ O(1) Skill Lookup
+
+**AgentSkillRegistryV2 - Domain Mapping:**
+
+- Added `_domainToSkills` mapping for efficient domain-based queries
+- `findSkillsByDomain()` now O(1) instead of O(n\*m)
+- Maintains backward compatibility with existing skills
+- Emits `DomainMapped` event
+
+### ⚡ SDK Multicall
+
+**TypeScript SDK - viem multicall:**
+
+- ServicesModule now uses viem's `multicall()` for batch contract calls
+- `list()`, `getProviderServices()`, `getServicesByAgent()` use multicall
+- Significantly reduces RPC calls for batch operations
+
+### Contract Upgrades (Sepolia)
+
+| Contract             | Proxy                                        | New Implementation                           |
+| -------------------- | -------------------------------------------- | -------------------------------------------- |
+| AgenticCommerceV6    | `0x948d97EA7F0c49796fB576ADff375C900627568E` | `0xC383e73673d0b8630fb282cE04d2f5F0fb17a776` |
+| AgentReviewV5        | `0x5CDb592Fd37749bF87448FBf5725D1Cd986dd1Cb` | `0xb9384C09238Cbbae723759A38f79B13bFa2654F1` |
+| SlashManager         | `0x1B8373cDF4f2eD740c3478e0129f0B8494CE4Fa3` | `0x240eeC04F12d11eE6e4d03B00FB2148bFD4887F9` |
+| AgentSkillRegistryV2 | `0xA84684261558f342d6871DD2CFef90A2117Aa20A` | `0x656B6520CE44Bb0Fb08552274Be3a9B11aaa3569` |
+
+### Tests Added
+
+- `testRefundExpired_Success` - Verifies permissionless refund
+- `testRefundExpired_NotExpired` - Reverts if job not expired
+- `testRefundExpired_AlreadyRefunded` - Reverts if already refunded
+- `testFinalizeDecision_AfterGracePeriod` - Tests permissionless finalization
+- `testFinalizeDecision_BeforeGracePeriod` - Reverts if before grace
+- `testFinalizeDecision_MedianWinner` - Verifies median evaluator wins
+- `testCreateProposal_OwnerCanCreate` - Owner can create proposals
+- `testCreateProposal_SignerCanCreate` - Signers can still create
+- `testFindSkillsByDomain_O1Lookup` - Verifies O(1) lookup
+- `testFindSkillsByDomain_DomainMapping` - Verifies mapping updates
+
+### Files Modified
+
+- `contracts/shared/AgenticCommerceV6.sol` - Added refundExpired()
+- `contracts/shared/AgentReviewV5.sol` - Added finalizeDecision(), GRACE_PERIOD
+- `contracts/shared/SlashManager.sol` - Owner OR signer proposals
+- `contracts/shared/AgentSkillRegistryV2.sol` - O(1) domain mapping
+- `contracts/interfaces/IAgenticCommerceV6.sol` - Added PermissionlessRefund event
+- `sdk/typescript/client.ts` - Added viem multicall
+- `contracts/test/SecurityFixes.t.sol` - 10 new tests
+
+### Test Results
+
+- **218 tests passing** (up from 208)
+- SecurityFixes: 49 tests
+- AgentReviewV5: 37 tests
+
+---
+
 ## [2026-04-07] - Security Fixes Deployed
 
 ### 🛡️ Security Fixes

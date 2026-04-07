@@ -362,7 +362,11 @@ contract AgentReviewV5Test is Test {
         agentReview.attestDecision(proposalId, evaluator2);
 
         uint256 evaluator2BalanceBeforeClaim = evaluator2.balance;
-        uint256 rewardAmount = stakeAmount + reward;
+        
+        // M4 Fix: Winner gets 60% of total pool (reward + all stakes), plus original stake
+        uint256 totalPool = reward + stakeAmount + stakeAmount; // 1 + 0.001 + 0.001 = 1.002
+        uint256 winnerShare = (totalPool * 60) / 100; // 60% = 0.6012
+        uint256 rewardAmount = stakeAmount + winnerShare; // 0.001 + 0.6012 = 0.60212
         
         vm.prank(evaluator2);
         agentReview.claimReward(proposalId);
@@ -570,9 +574,9 @@ contract AgentReviewV5Test is Test {
         agentReview.setUnderReview(proposalId);
 
         vm.prank(slashManager);
-        agentReview.slashEvaluator(evaluator1, proposalId, "Bad evaluation");
+        agentReview.slashEvaluator(evaluator1, proposalId, 5000, "Bad evaluation");
 
-        uint256 slashAmount = (stakeAmount * SLASH_PERCENTAGE) / FEE_DENOMINATOR;
+        uint256 slashAmount = (stakeAmount * 5000) / FEE_DENOMINATOR;
         assertEq(owner.balance, slashAmount);
     }
 
@@ -600,7 +604,7 @@ contract AgentReviewV5Test is Test {
 
         vm.prank(proposer);
         vm.expectRevert("Not slashManager");
-        agentReview.slashEvaluator(evaluator1, proposalId, "Bad evaluation");
+        agentReview.slashEvaluator(evaluator1, proposalId, 5000, "Bad evaluation");
     }
 
     function testGetTotalLockedETH() public {
@@ -806,5 +810,141 @@ contract AgentReviewV5Test is Test {
         vm.prank(proposer);
         vm.expectRevert();
         agentReview.upgradeToAndCall(address(newImpl), "");
+    }
+    
+    // M5 Fix: Tests for finalizeDecision - permissionless decision finalization
+    
+    function testFinalizeDecision_PermissionlessAfterGracePeriod() public {
+        uint256 reward = 1 ether;
+        uint256 deadline = block.timestamp + 7 days;
+        uint256 stakeAmount = MIN_STAKE;
+
+        vm.deal(proposer, 2 ether);
+        vm.prank(proposer);
+        uint256 proposalId = agentReview.createProposal{value: reward}(
+            "Test Proposal",
+            "Test Description",
+            "ipfs://criteria",
+            reward,
+            deadline
+        );
+
+        vm.deal(evaluator1, 1 ether);
+        vm.prank(evaluator1);
+        agentReview.submitEvaluation{value: stakeAmount}(proposalId, 80, "ipfs://reasoning1");
+
+        vm.deal(evaluator2, 1 ether);
+        vm.prank(evaluator2);
+        agentReview.submitEvaluation{value: stakeAmount}(proposalId, 90, "ipfs://reasoning2");
+
+        vm.prank(proposer);
+        agentReview.setUnderReview(proposalId);
+
+        // Warp past deadline + grace period
+        vm.warp(deadline + 7 days + 1);
+
+        // Anyone can call finalizeDecision (not just proposer)
+        address stranger = makeAddr("stranger");
+        vm.prank(stranger);
+        agentReview.finalizeDecision(proposalId);
+
+        // Verify proposal is decided
+        IAgentReviewV5.Proposal memory proposal = agentReview.getProposal(proposalId);
+        assertEq(uint8(proposal.status), 2); // Decided = 2
+    }
+    
+    function testFinalizeDecision_UsesMedianEvaluator() public {
+        uint256 reward = 1 ether;
+        uint256 deadline = block.timestamp + 7 days;
+        uint256 stakeAmount = MIN_STAKE;
+
+        vm.deal(proposer, 2 ether);
+        vm.prank(proposer);
+        uint256 proposalId = agentReview.createProposal{value: reward}(
+            "Test Proposal",
+            "Test Description",
+            "ipfs://criteria",
+            reward,
+            deadline
+        );
+
+        // Three evaluators with scores: 60, 80, 100
+        // Median is 80
+        vm.deal(evaluator1, 1 ether);
+        vm.prank(evaluator1);
+        agentReview.submitEvaluation{value: stakeAmount}(proposalId, 60, "ipfs://reasoning1");
+
+        vm.deal(evaluator2, 1 ether);
+        vm.prank(evaluator2);
+        agentReview.submitEvaluation{value: stakeAmount}(proposalId, 80, "ipfs://reasoning2");
+
+        vm.deal(evaluator3, 1 ether);
+        vm.prank(evaluator3);
+        agentReview.submitEvaluation{value: stakeAmount}(proposalId, 100, "ipfs://reasoning3");
+
+        vm.prank(proposer);
+        agentReview.setUnderReview(proposalId);
+
+        vm.warp(deadline + 7 days + 1);
+
+        vm.prank(makeAddr("stranger"));
+        agentReview.finalizeDecision(proposalId);
+
+        IAgentReviewV5.Proposal memory proposal = agentReview.getProposal(proposalId);
+        // Median score is 80, evaluator2 submitted 80
+        assertEq(proposal.winningEvaluator, evaluator2);
+    }
+    
+    function testFinalizeDecision_RevertIfGracePeriodNotPassed() public {
+        uint256 reward = 1 ether;
+        uint256 deadline = block.timestamp + 7 days;
+
+        vm.deal(proposer, 2 ether);
+        vm.prank(proposer);
+        uint256 proposalId = agentReview.createProposal{value: reward}(
+            "Test Proposal",
+            "Test Description",
+            "ipfs://criteria",
+            reward,
+            deadline
+        );
+
+        vm.deal(evaluator1, 1 ether);
+        vm.prank(evaluator1);
+        agentReview.submitEvaluation{value: MIN_STAKE}(proposalId, 80, "ipfs://reasoning");
+
+        vm.prank(proposer);
+        agentReview.setUnderReview(proposalId);
+
+        // Only warp past deadline, not grace period
+        vm.warp(deadline + 1);
+
+        vm.prank(makeAddr("stranger"));
+        vm.expectRevert("Grace period not passed");
+        agentReview.finalizeDecision(proposalId);
+    }
+    
+    function testFinalizeDecision_RevertIfNoEvaluators() public {
+        uint256 reward = 1 ether;
+        uint256 deadline = block.timestamp + 7 days;
+
+        vm.deal(proposer, 2 ether);
+        vm.prank(proposer);
+        uint256 proposalId = agentReview.createProposal{value: reward}(
+            "Test Proposal",
+            "Test Description",
+            "ipfs://criteria",
+            reward,
+            deadline
+        );
+
+        vm.prank(proposer);
+        agentReview.setUnderReview(proposalId);
+
+        vm.warp(deadline + 7 days + 1);
+
+        vm.prank(makeAddr("stranger"));
+        vm.expectRevert("No evaluators");
+        agentReview.finalizeDecision(proposalId);
     }
 }
