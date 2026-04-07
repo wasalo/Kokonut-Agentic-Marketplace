@@ -273,7 +273,7 @@ contract AgenticCommerceV6 is
         emit JobUpdated(jobId, _UPDATE_TYPE_PROVIDER, block.timestamp);
     }
 
-    function setBudget(uint256 jobId, uint256 amount) external onlyClient(jobId) {
+    function setBudget(uint256 jobId, uint256 amount) external nonReentrant onlyClient(jobId) {
         Job storage job = jobs[jobId];
         require(job.id != 0, "Invalid job");
         require(uint256(job.status) == 0, "Wrong status");
@@ -289,6 +289,9 @@ contract AgenticCommerceV6 is
         Job storage job = jobs[jobId];
         _validateFund(job);
 
+        // Cache budget BEFORE hook call to prevent manipulation via reentrancy
+        uint256 cachedBudget = job.budget;
+
         if (job.hook != address(0)) {
             IACPHook(job.hook).beforeAction(jobId, this.fund.selector, "");
         }
@@ -297,20 +300,20 @@ contract AgenticCommerceV6 is
         job.status = JobStatus.Funded;
         
         if (address(job.paymentToken) == address(0)) {
-            require(msg.value >= job.budget, "Insufficient payment");
+            require(msg.value >= cachedBudget, "Insufficient payment");
             require(msg.value >= MIN_ETH_PAYMENT, "Below minimum ETH");
             
             // Refund excess ETH
-            uint256 excess = msg.value - job.budget;
+            uint256 excess = msg.value - cachedBudget;
             if (excess > 0) {
                 payable(_msgSender()).transfer(excess);
             }
         } else {
             require(msg.value == 0, "ETH not accepted for ERC20");
-            job.paymentToken.safeTransferFrom(_msgSender(), address(this), job.budget);
+            job.paymentToken.safeTransferFrom(_msgSender(), address(this), cachedBudget);
         }
         
-        emit JobFunded(jobId, _msgSender(), job.budget);
+        emit JobFunded(jobId, _msgSender(), cachedBudget);
         emit JobStatusChanged(jobId, oldStatus, JobStatus.Funded, block.timestamp);
     }
 

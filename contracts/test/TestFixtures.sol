@@ -2,10 +2,11 @@
 pragma solidity ^0.8.20;
 
 import "forge-std/Test.sol";
-import {AgenticCommerceV4} from "../shared/AgenticCommerceV4.sol";
-import {AgentReviewV4} from "../shared/AgentReviewV4.sol";
+import {AgenticCommerceV6} from "../shared/AgenticCommerceV6.sol";
+import {AgentReviewV5} from "../shared/AgentReviewV5.sol";
 import {ServiceRegistryV2} from "../shared/ServiceRegistryV2.sol";
 import {ERC1967Proxy} from "@openzeppelin/contracts/proxy/ERC1967/ERC1967Proxy.sol";
+import {TransparentUpgradeableProxy} from "@openzeppelin/contracts/proxy/transparent/TransparentUpgradeableProxy.sol";
 
 /**
  * @title TestFixtures
@@ -14,8 +15,8 @@ import {ERC1967Proxy} from "@openzeppelin/contracts/proxy/ERC1967/ERC1967Proxy.s
  */
 contract TestFixtures is Test {
     // Contract instances
-    AgenticCommerceV4 public agenticCommerce;
-    AgentReviewV4 public agentReview;
+    AgenticCommerceV6 public agenticCommerce;
+    AgentReviewV5 public agentReview;
     ServiceRegistryV2 public serviceRegistry;
     ServiceRegistryV2 public serviceRegistryImpl;
     
@@ -76,11 +77,25 @@ contract TestFixtures is Test {
         // Deploy Mock USDC
         usdc = new MockERC20("USD Coin", "USDC", 6);
         
-        // Deploy AgenticCommerceV4
-        agenticCommerce = new AgenticCommerceV4(treasury);
+        // Deploy AgenticCommerceV6 with proxy
+        AgenticCommerceV6 commerceImpl = new AgenticCommerceV6();
+        bytes memory commerceInitData = abi.encodeCall(AgenticCommerceV6.initialize, (treasury));
+        TransparentUpgradeableProxy commerceProxy = new TransparentUpgradeableProxy(
+            address(commerceImpl),
+            owner,
+            commerceInitData
+        );
+        agenticCommerce = AgenticCommerceV6(payable(address(commerceProxy)));
         
-        // Deploy AgentReviewV4
-        agentReview = new AgentReviewV4();
+        // Deploy AgentReviewV5 with proxy
+        AgentReviewV5 reviewImpl = new AgentReviewV5();
+        bytes memory reviewInitData = abi.encodeCall(AgentReviewV5.initialize, (owner));
+        TransparentUpgradeableProxy reviewProxy = new TransparentUpgradeableProxy(
+            address(reviewImpl),
+            owner,
+            reviewInitData
+        );
+        agentReview = AgentReviewV5(payable(address(reviewProxy)));
         
         // Deploy ServiceRegistryV2 with proxy
         serviceRegistryImpl = new ServiceRegistryV2();
@@ -89,12 +104,6 @@ contract TestFixtures is Test {
             abi.encodeWithSelector(ServiceRegistryV2.initialize.selector, owner)
         );
         serviceRegistry = ServiceRegistryV2(address(proxy));
-        
-        // Configure ServiceRegistry to use AgenticCommerce
-        serviceRegistry.setAgenticCommerce(address(agenticCommerce));
-        
-        // Configure AgenticCommerce to use ServiceRegistry
-        agenticCommerce.setServiceRegistry(address(serviceRegistry));
         
         vm.stopPrank();
         
@@ -131,7 +140,8 @@ contract TestFixtures is Test {
             jobEvaluator,
             block.timestamp + 7 days,
             "Test job description",
-            address(0)
+            address(0),
+            false  // No evaluator fee
         );
     }
     
@@ -144,7 +154,6 @@ contract TestFixtures is Test {
         vm.startPrank(jobClient);
         usdc.approve(address(agenticCommerce), amount);
         agenticCommerce.setBudget(jobId, amount);
-        agenticCommerce.setPaymentToken(jobId, address(usdc));
         agenticCommerce.fund(jobId);
         vm.stopPrank();
     }

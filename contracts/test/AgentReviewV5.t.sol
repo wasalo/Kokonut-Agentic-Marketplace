@@ -75,7 +75,7 @@ contract AgentReviewV5Test is Test {
 
         vm.deal(proposer, 0.5 ether);
         vm.prank(proposer);
-        vm.expectRevert("Insufficient reward");
+        vm.expectRevert("Exact ETH required");
         agentReview.createProposal{value: 0.5 ether}(
             "Test Proposal",
             "Test Description",
@@ -83,6 +83,40 @@ contract AgentReviewV5Test is Test {
             reward,
             deadline
         );
+    }
+
+    function testCreateProposalRevertIfExcessValue() public {
+        uint256 reward = 1 ether;
+        uint256 deadline = block.timestamp + 7 days;
+
+        vm.deal(proposer, 2 ether);
+        vm.prank(proposer);
+        vm.expectRevert("Exact ETH required");
+        agentReview.createProposal{value: 2 ether}(
+            "Test Proposal",
+            "Test Description",
+            "ipfs://criteria",
+            reward,
+            deadline
+        );
+    }
+
+    function testCreateProposalExactValueSuccess() public {
+        uint256 reward = 1 ether;
+        uint256 deadline = block.timestamp + 7 days;
+
+        vm.deal(proposer, 2 ether);
+        vm.prank(proposer);
+        uint256 proposalId = agentReview.createProposal{value: reward}(
+            "Test Proposal",
+            "Test Description",
+            "ipfs://criteria",
+            reward,
+            deadline
+        );
+
+        assertEq(proposalId, 1);
+        assertEq(address(agentReview).balance, reward);
     }
 
     function testCreateProposalRevertIfDeadlinePassed() public {

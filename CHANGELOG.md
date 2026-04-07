@@ -5,6 +5,48 @@ All notable changes to the Kokonut Agent Economy Stack are documented in this fi
 The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.0.0/),
 and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0.html).
 
+## [2026-04-07] - Security Fixes Deployed
+
+### 🛡️ Security Fixes
+
+**Issue 3 - Hook Called Before State Changes in `fund()`:**
+
+- Added `nonReentrant` modifier to `setBudget()` to prevent reentrancy attacks
+- Cached `job.budget` before calling the hook to prevent manipulation
+- Affects: `AgenticCommerceV6.sol`
+
+**Issue 4 - Excess ETH Not Refunded in `createProposal()`:**
+
+- Changed `require(msg.value >= reward)` to `require(msg.value == reward)` for exact payment requirement
+- Affects: `AgentReviewV5.sol`
+
+### Contract Upgrades (Sepolia)
+
+| Contract          | Proxy                                        | New Implementation                           |
+| ----------------- | -------------------------------------------- | -------------------------------------------- |
+| AgenticCommerceV6 | `0x948d97EA7F0c49796fB576ADff375C900627568E` | `0x4175003E0c75Eb83645C6f065f5f10D47B4c0bD5` |
+| AgentReviewV5     | `0x5CDb592Fd37749bF87448FBf5725D1Cd986dd1Cb` | `0xe43C5602E953b1F74FF7B2AEA2FECA08f486f3c0` |
+
+### Tests Added
+
+- `testSetBudget_NonReentrantProtection` - Verifies reentrancy protection
+- `testFund_CachedBudgetUsed` - Verifies budget cached before hook
+- `testFund_WithETH_UsesCachedBudget` - Baseline test for ETH funding
+- `testCreateProposalExactValueSuccess` - Verifies exact payment works
+- `testCreateProposalRevertIfExcessValue` - Verifies excess ETH rejected
+
+### Files Modified
+
+- `contracts/shared/AgenticCommerceV6.sol` - Security fixes
+- `contracts/shared/AgentReviewV5.sol` - Exact payment requirement
+- `contracts/test/AgenticCommerceV61.t.sol` - Security tests
+- `contracts/test/AgentReviewV5.t.sol` - Payment tests
+- `contracts/test/Invariants.t.sol` - Fixed for V5/V6 API
+- `contracts/script/UpgradeAgenticCommerceV6.s.sol` - New deployment script
+- `contracts/script/DeployAgentReviewV5.s.sol` - New deployment script
+
+---
+
 ## [2026-04-06] - Phase 11: Standalone BiddingSystem
 
 ### 🎯 Feature: BiddingSystem Contract

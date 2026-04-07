@@ -196,7 +196,7 @@ contract AgentReviewV5 is IAgentReviewV5, ContextUpgradeable, OwnableUpgradeable
         uint256 reward,
         uint256 decisionDeadline
     ) external payable returns (uint256 proposalId) {
-        require(msg.value >= reward, "Insufficient reward");
+        require(msg.value == reward, "Exact ETH required");
         require(reward >= MIN_STAKE, "Reward too low");
         require(decisionDeadline > block.timestamp, "Deadline in past");
 

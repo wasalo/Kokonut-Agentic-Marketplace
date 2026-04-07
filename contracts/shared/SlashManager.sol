@@ -3,7 +3,7 @@ pragma solidity ^0.8.20;
 
 import {ReentrancyGuard} from "@openzeppelin/contracts/utils/ReentrancyGuard.sol";
 import {Ownable} from "@openzeppelin/contracts/access/Ownable.sol";
-import {IAgentReview} from "./AgentReview.sol";
+import {IAgentReviewV5} from "./AgentReviewV5.sol";
 
 /**
  * @title SlashManager
@@ -187,8 +187,8 @@ contract SlashManager is ReentrancyGuard, Ownable {
         // Mark as executed BEFORE external call (CEI pattern)
         proposal.executed = true;
 
-        // Call AgentReview to perform the slash
-        IAgentReview(agentReview).slashEvaluator(
+        // Call AgentReviewV5 to perform the slash
+        IAgentReviewV5(agentReview).slashEvaluator(
             proposal.evaluator,
             proposal.proposalId,
             proposal.reason

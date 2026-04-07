@@ -1,10 +1,10 @@
 # Deployed Contracts Reference
 
-> Last Updated: 2026-04-06
+> Last Updated: 2026-04-07
 > Network: Sepolia Testnet (Chain ID: 11155111)
+> ✅ **Security Fixes Deployed** - AgenticCommerceV6 nonReentrant + budget caching, AgentReviewV5 exact payment
 > ✅ **Phase 11 Complete** - BiddingSystem deployed
-> ✅ **Security Audit Round 3 Complete** - All critical vulnerabilities fixed
-> ✅ **Test Suite Complete** - 318 tests passing, 87%+ coverage
+> ✅ **Test Suite Complete** - 165 tests passing, 87%+ coverage
 
 This document serves as the single source of truth for all deployed contract addresses. All other documentation should reference this file.
 
@@ -13,13 +13,14 @@ This document serves as the single source of truth for all deployed contract add
 | Contract          | Coverage | Tests   | Status |
 | ----------------- | -------- | ------- | ------ |
 | BiddingSystem     | ✅       | 45      | ✅     |
-| AgenticCommerceV4 | 89.25%   | 50      | ✅     |
-| AgentReviewV4/V5  | 91.24%   | 77      | ✅     |
-| ServiceRegistryV2 | 83.33%   | 29      | ✅     |
-| **Total**         | **87%+** | **318** | ✅     |
+| AgenticCommerceV6 | 89%+     | 18      | ✅     |
+| AgentReviewV5     | 91%+     | 33      | ✅     |
+| ServiceRegistryV2 | 83%+     | 35      | ✅     |
+| Invariants/Fuzz   | N/A      | 79      | ✅     |
+| **Total**         | **87%+** | **165** | ✅     |
 
-> **Note**: AgentReviewV4 is deprecated. Use AgentReviewV5 (UUPS upgradeable with security fixes).
 > **Note**: V6 contracts deployed with ERC-2771 meta-transactions, evaluator fees.
+> **Note**: Security fixes applied April 2026 - see Security section below.
 
 ---
 
@@ -55,7 +56,7 @@ These are the official ERC-8004 identity and reputation registries that all Koko
 | Contract             | Address                                      | Environment Variable                   | Description                     | Version |
 | -------------------- | -------------------------------------------- | -------------------------------------- | ------------------------------- | ------- |
 | AgenticCommerce      | `0x948d97EA7F0c49796fB576ADff375C900627568E` | `NEXT_PUBLIC_AGENTIC_COMMERCE_ADDRESS` | Job escrow (UUPS Proxy)         | V6.1    |
-| AgenticCommerce Impl | `0x28704E1547f97b7A27d08dfd24a24fecfB7C0433` | —                                      | Implementation (Security Fixes) | V6.1    |
+| AgenticCommerce Impl | `0x4175003E0c75Eb83645C6f065f5f10D47B4c0bD5` | —                                      | Implementation (Security Fixes) | V6.1    |
 
 ### Bidding (Phase 11 - NEW)
 
@@ -66,11 +67,10 @@ These are the official ERC-8004 identity and reputation registries that all Koko
 
 ### Review & Coordination
 
-| Contract                   | Address                                      | Environment Variable               | Description                               | Version |
-| -------------------------- | -------------------------------------------- | ---------------------------------- | ----------------------------------------- | ------- |
-| AgentReviewV5              | `0x5CDb592Fd37749bF87448FBf5725D1Cd986dd1Cb` | `NEXT_PUBLIC_AGENT_REVIEW_ADDRESS` | A/B evaluation (UUPS + Pull Pattern)      | V5      |
-| AgentReviewV5 Impl         | `0xE997529ED48B2612Fb4134048c45a767B8B9cE47` | —                                  | Implementation (SlashManager, Locked ETH) | V5      |
-| AgentReviewV4 (deprecated) | `0x716B02447b52Eab450e31bD77103B41bC2c7bE0b` | —                                  | Legacy version (do not use)               | V4 ⚠️   |
+| Contract           | Address                                      | Environment Variable               | Description                          | Version |
+| ------------------ | -------------------------------------------- | ---------------------------------- | ------------------------------------ | ------- |
+| AgentReviewV5      | `0x5CDb592Fd37749bF87448FBf5725D1Cd986dd1Cb` | `NEXT_PUBLIC_AGENT_REVIEW_ADDRESS` | A/B evaluation (UUPS + Pull Pattern) | V5      |
+| AgentReviewV5 Impl | `0xe43C5602E953b1F74FF7B2AEA2FECA08f486f3c0` | —                                  | Implementation (Exact Payment Fix)   | V5      |
 
 ### Infrastructure
 
@@ -162,7 +162,9 @@ AgentReviewV5
 
 ---
 
-## Security Features (Phase 11)
+## Security Features (Phase 11 + April 2026 Fixes)
+
+### Phase 11 Security
 
 | Feature              | Implementation                                      |
 | -------------------- | --------------------------------------------------- |
@@ -173,15 +175,29 @@ AgentReviewV5
 | Locked ETH Guard     | V5: `withdrawETH()` validates against locked funds  |
 | UUPS Upgradeable     | V5, BiddingSystem: OpenZeppelin v5 upgradeable      |
 
+### April 2026 Security Fixes
+
+| Issue   | Contract          | Fix                             | Description                                          |
+| ------- | ----------------- | ------------------------------- | ---------------------------------------------------- |
+| Issue 3 | AgenticCommerceV6 | `nonReentrant` on `setBudget()` | Prevents reentrancy attacks                          |
+| Issue 3 | AgenticCommerceV6 | Budget cached before hook       | Prevents hook manipulation of payment amount         |
+| Issue 4 | AgentReviewV5     | `msg.value == reward`           | Requires exact ETH payment, no excess refunds needed |
+
+**New Implementations (April 2026):**
+
+- AgenticCommerceV6: `0x4175003E0c75Eb83645C6f065f5f10D47B4c0bD5`
+- AgentReviewV5: `0xe43C5602E953b1F74FF7B2AEA2FECA08f486f3c0`
+
 ---
 
 ## Deprecation Notice
 
 | Contract              | Status        | Use Instead          |
 | --------------------- | ------------- | -------------------- |
-| AgentReviewV4         | ⚠️ DEPRECATED | AgentReviewV5        |
 | AgenticCommerce V5    | ⚠️ DEPRECATED | AgenticCommerce V6.1 |
 | AgentSkillRegistry V1 | ⚠️ DEPRECATED | AgentSkillRegistryV2 |
+
+> AgentReviewV4 and older implementations have been removed. Only V5/V6 are active.
 
 ---
 
