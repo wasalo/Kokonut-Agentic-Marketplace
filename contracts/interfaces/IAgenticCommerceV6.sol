@@ -124,7 +124,7 @@ interface IAgenticCommerceV6 {
     /* Initialize */
     /***********************************/
     
-    function initialize(address treasury_) external;
+    function initialize(address treasury_, address initialOwner_) external;
     
     /***********************************/
     /* Core Job Functions */

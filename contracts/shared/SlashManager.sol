@@ -2,7 +2,9 @@
 pragma solidity ^0.8.20;
 
 import {ReentrancyGuard} from "@openzeppelin/contracts/utils/ReentrancyGuard.sol";
-import {Ownable} from "@openzeppelin/contracts/access/Ownable.sol";
+import {OwnableUpgradeable} from "@openzeppelin/contracts-upgradeable/access/OwnableUpgradeable.sol";
+import {UUPSUpgradeable} from "@openzeppelin/contracts-upgradeable/proxy/utils/UUPSUpgradeable.sol";
+import {PausableUpgradeable} from "@openzeppelin/contracts-upgradeable/utils/PausableUpgradeable.sol";
 import {IAgentReviewV5} from "./AgentReviewV5.sol";
 
 /**
@@ -16,11 +18,13 @@ import {IAgentReviewV5} from "./AgentReviewV5.sol";
  * - CEI pattern
  * - Input validation
  * - Role-based access control
+ * - UUPS Upgradeable for future fixes
+ * - Pausable for emergency stops
  */
-contract SlashManager is ReentrancyGuard, Ownable {
+contract SlashManager is ReentrancyGuard, OwnableUpgradeable, UUPSUpgradeable, PausableUpgradeable {
     // Multisig configuration
     uint256 public constant REQUIRED_SIGNATURES = 3;
-    uint256 public constant MAX_SIGNERS = 5;  // Reduced from 10 for tighter security
+    uint256 public constant MAX_SIGNERS = 5;
 
     // Signers (multisig owners)
     address[] public signers;
@@ -30,10 +34,10 @@ contract SlashManager is ReentrancyGuard, Ownable {
     struct SlashProposal {
         address evaluator;
         uint256 proposalId;
-        uint256 amount; // Amount to slash
+        uint256 amount;
         string reason;
         uint256 createdAt;
-        uint256 executeAfter; // Timestamp when execution is allowed
+        uint256 executeAfter;
         uint256 confirmations;
         bool executed;
         mapping(address => bool) confirmed;
@@ -43,16 +47,22 @@ contract SlashManager is ReentrancyGuard, Ownable {
     mapping(bytes32 => SlashProposal) public proposals;
     bytes32[] public proposalIds;
 
+    // M2 Fix: Direct lookup mapping for O(1) verifySlash
+    mapping(address => mapping(uint256 => bytes32)) public activeSlashByEvaluator;
+
+    // L6 Fix: Nonce for unique proposal hashes
+    uint256 public proposalNonce;
+
     // Execution delay (1 hour after enough confirmations)
     uint256 public constant EXECUTION_DELAY = 1 hours;
 
     // Maximum slash amount (to prevent accidents)
     uint256 public constant MAX_SLASH_AMOUNT = 100 ether;
     
-    // Maximum age of a slash proposal (30 days) - prevents stale proposals
+    // Maximum age of a slash proposal (30 days)
     uint256 public constant MAX_PROPOSAL_AGE = 30 days;
 
-    // AgentReview contract (the contract that can call verifySlash)
+    // AgentReview contract
     address public agentReview;
 
     // Events
@@ -67,15 +77,20 @@ contract SlashManager is ReentrancyGuard, Ownable {
     );
     event ProposalConfirmed(bytes32 indexed proposalHash, address indexed signer);
     event ProposalExecuted(bytes32 indexed proposalHash, address indexed evaluator, uint256 amount);
-    event ProposalCancelled(bytes32 indexed proposalHash);
+    event ProposalCancelled(bytes32 indexed proposalHash, string reason);
     event AgentReviewSet(address indexed agentReview);
+    // Note: Paused and Unpaused events are inherited from PausableUpgradeable
 
-    /**
-     * @dev Constructor
-     * @param _owner Initial owner (can add/remove signers)
-     * @param _signers Initial multisig signers
-     */
-    constructor(address _owner, address[] memory _signers) Ownable(_owner) {
+    /// @custom:oz-upgrades-unsafe-allow constructor
+    constructor() {
+        _disableInitializers();
+    }
+
+    function initialize(address _owner, address[] memory _signers) public initializer {
+        __Ownable_init(_owner);
+        __UUPSUpgradeable_init();
+        __Pausable_init();
+
         require(_signers.length >= REQUIRED_SIGNATURES, "Not enough signers");
         require(_signers.length <= MAX_SIGNERS, "Too many signers");
 
@@ -90,6 +105,22 @@ contract SlashManager is ReentrancyGuard, Ownable {
         }
     }
 
+    function _authorizeUpgrade(address newImplementation) internal override onlyOwner {}
+
+    /**
+     * @dev Pause the contract
+     */
+    function pause() external onlyOwner {
+        _pause();
+    }
+
+    /**
+     * @dev Unpause the contract
+     */
+    function unpause() external onlyOwner {
+        _unpause();
+    }
+
     /**
      * @dev Set the AgentReview contract address
      * @param _agentReview AgentReview contract address
@@ -102,118 +133,97 @@ contract SlashManager is ReentrancyGuard, Ownable {
 
     /**
      * @dev Create a slash proposal
-     * @param evaluator The evaluator to slash
-     * @param _proposalId The proposal ID from AgentReview
-     * @param amount Amount to slash (in ETH)
-     * @param reason Reason for slashing
-     * @return proposalId Unique proposal ID
+     * L6 Fix: Uses nonce instead of block.timestamp for unique hash
+     * M2 Fix: Sets up direct lookup mapping
      */
     function createProposal(
         address evaluator,
         uint256 _proposalId,
         uint256 amount,
         string calldata reason
-    ) external onlyOwner returns (bytes32 proposalId) {
+    ) external onlyOwner whenNotPaused returns (bytes32 proposalHash) {
         require(evaluator != address(0), "Zero evaluator");
         require(amount > 0, "Zero amount");
         require(amount <= MAX_SLASH_AMOUNT, "Amount too high");
         require(bytes(reason).length > 0, "Empty reason");
         require(agentReview != address(0), "AgentReview not set");
 
-        proposalId = keccak256(abi.encode(
+        // L6 Fix: Use nonce instead of timestamp for uniqueness
+        proposalHash = keccak256(abi.encode(
             evaluator,
             _proposalId,
             amount,
-            block.timestamp
+            proposalNonce++
         ));
 
-        // Check if proposal already exists
-        require(!_proposalExists(proposalId), "Proposal exists");
+        require(!_proposalExists(proposalHash), "Proposal exists");
 
-        // Create proposal
-        SlashProposal storage proposal = proposals[proposalId];
+        SlashProposal storage proposal = proposals[proposalHash];
         proposal.evaluator = evaluator;
         proposal.proposalId = _proposalId;
         proposal.amount = amount;
         proposal.reason = reason;
         proposal.createdAt = block.timestamp;
-        proposal.executeAfter = type(uint256).max; // Not executable yet
+        proposal.executeAfter = type(uint256).max;
         proposal.confirmations = 0;
         proposal.executed = false;
 
-        proposalIds.push(proposalId);
+        proposalIds.push(proposalHash);
 
-        emit ProposalCreated(proposalId, evaluator, _proposalId, amount, reason);
+        // M2 Fix: Set up direct lookup
+        activeSlashByEvaluator[evaluator][_proposalId] = proposalHash;
+
+        emit ProposalCreated(proposalHash, evaluator, _proposalId, amount, reason);
     }
 
     /**
      * @dev Confirm a proposal (signer calls this)
-     * @param proposalId The proposal ID
      */
-    function confirmProposal(bytes32 proposalId) external {
+    function confirmProposal(bytes32 proposalHash) external {
         require(isSigner[msg.sender], "Not a signer");
-        require(_proposalExists(proposalId), "Proposal not found");
-        require(!proposals[proposalId].executed, "Already executed");
+        require(_proposalExists(proposalHash), "Proposal not found");
+        require(!proposals[proposalHash].executed, "Already executed");
+        require(!proposals[proposalHash].confirmed[msg.sender], "Already confirmed");
 
-        SlashProposal storage proposal = proposals[proposalId];
-        
-        require(!proposal.confirmed[msg.sender], "Already confirmed");
+        proposals[proposalHash].confirmed[msg.sender] = true;
+        proposals[proposalHash].confirmations++;
 
-        // Add confirmation
-        proposal.confirmed[msg.sender] = true;
-        proposal.confirmations++;
+        emit ProposalConfirmed(proposalHash, msg.sender);
 
-        emit ProposalConfirmed(proposalId, msg.sender);
-
-        // If we have enough confirmations, set execution time
-        if (proposal.confirmations >= REQUIRED_SIGNATURES) {
-            proposal.executeAfter = block.timestamp + EXECUTION_DELAY;
+        // If we have enough confirmations, set executeAfter
+        if (proposals[proposalHash].confirmations >= REQUIRED_SIGNATURES) {
+            proposals[proposalHash].executeAfter = block.timestamp + EXECUTION_DELAY;
         }
     }
 
     /**
-     * @dev Execute a slash proposal
-     * @param proposalId The proposal ID
+     * @dev Execute a slash (calls AgentReview to perform actual slashing)
      */
-    function executeProposal(bytes32 proposalId) external nonReentrant {
-        require(_proposalExists(proposalId), "Proposal not found");
-
-        SlashProposal storage proposal = proposals[proposalId];
-        
-        require(proposal.confirmations >= REQUIRED_SIGNATURES, "Not enough confirmations");
-        require(proposal.executeAfter <= block.timestamp, "Timelock not passed");
+    function executeSlash(bytes32 proposalHash) external nonReentrant whenNotPaused {
+        SlashProposal storage proposal = proposals[proposalHash];
+        require(_proposalExists(proposalHash), "Proposal not found");
         require(!proposal.executed, "Already executed");
+        require(proposal.confirmations >= REQUIRED_SIGNATURES, "Not enough confirmations");
+        require(block.timestamp >= proposal.executeAfter, "Too early");
 
-        // Mark as executed BEFORE external call (CEI pattern)
         proposal.executed = true;
 
-        // Call AgentReviewV5 to perform the slash
+        // Call AgentReview to perform the slash
         IAgentReviewV5(agentReview).slashEvaluator(
             proposal.evaluator,
             proposal.proposalId,
             proposal.reason
         );
 
-        emit ProposalExecuted(proposalId, proposal.evaluator, proposal.amount);
-    }
+        // M2 Fix: Clear the direct lookup
+        activeSlashByEvaluator[proposal.evaluator][proposal.proposalId] = bytes32(0);
 
-    /**
-     * @dev Cancel a proposal
-     * @param proposalId The proposal ID
-     */
-    function cancelProposal(bytes32 proposalId) external onlyOwner {
-        require(_proposalExists(proposalId), "Proposal not found");
-        require(!proposals[proposalId].executed, "Already executed");
-
-        proposals[proposalId].executed = true; // Mark as cancelled
-        emit ProposalCancelled(proposalId);
+        emit ProposalExecuted(proposalHash, proposal.evaluator, proposal.amount);
     }
 
     /**
      * @dev Verify slash (called by AgentReview)
-     * @param evaluator The evaluator address
-     * @param targetProposalId The proposal ID
-     * @return Whether slash is approved
+     * M2 Fix: O(1) lookup instead of O(n) iteration
      */
     function verifySlash(
         address evaluator,
@@ -221,15 +231,13 @@ contract SlashManager is ReentrancyGuard, Ownable {
     ) external view returns (bool) {
         require(msg.sender == agentReview, "Not AgentReview");
 
-        // Find matching proposal
-        for (uint256 i = 0; i < proposalIds.length; i++) {
-            bytes32 id = proposalIds[i];
-            SlashProposal storage proposal = proposals[id];
+        // M2 Fix: Direct lookup
+        bytes32 proposalHash = activeSlashByEvaluator[evaluator][targetProposalId];
+        
+        if (proposalHash != bytes32(0)) {
+            SlashProposal storage proposal = proposals[proposalHash];
             
-            if (proposal.evaluator == evaluator &&
-                proposal.proposalId == targetProposalId &&
-                !proposal.executed) {
-                // Check proposal is not too old (prevent stale slashes)
+            if (!proposal.executed) {
                 require(
                     block.timestamp <= proposal.createdAt + MAX_PROPOSAL_AGE,
                     "Proposal too old"
@@ -242,8 +250,25 @@ contract SlashManager is ReentrancyGuard, Ownable {
     }
 
     /**
+     * @dev Cancel a proposal
+     */
+    function cancelProposal(bytes32 proposalHash) external onlyOwner {
+        require(_proposalExists(proposalHash), "Proposal not found");
+        require(!proposals[proposalHash].executed, "Already executed");
+
+        address evaluator = proposals[proposalHash].evaluator;
+        uint256 targetProposalId = proposals[proposalHash].proposalId;
+
+        proposals[proposalHash].executed = true;
+
+        // M2 Fix: Clear the direct lookup
+        activeSlashByEvaluator[evaluator][targetProposalId] = bytes32(0);
+
+        emit ProposalCancelled(proposalHash, "Cancelled by owner");
+    }
+
+    /**
      * @dev Add a new signer
-     * @param signer New signer address
      */
     function addSigner(address signer) external onlyOwner {
         require(signer != address(0), "Zero address");
@@ -258,7 +283,6 @@ contract SlashManager is ReentrancyGuard, Ownable {
 
     /**
      * @dev Remove a signer
-     * @param signer Signer to remove
      */
     function removeSigner(address signer) external onlyOwner {
         require(isSigner[signer], "Not a signer");
@@ -266,7 +290,6 @@ contract SlashManager is ReentrancyGuard, Ownable {
         
         isSigner[signer] = false;
         
-        // Remove from array
         for (uint256 i = 0; i < signers.length; i++) {
             if (signers[i] == signer) {
                 signers[i] = signers[signers.length - 1];
@@ -279,62 +302,42 @@ contract SlashManager is ReentrancyGuard, Ownable {
     }
 
     /**
-     * @dev Get all signers
-     * @return Array of signer addresses
-     */
-    function getSigners() external view returns (address[] memory) {
-        return signers;
-    }
-
-    /**
      * @dev Get proposal details
-     * @param proposalId The proposal ID
-     * @return evaluator The evaluator address
-     * @return amount The slash amount
-     * @return reason The reason for slashing
-     * @return confirmations Number of confirmations
-     * @return execAfter Timestamp when execution is allowed
-     * @return isExecuted Whether the proposal was executed
      */
-    function getProposal(bytes32 proposalId) external view returns (
+    function getProposal(bytes32 proposalHash) external view returns (
         address evaluator,
+        uint256 proposalId,
         uint256 amount,
         string memory reason,
+        uint256 createdAt,
+        uint256 executeAfter,
         uint256 confirmations,
-        uint256 execAfter,
-        bool isExecuted
+        bool executed
     ) {
-        SlashProposal storage proposal = proposals[proposalId];
+        SlashProposal storage proposal = proposals[proposalHash];
         return (
             proposal.evaluator,
+            proposal.proposalId,
             proposal.amount,
             proposal.reason,
-            proposal.confirmations,
+            proposal.createdAt,
             proposal.executeAfter,
+            proposal.confirmations,
             proposal.executed
         );
     }
 
     /**
-     * @dev Get the target proposal ID for a slash proposal
-     * @param proposalId The proposal ID
-     * @return targetProposalId The proposal ID from AgentReview
-     */
-    function getTargetProposalId(bytes32 proposalId) external view returns (uint256) {
-        return proposals[proposalId].proposalId;
-    }
-
-    /**
      * @dev Check if a signer has confirmed a proposal
      */
-    function hasConfirmed(bytes32 proposalId, address signer) external view returns (bool) {
-        return proposals[proposalId].confirmed[signer];
+    function hasConfirmed(bytes32 proposalHash, address signer) external view returns (bool) {
+        return proposals[proposalHash].confirmed[signer];
     }
 
-    /**
-     * @dev Internal helper to check if proposal exists
-     */
-    function _proposalExists(bytes32 proposalId) internal view returns (bool) {
-        return proposals[proposalId].createdAt != 0;
+    function _proposalExists(bytes32 proposalHash) internal view returns (bool) {
+        return proposals[proposalHash].createdAt != 0;
     }
+
+    /// @dev Storage gap for upgrade safety
+    uint256[50] private __gap;
 }

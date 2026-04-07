@@ -79,7 +79,7 @@ contract TestFixtures is Test {
         
         // Deploy AgenticCommerceV6 with proxy
         AgenticCommerceV6 commerceImpl = new AgenticCommerceV6();
-        bytes memory commerceInitData = abi.encodeCall(AgenticCommerceV6.initialize, (treasury));
+        bytes memory commerceInitData = abi.encodeCall(AgenticCommerceV6.initialize, (treasury, owner));
         TransparentUpgradeableProxy commerceProxy = new TransparentUpgradeableProxy(
             address(commerceImpl),
             owner,
@@ -98,10 +98,12 @@ contract TestFixtures is Test {
         agentReview = AgentReviewV5(payable(address(reviewProxy)));
         
         // Deploy ServiceRegistryV2 with proxy
+        // Note: Identity registry must be a valid address for initialization
         serviceRegistryImpl = new ServiceRegistryV2();
+        address identityReg = makeAddr("identityRegistry");
         ERC1967Proxy proxy = new ERC1967Proxy(
             address(serviceRegistryImpl),
-            abi.encodeWithSelector(ServiceRegistryV2.initialize.selector, owner)
+            abi.encodeWithSelector(ServiceRegistryV2.initialize.selector, identityReg, owner)
         );
         serviceRegistry = ServiceRegistryV2(address(proxy));
         

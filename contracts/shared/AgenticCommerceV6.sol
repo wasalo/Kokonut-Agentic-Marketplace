@@ -4,6 +4,7 @@ pragma solidity ^0.8.20;
 import "@openzeppelin/contracts-upgradeable/access/OwnableUpgradeable.sol";
 import "@openzeppelin/contracts-upgradeable/proxy/utils/UUPSUpgradeable.sol";
 import "@openzeppelin/contracts-upgradeable/utils/ContextUpgradeable.sol";
+import "@openzeppelin/contracts-upgradeable/utils/PausableUpgradeable.sol";
 import "@openzeppelin/contracts/token/ERC20/IERC20.sol";
 import "@openzeppelin/contracts/token/ERC20/utils/SafeERC20.sol";
 import "@openzeppelin/contracts/utils/ReentrancyGuard.sol";
@@ -20,21 +21,24 @@ import {IAgenticCommerceV6} from "../interfaces/IAgenticCommerceV6.sol";
  * - Evaluator fees (1%, optional, on top of budget)
  * - Loser stake withdrawal for bidding protection
  * - Native ETH and ERC20 support
+ * - Pausable for emergency stops
  * 
  * Budget Limits:
  * - Min: 5 USD (expressed in token decimals)
  * - Max: 1,000,000 USD (expressed in token decimals)
  * 
- * Bidding:
- * - Stake: 1% of max budget
- * - Reveal window: 1 hour after deadline
+ * Security fixes applied:
+ * - M3: Token allowlist to prevent non-standard tokens
+ * - I1: Pausable pattern for emergency stops
+ * - Custom errors (L2): Consistent error handling
  */
 contract AgenticCommerceV6 is 
     IAgenticCommerceV6, 
     ContextUpgradeable,
     OwnableUpgradeable, 
     UUPSUpgradeable, 
-    ReentrancyGuard 
+    ReentrancyGuard,
+    PausableUpgradeable
 {
     using SafeERC20 for IERC20;
 
@@ -84,9 +88,6 @@ contract AgenticCommerceV6 is
     mapping(address => uint256) public clientJobCount;
     mapping(uint256 => address) public jobClient;
 
-    // Phase 5: Bidding State - REMOVED in V6.1 for size optimization
-    // Users should use V5 for bidding functionality
-    
     // Evaluator fee enabled per job
     mapping(uint256 => bool) public evaluatorFeeEnabled;
     
@@ -99,8 +100,8 @@ contract AgenticCommerceV6 is
     // Job submission timestamp for timeout tracking
     mapping(uint256 => uint256) public jobSubmittedAt;
 
-    // Storage gap for upgradeability
-    uint256[50] private __gap;
+    // M3 Fix: Token allowlist for payment tokens
+    mapping(address => bool) public allowedTokens;
 
     /***********************************/
     /* Errors */
@@ -118,6 +119,7 @@ contract AgenticCommerceV6 is
     error ProviderNotSet();
     error InvalidHook();
     error MaxJobsPerClient(address client, uint256 current);
+    error TokenNotAllowed(address token);
     
     // Security errors
     error RolesMustBeDistinct();
@@ -127,17 +129,22 @@ contract AgenticCommerceV6 is
     /***********************************/
     
     modifier onlyClient(uint256 jobId) {
-        require(jobs[jobId].client == _msgSender(), "Not client");
+        if (jobs[jobId].client != _msgSender()) revert Unauthorized();
         _;
     }
     
     modifier onlyProvider(uint256 jobId) {
-        require(jobs[jobId].provider == _msgSender(), "Not provider");
+        if (jobs[jobId].provider != _msgSender()) revert Unauthorized();
         _;
     }
     
     modifier onlyEvaluator(uint256 jobId) {
-        require(jobs[jobId].evaluator == _msgSender(), "Not evaluator");
+        if (jobs[jobId].evaluator != _msgSender()) revert Unauthorized();
+        _;
+    }
+    
+    modifier onlyAllowedToken(address token) {
+        if (!_isTokenAllowed(token)) revert TokenNotAllowed(token);
         _;
     }
 
@@ -149,11 +156,18 @@ contract AgenticCommerceV6 is
         _disableInitializers();
     }
 
-    function initialize(address treasury_) public initializer {
-        require(treasury_ != address(0), "Zero treasury");
+    function initialize(address treasury_, address initialOwner) public initializer {
+        if (treasury_ == address(0)) revert ZeroAddress();
         __Context_init();
-        __Ownable_init(msg.sender);
+        __Ownable_init(initialOwner);
+        __UUPSUpgradeable_init();
+        __Pausable_init();
         platformTreasury = treasury_;
+        
+        // M3 Fix: Initialize default allowed tokens
+        // Native ETH (address(0)) is always allowed
+        // USDC is the primary allowed ERC20 token
+        allowedTokens[address(0)] = true; // Native ETH
     }
 
     /***********************************/
@@ -163,11 +177,48 @@ contract AgenticCommerceV6 is
     function _authorizeUpgrade(address newImpl) internal override onlyOwner {}
 
     /***********************************/
+    /* Pausable */
+    /***********************************/
+    
+    function pause() external onlyOwner {
+        _pause();
+    }
+
+    function unpause() external onlyOwner {
+        _unpause();
+    }
+
+    /***********************************/
+    /* Token Allowlist Management */
+    /***********************************/
+    
+    /**
+     * @dev M3 Fix: Set a token as allowed or not allowed
+     * @param token Token address (address(0) for native ETH)
+     * @param allowed Whether the token is allowed
+     */
+    function setAllowedToken(address token, bool allowed) external onlyOwner {
+        allowedTokens[token] = allowed;
+        emit TokenAllowlistUpdated(token, allowed);
+    }
+    
+    /**
+     * @dev Check if a token is allowed
+     * @param token Token address (address(0) for native ETH)
+     */
+    function _isTokenAllowed(address token) internal view returns (bool) {
+        // Native ETH is always allowed
+        if (token == address(0)) return true;
+        // Check allowlist for ERC20 tokens
+        return allowedTokens[token];
+    }
+
+    /***********************************/
     /* Core Job Functions */
     /***********************************/
     
     /**
-     * @dev Create a direct job with fixed provider (existing V4 flow)
+     * @dev Create a direct job with fixed provider
      * @param evaluatorFee Enable 1% evaluator fee on top of budget
      */
     function createJob(
@@ -177,7 +228,7 @@ contract AgenticCommerceV6 is
         string calldata description,
         address hook,
         bool evaluatorFee
-    ) external nonReentrant returns (uint256 jobId) {
+    ) external nonReentrant whenNotPaused returns (uint256 jobId) {
         _validateJobCreation(provider, evaluator, expiredAt, description, hook);
         
         if (clientJobCount[_msgSender()] >= MAX_JOBS_PER_CLIENT) {
@@ -209,8 +260,8 @@ contract AgenticCommerceV6 is
     }
 
     /**
-     * @dev Create job from an existing service (V6 new feature)
-     * NOTE: Temporarily disabled due to contract size. Use createJob + setProvider + setBudget instead.
+     * @dev Create job from an existing service
+     * NOTE: Temporarily disabled due to contract size
      */
     function createJobFromService(
         uint256,
@@ -219,13 +270,12 @@ contract AgenticCommerceV6 is
         string calldata,
         address,
         bool
-    ) external nonReentrant returns (uint256) {
+    ) external nonReentrant whenNotPaused returns (uint256) {
         revert("createJobFromService disabled");
     }
 
     /**
-     * @dev Create an open job for bidding - DISABLED in V6.1 for size optimization
-     * Use AgenticCommerceV5 for bidding functionality
+     * @dev Create an open job for bidding - DISABLED
      */
     function createOpenJob(
         uint256,
@@ -248,24 +298,21 @@ contract AgenticCommerceV6 is
         string calldata description,
         address hook
     ) internal view {
-        require(provider != address(0), "Zero provider");
-        require(evaluator != address(0), "Zero evaluator");
-        require(_msgSender() != provider, "Client cannot be provider");
-        require(_msgSender() != evaluator, "Client cannot be evaluator");
-        require(provider != evaluator, "Provider cannot be evaluator");
-        require(expiredAt > block.timestamp + MIN_EXPIRY_DURATION, "Expiry too soon");
-        require(expiredAt <= block.timestamp + MAX_EXPIRY_DURATION, "Expiry too far");
-        require(bytes(description).length > 0 && bytes(description).length <= MAX_DESCRIPTION_LENGTH, "Invalid description");
-        // Note: Hook validation skipped to reduce contract size. Hook calls will revert if invalid.
+        if (provider == address(0)) revert ZeroAddress();
+        if (evaluator == address(0)) revert ZeroAddress();
+        if (_msgSender() == provider || _msgSender() == evaluator) revert RolesMustBeDistinct();
+        if (provider == evaluator) revert RolesMustBeDistinct();
+        if (expiredAt <= block.timestamp + MIN_EXPIRY_DURATION) revert ExpiryTooShort();
+        if (expiredAt > block.timestamp + MAX_EXPIRY_DURATION) revert ExpiryTooLong();
+        if (bytes(description).length == 0 || bytes(description).length > MAX_DESCRIPTION_LENGTH) revert InvalidJob();
     }
 
     function setProvider(uint256 jobId, address provider) external onlyClient(jobId) {
         Job storage job = jobs[jobId];
-        require(job.id != 0, "Invalid job");
-        require(uint256(job.status) == 0, "Wrong status");
-        require(job.provider == address(0), "Provider set");
-        require(provider != _msgSender(), "Provider cannot be client");
-        require(provider != address(0), "Zero address");
+        if (job.id == 0) revert InvalidJob();
+        if (uint256(job.status) != 0) revert WrongStatus();
+        if (job.provider != address(0)) revert WrongStatus();
+        if (provider == _msgSender() || provider == address(0)) revert InvalidJob();
 
         job.provider = provider;
         
@@ -275,9 +322,9 @@ contract AgenticCommerceV6 is
 
     function setBudget(uint256 jobId, uint256 amount) external nonReentrant onlyClient(jobId) {
         Job storage job = jobs[jobId];
-        require(job.id != 0, "Invalid job");
-        require(uint256(job.status) == 0, "Wrong status");
-        require(amount > 0, "Zero budget");
+        if (job.id == 0) revert InvalidJob();
+        if (uint256(job.status) != 0) revert WrongStatus();
+        if (amount == 0) revert ZeroBudget();
 
         job.budget = amount;
         
@@ -300,8 +347,8 @@ contract AgenticCommerceV6 is
         job.status = JobStatus.Funded;
         
         if (address(job.paymentToken) == address(0)) {
-            require(msg.value >= cachedBudget, "Insufficient payment");
-            require(msg.value >= MIN_ETH_PAYMENT, "Below minimum ETH");
+            if (msg.value < cachedBudget) revert BudgetTooLow();
+            if (msg.value < MIN_ETH_PAYMENT) revert BudgetTooLow();
             
             // Refund excess ETH
             uint256 excess = msg.value - cachedBudget;
@@ -309,7 +356,7 @@ contract AgenticCommerceV6 is
                 payable(_msgSender()).transfer(excess);
             }
         } else {
-            require(msg.value == 0, "ETH not accepted for ERC20");
+            if (msg.value != 0) revert InvalidJob();
             job.paymentToken.safeTransferFrom(_msgSender(), address(this), cachedBudget);
         }
         
@@ -318,17 +365,17 @@ contract AgenticCommerceV6 is
     }
 
     function _validateFund(Job storage job) internal view {
-        require(job.id != 0, "Invalid job");
-        require(job.status == JobStatus.Open, "Wrong status");
-        require(job.provider != address(0), "No provider");
-        require(job.budget > 0, "No budget");
-        require(block.timestamp < job.expiredAt, "Expired");
+        if (job.id == 0) revert InvalidJob();
+        if (job.status != JobStatus.Open) revert WrongStatus();
+        if (job.provider == address(0)) revert ProviderNotSet();
+        if (job.budget == 0) revert ZeroBudget();
+        if (block.timestamp >= job.expiredAt) revert InvalidJob();
     }
 
     function submit(uint256 jobId, bytes32 deliverable) external nonReentrant onlyProvider(jobId) {
         Job storage job = jobs[jobId];
-        require(job.id != 0, "Invalid job");
-        require(job.status == JobStatus.Funded, "Wrong status");
+        if (job.id == 0) revert InvalidJob();
+        if (job.status != JobStatus.Funded) revert WrongStatus();
 
         if (job.hook != address(0)) {
             IACPHook(job.hook).beforeAction(jobId, this.submit.selector, abi.encode(deliverable));
@@ -345,8 +392,8 @@ contract AgenticCommerceV6 is
 
     function complete(uint256 jobId, bytes32 reason) external nonReentrant onlyEvaluator(jobId) {
         Job storage job = jobs[jobId];
-        require(job.id != 0, "Invalid job");
-        require(job.status == JobStatus.Submitted, "Wrong status");
+        if (job.id == 0) revert InvalidJob();
+        if (job.status != JobStatus.Submitted) revert WrongStatus();
 
         if (job.hook != address(0)) {
             IACPHook(job.hook).beforeAction(jobId, this.complete.selector, abi.encode(reason));
@@ -358,7 +405,6 @@ contract AgenticCommerceV6 is
         address prov = job.provider;
         IERC20 paymentToken = job.paymentToken;
 
-        // Evaluator fee (1% on top of budget, if enabled)
         uint256 evaluatorFee = 0;
         if (evaluatorFeeEnabled[jobId] && job.evaluator != address(0)) {
             evaluatorFee = (amount * EVALUATOR_FEE_BP) / FEE_DENOMINATOR;
@@ -385,32 +431,26 @@ contract AgenticCommerceV6 is
         emit JobStatusChanged(jobId, JobStatus.Submitted, JobStatus.Completed, block.timestamp);
     }
 
-    /**
-     * @dev Complete job after dispute window when evaluator is unresponsive
-     *      Allows provider to recover payment if evaluator fails to act
-     * @param jobId The job ID
-     * @param reason Reason for completion
-     */
-    function completeAfterTimeout(uint256 jobId, bytes32 reason) external nonReentrant {
+    function completeAfterTimeout(uint256 jobId, bytes32 reason) external nonReentrant whenNotPaused {
         Job storage job = jobs[jobId];
-        require(job.id != 0, "Invalid job");
-        require(job.status == JobStatus.Submitted, "Wrong status");
-        require(job.provider == _msgSender() || job.client == _msgSender(), "Not provider or client");
+        if (job.id == 0) revert InvalidJob();
+        if (job.status != JobStatus.Submitted) revert WrongStatus();
+        if (job.provider != _msgSender() && job.client != _msgSender()) revert Unauthorized();
         
         uint256 submittedAt = jobSubmittedAt[jobId];
-        require(submittedAt > 0, "Never submitted");
+        if (submittedAt == 0) revert InvalidJob();
         
         uint256 disputeWindow = jobDisputeWindow[jobId];
         if (disputeWindow == 0) disputeWindow = DEFAULT_DISPUTE_WINDOW;
         
-        require(block.timestamp >= submittedAt + disputeWindow, "Dispute window not elapsed");
+        if (block.timestamp < submittedAt + disputeWindow) revert WrongStatus();
         
         if (job.hook != address(0)) {
             IACPHook(job.hook).beforeAction(jobId, this.completeAfterTimeout.selector, abi.encode(reason));
         }
         
         uint256 amount = job.budget;
-        uint256 platformFee = (amount * 100) / FEE_DENOMINATOR; // 1% platform fee
+        uint256 platformFee = (amount * 100) / FEE_DENOMINATOR;
         uint256 slashAmount = 0;
         
         uint256 slashBP = jobNonResponsiveSlashBP[jobId];
@@ -442,42 +482,32 @@ contract AgenticCommerceV6 is
         emit JobStatusChanged(jobId, JobStatus.Submitted, JobStatus.Completed, block.timestamp);
     }
 
-    /**
-     * @dev Set dispute window for a job
-     * @param jobId The job ID
-     * @param window Dispute window in seconds
-     */
     function setDisputeWindow(uint256 jobId, uint256 window) external onlyClient(jobId) {
-        require(jobs[jobId].status == JobStatus.Funded, "Wrong status");
-        require(window >= 1 days && window <= 30 days, "Invalid window");
+        if (jobs[jobId].status != JobStatus.Funded) revert WrongStatus();
+        if (window < 1 days || window > 30 days) revert InvalidJob();
         jobDisputeWindow[jobId] = window;
         emit DisputeWindowSet(jobId, window);
     }
 
-    /**
-     * @dev Set non-responsiveness slash percentage for a job
-     * @param jobId The job ID
-     * @param slashBP Slash percentage in basis points (100 = 1%)
-     */
     function setNonResponsiveSlashBP(uint256 jobId, uint256 slashBP) external onlyClient(jobId) {
-        require(jobs[jobId].status == JobStatus.Funded, "Wrong status");
-        require(slashBP <= 1000, "Max 10% slash"); // Max 10%
+        if (jobs[jobId].status != JobStatus.Funded) revert WrongStatus();
+        if (slashBP > 1000) revert BudgetTooHigh(); // Max 10%
         jobNonResponsiveSlashBP[jobId] = slashBP;
         emit NonResponsiveSlashSet(jobId, slashBP);
     }
 
     function reject(uint256 jobId, bytes32 reason) external nonReentrant {
         Job storage job = jobs[jobId];
-        require(job.id != 0, "Invalid job");
+        if (job.id == 0) revert InvalidJob();
 
         JobStatus oldStatus = job.status;
         
         if (job.status == JobStatus.Open) {
-            require(job.client == _msgSender(), "Not client");
+            if (job.client != _msgSender()) revert Unauthorized();
         } else if (job.status == JobStatus.Funded || job.status == JobStatus.Submitted) {
-            require(job.evaluator == _msgSender(), "Not evaluator");
+            if (job.evaluator != _msgSender()) revert Unauthorized();
         } else {
-            revert("Wrong status");
+            revert WrongStatus();
         }
 
         uint256 refundAmount = job.budget;
@@ -497,12 +527,9 @@ contract AgenticCommerceV6 is
 
     function claimRefund(uint256 jobId) external nonReentrant onlyClient(jobId) {
         Job storage job = jobs[jobId];
-        require(job.id != 0, "Invalid job");
-        require(
-            job.status == JobStatus.Funded || job.status == JobStatus.Submitted,
-            "Wrong status"
-        );
-        require(block.timestamp >= job.expiredAt, "Not expired");
+        if (job.id == 0) revert InvalidJob();
+        if (job.status != JobStatus.Funded && job.status != JobStatus.Submitted) revert WrongStatus();
+        if (block.timestamp < job.expiredAt) revert WrongStatus();
 
         JobStatus oldStatus = job.status;
         uint256 refundAmount = job.budget;
@@ -519,7 +546,7 @@ contract AgenticCommerceV6 is
     }
 
     /***********************************/
-    /* Bidding Functions - DISABLED in V6.1 for size optimization */
+    /* Bidding Functions - DISABLED */
     /***********************************/
     
     function calculateStake(uint256) public pure returns (uint256) { revert("Bidding disabled"); }
@@ -555,7 +582,7 @@ contract AgenticCommerceV6 is
     /***********************************/
     
     function getJob(uint256 jobId) external view returns (Job memory) {
-        require(jobId > 0 && jobId <= jobCounter, "Invalid job");
+        if (jobId == 0 || jobId > jobCounter) revert InvalidJob();
         return jobs[jobId];
     }
     
@@ -572,7 +599,13 @@ contract AgenticCommerceV6 is
     /***********************************/
     
     function setPlatformTreasury(address treasury) external onlyOwner {
-        require(treasury != address(0), "Zero treasury");
+        if (treasury == address(0)) revert ZeroAddress();
         platformTreasury = treasury;
     }
+
+    /***********************************/
+    /* Events */
+    /***********************************/
+    
+    event TokenAllowlistUpdated(address indexed token, bool allowed);
 }

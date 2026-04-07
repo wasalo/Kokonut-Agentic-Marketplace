@@ -48,7 +48,7 @@ contract AgenticCommerceV6Test is Test {
         
         bytes memory initData = abi.encodeCall(
             AgenticCommerceV6.initialize,
-            (treasury)
+            (treasury, owner)
         );
         
         TransparentUpgradeableProxy proxy = new TransparentUpgradeableProxy(

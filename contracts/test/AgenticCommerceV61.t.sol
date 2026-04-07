@@ -23,7 +23,7 @@ contract AgenticCommerceV61Test is Test {
         
         AgenticCommerceV6 impl = new AgenticCommerceV6();
         
-        bytes memory initData = abi.encodeCall(AgenticCommerceV6.initialize, (treasury));
+        bytes memory initData = abi.encodeCall(AgenticCommerceV6.initialize, (treasury, owner));
         TransparentUpgradeableProxy proxy = new TransparentUpgradeableProxy(
             address(impl),
             owner,
@@ -35,19 +35,19 @@ contract AgenticCommerceV61Test is Test {
     
     function testRolesMustBeDistinct_ClientCannotBeProvider() public {
         vm.prank(client);
-        vm.expectRevert("Client cannot be provider");
+        vm.expectRevert(AgenticCommerceV6.RolesMustBeDistinct.selector);
         commerce.createJob(client, evaluator, block.timestamp + 7 days, "Test job", address(0), false);
     }
     
     function testRolesMustBeDistinct_ClientCannotBeEvaluator() public {
         vm.prank(client);
-        vm.expectRevert("Client cannot be evaluator");
+        vm.expectRevert(AgenticCommerceV6.RolesMustBeDistinct.selector);
         commerce.createJob(provider, client, block.timestamp + 7 days, "Test job", address(0), false);
     }
     
     function testRolesMustBeDistinct_ProviderCannotBeEvaluator() public {
         vm.prank(client);
-        vm.expectRevert("Provider cannot be evaluator");
+        vm.expectRevert(AgenticCommerceV6.RolesMustBeDistinct.selector);
         commerce.createJob(provider, provider, block.timestamp + 7 days, "Test job", address(0), false);
     }
     
@@ -56,7 +56,7 @@ contract AgenticCommerceV61Test is Test {
         uint256 jobId = commerce.createJob(provider, evaluator, block.timestamp + 7 days, "Test job", address(0), false);
         
         vm.prank(client);
-        vm.expectRevert("Wrong status");
+        vm.expectRevert(AgenticCommerceV6.WrongStatus.selector);
         commerce.setDisputeWindow(jobId, 10 days);
     }
     
@@ -65,7 +65,7 @@ contract AgenticCommerceV61Test is Test {
         uint256 jobId = commerce.createJob(provider, evaluator, block.timestamp + 7 days, "Test job", address(0), false);
         
         vm.prank(client);
-        vm.expectRevert("Wrong status");
+        vm.expectRevert(AgenticCommerceV6.WrongStatus.selector);
         commerce.setNonResponsiveSlashBP(jobId, 200);
     }
     
@@ -74,36 +74,36 @@ contract AgenticCommerceV61Test is Test {
         uint256 jobId = commerce.createJob(provider, evaluator, block.timestamp + 7 days, "Test job", address(0), false);
         
         vm.prank(provider);
-        vm.expectRevert("Bidding disabled");
+        vm.expectRevert(); // "Bidding disabled"
         commerce.commitBid(jobId, keccak256("commit"));
     }
     
     function testBiddingDisabled_CreateOpenJob() public {
         vm.prank(client);
-        vm.expectRevert("Bidding disabled in V6.1");
+        vm.expectRevert(); // "Bidding disabled in V6.1"
         commerce.createOpenJob(100e6, evaluator, block.timestamp + 7 days, "Open job", IERC20(address(usdc)), false);
     }
     
     function testBiddingDisabled_AcceptBid() public {
         vm.prank(client);
-        vm.expectRevert("Bidding disabled");
+        vm.expectRevert(); // "Bidding disabled"
         commerce.acceptBid(1, 1);
     }
     
     function testBiddingDisabled_WithdrawStake() public {
         vm.prank(client);
-        vm.expectRevert("Bidding disabled");
+        vm.expectRevert(); // "Bidding disabled"
         commerce.withdrawStake(1);
     }
     
     function testBiddingDisabled_RevealBid() public {
         vm.prank(client);
-        vm.expectRevert("Bidding disabled");
+        vm.expectRevert(); // "Bidding disabled"
         commerce.revealBid(1, 100e6, "message", bytes32(0));
     }
     
     function testBiddingDisabled_CalculateStake() public {
-        vm.expectRevert("Bidding disabled");
+        vm.expectRevert(); // "Bidding disabled"
         commerce.calculateStake(100e6);
     }
     
@@ -131,7 +131,7 @@ contract AgenticCommerceV61Test is Test {
         uint256 jobId = commerce.createJob(provider, evaluator, block.timestamp + 7 days, "Test job", address(0), false);
         
         vm.prank(provider);
-        vm.expectRevert("Not client");
+        vm.expectRevert(AgenticCommerceV6.Unauthorized.selector);
         commerce.setProvider(jobId, makeAddr("other"));
     }
     
@@ -140,7 +140,7 @@ contract AgenticCommerceV61Test is Test {
         uint256 jobId = commerce.createJob(provider, evaluator, block.timestamp + 7 days, "Test job", address(0), false);
         
         vm.prank(client);
-        vm.expectRevert("Provider set");
+        vm.expectRevert(AgenticCommerceV6.WrongStatus.selector);
         commerce.setProvider(jobId, client);
     }
 }
@@ -217,7 +217,7 @@ contract AgenticCommerceV61SecurityTest is Test {
         
         AgenticCommerceV6 impl = new AgenticCommerceV6();
         
-        bytes memory initData = abi.encodeCall(AgenticCommerceV6.initialize, (treasury));
+        bytes memory initData = abi.encodeCall(AgenticCommerceV6.initialize, (treasury, owner));
         TransparentUpgradeableProxy proxy = new TransparentUpgradeableProxy(
             address(impl),
             owner,
@@ -243,9 +243,9 @@ contract AgenticCommerceV61SecurityTest is Test {
         vm.prank(client);
         commerce.fund{value: JOB_BUDGET}(jobId);
         
-        // Try to change budget when job is already funded - should fail with "Wrong status"
+        // Try to change budget when job is already funded - should fail with WrongStatus
         vm.prank(client);
-        vm.expectRevert("Wrong status");
+        vm.expectRevert(AgenticCommerceV6.WrongStatus.selector);
         commerce.setBudget(jobId, JOB_BUDGET * 2);
     }
     

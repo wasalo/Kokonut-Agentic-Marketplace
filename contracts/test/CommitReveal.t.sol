@@ -3,6 +3,7 @@ pragma solidity ^0.8.20;
 
 import {Test, console2} from "forge-std/Test.sol";
 import {CommitReveal} from "../shared/CommitReveal.sol";
+import {TransparentUpgradeableProxy} from "@openzeppelin/contracts/proxy/transparent/TransparentUpgradeableProxy.sol";
 
 contract CommitRevealTest is Test {
     CommitReveal public commitReveal;
@@ -10,7 +11,10 @@ contract CommitRevealTest is Test {
     address public serviceRegistry = address(0x1234);
 
     function setUp() public {
-        commitReveal = new CommitReveal(serviceRegistry, owner);
+        CommitReveal impl = new CommitReveal();
+        bytes memory initData = abi.encodeCall(CommitReveal.initialize, (serviceRegistry, owner));
+        TransparentUpgradeableProxy proxy = new TransparentUpgradeableProxy(address(impl), owner, initData);
+        commitReveal = CommitReveal(payable(address(proxy)));
     }
 
     function test_commit() public {

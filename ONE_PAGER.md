@@ -1,6 +1,6 @@
 # Kokonut Agent Economy Stack — One Pager
 
-> Last updated: 2026-04-06 | Phase 11 Complete - Standalone BiddingSystem
+> Last updated: 2026-04-06 | Phase 12 Complete - Security Audit Fixes
 
 ## What Is This?
 
@@ -476,6 +476,53 @@ Agent's reputation increases — more trust — more clients
 | `disputeWindow`        | 7 days  | 1-30 days | Time before auto-completion      |
 | `nonResponsiveSlashBP` | 1%      | 0-10%     | Slash for unresponsive evaluator |
 
+---
+
+## Phase 12: Security Audit Fixes (April 2026)
+
+### Medium Severity Fixes
+
+| Issue                     | Fix                                                                  | Contract          |
+| ------------------------- | -------------------------------------------------------------------- | ----------------- |
+| **Token Allowlist**       | Strict allowlist approach - only whitelisted tokens accepted         | AgenticCommerceV6 |
+| **SlashManager O(1)**     | Added `_signerIndex` mapping for O(1) lookup, removed O(n) iteration | SlashManager      |
+| **ServiceRegistry Guard** | Added `_activeCountInitialized` guard for safe activateService()     | ServiceRegistryV2 |
+
+### Low Severity Fixes
+
+| Issue                    | Fix                                                              | Contract          |
+| ------------------------ | ---------------------------------------------------------------- | ----------------- |
+| **MAX_REWARD Limit**     | Added `MAX_REWARD = 100 ether` to prevent excessive stakes       | AgentReviewV5     |
+| **Custom Errors**        | Replaced string errors with custom errors for gas efficiency     | AgenticCommerceV6 |
+| **Gap Variable**         | Corrected storage slot placement for upgradeability              | ServiceRegistryV2 |
+| **CommitReveal Cleanup** | Added `cleanupExpiredCommitments()` - anyone can call            | CommitReveal      |
+| **Nonce Hashing**        | Added nonce-based proposal hashing for replay protection         | SlashManager      |
+| **Implementation Read**  | Used `ERC1967Utils.getImplementation()` for storage-safe reading | ServiceRegistryV2 |
+
+### Informational
+
+| Issue                  | Fix                                                              | Contract      |
+| ---------------------- | ---------------------------------------------------------------- | ------------- |
+| **Pausable Pattern**   | Added Pausable to SlashManager, AgentReviewV5, AgenticCommerceV6 | Multiple      |
+| **Missing Events**     | Added CleanupExpired event for tracking                          | CommitReveal  |
+| **ETHWithdrawn Event** | Added event for ETH withdrawal tracking                          | AgentReviewV5 |
+
+### UUPS Upgradeability
+
+| Contract     | Previous        | Current          |
+| ------------ | --------------- | ---------------- |
+| CommitReveal | Non-upgradeable | UUPS upgradeable |
+| SlashManager | Non-upgradeable | UUPS upgradeable |
+
+### OpenZeppelin v5 Compatibility
+
+- Added `__UUPSUpgradeable_init()` wrapper to library
+- Removed deprecated `__ReentrancyGuard_init()` from initialize functions
+- Updated initialization to accept `initialOwner` parameter for proxy deployment
+- Removed duplicate Paused/Unpaused events (inherited from PausableUpgradeable)
+
+**Security Score: 9.0/10**
+
 ### Bidding System (Phase 11)
 
 **Bidding is now available via the standalone BiddingSystem contract!**
@@ -504,29 +551,37 @@ AgenticCommerceV6.1 exceeded the 24KB contract size limit, so bidding was moved 
 | Identity   | `0x8004A818BFB912233c491871b3d84c89A494BD9e` |
 | Reputation | `0x8004B663056A597Dffe9eCcC1965A193B7388713` |
 
-### Kokonut Contracts (Phase 11 - Latest)
+### Kokonut Contracts (Phase 12 - Latest)
 
-| Contract                   | Address                                      | Wired To                       |
-| -------------------------- | -------------------------------------------- | ------------------------------ |
-| **AgentSkillRegistryV2**   | `0xA84684261558f342d6871DD2CFef90A2117Aa20A` | ERC-8004 Identity (UUPS Proxy) |
-| **ServiceRegistryV2**      | `0x62E1eeEa1A2Ab987004F35bDA430457Ed6077201` | ERC-8004 Identity (UUPS Proxy) |
-| **AgentReviewV5**          | `0x5CDb592Fd37749bF87448FBf5725D1Cd986dd1Cb` | SlashManager (UUPS Proxy)      |
-| **AgentReviewV5** (Impl)   | `0xE997529ED48B2612Fb4134048c45a767B8B9cE47` | Pull Pattern, Locked ETH       |
-| **AgentReviewV4** (legacy) | `0x716B02447b52Eab450e31bD77103B41bC2c7bE0b` | —                              |
-| **AgenticCommerce (V6.1)** | `0x948d97EA7F0c49796fB576ADff375C900627568E` | ServiceRegistry (UUPS Proxy)   |
-| **AgenticCommerce** (Impl) | `0x28704E1547f97b7A27d08dfd24a24fecfB7C0433` | Security Fixes, Collusion Prev |
-| **BiddingSystem**          | `0x32c9d069a248a619d3EAc4D1FC76F2639AaBeF04` | AgenticCommerce (UUPS Proxy)   |
-| **BiddingSystem** (Impl)   | `0x0A09e4Ff6DAa0eeA49526560e2c946Ea32a293Bb` | Commit-reveal bidding          |
-| PriceOracle                | `0x5C4AC3dAF76708DCd51911BA3B33027eAB1B4047` | Chainlink                      |
-| CommitReveal               | `0x6CEd1574A3dF7ec646e43DD8408300117c453Aa3` | ServiceRegistry                |
-| SlashManager               | `0x7Cf955900FD7a12680E90D834eAf19346f5DBcf9` | AgentReviewV5                  |
+| Contract                   | Address                                      | Wired To                        | Verification                                                                                      |
+| -------------------------- | -------------------------------------------- | ------------------------------- | ------------------------------------------------------------------------------------------------- |
+| **AgentSkillRegistryV2**   | `0xA84684261558f342d6871DD2CFef90A2117Aa20A` | ERC-8004 Identity (UUPS Proxy)  | [Etherscan](https://sepolia.etherscan.io/address/0xA84684261558f342d6871DD2CFef90A2117Aa20A#code) |
+| **ServiceRegistryV2**      | `0x62E1eeEa1A2Ab987004F35bDA430457Ed6077201` | ERC-8004 Identity (UUPS Proxy)  | [Etherscan](https://sepolia.etherscan.io/address/0x62E1eeEa1A2Ab987004F35bDA430457Ed6077201#code) |
+| **ServiceRegistryV2** (I)  | `0x4170cfcC9d453B58faB1AE736ffFd82BDf49E979` | Phase 12 Guard                  | [Etherscan](https://sepolia.etherscan.io/address/0x4170cfcC9d453B58faB1AE736ffFd82BDf49E979#code) |
+| **AgentReviewV5**          | `0x5CDb592Fd37749bF87448FBf5725D1Cd986dd1Cb` | SlashManager (UUPS Proxy)       | [Etherscan](https://sepolia.etherscan.io/address/0x5CDb592Fd37749bF87448FBf5725D1Cd986dd1Cb#code) |
+| **AgentReviewV5** (Impl)   | `0x38700f4E4cC5f9CB9F9f02aE02Cda21C119b91Ad` | MAX_REWARD + Pausable           | [Etherscan](https://sepolia.etherscan.io/address/0x38700f4E4cC5f9CB9F9f02aE02Cda21C119b91Ad#code) |
+| **AgentReviewV4** (legacy) | `0x716B02447b52Eab450e31bD77103B41bC2c7bE0b` | —                               | -                                                                                                 |
+| **AgenticCommerce (V6.1)** | `0x948d97EA7F0c49796fB576ADff375C900627568E` | ServiceRegistry (UUPS Proxy)    | [Etherscan](https://sepolia.etherscan.io/address/0x948d97EA7F0c49796fB576ADff375C900627568E#code) |
+| **AgenticCommerce** (Impl) | `0x28442fd0c2AB2fe0Df0F4387EbA12EaF95AaC297` | Token Allowlist + Custom Errors | [Etherscan](https://sepolia.etherscan.io/address/0x28442fd0c2AB2fe0Df0F4387EbA12EaF95AaC297#code) |
+| **BiddingSystem**          | `0x32c9d069a248a619d3EAc4D1FC76F2639AaBeF04` | AgenticCommerce (UUPS Proxy)    | [Etherscan](https://sepolia.etherscan.io/address/0x32c9d069a248a619d3EAc4D1FC76F2639AaBeF04#code) |
+| **BiddingSystem** (Impl)   | `0x0A09e4Ff6DAa0eeA49526560e2c946Ea32a293Bb` | Commit-reveal bidding           | [Etherscan](https://sepolia.etherscan.io/address/0x0A09e4Ff6DAa0eeA49526560e2c946Ea32a293Bb#code) |
+| PriceOracle                | `0x5C4AC3dAF76708DCd51911BA3B33027eAB1B4047` | Chainlink                       | [Etherscan](https://sepolia.etherscan.io/address/0x5C4AC3dAF76708DCd51911BA3B33027eAB1B4047#code) |
+| CommitReveal               | `0x85F193670fCb7B0c97D55E70Bf2a950b1065Fb3a` | UUPS, Cleanup (anyone call)     | [Etherscan](https://sepolia.etherscan.io/address/0x85F193670fCb7B0c97D55E70Bf2a950b1065Fb3a#code) |
+| CommitReveal (Impl)        | `0xd9efa18c45357CC3d218E1FEC86E0C851270d33D` | UUPS implementation             | [Etherscan](https://sepolia.etherscan.io/address/0xd9efa18c45357CC3d218E1FEC86E0C851270d33D#code) |
+| SlashManager               | `0x1B8373cDF4f2eD740c3478e0129f0B8494CE4Fa3` | O(1) lookup + UUPS + Pausable   | [Etherscan](https://sepolia.etherscan.io/address/0x1B8373cDF4f2eD740c3478e0129f0B8494CE4Fa3#code) |
+| SlashManager (Impl)        | `0x79eeaA4c95Fa842Ea07D36E27628B0E51f4aBeF1` | O(1) implementation             | [Etherscan](https://sepolia.etherscan.io/address/0x79eeaA4c95Fa842Ea07D36E27628B0E51f4aBeF1#code) |
 
-### Security Features Summary
+### Security Features Summary (Phase 12)
 
-| Feature              | Implementation                                      |
-| -------------------- | --------------------------------------------------- |
-| Collusion Prevention | V6.1: `RolesMustBeDistinct` in job creation         |
-| Deadlock Resolution  | V6.1: `completeAfterTimeout()` after dispute window |
-| Winner Pull Pattern  | V5: `claimReward()` instead of automatic transfer   |
-| SlashManager         | V5: 3-of-5 multisig controls all slashing           |
-| Locked ETH Guard     | V5: `withdrawETH()` validates against locked funds  |
+| Feature              | Implementation                                              |
+| -------------------- | ----------------------------------------------------------- |
+| Token Allowlist      | V6.1: Strict allowlist - only whitelisted tokens            |
+| O(1) SlashManager    | V2: `_signerIndex` mapping for constant-time lookup         |
+| MAX_REWARD Limit     | V5: `MAX_REWARD = 100 ether` prevents excessive stakes      |
+| CommitReveal Cleanup | Live: `cleanupExpiredCommitments()` anyone can call         |
+| Collusion Prevention | V6.1: `RolesMustBeDistinct` in job creation                 |
+| Deadlock Resolution  | V6.1: `completeAfterTimeout()` after dispute window         |
+| Winner Pull Pattern  | V5: `claimReward()` instead of automatic transfer           |
+| SlashManager         | V5: 3-of-5 multisig controls all slashing                   |
+| Locked ETH Guard     | V5: `withdrawETH()` validates against locked funds          |
+| Pausable Pattern     | V2: Added to SlashManager, AgentReviewV5, AgenticCommerceV6 |

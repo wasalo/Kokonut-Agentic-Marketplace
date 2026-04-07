@@ -32,7 +32,7 @@ contract DeployAgenticCommerceV6 is Script {
         );
         
         AgenticCommerceV6 agenticCommerce = AgenticCommerceV6(payable(address(proxy)));
-        agenticCommerce.initialize(treasury);
+        agenticCommerce.initialize(treasury, msg.sender);
         
         console.log("Proxy deployed:", address(proxy));
         console.log("AgenticCommerceV6 deployed successfully!");

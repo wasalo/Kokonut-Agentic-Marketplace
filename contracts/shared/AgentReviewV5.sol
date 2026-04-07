@@ -4,6 +4,7 @@ pragma solidity ^0.8.20;
 import "@openzeppelin/contracts-upgradeable/access/OwnableUpgradeable.sol";
 import "@openzeppelin/contracts-upgradeable/proxy/utils/UUPSUpgradeable.sol";
 import "@openzeppelin/contracts-upgradeable/utils/ContextUpgradeable.sol";
+import "@openzeppelin/contracts-upgradeable/utils/PausableUpgradeable.sol";
 import "@openzeppelin/contracts/utils/ReentrancyGuard.sol";
 
 /**
@@ -151,16 +152,25 @@ interface IAgentReviewV5 {
  * @dev PRD 3 - Agent Review & Coordination Contract V5
  * 
  * V5 Security Fixes:
- * - UUPS Upgradeable (was non-upgradeable)
- * - Winner Payment Pull Pattern (was direct transfer)
- * - SlashManager Integration (was onlyOwner)
- * - withdrawETH Locked Funds Protection (was no protection)
+ * - UUPS Upgradeable
+ * - Winner Payment Pull Pattern
+ * - SlashManager Integration
+ * - withdrawETH Locked Funds Protection
+ * - Pausable for emergency stops
+ * 
+ * Security fixes applied:
+ * - L1: MAX_REWARD constant to prevent accidentally locking large ETH amounts
+ * - I1: Pausable pattern for emergency stops
+ * - I3: ETHWithdrawn event (already present)
  */
-contract AgentReviewV5 is IAgentReviewV5, ContextUpgradeable, OwnableUpgradeable, UUPSUpgradeable, ReentrancyGuard {
+contract AgentReviewV5 is IAgentReviewV5, ContextUpgradeable, OwnableUpgradeable, UUPSUpgradeable, ReentrancyGuard, PausableUpgradeable {
     uint256 public constant MAX_EVALUATORS_PER_PROPOSAL = 5;
     uint256 public constant MIN_STAKE = 0.001 ether;
     uint256 public constant SLASH_PERCENTAGE = 5000;
     uint256 public constant FEE_DENOMINATOR = 10000;
+    
+    // L1 Fix: Maximum reward limit to prevent accidentally locking large ETH amounts
+    uint256 public constant MAX_REWARD = 100 ether;
 
     mapping(uint256 => Proposal) public proposals;
     mapping(uint256 => address[]) public proposalEvaluators;
@@ -171,8 +181,9 @@ contract AgentReviewV5 is IAgentReviewV5, ContextUpgradeable, OwnableUpgradeable
     address public slashManager;
     
     // Storage gap for upgradeability
-    uint256[50] private __gap;
+    uint256[49] private __gap;
 
+    /// @custom:oz-upgrades-unsafe-allow constructor
     constructor() {
         _disableInitializers();
     }
@@ -180,9 +191,25 @@ contract AgentReviewV5 is IAgentReviewV5, ContextUpgradeable, OwnableUpgradeable
     function initialize(address initialOwner) public initializer {
         __Context_init();
         __Ownable_init(initialOwner);
+        __UUPSUpgradeable_init();
+        __Pausable_init();
     }
 
     function _authorizeUpgrade(address newImpl) internal override onlyOwner {}
+
+    /**
+     * @dev Pause the contract
+     */
+    function pause() external onlyOwner {
+        _pause();
+    }
+
+    /**
+     * @dev Unpause the contract
+     */
+    function unpause() external onlyOwner {
+        _unpause();
+    }
 
     modifier onlySlashManager() {
         require(msg.sender == slashManager, "Not slashManager");
@@ -195,7 +222,9 @@ contract AgentReviewV5 is IAgentReviewV5, ContextUpgradeable, OwnableUpgradeable
         string calldata criteriaURI,
         uint256 reward,
         uint256 decisionDeadline
-    ) external payable returns (uint256 proposalId) {
+    ) external payable whenNotPaused returns (uint256 proposalId) {
+        // L1 Fix: Check maximum reward limit
+        require(reward <= MAX_REWARD, "Reward too high");
         require(msg.value == reward, "Exact ETH required");
         require(reward >= MIN_STAKE, "Reward too low");
         require(decisionDeadline > block.timestamp, "Deadline in past");
@@ -224,7 +253,7 @@ contract AgentReviewV5 is IAgentReviewV5, ContextUpgradeable, OwnableUpgradeable
         uint256 proposalId,
         int256 confidenceScore,
         string calldata reasoningURI
-    ) external payable {
+    ) external payable whenNotPaused {
         Proposal storage proposal = proposals[proposalId];
         require(proposal.id == proposalId, "Invalid proposal");
         require(proposal.status == ProposalStatus.Open, "Not open");
@@ -260,7 +289,7 @@ contract AgentReviewV5 is IAgentReviewV5, ContextUpgradeable, OwnableUpgradeable
         emit EvaluatorRegistered(proposalId, _msgSender(), evals.length - 1);
     }
 
-    function attestDecision(uint256 proposalId, address winningEvaluator) external nonReentrant {
+    function attestDecision(uint256 proposalId, address winningEvaluator) external nonReentrant whenNotPaused {
         Proposal storage proposal = proposals[proposalId];
         require(proposal.id == proposalId, "Invalid proposal");
         require(proposal.status == ProposalStatus.UnderReview, "Not under review");
@@ -276,13 +305,9 @@ contract AgentReviewV5 is IAgentReviewV5, ContextUpgradeable, OwnableUpgradeable
         proposal.winningEvaluator = winningEvaluator;
         winningEval.isFinal = true;
         
-        // V5: Set reward amount for pull pattern instead of direct transfer
         uint256 stake = winningEval.stakeAmount;
         uint256 totalReward = stake + proposal.reward;
         winningEval.rewardAmount = totalReward;
-
-        // V5: Losers can now claim their stakes via releaseStake()
-        // Winner must call claimReward() to pull their reward
 
         for (uint256 i = 0; i < proposalEvaluators[proposalId].length; i++) {
             address evalAddr = proposalEvaluators[proposalId][i];
@@ -298,8 +323,7 @@ contract AgentReviewV5 is IAgentReviewV5, ContextUpgradeable, OwnableUpgradeable
         emit ProposalStatusChanged(proposalId, oldStatus, ProposalStatus.Decided, block.timestamp);
     }
 
-    // V5: SlashManager can now call slashEvaluator
-    function slashEvaluator(address evaluator, uint256 proposalId, string calldata reason) external onlySlashManager {
+    function slashEvaluator(address evaluator, uint256 proposalId, string calldata reason) external onlySlashManager whenNotPaused {
         Proposal storage proposal = proposals[proposalId];
         require(proposal.id == proposalId, "Invalid proposal");
         require(proposal.status == ProposalStatus.UnderReview, "Proposal not active");
@@ -383,15 +407,12 @@ contract AgentReviewV5 is IAgentReviewV5, ContextUpgradeable, OwnableUpgradeable
         emit SlashManagerSet(slashManager_);
     }
 
-    // V5: Calculate total locked ETH (stakes + unclaimed rewards)
     function getTotalLockedETH() public view returns (uint256 totalLocked) {
         for (uint256 i = 0; i < _proposalCounter; i++) {
             Proposal storage proposal = proposals[i];
             if (proposal.status == ProposalStatus.Open || proposal.status == ProposalStatus.UnderReview) {
-                // Locked reward
                 totalLocked += proposal.reward;
                 
-                // Locked evaluator stakes
                 address[] storage evals = proposalEvaluators[i];
                 for (uint256 j = 0; j < evals.length; j++) {
                     Evaluation storage eval = evaluations[i][evals[j]];
@@ -400,15 +421,12 @@ contract AgentReviewV5 is IAgentReviewV5, ContextUpgradeable, OwnableUpgradeable
                     }
                 }
             } else if (proposal.status == ProposalStatus.Decided) {
-                // Decided proposals - count unclaimed rewards and stakes
                 address[] storage evals = proposalEvaluators[i];
                 for (uint256 j = 0; j < evals.length; j++) {
                     Evaluation storage eval = evaluations[i][evals[j]];
-                    // Winner unclaimed reward
                     if (evals[j] == proposal.winningEvaluator && !eval.rewardClaimed && eval.rewardAmount > 0) {
                         totalLocked += eval.rewardAmount;
                     }
-                    // Loser unclaimed stake
                     if (eval.stakeAmount > 0 && !eval.stakeReleased) {
                         totalLocked += eval.stakeAmount;
                     }
@@ -417,7 +435,6 @@ contract AgentReviewV5 is IAgentReviewV5, ContextUpgradeable, OwnableUpgradeable
         }
     }
 
-    // V5: Secure withdrawETH with locked funds protection
     function withdrawETH(address payable to, uint256 amount) external onlyOwner {
         require(to != address(0), "Zero address");
         require(amount > 0, "Zero amount");
@@ -463,5 +480,17 @@ contract AgentReviewV5 is IAgentReviewV5, ContextUpgradeable, OwnableUpgradeable
         emit ProposalStatusChanged(proposalId, oldStatus, ProposalStatus.UnderReview, block.timestamp);
     }
 
+    /**
+     * @dev Receive ETH for staking rewards and slashing.
+     * 
+     * L4 Fix: Added NatSpec documentation explaining purpose.
+     * 
+     * This function accepts ETH without conditions because:
+     * 1. Evaluators stake ETH when submitting evaluations
+     * 2. Proposers send ETH when creating proposals (rewards)
+     * 3. SlashManager can send slashed funds
+     * 
+     * All withdrawals are protected by the getTotalLockedETH() check in withdrawETH().
+     */
     receive() external payable {}
 }

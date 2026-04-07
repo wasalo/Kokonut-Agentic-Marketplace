@@ -2,11 +2,13 @@
 pragma solidity ^0.8.20;
 
 import {ReentrancyGuard} from "@openzeppelin/contracts/utils/ReentrancyGuard.sol";
-import {Ownable} from "@openzeppelin/contracts/access/Ownable.sol";
+import {OwnableUpgradeable} from "@openzeppelin/contracts-upgradeable/access/OwnableUpgradeable.sol";
+import {UUPSUpgradeable} from "@openzeppelin/contracts-upgradeable/proxy/utils/UUPSUpgradeable.sol";
 
 /**
  * @title CommitReveal
  * @dev Commit-reveal pattern for preventing front-running in service purchases.
+ * UUPS Upgradeable version with cleanup functionality.
  *
  * Flow:
  * 1. Client calls commit(commitmentHash) with pre-computed hash
@@ -17,7 +19,7 @@ import {Ownable} from "@openzeppelin/contracts/access/Ownable.sol";
  * The commitmentHash is: keccak256(abi.encode(msg.sender, secret, serviceId))
  * The secret is a random value chosen by the client.
  */
-contract CommitReveal is ReentrancyGuard, Ownable {
+contract CommitReveal is ReentrancyGuard, OwnableUpgradeable, UUPSUpgradeable {
 
     struct Commitment {
         bytes32 commitmentHash;
@@ -41,11 +43,22 @@ contract CommitReveal is ReentrancyGuard, Ownable {
     event Revealed(address indexed user, bytes32 indexed commitmentHash, uint256 serviceId, uint256 revealBlock);
     event Executed(address indexed user, bytes32 indexed commitmentHash, uint256 serviceId, uint256 executeBlock);
     event Cancelled(address indexed user, bytes32 indexed commitmentHash, uint256 cancelBlock);
+    event CleanupExpired(bytes32 indexed commitmentHash, uint256 expiredBlock);
 
-    constructor(address _serviceRegistry, address _owner) Ownable(_owner) {
+    /// @custom:oz-upgrades-unsafe-allow constructor
+    constructor() {
+        _disableInitializers();
+    }
+
+    function initialize(address _serviceRegistry, address initialOwner) public initializer {
+        __Ownable_init(initialOwner);
+        __UUPSUpgradeable_init();
+
         require(_serviceRegistry != address(0), "Zero service registry");
         serviceRegistry = _serviceRegistry;
     }
+
+    function _authorizeUpgrade(address newImplementation) internal override onlyOwner {}
 
     function updateServiceRegistry(address _serviceRegistry) external onlyOwner {
         require(_serviceRegistry != address(0), "Zero service registry");
@@ -143,6 +156,37 @@ contract CommitReveal is ReentrancyGuard, Ownable {
         emit Cancelled(msg.sender, commitmentHash, block.number);
     }
 
+    /**
+     * @dev Cleanup expired commitments. Anyone can call this to remove old commitments.
+     * Expired = commitment age > MAX_COMMITMENT_AGE blocks AND not revealed/executed/cancelled
+     * @param commitmentHashes Array of commitment hashes to cleanup
+     */
+    function cleanupExpiredCommitments(bytes32[] calldata commitmentHashes) external {
+        uint256 cleanedCount = 0;
+        
+        for (uint256 i = 0; i < commitmentHashes.length; i++) {
+            bytes32 hash = commitmentHashes[i];
+            Commitment storage c = commitments[hash];
+            
+            // Check if commitment exists and is expired
+            if (_exists(hash) && 
+                !c.revealed && 
+                !c.executed && 
+                !c.cancelled &&
+                block.number > c.commitBlock + MAX_COMMITMENT_AGE) {
+                
+                // Mark as cancelled (we don't delete to save gas)
+                c.cancelled = true;
+                cleanedCount++;
+                
+                emit CleanupExpired(hash, c.commitBlock);
+            }
+        }
+        
+        // Prevent griefing with empty arrays
+        require(cleanedCount > 0 || commitmentHashes.length == 0, "No expired commitments");
+    }
+
     function getCommitment(bytes32 commitmentHash) external view returns (Commitment memory) {
         return commitments[commitmentHash];
     }
@@ -163,4 +207,7 @@ contract CommitReveal is ReentrancyGuard, Ownable {
     function _exists(bytes32 commitmentHash) internal view returns (bool) {
         return commitments[commitmentHash].commitBlock != 0;
     }
+
+    /// @dev Storage gap for upgrade safety
+    uint256[50] private __gap;
 }
