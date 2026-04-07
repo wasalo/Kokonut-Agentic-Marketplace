@@ -25,7 +25,7 @@ export function Providers({ children }: { children: ReactNode }) {
             refetchOnReconnect: false,
             retry: 2,
             retryDelay: (attemptIndex: number) => Math.min(1000 * 2 ** attemptIndex, 10000),
-            refetchOnMount: 'always',
+            refetchOnMount: false,
           },
         },
       })

@@ -16,7 +16,8 @@ import {
   PieChart,
   Pie,
   Cell,
-} from 'recharts';
+  ChartSkeleton,
+} from '@/components/ChartComponents';
 import {
   TrendingUp,
   Briefcase,
@@ -221,9 +222,7 @@ function AnalyticsContent({
               <h3 className="text-lg font-semibold mb-4">Daily Activity</h3>
               <div className="h-64">
                 {isLoading ? (
-                  <div className="h-full flex items-center justify-center">
-                    <Loader2 className="w-8 h-8 animate-spin text-primary" />
-                  </div>
+                  <ChartSkeleton />
                 ) : (
                   <ResponsiveContainer width="100%" height="100%">
                     <BarChart data={data?.dailyStats || []}>
@@ -261,9 +260,7 @@ function AnalyticsContent({
               <h3 className="text-lg font-semibold mb-4">Daily Volume</h3>
               <div className="h-64">
                 {isLoading ? (
-                  <div className="h-full flex items-center justify-center">
-                    <Loader2 className="w-8 h-8 animate-spin text-primary" />
-                  </div>
+                  <ChartSkeleton />
                 ) : (
                   <ResponsiveContainer width="100%" height="100%">
                     <LineChart data={data?.dailyStats || []}>
@@ -307,9 +304,7 @@ function AnalyticsContent({
               <h3 className="text-lg font-semibold mb-4">Job Status Distribution</h3>
               <div className="h-64">
                 {isLoading ? (
-                  <div className="h-full flex items-center justify-center">
-                    <Loader2 className="w-8 h-8 animate-spin text-primary" />
-                  </div>
+                  <ChartSkeleton />
                 ) : (
                   <ResponsiveContainer width="100%" height="100%">
                     <PieChart>

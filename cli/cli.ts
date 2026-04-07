@@ -281,6 +281,7 @@ program
   .command('list-agents')
   .description('List all registered agents')
   .option('--json', 'Output as JSON')
+  .option('--batch-size <number>', 'Batch size for fetching agents (default: 50)', '50')
   .action(async options => {
     try {
       initWallet();
@@ -314,15 +315,37 @@ program
         return;
       }
 
+      const batchSize = parseInt(options.batchSize) || 50;
       const agents = [];
-      for (let i = 1n; i <= count; i++) {
-        const agent = await identityRegistry.getAgent(i);
-        agents.push({
-          tokenId: i.toString(),
-          owner: agent[0],
-          did: agent[1],
-          metadataURI: agent[2],
-        });
+
+      // Batch the RPC calls to avoid N+1 pattern
+      for (let i = 1n; i <= count; i += BigInt(batchSize)) {
+        const batchEnd = BigInt(Math.min(Number(i) + batchSize, Number(count) + 1));
+        const batchPromises = [];
+
+        for (let j = i; j < batchEnd; j++) {
+          batchPromises.push(
+            identityRegistry.getAgent(j).then(agent => ({
+              tokenId: j.toString(),
+              owner: agent[0],
+              did: agent[1],
+              metadataURI: agent[2],
+            }))
+          );
+        }
+
+        const batchResults = await Promise.all(batchPromises);
+        agents.push(...batchResults);
+
+        // Progress indicator for large lists
+        if (count > 100n) {
+          const progress = Math.min(Number(i) + batchSize - 1, Number(count));
+          process.stdout.write(`\r${chalk.dim(`Fetching agents... ${progress}/${count}`)}`);
+        }
+      }
+
+      if (count > 100n) {
+        console.log(); // New line after progress
       }
 
       if (options.json) {
@@ -1532,7 +1555,7 @@ program
       const identityRegistryABI = [
         'function isAgent(address agentAddress) external view returns (bool)',
         'function getAgent(uint256 agentId) external view returns (address owner, string memory agentURI, address agentWallet, bool isActive)',
-        'function getCurrentAgentId() external view returns (uint256)',
+        'function resolveAgent(address agentAddress) external view returns (uint256 agentId, string memory agentURI)',
       ];
 
       const reputationRegistryABI = [
@@ -1562,21 +1585,9 @@ program
         return;
       }
 
-      let agentId;
-      let agentData = null;
-      for (let i = 1n; i <= (await identityRegistry.getCurrentAgentId()); i++) {
-        const agent = await identityRegistry.getAgent(i);
-        if (agent[0].toLowerCase() === targetAddress.toLowerCase()) {
-          agentId = i;
-          agentData = {
-            owner: agent[0],
-            agentURI: agent[1],
-            agentWallet: agent[2],
-            isActive: agent[3],
-          };
-          break;
-        }
-      }
+      // Use resolveAgent for O(1) lookup instead of iterating
+      const [agentId, agentURI] = await identityRegistry.resolveAgent(targetAddress);
+      const agentData = await identityRegistry.getAgent(agentId);
 
       const [averageRating, totalFeedbacks, uniqueProviders] =
         await reputationRegistry.getAgentReputation(targetAddress);
@@ -1584,16 +1595,16 @@ program
       const result = {
         address: targetAddress,
         registered: true,
-        agentId: agentId?.toString(),
-        owner: agentData?.owner,
-        agentWallet: agentData?.agentWallet,
-        isActive: agentData?.isActive,
+        agentId: agentId.toString(),
+        owner: agentData[0],
+        agentWallet: agentData[2],
+        isActive: agentData[3],
         reputation: {
           averageRating: (parseFloat(averageRating.toString()) / 10).toFixed(1),
           totalFeedbacks: Number(totalFeedbacks),
           uniqueProviders: Number(uniqueProviders),
         },
-        metadataURI: agentData?.agentURI,
+        metadataURI: agentURI,
       };
 
       if (options.json) {

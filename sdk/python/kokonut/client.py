@@ -3,6 +3,7 @@ Kokonut Agent SDK - Main Client
 Type-safe client for interacting with the Kokonut Agent Economy Stack
 """
 
+import asyncio
 import base64
 import json
 import time
@@ -1128,42 +1129,43 @@ class ServicesModule:
             created_at=service[9],
         )
 
+    async def _get_service_safe(self, service_id: int) -> Optional[Service]:
+        """Safely fetch a single service, returning None on error."""
+        try:
+            return await self.get_service(service_id)
+        except Exception:
+            return None
+
     async def list(self, page: int = 0, page_size: int = 20) -> List[Service]:
         start = page * page_size
         service_ids = self.contract.functions.getServices(start, page_size).call()
-        services = []
-        for sid in service_ids:
-            try:
-                service = await self.get_service(sid)
-                services.append(service)
-            except Exception:
-                pass
-        return services
+        # Use asyncio.gather for parallel fetching (batch RPC calls)
+        results = await asyncio.gather(
+            *[self._get_service_safe(sid) for sid in service_ids],
+            return_exceptions=True,
+        )
+        return [r for r in results if isinstance(r, Service)]
 
     async def get_active_count(self) -> int:
         return self.contract.functions.getActiveServiceCount().call()
 
     async def get_provider_services(self, provider: Address) -> List[Service]:
         service_ids = self.contract.functions.getProviderServices(provider).call()
-        services = []
-        for sid in service_ids:
-            try:
-                service = await self.get_service(sid)
-                services.append(service)
-            except Exception:
-                pass
-        return services
+        # Use asyncio.gather for parallel fetching
+        results = await asyncio.gather(
+            *[self._get_service_safe(sid) for sid in service_ids],
+            return_exceptions=True,
+        )
+        return [r for r in results if isinstance(r, Service)]
 
     async def get_services_by_agent(self, agent_id: int) -> List[Service]:
         service_ids = self.contract.functions.getServicesByAgent(agent_id).call()
-        services = []
-        for sid in service_ids:
-            try:
-                service = await self.get_service(sid)
-                services.append(service)
-            except Exception:
-                pass
-        return services
+        # Use asyncio.gather for parallel fetching
+        results = await asyncio.gather(
+            *[self._get_service_safe(sid) for sid in service_ids],
+            return_exceptions=True,
+        )
+        return [r for r in results if isinstance(r, Service)]
 
     async def update_service(
         self,
@@ -1492,7 +1494,7 @@ class ReviewModule:
         return TransactionResult(hash=hash_.hex(), provider=self.w3)
 
     async def submit_evaluation(self, params: EvaluationParams) -> TransactionResult:
-        min_stake = self.w3.to_wei("0.01", "ether")
+        min_stake = self.w3.to_wei("0.001", "ether")
         tx = self.contract.functions.submitEvaluation(
             params.proposal_id,
             params.confidence_score,

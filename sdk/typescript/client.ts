@@ -838,7 +838,7 @@ class CommerceModule {
       }
     }
 
-    const tx = await this.contract.fundJob(jobId);
+    const tx = await this.contract.fund(jobId);
     return {
       hash: tx.hash,
       wait: () => tx.wait(),
@@ -846,7 +846,7 @@ class CommerceModule {
   }
 
   async fundJobWithETH(jobId: number | bigint, value?: bigint): Promise<TransactionResult> {
-    const tx = await this.contract.fundJobWithETH(jobId, { value: value || 0 });
+    const tx = await this.contract.fund(jobId, { value: value || 0 });
     return {
       hash: tx.hash,
       wait: () => tx.wait(),
@@ -854,7 +854,7 @@ class CommerceModule {
   }
 
   async submitJob(jobId: number | bigint, deliverable: `0x${string}`): Promise<TransactionResult> {
-    const tx = await this.contract.submitJob(jobId, deliverable);
+    const tx = await this.contract.submit(jobId, deliverable);
     return {
       hash: tx.hash,
       wait: () => tx.wait(),
@@ -862,7 +862,7 @@ class CommerceModule {
   }
 
   async completeJob(jobId: number | bigint, reason: `0x${string}`): Promise<TransactionResult> {
-    const tx = await this.contract.completeJob(jobId, reason);
+    const tx = await this.contract.complete(jobId, reason);
     return {
       hash: tx.hash,
       wait: () => tx.wait(),
@@ -870,7 +870,7 @@ class CommerceModule {
   }
 
   async rejectJob(jobId: number | bigint, reason: `0x${string}`): Promise<TransactionResult> {
-    const tx = await this.contract.rejectJob(jobId, reason);
+    const tx = await this.contract.reject(jobId, reason);
     return {
       hash: tx.hash,
       wait: () => tx.wait(),
@@ -1070,7 +1070,7 @@ class ReviewModule {
   }
 
   async submitEvaluation(params: EvaluationParams): Promise<TransactionResult> {
-    const minStake = ethers.parseEther('0.01');
+    const minStake = ethers.parseEther('0.001');
     const tx = await this.contract.submitEvaluation(
       params.proposalId,
       params.confidenceScore,

@@ -9,6 +9,13 @@
  * defined window.ethereum as non-configurable.
  *
  * This shim ensures window.ethereum is configurable from the start.
+ *
+ * IMPORTANT: This module uses side effects (modifies window.ethereum) and must
+ * be imported at the module level BEFORE any wallet code runs. The import
+ * in app/layout.tsx is intentional and necessary for the shim to work.
+ *
+ * This is NOT a code smell in this case - it's a legitimate use of a
+ * side-effect import that must run at module initialization time.
  */
 
 if (typeof window !== 'undefined') {
