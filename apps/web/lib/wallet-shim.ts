@@ -46,8 +46,10 @@ if (typeof window !== 'undefined') {
       }
     }
   } catch (error) {
-    // Silently fail - the shim is best-effort
-    console.debug('Wallet shim: Could not modify window.ethereum', error);
+    // Best-effort shim - warn in development for debugging
+    if (process.env.NODE_ENV === 'development') {
+      console.warn('Wallet shim: Could not modify window.ethereum', error);
+    }
   }
 }
 

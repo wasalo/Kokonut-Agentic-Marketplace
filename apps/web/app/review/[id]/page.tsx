@@ -28,6 +28,8 @@ import {
   useCancelProposal,
 } from '@/lib/hooks/useProposals';
 import { Address } from '@/components/Address';
+import { ErrorDisplay } from '@/components/ErrorDisplay';
+import { ConfirmModal } from '@/components/ConfirmModal';
 
 const PROPOSAL_STATUS: Record<number, string> = {
   0: 'Open',
@@ -57,6 +59,7 @@ export default function ProposalDetailPage({
   const [reasoning, setReasoning] = useState('');
   const [stake, setStake] = useState('0.01');
   const [selectedWinner, setSelectedWinner] = useState('');
+  const [showCancelModal, setShowCancelModal] = useState(false);
 
   const {
     submitEvaluation,
@@ -119,12 +122,11 @@ export default function ProposalDetailPage({
   }, [proposalId, releaseStake]);
 
   const handleCancel = useCallback(() => {
-    if (
-      !window.confirm(
-        'Are you sure you want to cancel this proposal? Your staked ETH will be refunded.'
-      )
-    )
-      return;
+    setShowCancelModal(true);
+  }, []);
+
+  const confirmCancel = useCallback(() => {
+    setShowCancelModal(false);
     setTxStep('Cancelling proposal');
     cancelProposal(proposalId);
   }, [proposalId, cancelProposal]);
@@ -264,11 +266,7 @@ export default function ProposalDetailPage({
           </Card>
         )}
 
-        {currentError && (
-          <div className="p-4 bg-danger-50 border border-danger-200 rounded-lg text-danger text-sm">
-            Error: {currentError.message}
-          </div>
-        )}
+        {currentError && <ErrorDisplay error={currentError} />}
 
         {/* Existing Evaluations */}
         {evaluators.length > 0 && (
@@ -471,6 +469,17 @@ export default function ProposalDetailPage({
             )}
           </Card>
         )}
+
+        <ConfirmModal
+          isOpen={showCancelModal}
+          onConfirm={confirmCancel}
+          onCancel={() => setShowCancelModal(false)}
+          title="Cancel Proposal"
+          message="Are you sure you want to cancel this proposal? Your staked ETH will be refunded."
+          confirmText="Cancel Proposal"
+          variant="warning"
+          isPending={isCancelPending}
+        />
       </div>
     </div>
   );

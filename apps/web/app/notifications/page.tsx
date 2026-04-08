@@ -17,6 +17,7 @@ import {
 } from 'lucide-react';
 import { useNotifications } from '@/lib/hooks/useNotifications';
 import { NOTIFICATION_TYPE_LABELS, type NotificationType } from '@/lib/notifications';
+import { ConfirmModal } from '@/components/ConfirmModal';
 
 const TYPE_ICONS = {
   job: Briefcase,
@@ -144,6 +145,7 @@ export default function NotificationsPage() {
 
   const [activeFilter, setActiveFilter] = useState<'all' | NotificationType>('all');
   const [isClearing, setIsClearing] = useState(false);
+  const [showClearModal, setShowClearModal] = useState(false);
 
   const filteredNotifications = useMemo(() => {
     if (activeFilter === 'all') return notifications;
@@ -151,15 +153,16 @@ export default function NotificationsPage() {
   }, [notifications, activeFilter]);
 
   const handleClearAll = () => {
-    if (
-      window.confirm('Are you sure you want to clear all notifications? This cannot be undone.')
-    ) {
-      setIsClearing(true);
-      setTimeout(() => {
-        clearAll();
-        setIsClearing(false);
-      }, 300);
-    }
+    setShowClearModal(true);
+  };
+
+  const handleClearAllConfirm = () => {
+    setIsClearing(true);
+    setShowClearModal(false);
+    setTimeout(() => {
+      clearAll();
+      setIsClearing(false);
+    }, 300);
   };
 
   return (
@@ -245,6 +248,17 @@ export default function NotificationsPage() {
       <div className="text-center text-sm text-default-400">
         <p>Notifications are stored locally and persist across sessions.</p>
       </div>
+
+      <ConfirmModal
+        isOpen={showClearModal}
+        onConfirm={handleClearAllConfirm}
+        onCancel={() => setShowClearModal(false)}
+        title="Clear All Notifications"
+        message="Are you sure you want to clear all notifications? This cannot be undone."
+        confirmText="Clear All"
+        variant="danger"
+        isPending={isClearing}
+      />
     </div>
   );
 }

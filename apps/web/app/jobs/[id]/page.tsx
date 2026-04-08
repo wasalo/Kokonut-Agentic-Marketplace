@@ -67,6 +67,8 @@ import {
   BidStatusCard,
 } from '@/components/BiddingForms';
 import { Address } from '@/components/Address';
+import { ErrorDisplay } from '@/components/ErrorDisplay';
+import { ConfirmModal } from '@/components/ConfirmModal';
 
 export default function JobDetailPage({
   params,
@@ -86,7 +88,7 @@ export default function JobDetailPage({
 
   // USDC approval and balance hooks
   const AGENTIC_COMMERCE_ADDRESS = CONTRACTS[11155111].agenticCommerce as `0x${string}`;
-  const USDC_ADDRESS = '0x1c7D4B196Cb0C7B01d743Fbc6116a902379C7238' as `0x${string}`;
+  const USDC_ADDRESS = CONTRACTS[11155111].usdc as `0x${string}`;
   const { allowance } = useUSDCAllowance(address, AGENTIC_COMMERCE_ADDRESS);
   const { formattedBalance: usdcBalance, isLoading: usdcBalanceLoading } = useUSDCBalance(address);
   const { data: ethBalance, isLoading: ethBalanceLoading } = useBalance({ address });
@@ -465,11 +467,7 @@ export default function JobDetailPage({
           </Card>
         )}
 
-        {currentError && (
-          <div className="p-4 bg-danger-50 border border-danger-200 rounded-lg text-danger text-sm">
-            Error: {currentError.message}
-          </div>
-        )}
+        {currentError && <ErrorDisplay error={currentError} />}
 
         {/* Balance Info */}
         {isClient && job.status === JobStatus.Open && (
@@ -1007,6 +1005,7 @@ interface BiddingSectionForProviderProps {
 function BiddingSectionForProvider({ job, address, refetch }: BiddingSectionForProviderProps) {
   const { bid: userBid } = useUserBid(job.id, address);
   const { withdrawStake, isPending: isWithdrawPending } = useWithdrawStake();
+  const [showWithdrawModal, setShowWithdrawModal] = useState(false);
 
   const canWithdrawStake =
     userBid &&
@@ -1017,6 +1016,15 @@ function BiddingSectionForProvider({ job, address, refetch }: BiddingSectionForP
       job.status === JobStatus.Rejected ||
       job.status === JobStatus.Expired);
 
+  const handleWithdrawClick = () => {
+    setShowWithdrawModal(true);
+  };
+
+  const handleWithdrawConfirm = () => {
+    setShowWithdrawModal(false);
+    withdrawStake(job.id);
+  };
+
   return (
     <div className="space-y-4">
       {/* User's Bid Status */}
@@ -1024,24 +1032,32 @@ function BiddingSectionForProvider({ job, address, refetch }: BiddingSectionForP
 
       {/* Withdraw Stake Button - for losing bidders */}
       {canWithdrawStake && (
-        <button
-          onClick={() => {
-            if (window.confirm('Withdraw your staked funds? This will forfeit your bid.')) {
-              withdrawStake(job.id);
-            }
-          }}
-          disabled={isWithdrawPending}
-          className="w-full flex items-center gap-3 p-4 border border-warning/30 rounded-lg hover:bg-warning/5 transition-colors disabled:opacity-50"
-        >
-          <RefreshCw className="w-5 h-5 text-warning" />
-          <div className="text-left">
-            <p className="font-medium">Withdraw Stake</p>
-            <p className="text-xs text-default-500">
-              Reclaim your staked funds (bid was not accepted)
-            </p>
-          </div>
-          {isWithdrawPending && <Loader2 className="w-5 h-5 animate-spin text-warning ml-auto" />}
-        </button>
+        <>
+          <button
+            onClick={handleWithdrawClick}
+            disabled={isWithdrawPending}
+            className="w-full flex items-center gap-3 p-4 border border-warning/30 rounded-lg hover:bg-warning/5 transition-colors disabled:opacity-50"
+          >
+            <RefreshCw className="w-5 h-5 text-warning" />
+            <div className="text-left">
+              <p className="font-medium">Withdraw Stake</p>
+              <p className="text-xs text-default-500">
+                Reclaim your staked funds (bid was not accepted)
+              </p>
+            </div>
+            {isWithdrawPending && <Loader2 className="w-5 h-5 animate-spin text-warning ml-auto" />}
+          </button>
+          <ConfirmModal
+            isOpen={showWithdrawModal}
+            onConfirm={handleWithdrawConfirm}
+            onCancel={() => setShowWithdrawModal(false)}
+            title="Withdraw Stake"
+            message="Withdraw your staked funds? This will forfeit your bid."
+            confirmText="Withdraw"
+            variant="warning"
+            isPending={isWithdrawPending}
+          />
+        </>
       )}
 
       {/* Commit or Reveal Form */}

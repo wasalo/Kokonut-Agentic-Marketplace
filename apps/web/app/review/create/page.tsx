@@ -11,6 +11,7 @@ import { parseEther } from 'viem';
 import { useCreateProposal } from '@/lib/hooks/useProposals';
 import { useChainlinkEthUsdPrice } from '@/lib/hooks/useChainlinkPrice';
 import { TransactionError } from '@/components/TransactionError';
+import { showToast } from '@/lib/toast';
 
 export default function CreateProposalPage() {
   const router = useRouter();
@@ -41,7 +42,7 @@ export default function CreateProposalPage() {
       // Validate minimum reward
       const rewardAmount = parseFloat(formData.reward || '0');
       if (rewardAmount < 0.01) {
-        alert('Minimum reward is 0.01 ETH');
+        showToast.warning('Minimum reward is 0.01 ETH', 'Please enter a valid reward amount');
         return;
       }
 

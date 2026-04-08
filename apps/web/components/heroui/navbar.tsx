@@ -1,7 +1,8 @@
 'use client';
 
-import { Menu, X, ChevronDown, Wallet } from 'lucide-react';
+import { Menu, X, ChevronDown, Wallet, Sun, Moon } from 'lucide-react';
 import { useState, useCallback, useEffect } from 'react';
+import { useTheme } from '@/contexts/ThemeContext';
 import NextLink from 'next/link';
 import { useAccount } from 'wagmi';
 import { useUSDCBalance } from '@/lib/hooks/useUSDC';
@@ -45,6 +46,7 @@ export function NavbarComponent(): JSX.Element {
   const [isMenuOpen, setIsMenuOpen] = useState(false);
   const { isConnected } = useAccount();
   const [mounted, setMounted] = useState(false);
+  const { theme, setTheme } = useTheme();
 
   useEffect(() => {
     setMounted(true);
@@ -57,6 +59,10 @@ export function NavbarComponent(): JSX.Element {
   const closeMenu = useCallback(() => {
     setIsMenuOpen(false);
   }, []);
+
+  const toggleTheme = useCallback(() => {
+    setTheme(theme === 'dark' ? 'light' : 'dark');
+  }, [theme, setTheme]);
 
   // Always render all links to prevent hydration mismatch
   // Dashboard only shown when connected via CSS
@@ -115,6 +121,15 @@ export function NavbarComponent(): JSX.Element {
           <div className="flex items-center gap-2">
             <USDCBalance />
             <NotificationBell />
+            {mounted && (
+              <button
+                onClick={toggleTheme}
+                className="p-2 text-foreground hover:bg-content2 rounded-lg transition-colors"
+                aria-label="Toggle theme"
+              >
+                {theme === 'dark' ? <Sun className="w-5 h-5" /> : <Moon className="w-5 h-5" />}
+              </button>
+            )}
             <div className="hidden sm:block">
               <ConnectButton />
             </div>

@@ -4,6 +4,7 @@ import React, { useState } from 'react';
 import { useAccount, useBalance } from 'wagmi';
 import { formatUnits } from 'viem';
 import { ChevronDown, DollarSign, CircleDot } from 'lucide-react';
+import { CONTRACTS } from '@/lib/wagmi';
 
 export interface Token {
   symbol: string;
@@ -13,24 +14,23 @@ export interface Token {
   icon: React.ComponentType<{ className?: string }>;
 }
 
-export const SUPPORTED_TOKENS: Token[] = [
-  {
-    symbol: 'USDC',
-    name: 'USD Coin',
-    address:
-      (process.env.NEXT_PUBLIC_USDC_ADDRESS as `0x${string}`) ||
-      '0x1c7D4B196Cb0C7B01d743Fbc6116a902379C7238',
-    decimals: 6,
-    icon: DollarSign,
-  },
-  {
-    symbol: 'ETH',
-    name: 'Ethereum',
-    address: '0x0000000000000000000000000000000000000000',
-    decimals: 18,
-    icon: CircleDot,
-  },
-];
+export const USDC_TOKEN: Token = {
+  symbol: 'USDC',
+  name: 'USD Coin',
+  address: CONTRACTS[11155111].usdc as `0x${string}`,
+  decimals: 6,
+  icon: DollarSign,
+};
+
+export const ETH_TOKEN: Token = {
+  symbol: 'ETH',
+  name: 'Ethereum',
+  address: '0x0000000000000000000000000000000000000000',
+  decimals: 18,
+  icon: CircleDot,
+};
+
+export const SUPPORTED_TOKENS: Token[] = [USDC_TOKEN, ETH_TOKEN];
 
 export interface PaymentTokenSelectorProps {
   selectedToken: Token;

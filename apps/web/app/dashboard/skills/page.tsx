@@ -26,6 +26,7 @@ import { AGENT_SKILL_REGISTRY_ABI } from '@/lib/contracts/abis';
 import { useWalletAgentsWithDetails } from '@/lib/hooks/useWalletAgentsWithDetails';
 import { CONTRACT_ADDRESSES, getContractAddress } from '@/lib/contracts/config';
 import { TransactionError } from '@/components/TransactionError';
+import { ConfirmModal } from '@/components/ConfirmModal';
 
 const SKILL_REGISTRY_ADDRESS = getContractAddress(
   process.env.NEXT_PUBLIC_SKILL_REGISTRY_ADDRESS,
@@ -359,6 +360,8 @@ export default function DashboardSkillsPage() {
   const [selectedAgentId, setSelectedAgentId] = useState<number | null>(null);
   const [showForm, setShowForm] = useState(false);
   const [editingSkill, setEditingSkill] = useState<(Skill & { skillId: bigint }) | null>(null);
+  const [deactivatingSkill, setDeactivatingSkill] = useState<bigint | null>(null);
+  const [showDeactivateModal, setShowDeactivateModal] = useState(false);
 
   // Use first agent if no selection
   const activeAgent = useMemo(() => {
@@ -410,26 +413,30 @@ export default function DashboardSkillsPage() {
   // Deactivate skill
   const { writeContract: deactivateSkill } = useWriteContract();
 
-  const handleDeactivate = useCallback(
-    (skillId: bigint) => {
-      if (confirm('Are you sure you want to deactivate this skill?')) {
-        deactivateSkill(
-          {
-            address: SKILL_REGISTRY_ADDRESS,
-            abi: AGENT_SKILL_REGISTRY_ABI,
-            functionName: 'deactivateSkill',
-            args: [skillId],
+  const handleDeactivateClick = useCallback((skillId: bigint) => {
+    setDeactivatingSkill(skillId);
+    setShowDeactivateModal(true);
+  }, []);
+
+  const handleDeactivateConfirm = useCallback(() => {
+    if (deactivatingSkill) {
+      deactivateSkill(
+        {
+          address: SKILL_REGISTRY_ADDRESS,
+          abi: AGENT_SKILL_REGISTRY_ABI,
+          functionName: 'deactivateSkill',
+          args: [deactivatingSkill],
+        },
+        {
+          onSuccess: () => {
+            refetchSkills();
+            setShowDeactivateModal(false);
+            setDeactivatingSkill(null);
           },
-          {
-            onSuccess: () => {
-              refetchSkills();
-            },
-          }
-        );
-      }
-    },
-    [deactivateSkill, refetchSkills]
-  );
+        }
+      );
+    }
+  }, [deactivatingSkill, deactivateSkill, refetchSkills]);
 
   const handleEdit = useCallback((skill: Skill & { skillId: bigint }) => {
     setEditingSkill(skill);
@@ -564,7 +571,7 @@ export default function DashboardSkillsPage() {
                         skill={skill}
                         skillId={skill.skillId}
                         onEdit={() => handleEdit(skill)}
-                        onDeactivate={() => handleDeactivate(skill.skillId)}
+                        onDeactivate={() => handleDeactivateClick(skill.skillId)}
                       />
                     ))}
                   </div>
@@ -673,6 +680,19 @@ export default function DashboardSkillsPage() {
           </Card>
         </div>
       </div>
+
+      <ConfirmModal
+        isOpen={showDeactivateModal}
+        onConfirm={handleDeactivateConfirm}
+        onCancel={() => {
+          setShowDeactivateModal(false);
+          setDeactivatingSkill(null);
+        }}
+        title="Deactivate Skill"
+        message="Are you sure you want to deactivate this skill? This action cannot be undone."
+        confirmText="Deactivate"
+        variant="danger"
+      />
     </div>
   );
 }
