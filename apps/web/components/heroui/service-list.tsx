@@ -22,6 +22,7 @@ import { StatusBadge, getServiceStatusBadgeType } from '@/components/StatusBadge
 import { useServiceBookmarks, useBookmarkCounts } from '@/lib/hooks/useBookmarks';
 import { CONTRACTS } from '@/lib/wagmi';
 import { AGENT_SKILL_REGISTRY_ABI } from '@/lib/contracts/abis';
+import { Address } from '@/components/Address';
 
 const ZERO_ADDRESS = '0x0000000000000000000000000000000000000000';
 const SKILL_REGISTRY_ADDRESS = CONTRACTS[11155111].skillRegistry;
@@ -143,8 +144,7 @@ function ServiceCard({ service }: { service: Service }) {
         <p className="text-default-500 text-sm mb-4 line-clamp-2">{service.description}</p>
         <div className="flex justify-between items-center text-sm">
           <span className="text-default-500">
-            By {service.provider.slice(0, 6)}...
-            {service.provider.slice(-4)}
+            By <Address address={service.provider as `0x${string}`} truncate />
             {createdAt && (
               <span className="flex items-center gap-1 mt-1 text-xs text-default-400">
                 <Calendar className="w-3 h-3" />

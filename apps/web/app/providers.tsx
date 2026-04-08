@@ -6,6 +6,7 @@ import { WagmiProvider } from 'wagmi';
 import { RainbowKitProvider, darkTheme } from '@rainbow-me/rainbowkit';
 import { config } from '@/lib/wagmi';
 import { DebugProvider } from '@/contexts/DebugContext';
+import { TransactionProvider } from '@/contexts/TransactionContext';
 import { usePersonalNotifications } from '@/lib/hooks/useNotificationEvents';
 
 function NotificationWatcher() {
@@ -35,16 +36,18 @@ export function Providers({ children }: { children: ReactNode }) {
     <WagmiProvider config={config}>
       <QueryClientProvider client={queryClient}>
         <DebugProvider>
-          <RainbowKitProvider
-            theme={darkTheme({
-              accentColor: '#009F4D',
-              accentColorForeground: '#FFFFFF',
-              borderRadius: 'large',
-            })}
-          >
-            <NotificationWatcher />
-            {children}
-          </RainbowKitProvider>
+          <TransactionProvider>
+            <RainbowKitProvider
+              theme={darkTheme({
+                accentColor: '#009F4D',
+                accentColorForeground: '#FFFFFF',
+                borderRadius: 'large',
+              })}
+            >
+              <NotificationWatcher />
+              {children}
+            </RainbowKitProvider>
+          </TransactionProvider>
         </DebugProvider>
       </QueryClientProvider>
     </WagmiProvider>

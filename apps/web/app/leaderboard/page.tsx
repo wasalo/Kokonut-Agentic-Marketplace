@@ -18,6 +18,7 @@ import { useKokonutAgents } from '@/lib/hooks/useKokonutAgents';
 import { useLeaderboard, LeaderboardPeriod, LeaderboardEntry } from '@/lib/hooks/useLeaderboard';
 import { getTierColor, formatScore, getScoreColor } from '@/lib/healthScore';
 import { StatusBadge } from '@/components/StatusBadge';
+import { Address } from '@/components/Address';
 
 interface TierBadgeProps {
   rank: number;
@@ -118,9 +119,11 @@ function LeaderboardRow({ entry, rank }: LeaderboardRowProps) {
               size="sm"
             />
           </div>
-          <p className="text-xs text-default-400 font-mono truncate">
-            {entry.owner.slice(0, 8)}...{entry.owner.slice(-6)}
-          </p>
+          <Address
+            address={entry.owner as `0x${string}`}
+            truncate
+            className="text-xs text-default-400"
+          />
         </div>
         <div className="flex-1 min-w-[120px]">
           <ScoreBar score={entry.healthScore.score} />

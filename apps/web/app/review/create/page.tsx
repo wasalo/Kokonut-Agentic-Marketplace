@@ -9,6 +9,7 @@ import { Card } from '@heroui/react';
 import { useWaitForTransactionReceipt } from 'wagmi';
 import { parseEther } from 'viem';
 import { useCreateProposal } from '@/lib/hooks/useProposals';
+import { useChainlinkEthUsdPrice } from '@/lib/hooks/useChainlinkPrice';
 import { TransactionError } from '@/components/TransactionError';
 
 export default function CreateProposalPage() {
@@ -28,6 +29,8 @@ export default function CreateProposalPage() {
   const { isLoading: isConfirming, isSuccess: isConfirmed } = useWaitForTransactionReceipt({
     hash: txHash,
   });
+
+  const { priceInUsd: ethPriceInUsd, isLoading: isPriceLoading } = useChainlinkEthUsdPrice();
 
   const handleSubmit = useCallback(
     async (e: React.FormEvent) => {
@@ -177,6 +180,11 @@ export default function CreateProposalPage() {
                   <p className="text-tiny text-default-400">
                     Minimum 0.01 ETH. This rewards the winning evaluator.
                   </p>
+                  {formData.reward && ethPriceInUsd && ethPriceInUsd > 0 && (
+                    <p className="text-xs text-default-400">
+                      ≈ ${(parseFloat(formData.reward) * ethPriceInUsd).toFixed(2)} USD
+                    </p>
+                  )}
                 </div>
 
                 <div className="space-y-2">

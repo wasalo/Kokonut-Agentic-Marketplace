@@ -21,6 +21,7 @@ import {
   Token,
 } from '@/lib/hooks/useTokenConversion';
 import { showToast } from '@/lib/toast';
+import { AddressInput } from '@/components/AddressInput';
 
 const MAX_DESCRIPTION_LENGTH = 1000;
 const MIN_EXPIRY_DURATION = 5 * 60 * 1000;
@@ -512,19 +513,17 @@ function CreateJobContent() {
               <label htmlFor="evaluator" className="text-sm font-medium">
                 Evaluator Address
               </label>
-              <input
-                id="evaluator"
-                type="text"
-                placeholder={address || '0x...'}
+              <AddressInput
                 value={evaluator}
                 onChange={e => {
-                  setEvaluator(e.target.value);
-                  validateEvaluatorField(e.target.value);
+                  setEvaluator(e);
+                  validateEvaluatorField(e);
                 }}
                 onBlur={() => validateEvaluatorField(evaluator)}
-                className={`w-full px-3 py-2 bg-content2 border rounded-lg text-default-700 placeholder:text-default-400 focus:outline-none focus:ring-2 focus:ring-success focus:border-transparent ${
-                  evaluatorError ? 'border-danger' : 'border-divider'
-                }`}
+                placeholder={address || '0x... (optional)'}
+                error={evaluatorError}
+                showValidation={false}
+                resolveEns={true}
               />
               {evaluatorError ? (
                 <p className="text-xs text-danger">{evaluatorError}</p>
@@ -540,20 +539,17 @@ function CreateJobContent() {
                 <label htmlFor="provider" className="text-sm font-medium">
                   Provider Address <span className="text-danger">*</span>
                 </label>
-                <input
-                  id="provider"
-                  type="text"
-                  placeholder="0x..."
+                <AddressInput
                   value={provider}
                   onChange={e => {
-                    setProvider(e.target.value);
-                    validateProvider(e.target.value);
+                    setProvider(e);
+                    validateProvider(e);
                   }}
                   onBlur={() => validateProvider(provider)}
-                  required
-                  className={`w-full px-3 py-2 bg-content2 border rounded-lg text-default-700 placeholder:text-default-400 focus:outline-none focus:ring-2 focus:ring-success focus:border-transparent ${
-                    providerError ? 'border-danger' : 'border-divider'
-                  }`}
+                  placeholder="0x..."
+                  error={providerError}
+                  showValidation={true}
+                  resolveEns={true}
                 />
                 {providerError && <p className="text-xs text-danger">{providerError}</p>}
               </div>

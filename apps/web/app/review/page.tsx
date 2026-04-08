@@ -20,6 +20,7 @@ import { Card, Button } from '@heroui/react';
 import { useProposals, useReviewStats, Proposal } from '@/lib/hooks/useProposals';
 import { StatusBadge, getProposalStatusBadgeType } from '@/components/StatusBadge';
 import { useDebounce } from '@/lib/hooks/useDebounce';
+import { Address } from '@/components/Address';
 
 interface StatCardProps {
   label: string;
@@ -53,7 +54,6 @@ function ProposalCardSkeleton() {
 }
 
 function ProposalCard({ proposal }: { proposal: Proposal }) {
-  const formatAddress = (addr: string) => `${addr.slice(0, 6)}...${addr.slice(-4)}`;
   const formatReward = (reward: bigint) => `${(Number(reward) / Number(1e18)).toFixed(4)} ETH`;
 
   return (
@@ -81,7 +81,9 @@ function ProposalCard({ proposal }: { proposal: Proposal }) {
           )}
         </div>
         <div className="flex justify-between items-center text-sm mt-2">
-          <span className="text-default-500">By {formatAddress(proposal.proposer)}</span>
+          <span className="text-default-500">
+            By <Address address={proposal.proposer as `0x${string}`} truncate />
+          </span>
         </div>
       </Card>
     </NextLink>

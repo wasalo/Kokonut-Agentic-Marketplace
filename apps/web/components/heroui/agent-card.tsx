@@ -3,6 +3,7 @@
 import { Card, Chip } from '@heroui/react';
 import { Star, ExternalLink, Shield } from 'lucide-react';
 import NextLink from 'next/link';
+import { Address } from '@/components/Address';
 
 interface AgentCardProps {
   id: string;
@@ -62,9 +63,11 @@ export function AgentCard({
                     </span>
                   )}
                 </div>
-                <p className="text-small text-default-500 font-mono">
-                  {owner.slice(0, 6)}...{owner.slice(-4)}
-                </p>
+                <Address
+                  address={owner as `0x${string}`}
+                  truncate
+                  className="text-small text-default-500"
+                />
               </div>
               {rating > 0 && (
                 <div className="flex items-center gap-1 px-2 py-1 bg-warning-100 text-warning-700 rounded-full text-xs font-medium shrink-0">

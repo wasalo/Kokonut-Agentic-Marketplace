@@ -5,6 +5,90 @@ All notable changes to the Kokonut Agent Economy Stack are documented in this fi
 The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.0.0/),
 and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0.html).
 
+## [2026-04-07] - Phase 15: UX & Frontend Improvements
+
+### ⚡ RPC Configuration - Alchemy Integration
+
+**Enhanced RPC Reliability:**
+
+- Added Alchemy API key for production-grade RPC reliability
+- Primary RPC: `https://eth-sepolia.g.alchemy.com/v2/{API_KEY}`
+- Fallback RPCs: public nodes (publicnode, unifra, tenderly, etc.)
+- Configured in `.env` and `.env.local`
+- Updated `lib/wagmi.ts` to use Alchemy as primary transport
+
+### 🎨 Shared Address Component
+
+**New `Address` Component (`components/Address.tsx`):**
+
+- Consistent Ethereum address display with truncation
+- ENS name resolution support (mainnet)
+- Copy-to-clipboard on click
+- Direct link to block explorer (Sepolia Etherscan)
+- Replaces 15+ manual `.slice()` truncations across the codebase
+
+**Files Updated:**
+
+- `apps/web/app/jobs/[id]/page.tsx`
+- `apps/web/app/review/page.tsx`
+- `apps/web/app/review/[id]/page.tsx`
+- `apps/web/app/dashboard/page.tsx`
+- `apps/web/app/identity/[id]/page.tsx`
+- `apps/web/app/activity/page.tsx`
+- `apps/web/app/leaderboard/page.tsx`
+- `apps/web/components/heroui/service-list.tsx`
+- `apps/web/components/heroui/agent-card.tsx`
+- `apps/web/components/BiddingForms.tsx`
+
+### 🎨 AddressInput Component
+
+**New `AddressInput` Component (`components/AddressInput.tsx`):**
+
+- Real-time Ethereum address validation
+- Visual validation indicators (checkmark/error icons)
+- ENS resolution support (optional)
+- Error messages for invalid addresses
+- Paste support
+
+### 🔄 Shared Transaction Context
+
+**New `TransactionContext` (`contexts/TransactionContext.tsx`):**
+
+- Global pending transaction tracking
+- Shared across all components via React Context
+- Tracks pending/confirming/completed states
+- `TransactionProvider` added to app providers
+
+### 💰 USD Preview for ETH Values
+
+**ETH to USD Conversion:**
+
+- Added live USD preview to Review create page
+- Shows approximate USD value when entering ETH amounts
+- Uses `useChainlinkEthUsdPrice()` hook
+
+### ⚙️ Wagmi Configuration
+
+**Polling Interval:**
+
+- Added `pollingInterval: 3000` (3 seconds) to wagmi config
+- Consistent block polling across the application
+
+### 🎨 Theme Consistency
+
+**Error Boundary:**
+
+- Replaced hardcoded `bg-[#0a0a0a]` with theme tokens
+- Now uses `bg-background text-foreground`
+- Button uses `bg-primary text-primary-foreground`
+
+**Modal Overlays:**
+
+- Replaced `bg-black/50` with `bg-background/80 backdrop-blur-sm`
+- Debug panel uses `bg-content text-foreground`
+
+---
+
 ## [2026-04-07] - Phase 14: Security & Performance
 
 ### 🛡️ Permissionless Refunds

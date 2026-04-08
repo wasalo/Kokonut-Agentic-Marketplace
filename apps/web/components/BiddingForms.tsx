@@ -16,6 +16,7 @@ import {
 } from '@/lib/hooks/useJobs';
 import { getTransactionError, showToast } from '@/lib/toast';
 import { useFormSubmit, formatTimeRemaining } from '@/lib/hooks/useDebounce';
+import { Address } from '@/components/Address';
 import {
   useTokenPriceConversion,
   USDC_TOKEN,
@@ -390,7 +391,7 @@ export function AcceptBidForm({ job, bids, onSuccess }: AcceptBidFormProps) {
                       ${(Number(bid.proposedAmount) / 1e6).toFixed(2)} USDC
                     </p>
                     <p className="text-xs text-default-500 mt-1">
-                      Bidder: {bid.bidder.slice(0, 6)}...{bid.bidder.slice(-4)}
+                      Bidder: <Address address={bid.bidder as `0x${string}`} truncate />
                     </p>
                     {bid.message && <p className="text-sm text-default-600 mt-2">{bid.message}</p>}
                   </div>

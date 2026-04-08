@@ -4,15 +4,19 @@ import { injected, walletConnect } from 'wagmi/connectors';
 import { getContractAddress } from '@/lib/contracts/config';
 
 const projectId = process.env.NEXT_PUBLIC_WALLETCONNECT_PROJECT_ID || 'demo';
+const alchemyApiKey = process.env.NEXT_PUBLIC_ALCHEMY_API_KEY || '';
 
-const sepoliaRpcs = [
+// Alchemy RPC - Primary for reliability
+const alchemyRpc = alchemyApiKey
+  ? `https://eth-sepolia.g.alchemy.com/v2/${alchemyApiKey}`
+  : 'https://ethereum-sepolia-rpc.publicnode.com';
+
+// Fallback RPCs (public, rate-limited)
+const fallbackRpcs = [
   'https://ethereum-sepolia-rpc.publicnode.com',
-  'https://eth-sepolia.g.alchemy.com/v2/demo',
   'https://eth-sepolia-public.unifra.io',
   'https://sepolia.gateway.tenderly.co',
   'https://gateway.tenderly.co/public/sepolia',
-  'https://sphinx.shardeum.org',
-  'https://dapps.shardeum.org',
   'https://api.zan.top/eth-sepolia',
   'https://rpc.notadegen.com/eth/sepolia',
   'https://1rpc.io/sepolia',
@@ -20,6 +24,8 @@ const sepoliaRpcs = [
   'https://rpc.sepolia.ethpandaops.io',
   'https://invictus.ambire.com/sepolia',
 ];
+
+const sepoliaRpcs = [alchemyRpc, ...fallbackRpcs];
 
 export const config = createConfig({
   chains: [sepolia] as const,
@@ -38,6 +44,9 @@ export const config = createConfig({
   ],
   transports: {
     [sepolia.id]: fallback(sepoliaRpcs.map(url => http(url))),
+  },
+  config: {
+    pollingInterval: 3000,
   },
 } as any);
 

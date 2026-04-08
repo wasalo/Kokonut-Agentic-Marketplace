@@ -28,10 +28,10 @@ export class ClientErrorBoundary extends Component<Props, State> {
   render() {
     if (this.state.hasError) {
       return (
-        <div className="min-h-screen flex flex-col items-center justify-center p-8 text-center bg-[#0a0a0a] text-white">
-          <div className="w-16 h-16 rounded-full bg-red-500/20 flex items-center justify-center mb-4">
+        <div className="min-h-screen flex flex-col items-center justify-center p-8 text-center bg-background text-foreground">
+          <div className="w-16 h-16 rounded-full bg-danger-500/20 flex items-center justify-center mb-4">
             <svg
-              className="w-8 h-8 text-red-400"
+              className="w-8 h-8 text-danger"
               fill="none"
               viewBox="0 0 24 24"
               stroke="currentColor"
@@ -45,13 +45,13 @@ export class ClientErrorBoundary extends Component<Props, State> {
             </svg>
           </div>
           <h2 className="text-xl font-semibold mb-2">Something went wrong</h2>
-          <p className="text-neutral-400 mb-4 max-w-md text-sm">
+          <p className="text-default-500 mb-4 max-w-md text-sm">
             {this.state.error?.message ||
               'An unexpected error occurred while loading the application.'}
           </p>
           <button
             onClick={() => window.location.reload()}
-            className="px-5 py-2.5 bg-[#009F4D] text-white rounded-lg font-medium hover:opacity-90 transition-opacity"
+            className="px-5 py-2.5 bg-primary text-primary-foreground rounded-lg font-medium hover:opacity-90 transition-opacity"
           >
             Reload Page
           </button>

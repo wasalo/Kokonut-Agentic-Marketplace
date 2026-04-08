@@ -9,9 +9,18 @@
 
 ## Identity → Commerce → Coordination
 
-### 🎉 Latest: Phase 14 - Security & Performance (April 2026)
+### 🎉 Latest: Phase 15 - UX & Frontend Improvements (April 2026)
 
-**Security & Performance Improvements:**
+**Frontend Enhancements:**
+
+- ✅ **Address Component**: Shared `<Address />` with ENS, copy-to-clipboard, explorer links
+- ✅ **AddressInput Component**: Input with real-time validation and visual feedback
+- ✅ **TransactionContext**: Global shared pending state for all transactions
+- ✅ **USD Preview**: Live ETH-to-USD conversion in Review create page
+- ✅ **Theme Consistency**: Error boundary and overlays use semantic tokens
+- ✅ **PollingInterval**: Explicit 3-second block polling configured
+
+**Phase 14 Recap - Security & Performance:**
 
 - ✅ **Permissionless Refunds**: `refundExpired()` - anyone can trigger refunds for expired jobs
 - ✅ **Grace Period Finalization**: `finalizeDecision()` - permissionless finalization after 7-day grace period

@@ -6,6 +6,7 @@ import { Card } from '@heroui/react';
 import { Activity, Briefcase, ShoppingBag, Scale, ExternalLink, Filter } from 'lucide-react';
 import { useActivityFeed, ActivityType } from '@/lib/hooks/useActivityFeed';
 import { StatusBadge } from '@/components/StatusBadge';
+import { Address } from '@/components/Address';
 
 const ACTIVITY_ICONS: Record<ActivityType, React.ComponentType<{ className?: string }>> = {
   job: Briefcase,
@@ -78,9 +79,7 @@ function ActivityItem({ activity }: { activity: ActivityItemData }) {
         <p className="text-sm text-default-500 mb-1">{activity.details.description}</p>
 
         <div className="flex items-center gap-4 text-xs text-default-400">
-          <span className="font-mono">
-            {activity.actor.slice(0, 6)}...{activity.actor.slice(-4)}
-          </span>
+          <Address address={activity.actor} truncate />
           <span>Block {activity.blockNumber.toString()}</span>
           {activity.details.amount && (
             <span className="font-medium" style={{ color }}>

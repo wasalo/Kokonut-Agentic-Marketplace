@@ -27,6 +27,7 @@ import {
   useReleaseStake,
   useCancelProposal,
 } from '@/lib/hooks/useProposals';
+import { Address } from '@/components/Address';
 
 const PROPOSAL_STATUS: Record<number, string> = {
   0: 'Open',
@@ -282,9 +283,7 @@ export default function ProposalDetailPage({
                   key={ev}
                   className="flex items-center justify-between p-3 bg-content2 rounded-lg text-sm"
                 >
-                  <span className="font-mono text-xs">
-                    {ev.slice(0, 10)}...{ev.slice(-4)}
-                  </span>
+                  <Address address={ev as `0x${string}`} truncate />
                   {proposal.winningEvaluator.toLowerCase() === ev.toLowerCase() && (
                     <span className="text-xs px-2 py-0.5 rounded-full bg-success/10 text-success font-medium">
                       Winner

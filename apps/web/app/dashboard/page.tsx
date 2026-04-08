@@ -18,6 +18,7 @@ import NextLink from 'next/link';
 import { useJobCount, useUserJobs, getJobStatusLabel } from '@/lib/hooks/useJobs';
 import { useProposalCount, useProposals } from '@/lib/hooks/useProposals';
 import { useActivityFeed, ActivityType } from '@/lib/hooks/useActivityFeed';
+import { Address } from '@/components/Address';
 
 function WalletConnectPrompt() {
   return (
@@ -55,7 +56,6 @@ function UserJobsList({ user }: { user: `0x${string}` }) {
     );
   }
 
-  const formatAddress = (addr: string) => `${addr.slice(0, 6)}...${addr.slice(-4)}`;
   const activeJobs = jobs.filter(j => j.status <= 2);
 
   if (activeJobs.length === 0) {
@@ -72,8 +72,9 @@ function UserJobsList({ user }: { user: `0x${string}` }) {
         >
           <div>
             <p className="text-sm font-medium">Job #{job.id.toString()}</p>
-            <p className="text-xs text-default-500">
-              {formatAddress(job.provider)} → {formatAddress(job.client)}
+            <p className="text-xs text-default-500 flex items-center gap-1">
+              <Address address={job.provider as `0x${string}`} truncate /> →{' '}
+              <Address address={job.client as `0x${string}`} truncate />
             </p>
           </div>
           <Chip size="sm" variant="soft" color="success">

@@ -66,6 +66,7 @@ import {
   AcceptBidForm,
   BidStatusCard,
 } from '@/components/BiddingForms';
+import { Address } from '@/components/Address';
 
 export default function JobDetailPage({
   params,
@@ -369,25 +370,23 @@ export default function JobDetailPage({
           <div className="grid grid-cols-3 gap-4 mt-4 pt-4 border-t border-divider text-xs">
             <div>
               <p className="text-default-400 uppercase tracking-wide">Client</p>
-              <p className="font-mono mt-0.5">
-                {job.client.slice(0, 10)}...{job.client.slice(-4)}
-              </p>
+              <Address address={job.client as `0x${string}`} truncate className="mt-0.5" />
               {isClient && <span className="text-primary">(You)</span>}
             </div>
             <div>
               <p className="text-default-400 uppercase tracking-wide">Provider</p>
-              <p className="font-mono mt-0.5">
-                {job.provider === '0x0000000000000000000000000000000000000000'
-                  ? 'Open (Bidding)'
-                  : `${job.provider.slice(0, 6)}...${job.provider.slice(-4)}`}
-              </p>
-              {isProvider && <span className="text-primary">(You)</span>}
+              {job.provider === '0x0000000000000000000000000000000000000000' ? (
+                <span className="text-default-500 mt-0.5">Open (Bidding)</span>
+              ) : (
+                <>
+                  <Address address={job.provider as `0x${string}`} truncate className="mt-0.5" />
+                  {isProvider && <span className="text-primary">(You)</span>}
+                </>
+              )}
             </div>
             <div>
               <p className="text-default-400 uppercase tracking-wide">Evaluator</p>
-              <p className="font-mono mt-0.5">
-                {job.evaluator.slice(0, 10)}...{job.evaluator.slice(-4)}
-              </p>
+              <Address address={job.evaluator as `0x${string}`} truncate className="mt-0.5" />
               {isEvaluator && <span className="text-primary">(You)</span>}
               {isEvaluatorFeeEnabled && (
                 <span className="block text-xs text-success mt-1">+1% evaluator fee</span>
@@ -414,9 +413,7 @@ export default function JobDetailPage({
             <div className="flex items-center gap-2">
               <Link className="w-4 h-4 text-default-400" />
               <span className="text-sm text-default-500">Hook:</span>
-              <span className="text-sm font-mono text-default-600">
-                {job.hook.slice(0, 10)}...{job.hook.slice(-4)}
-              </span>
+              <Address address={job.hook as `0x${string}`} className="text-sm" />
             </div>
           </Card>
         )}
@@ -729,9 +726,7 @@ export default function JobDetailPage({
                           <div className="flex items-center justify-between">
                             <div>
                               <p className="text-xs text-default-500">Bidder {idx + 1}</p>
-                              <p className="font-mono text-sm">
-                                {bid.bidder.slice(0, 6)}...{bid.bidder.slice(-4)}
-                              </p>
+                              <Address address={bid.bidder as `0x${string}`} className="text-sm" />
                             </div>
                             <div className="text-right">
                               <span
@@ -844,7 +839,7 @@ export default function JobDetailPage({
 
         {/* Payment Token Setup Modal */}
         {showPaymentTokenModal && (
-          <div className="fixed inset-0 z-50 flex items-center justify-center bg-black/50">
+          <div className="fixed inset-0 z-50 flex items-center justify-center bg-background/80 backdrop-blur-sm">
             <Card className="max-w-md w-full mx-4 border border-divider p-6">
               <h2 className="text-xl font-semibold mb-4">Setup Payment Token</h2>
               <p className="text-default-500 text-sm mb-6">

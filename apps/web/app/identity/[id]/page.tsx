@@ -23,11 +23,7 @@ import { useAgentReputation } from '@/lib/hooks/useReputation';
 import { useAgentServices } from '@/lib/hooks/useServices';
 import { useAgentHealth } from '@/lib/hooks/useAgentHealth';
 import { getTierColor, getTierLabel, formatScore, getScoreColor } from '@/lib/healthScore';
-
-const formatAddress = (address: `0x${string}` | undefined): string => {
-  if (!address) return 'N/A';
-  return `${address.slice(0, 6)}...${address.slice(-4)}`;
-};
+import { Address } from '@/components/Address';
 
 const LoadingSkeleton = (): JSX.Element => (
   <Card className="max-w-2xl mx-auto p-6 border border-divider">
@@ -282,12 +278,12 @@ export default function AgentDetailPage(): JSX.Element | null {
           <div className="border-t border-divider pt-4 mt-6 space-y-2">
             <div className="flex justify-between text-sm">
               <span className="text-default-500">Owner</span>
-              <span className="font-mono">{formatAddress(agentOwner)}</span>
+              <Address address={agentOwner as `0x${string}`} truncate />
             </div>
             {agentWallet && agentWallet !== '0x0000000000000000000000000000000000000000' && (
               <div className="flex justify-between text-sm">
                 <span className="text-default-500">Agent Wallet</span>
-                <span className="font-mono">{formatAddress(agentWallet)}</span>
+                <Address address={agentWallet as `0x${string}`} truncate />
               </div>
             )}
           </div>

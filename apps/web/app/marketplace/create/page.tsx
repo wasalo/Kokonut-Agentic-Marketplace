@@ -363,7 +363,7 @@ export default function CreateServicePage() {
     if (!isDebugMode) return null;
 
     return (
-      <div className="fixed bottom-4 right-4 w-96 max-h-96 bg-black/90 text-green-400 p-4 rounded-lg overflow-auto font-mono text-xs z-50">
+      <div className="fixed bottom-4 right-4 w-96 max-h-96 bg-content text-foreground p-4 rounded-lg overflow-auto font-mono text-xs z-50 border border-divider shadow-lg">
         <div className="flex justify-between items-center mb-2">
           <span className="font-bold">Debug Console</span>
           <button onClick={() => refetch()} className="text-xs bg-green-800 px-2 py-1 rounded">
