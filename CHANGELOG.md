@@ -5,6 +5,93 @@ All notable changes to the Kokonut Agent Economy Stack are documented in this fi
 The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.0.0/),
 and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0.html).
 
+## [2026-04-08] - Phase 15: UX & Frontend Improvements (Continued)
+
+### 🌐 OpenGraph & Social Sharing
+
+**Metadata Updates (`app/layout.tsx`):**
+
+- Added `metadataBase: new URL('https://market.kokonut.network')`
+- Added `openGraph` configuration with title, description, images
+- Added `twitter.card: 'summary_large_image'` for Twitter sharing
+- OG image: `/kkn_x.jpg` (1200x630)
+
+### 🎨 Theme System
+
+**ThemeProvider (`contexts/ThemeContext.tsx`):**
+
+- Custom theme context with localStorage persistence
+- Default to dark mode
+- Toggle between dark/light themes
+- Used by navbar theme toggle button
+
+**Navbar Theme Toggle:**
+
+- Added Sun/Moon icon button to navbar
+- Allows users to switch between dark and light modes
+- Preference persisted in localStorage
+
+### 🔔 Toast Notifications
+
+**Sonner Integration:**
+
+- Added `sonner@^2.0.7` to dependencies
+- `<Toaster richColors position="bottom-right" closeButton />` in layout
+- Consistent toast notifications across the application
+
+### 🛡️ Error Handling Improvements
+
+**ErrorDisplay Component (`components/ErrorDisplay.tsx`):**
+
+- Reusable error display component
+- Uses `getTransactionError()` for human-readable messages
+- Consistent styling with `bg-danger-50` and `text-danger`
+- Replaces raw `error.message` in contract error displays
+
+**Transaction Error Display Updates:**
+
+- `jobs/[id]/page.tsx` - Replaced `{currentError.message}` with `<ErrorDisplay />`
+- `review/[id]/page.tsx` - Replaced `{currentError.message}` with `<ErrorDisplay />`
+
+### ⚠️ Confirmation Modals
+
+**ConfirmModal Component (`components/ConfirmModal.tsx`):**
+
+- Reusable confirmation modal component
+- Supports `danger`, `warning`, and `default` variants
+- Loading state with spinner
+- Replaces native `window.confirm()` dialogs
+
+**Files Updated:**
+
+- `review/[id]/page.tsx` - Proposal cancellation confirmation
+- `jobs/[id]/page.tsx` - Bid withdrawal confirmation
+- `dashboard/skills/page.tsx` - Skill deactivation confirmation
+- `notifications/page.tsx` - Clear all notifications confirmation
+
+### 💰 Token Address Configuration
+
+**Centralized USDC Address:**
+
+- Updated `PaymentTokenSelector.tsx` to use `CONTRACTS[11155111].usdc`
+- Updated `jobs/[id]/page.tsx` to use `CONTRACTS[11155111].usdc`
+- Removed hardcoded `0x1c7D4B196Cb0C7B01d743Fbc6116a902379C7238`
+
+### 🔒 Wallet Shim Logging
+
+**Improved Error Visibility:**
+
+- Changed `console.debug()` to `console.warn()` in development mode
+- Wallet shim errors now visible in browser dev tools
+
+### 📝 Form Validation
+
+**Review/Create Form:**
+
+- Replaced `alert()` with `showToast.warning()` for minimum reward validation
+
+---
+
 ## [2026-04-07] - Phase 15: UX & Frontend Improvements
 
 ### ⚡ RPC Configuration - Alchemy Integration

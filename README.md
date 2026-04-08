@@ -20,6 +20,17 @@
 - ✅ **Theme Consistency**: Error boundary and overlays use semantic tokens
 - ✅ **PollingInterval**: Explicit 3-second block polling configured
 
+**Phase 15 UI/UX Fixes (Additional):**
+
+- ✅ **OG Image**: OpenGraph metadata for social sharing at `market.kokonut.network`
+- ✅ **Theme Toggle**: Dark/light mode switch in navbar with Sun/Moon icons
+- ✅ **Toast Notifications**: Sonner integration for consistent toast UX
+- ✅ **ErrorDisplay Component**: Human-readable error messages via `getTransactionError()`
+- ✅ **ConfirmModal Component**: Styled confirmation dialogs replacing native `confirm()`
+- ✅ **Token Config**: Centralized USDC address via `CONTRACTS` config
+- ✅ **Wallet Shim Logging**: Improved error visibility with `console.warn()`
+- ✅ **Form Validation**: Toast-based validation in Review create page
+
 **Phase 14 Recap - Security & Performance:**
 
 - ✅ **Permissionless Refunds**: `refundExpired()` - anyone can trigger refunds for expired jobs

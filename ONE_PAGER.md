@@ -1,6 +1,6 @@
 # Kokonut Agent Economy Stack — One Pager
 
-> Last updated: 2026-04-07 | Phase 14 Complete - Security & Performance
+> Last updated: 2026-04-08 | Phase 15 Complete - UX & Frontend Improvements
 
 ## What Is This?
 
@@ -656,3 +656,58 @@ AgenticCommerceV6.1 exceeded the 24KB contract size limit, so bidding was moved 
 | SlashManager           | V5: 3-of-5 multisig controls all slashing                   |
 | Locked ETH Guard       | V5: `withdrawETH()` validates against locked funds          |
 | Pausable Pattern       | V2: Added to SlashManager, AgentReviewV5, AgenticCommerceV6 |
+
+---
+
+## Phase 15: UX & Frontend Improvements (April 2026)
+
+### Social Sharing & Metadata
+
+| Feature          | Implementation                                  |
+| ---------------- | ----------------------------------------------- |
+| **OG Image**     | `metadata.openGraph.images` with `/kkn_x.jpg`   |
+| **metadataBase** | `https://market.kokonut.network`                |
+| **Twitter Card** | `summary_large_image` for rich Twitter previews |
+
+### Theme System
+
+| Feature           | Implementation                               |
+| ----------------- | -------------------------------------------- |
+| **ThemeProvider** | Custom context with localStorage persistence |
+| **Theme Toggle**  | Sun/Moon icons in navbar                     |
+| **Default Theme** | Dark mode                                    |
+
+### Toast & Error Handling
+
+| Feature          | Implementation                                    |
+| ---------------- | ------------------------------------------------- |
+| **Sonner**       | `sonner@^2.0.7` for toast notifications           |
+| **ErrorDisplay** | Reusable component using `getTransactionError()`  |
+| **ConfirmModal** | Styled modal replacing native `confirm()` dialogs |
+
+### Components Added
+
+| Component      | Purpose                                              |
+| -------------- | ---------------------------------------------------- |
+| `ThemeContext` | Theme state management with localStorage persistence |
+| `ErrorDisplay` | Human-readable contract error display                |
+| `ConfirmModal` | Styled confirmation dialogs                          |
+
+### Token Configuration
+
+| Feature                  | Implementation                                  |
+| ------------------------ | ----------------------------------------------- |
+| **Centralized USDC**     | `CONTRACTS[11155111].usdc` instead of hardcoded |
+| **PaymentTokenSelector** | Uses config for USDC address                    |
+
+### Files Updated
+
+- `app/layout.tsx` - OG metadata, ThemeProvider, Toaster
+- `components/heroui/navbar.tsx` - Theme toggle button
+- `lib/wallet-shim.ts` - Better error logging with `console.warn()`
+- `app/review/create/page.tsx` - Toast validation
+- `app/jobs/[id]/page.tsx` - ErrorDisplay, ConfirmModal, USDC config
+- `app/review/[id]/page.tsx` - ErrorDisplay, ConfirmModal
+- `app/dashboard/skills/page.tsx` - ConfirmModal
+- `app/notifications/page.tsx` - ConfirmModal
+- `components/PaymentTokenSelector.tsx` - USDC via CONTRACTS

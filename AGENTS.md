@@ -14,6 +14,13 @@
 >   - USD preview for ETH values in Review pages
 >   - Theme consistency: Error boundary and overlays use semantic tokens
 >   - Wagmi pollingInterval: 3000ms explicitly configured
+>   - **OG Image**: OpenGraph metadata for social sharing at `market.kokonut.network`
+>   - **Theme Toggle**: Dark/light mode switch in navbar with Sun/Moon icons
+>   - **Toast Notifications**: Sonner integration for consistent toast UX
+>   - **ErrorDisplay Component**: Human-readable error messages via `getTransactionError()`
+>   - **ConfirmModal Component**: Styled confirmation dialogs replacing native `confirm()`
+>   - **Token Config**: Centralized USDC address via `CONTRACTS` config
+>   - **Wallet Shim Logging**: Improved error visibility with `console.warn()`
 > - **Phase 14: Security & Performance (April 2026)**:
 >   - AgenticCommerceV6: `refundExpired()` - Permissionless function to trigger refunds for expired jobs
 >   - AgentReviewV5: `finalizeDecision()` - Permissionless finalization after 7-day grace period using median evaluator
