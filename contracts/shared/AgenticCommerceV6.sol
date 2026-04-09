@@ -263,7 +263,7 @@ contract AgenticCommerceV6 is
         jobClient[jobId] = _msgSender();
         clientJobCount[_msgSender()]++;
 
-        emit JobCreated(jobId, _msgSender(), provider, evaluator, 0, expiredAt);
+        emit JobCreated(jobId, _msgSender(), provider, 0, expiredAt);
     }
 
     /**
@@ -321,10 +321,11 @@ contract AgenticCommerceV6 is
         if (job.provider != address(0)) revert WrongStatus();
         if (provider == _msgSender() || provider == address(0)) revert InvalidJob();
 
+        address oldProvider = job.provider;
         job.provider = provider;
         
-        emit ProviderSet(jobId, provider);
-        emit JobUpdated(jobId, _UPDATE_TYPE_PROVIDER, block.timestamp);
+        emit ProviderSet(jobId, provider, oldProvider);
+        emit JobUpdated(jobId, _UPDATE_TYPE_PROVIDER, bytes32(uint256(uint160(oldProvider))), bytes32(uint256(uint160(provider))), block.timestamp);
     }
 
     function setBudget(uint256 jobId, uint256 amount) external nonReentrant onlyClient(jobId) {
@@ -333,10 +334,11 @@ contract AgenticCommerceV6 is
         if (uint256(job.status) != 0) revert WrongStatus();
         if (amount == 0) revert ZeroBudget();
 
+        uint256 oldBudget = job.budget;
         job.budget = amount;
         
-        emit BudgetSet(jobId, amount);
-        emit JobUpdated(jobId, _UPDATE_TYPE_BUDGET, block.timestamp);
+        emit BudgetSet(jobId, oldBudget, amount);
+        emit JobUpdated(jobId, _UPDATE_TYPE_BUDGET, bytes32(oldBudget), bytes32(amount), block.timestamp);
     }
 
     function fund(uint256 jobId) external payable nonReentrant onlyClient(jobId) {
@@ -369,7 +371,7 @@ contract AgenticCommerceV6 is
         }
         
         emit JobFunded(jobId, _msgSender(), cachedBudget);
-        emit JobStatusChanged(jobId, oldStatus, JobStatus.Funded, block.timestamp);
+        emit JobStatusChanged(jobId, oldStatus, JobStatus.Funded, _msgSender(), block.timestamp);
     }
 
     function _validateFund(Job storage job) internal view {
@@ -397,7 +399,7 @@ contract AgenticCommerceV6 is
         }
         
         emit JobSubmitted(jobId, _msgSender(), deliverable);
-        emit JobStatusChanged(jobId, oldStatus, JobStatus.Submitted, block.timestamp);
+        emit JobStatusChanged(jobId, oldStatus, JobStatus.Submitted, _msgSender(), block.timestamp);
     }
 
     function complete(uint256 jobId, bytes32 reason) external nonReentrant onlyEvaluator(jobId) {
@@ -438,9 +440,9 @@ contract AgenticCommerceV6 is
             _transferPayment(paymentToken, prov, net);
         }
 
-        emit JobCompleted(jobId, _msgSender(), reason, evaluatorFee);
+        emit JobCompleted(jobId, _msgSender(), job.provider, evaluatorFee);
         emit PaymentReleased(jobId, prov, net);
-        emit JobStatusChanged(jobId, JobStatus.Submitted, JobStatus.Completed, block.timestamp);
+        emit JobStatusChanged(jobId, JobStatus.Submitted, JobStatus.Completed, _msgSender(), block.timestamp);
     }
 
     function completeAfterTimeout(uint256 jobId, bytes32 reason) external nonReentrant whenNotPaused {
@@ -490,10 +492,10 @@ contract AgenticCommerceV6 is
             _transferPayment(paymentToken, prov, net);
         }
 
-        emit JobCompleted(jobId, _msgSender(), reason, 0);
+        emit JobCompleted(jobId, _msgSender(), job.provider, 0);
         emit PaymentReleased(jobId, prov, net);
         emit EvaluatorSlashedForInactivity(jobId, job.evaluator, slashAmount);
-        emit JobStatusChanged(jobId, JobStatus.Submitted, JobStatus.Completed, block.timestamp);
+        emit JobStatusChanged(jobId, JobStatus.Submitted, JobStatus.Completed, _msgSender(), block.timestamp);
     }
 
     function setDisputeWindow(uint256 jobId, uint256 window) external onlyClient(jobId) {
@@ -536,7 +538,7 @@ contract AgenticCommerceV6 is
         }
 
         emit JobRejected(jobId, _msgSender(), reason);
-        emit JobStatusChanged(jobId, oldStatus, JobStatus.Rejected, block.timestamp);
+        emit JobStatusChanged(jobId, oldStatus, JobStatus.Rejected, _msgSender(), block.timestamp);
     }
 
     function claimRefund(uint256 jobId) external nonReentrant onlyClient(jobId) {
@@ -556,7 +558,7 @@ contract AgenticCommerceV6 is
         
         emit Refunded(jobId, _msgSender(), refundAmount);
         emit JobExpired(jobId);
-        emit JobStatusChanged(jobId, oldStatus, JobStatus.Expired, block.timestamp);
+        emit JobStatusChanged(jobId, oldStatus, JobStatus.Expired, _msgSender(), block.timestamp);
     }
     
     /**
@@ -581,10 +583,10 @@ contract AgenticCommerceV6 is
         
         _transferPayment(job.paymentToken, client, refundAmount);
         
-        emit PermissionlessRefund(jobId, client, refundAmount, _msgSender());
+        emit PermissionlessRefund(jobId, client, _msgSender(), refundAmount);
         emit Refunded(jobId, client, refundAmount);
         emit JobExpired(jobId);
-        emit JobStatusChanged(jobId, oldStatus, JobStatus.Expired, block.timestamp);
+        emit JobStatusChanged(jobId, oldStatus, JobStatus.Expired, _msgSender(), block.timestamp);
     }
 
     /***********************************/
@@ -718,7 +720,7 @@ contract AgenticCommerceV6 is
         address randomEvaluator = _selectRandomEvaluator();
         jobs[jobId].evaluator = randomEvaluator;
         
-        emit JobCreated(jobId, _msgSender(), provider, randomEvaluator, 0, expiredAt);
+        emit JobCreated(jobId, _msgSender(), provider, 0, expiredAt);
         emit EvaluatorRandomlySelected(jobId, randomEvaluator);
     }
 

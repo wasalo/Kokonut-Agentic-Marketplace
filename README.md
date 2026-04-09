@@ -9,7 +9,33 @@
 
 ## Identity → Commerce → Coordination
 
-### 🎉 Latest: Phase 17 - Function/Hook Parity & UX Improvements (April 2026)
+### 🎉 Latest: Phase 18 - Event Enhancements & UI Improvements (April 2026)
+
+**Contract Upgrades:**
+
+- ✅ **AgenticCommerceV6**: Upgraded to `0xEecC615310f6A6144eeA0F235E83b7BD391EC251`
+- ✅ **AgentReviewV5**: Upgraded to `0xFf4D6df8dDca340e2ff59615Dd00C325706019f7`
+
+**Event Enhancements:**
+
+- ✅ Added more indexed parameters to events for off-chain filtering
+- ✅ Added `changedBy` address to JobStatusChanged and ProposalStatusChanged events
+- ✅ Added `oldValue`/`newValue` to JobUpdated event
+- ✅ Added `confidenceScore` to EvaluationFinalized event
+
+**UI Improvements:**
+
+- ✅ **ERROR_CODES mapping**: User-friendly error messages with resolution steps in toast.ts
+- ✅ **TransactionProgress component**: Toast-based transaction lifecycle (pending → confirming → mining → success/error)
+- ✅ **Skeleton loaders**: New reusable Skeletons.tsx component for better perceived performance
+
+**Documentation:**
+
+- ✅ New docs/ERROR_CODES.md - Complete error code reference
+- ✅ New docs/SEARCH.md - Search and filtering capabilities
+- ✅ New docs/ACCESSIBILITY.md - a11y guidelines
+
+### 🎉 Previous: Phase 17 - Function/Hook Parity & UX Improvements (April 2026)
 
 **Missing Hooks Added:**
 

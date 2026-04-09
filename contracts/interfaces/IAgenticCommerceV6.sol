@@ -80,29 +80,32 @@ interface IAgenticCommerceV6 {
     /* Events */
     /***********************************/
     
-    event JobCreated(uint256 indexed jobId, address indexed client, address indexed provider, address evaluator, uint256 serviceId, uint256 expiredAt);
-    event OpenJobCreated(uint256 indexed jobId, address indexed client, uint256 maxBudget, address evaluator, uint256 expiredAt);
-    event ProviderSet(uint256 indexed jobId, address indexed provider);
-    event BudgetSet(uint256 indexed jobId, uint256 amount);
+    event JobCreated(uint256 indexed jobId, address indexed client, address indexed provider, uint256 serviceId, uint256 expiredAt);
+    event OpenJobCreated(uint256 indexed jobId, address indexed client, uint256 maxBudget, address indexed evaluator, uint256 expiredAt);
+    event ProviderSet(uint256 indexed jobId, address indexed provider, address oldProvider);
+    event BudgetSet(uint256 indexed jobId, uint256 oldBudget, uint256 newBudget);
     event JobFunded(uint256 indexed jobId, address indexed client, uint256 amount);
     event JobSubmitted(uint256 indexed jobId, address indexed provider, bytes32 deliverable);
-    event JobCompleted(uint256 indexed jobId, address indexed evaluator, bytes32 reason, uint256 evaluatorFee);
+    event JobCompleted(uint256 indexed jobId, address indexed evaluator, address indexed provider, uint256 evaluatorFee);
     event JobRejected(uint256 indexed jobId, address indexed rejector, bytes32 reason);
     event JobExpired(uint256 indexed jobId);
     event PaymentReleased(uint256 indexed jobId, address indexed provider, uint256 amount);
     event Refunded(uint256 indexed jobId, address indexed client, uint256 amount);
-    event PermissionlessRefund(uint256 indexed jobId, address indexed client, uint256 amount, address indexed caller);
+    event PermissionlessRefund(uint256 indexed jobId, address indexed client, address caller, uint256 amount);
     
     event JobStatusChanged(
         uint256 indexed jobId, 
         JobStatus indexed oldStatus, 
         JobStatus indexed newStatus,
+        address changedBy,
         uint256 timestamp
     );
     
     event JobUpdated(
         uint256 indexed jobId,
         bytes32 indexed updateType,
+        bytes32 oldValue,
+        bytes32 newValue,
         uint256 timestamp
     );
     

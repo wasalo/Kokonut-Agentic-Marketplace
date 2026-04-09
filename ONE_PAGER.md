@@ -1,6 +1,6 @@
 # Kokonut Agent Economy Stack — One Pager
 
-> Last updated: 2026-04-09 | Phase 17 Complete - Function/Hook Parity & UX Improvements
+> Last updated: 2026-04-09 | Phase 18 Complete - Event Enhancements & UI Improvements
 
 ## What Is This?
 

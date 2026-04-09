@@ -6,7 +6,6 @@ import {
   Briefcase,
   Clock,
   Plus,
-  Loader2,
   ChevronLeft,
   ChevronRight,
   Search,
@@ -27,6 +26,7 @@ import {
 import { useJobEvents } from '@/lib/hooks/useJobEvents';
 import { useJobBookmarks, useBookmarkCounts } from '@/lib/hooks/useBookmarks';
 import { useService } from '@/lib/hooks/useServices';
+import { GridSkeleton } from '@/components/Skeletons';
 import { useState, useCallback, useEffect } from 'react';
 import { StatusBadge, getJobStatusBadgeType } from '@/components/StatusBadge';
 import { useDebounce } from '@/lib/hooks/useDebounce';
@@ -377,9 +377,7 @@ export default function JobsPage(): JSX.Element {
       </div>
 
       {isLoading ? (
-        <div className="flex items-center justify-center py-16">
-          <Loader2 className="w-8 h-8 animate-spin text-primary" />
-        </div>
+        <GridSkeleton count={8} />
       ) : sortedJobs.length === 0 ? (
         <div className="text-center py-16">
           <div className="h-16 w-16 rounded-full bg-content2 flex items-center justify-center mx-auto mb-4">

@@ -46,31 +46,33 @@ interface IAgentReviewV5 {
     }
 
     // Core Events
-    event ProposalCreated(uint256 indexed proposalId, address indexed proposer, string title, uint256 reward);
-    event EvaluationSubmitted(uint256 indexed proposalId, address indexed evaluator, int256 confidenceScore, uint256 stakeAmount);
+    event ProposalCreated(uint256 indexed proposalId, address indexed proposer, string title, uint256 indexed reward);
+    event EvaluationSubmitted(uint256 indexed proposalId, address indexed evaluator, int256 indexed confidenceScore, uint256 stakeAmount);
     event DecisionAttested(uint256 indexed proposalId, address indexed attestor, address indexed winningEvaluator);
-    event EvaluatorSlashed(address indexed evaluator, uint256 slashAmount, string reason);
-    event RewardClaimed(uint256 indexed proposalId, address indexed evaluator, uint256 amount);
-    event StakeReleased(uint256 indexed proposalId, address indexed evaluator, uint256 amount);
+    event EvaluatorSlashed(address indexed evaluator, uint256 indexed slashAmount, string reason);
+    event RewardClaimed(uint256 indexed proposalId, address indexed evaluator, uint256 indexed amount);
+    event StakeReleased(uint256 indexed proposalId, address indexed evaluator, uint256 indexed amount);
 
     // Phase 3: Enhanced Events
     event ProposalStatusChanged(
         uint256 indexed proposalId,
         ProposalStatus indexed oldStatus,
         ProposalStatus indexed newStatus,
+        address changedBy,
         uint256 timestamp
     );
     
     event EvaluatorLimitReached(
         uint256 indexed proposalId,
-        uint256 currentCount,
-        uint256 maxAllowed
+        uint256 indexed currentCount,
+        uint256 indexed maxAllowed
     );
     
     event EvaluationFinalized(
         uint256 indexed proposalId,
         address indexed evaluator,
-        bool isWinner
+        bool indexed isWinner,
+        int256 confidenceScore
     );
     
     event StakeAmountChanged(
@@ -83,13 +85,13 @@ interface IAgentReviewV5 {
     event ProposalCancelledByProposer(
         uint256 indexed proposalId,
         address indexed proposer,
-        uint256 refundAmount
+        uint256 indexed refundAmount
     );
     
     event EvaluatorRegistered(
         uint256 indexed proposalId,
         address indexed evaluator,
-        uint256 evaluatorIndex
+        uint256 indexed evaluatorIndex
     );
     
     event RewardDistributionFailed(
@@ -257,7 +259,7 @@ contract AgentReviewV5 is IAgentReviewV5, ContextUpgradeable, OwnableUpgradeable
         });
 
         emit ProposalCreated(proposalId, _msgSender(), title, reward);
-        emit ProposalStatusChanged(proposalId, ProposalStatus.Open, ProposalStatus.Open, block.timestamp);
+        emit ProposalStatusChanged(proposalId, ProposalStatus.Open, ProposalStatus.Open, _msgSender(), block.timestamp);
     }
 
     function submitEvaluation(
@@ -327,9 +329,9 @@ contract AgentReviewV5 is IAgentReviewV5, ContextUpgradeable, OwnableUpgradeable
         // M4 Fix: Proportional rewards based on score accuracy
         _distributeProportionalRewards(proposalId, winningEvaluator);
 
-        emit EvaluationFinalized(proposalId, winningEvaluator, true);
+        emit EvaluationFinalized(proposalId, winningEvaluator, true, 0);
         emit DecisionAttested(proposalId, _msgSender(), winningEvaluator);
-        emit ProposalStatusChanged(proposalId, oldStatus, ProposalStatus.Decided, block.timestamp);
+        emit ProposalStatusChanged(proposalId, oldStatus, ProposalStatus.Decided, _msgSender(), block.timestamp);
     }
     
     /**
@@ -360,9 +362,9 @@ contract AgentReviewV5 is IAgentReviewV5, ContextUpgradeable, OwnableUpgradeable
         // M4 Fix: Distribute proportional rewards
         _distributeProportionalRewards(proposalId, winner);
         
-        emit EvaluationFinalized(proposalId, winner, true);
+        emit EvaluationFinalized(proposalId, winner, true, winningEval.confidenceScore);
         emit DecisionAttested(proposalId, address(0), winner);
-        emit ProposalStatusChanged(proposalId, oldStatus, ProposalStatus.Decided, block.timestamp);
+        emit ProposalStatusChanged(proposalId, oldStatus, ProposalStatus.Decided, _msgSender(), block.timestamp);
     }
     
     /**
@@ -629,7 +631,7 @@ contract AgentReviewV5 is IAgentReviewV5, ContextUpgradeable, OwnableUpgradeable
         require(success, "Transfer failed");
 
         emit ProposalCancelledByProposer(proposalId, _msgSender(), refund);
-        emit ProposalStatusChanged(proposalId, oldStatus, ProposalStatus.Cancelled, block.timestamp);
+        emit ProposalStatusChanged(proposalId, oldStatus, ProposalStatus.Cancelled, _msgSender(), block.timestamp);
     }
 
     function setUnderReview(uint256 proposalId) external {
@@ -640,7 +642,7 @@ contract AgentReviewV5 is IAgentReviewV5, ContextUpgradeable, OwnableUpgradeable
         ProposalStatus oldStatus = proposal.status;
         proposal.status = ProposalStatus.UnderReview;
         
-        emit ProposalStatusChanged(proposalId, oldStatus, ProposalStatus.UnderReview, block.timestamp);
+        emit ProposalStatusChanged(proposalId, oldStatus, ProposalStatus.UnderReview, _msgSender(), block.timestamp);
     }
 
     /**
