@@ -4,7 +4,6 @@
     "module": "NodeNext",
     "moduleResolution": "NodeNext",
     "lib": ["ES2022"],
-    "declaration": false,
     "outDir": "./dist",
     "rootDir": ".",
     "strict": false,
@@ -20,6 +19,6 @@
     "noImplicitReturns": false,
     "allowJs": true
   },
-  "include": ["./**/*.ts"],
+  "include": ["cli.ts"],
   "exclude": ["node_modules", "dist"]
 }

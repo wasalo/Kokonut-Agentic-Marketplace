@@ -7,7 +7,17 @@ import { Command } from 'commander';
 import { ethers } from 'ethers';
 import chalk from 'chalk';
 import * as dotenv from 'dotenv';
-import { NETWORKS, type NetworkName } from '../config/networks';
+import { createRequire } from 'module';
+import { fileURLToPath } from 'url';
+import { dirname, join } from 'path';
+
+const __filename = fileURLToPath(import.meta.url);
+const __dirname = dirname(__filename);
+
+const require = createRequire(import.meta.url);
+const { NETWORKS } = require(join(__dirname, '../../config/networks.js'));
+
+type NetworkName = 'sepolia' | 'mainnet';
 
 // Load environment variables
 dotenv.config();

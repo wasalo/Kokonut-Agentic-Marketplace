@@ -4,12 +4,13 @@
   "description": "CLI for Kokonut Agent Economy",
   "type": "module",
   "bin": {
-    "kokonut": "./cli.js"
+    "kokonut": "./dist/cli.js"
   },
   "scripts": {
-    "build": "tsc -p tsconfig.json",
+    "build": "tsc -p tsconfig.json && mkdir -p dist/config && cp ../config/networks.js dist/config/networks.js",
     "start": "node dist/cli.js",
-    "dev": "tsx cli.ts"
+    "dev": "tsx cli.ts",
+    "type-check": "tsc --noEmit"
   },
   "keywords": [
     "kokonut",

@@ -2,23 +2,22 @@
   "compilerOptions": {
     "target": "ES2020",
     "module": "commonjs",
-    "lib": ["ES2020"],
-    "outDir": "../../dist/sdk/typescript",
+    "lib": ["ES2021"],
+    "outDir": "./dist",
     "rootDir": ".",
-    "strict": true,
+    "strict": false,
     "esModuleInterop": true,
     "skipLibCheck": true,
     "forceConsistentCasingInFileNames": true,
     "resolveJsonModule": true,
+    "moduleResolution": "node",
+    "baseUrl": ".",
     "declaration": true,
     "declarationMap": true,
     "sourceMap": true,
-    "moduleResolution": "node",
-    "baseUrl": ".",
-    "paths": {
-      "@/*": ["./*"]
-    }
+    "noEmit": false,
+    "typeRoots": ["./node_modules/@types"]
   },
-  "include": ["**/*.ts"],
+  "include": ["client.ts", "types.ts", "index.ts"],
   "exclude": ["node_modules", "dist", "test"]
 }

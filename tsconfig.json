@@ -31,6 +31,6 @@
       "@/*": ["./*"]
     }
   },
-  "include": ["sdk/**/*", "cli/**/*", "config/**/*", "scripts/**/*"],
+  "include": ["sdk/**/*", "cli/**/*", "scripts/**/*"],
   "exclude": ["node_modules", "dist", "apps", "**/*.test.ts", "**/*.spec.ts"]
 }

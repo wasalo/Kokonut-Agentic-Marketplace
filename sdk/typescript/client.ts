@@ -3,9 +3,7 @@
  * Type-safe client for interacting with the Kokonut Agent Economy Stack
  */
 
-import { ethers } from 'ethers';
-import { createPublicClient, http, type Address as ViemAddress } from 'viem';
-import { mainnet, sepolia } from 'viem/chains';
+import { ethers, Contract } from 'ethers';
 import type {
   SDKConfig,
   NetworkName,
@@ -182,9 +180,6 @@ export class KokonutClient {
   private contracts: ContractAddresses;
   private eventHandlers: Map<SDKEventName, Set<SDKEventHandler>> = new Map();
 
-  // M5 Fix: Viem public client for multicall (read operations)
-  private viemClient: ReturnType<typeof createPublicClient>;
-
   // Contract instances
   public identity: IdentityModule;
   public reputation: ReputationModule;
@@ -207,13 +202,6 @@ export class KokonutClient {
     const rpcUrl = config.rpcUrl || networkConfig.rpcUrl;
     this.provider = new ethers.JsonRpcProvider(rpcUrl);
 
-    // M5 Fix: Create viem client for multicall
-    const chain = this.network === 'mainnet' ? mainnet : sepolia;
-    this.viemClient = createPublicClient({
-      chain,
-      transport: http(rpcUrl),
-    });
-
     if (typeof config.wallet === 'string') {
       this.wallet = new ethers.Wallet(config.wallet, this.provider);
     } else {
@@ -226,7 +214,7 @@ export class KokonutClient {
     // Initialize modules
     this.identity = new IdentityModule(this.wallet, this.contracts);
     this.reputation = new ReputationModule(this.wallet, this.contracts);
-    this.services = new ServicesModule(this.wallet, this.contracts, this.viemClient);
+    this.services = new ServicesModule(this.wallet, this.contracts, this.provider);
     this.commerce = new CommerceModule(this.wallet, this.contracts);
     this.review = new ReviewModule(this.wallet, this.contracts);
     this.skills = new SkillsModule(this.wallet, this.contracts);
@@ -486,20 +474,24 @@ class ReputationModule {
 class ServicesModule {
   private wallet: ethers.Wallet;
   private contracts: ContractAddresses;
-  private viemClient: ReturnType<typeof createPublicClient>;
+  private provider: ethers.JsonRpcProvider;
 
   constructor(
     wallet: ethers.Wallet,
     contracts: ContractAddresses,
-    viemClient: ReturnType<typeof createPublicClient>
+    provider: ethers.JsonRpcProvider
   ) {
     this.wallet = wallet;
     this.contracts = contracts;
-    this.viemClient = viemClient;
+    this.provider = provider;
   }
 
   private get contract() {
-    return new ethers.Contract(this.contracts.serviceRegistry, SERVICE_REGISTRY_ABI, this.wallet);
+    return new Contract(this.contracts.serviceRegistry, SERVICE_REGISTRY_ABI, this.wallet);
+  }
+
+  private get contractRead() {
+    return new Contract(this.contracts.serviceRegistry, SERVICE_REGISTRY_ABI, this.provider);
   }
 
   async create(params: ServiceParams): Promise<TransactionResult> {
@@ -534,161 +526,77 @@ class ServicesModule {
     };
   }
 
-  /**
-   * M5 Fix: Use multicall instead of N+1 queries
-   */
   async list(page = 0, pageSize = 20): Promise<Service[]> {
-    const serviceIds = await this.contract.getServices(page * pageSize, pageSize);
+    const serviceIds = await this.contractRead.getServices(page * pageSize, pageSize);
 
     if (serviceIds.length === 0) return [];
 
-    // M5 Fix: Use viem multicall for batch fetching
-    const calls = serviceIds.map((id: bigint) => ({
-      address: this.contracts.serviceRegistry as ViemAddress,
-      abi: SERVICE_REGISTRY_ABI,
-      functionName: 'getService',
-      args: [id],
+    const results = await Promise.all(
+      serviceIds.map((id: bigint) => this.contractRead.getService(id))
+    );
+
+    return results.map(service => ({
+      id: service.id,
+      provider: service.provider as Address,
+      agentId: service.agentId,
+      name: service.name,
+      description: service.description,
+      metadataURI: service.metadataURI,
+      price: service.price,
+      paymentToken: service.paymentToken as Address,
+      isActive: service.isActive,
+      createdAt: service.createdAt,
     }));
-
-    const results = await this.viemClient.multicall({ contracts: calls });
-    const services: Service[] = [];
-
-    for (const result of results) {
-      if (result.status === 'success') {
-        const service = result.result as {
-          id: bigint;
-          provider: string;
-          agentId: bigint;
-          name: string;
-          description: string;
-          metadataURI: string;
-          price: bigint;
-          paymentToken: string;
-          isActive: boolean;
-          createdAt: bigint;
-        };
-        services.push({
-          id: service.id,
-          provider: service.provider as Address,
-          agentId: service.agentId,
-          name: service.name,
-          description: service.description,
-          metadataURI: service.metadataURI,
-          price: service.price,
-          paymentToken: service.paymentToken as Address,
-          isActive: service.isActive,
-          createdAt: service.createdAt,
-        });
-      }
-    }
-
-    return services;
   }
 
   async getActiveCount(): Promise<number> {
     return Number(await this.contract.getActiveServiceCount());
   }
 
-  /**
-   * M5 Fix: Use multicall instead of N+1 queries
-   */
   async getProviderServices(provider: Address): Promise<Service[]> {
-    const serviceIds = await this.contract.getProviderServices(provider);
+    const serviceIds = await this.contractRead.getProviderServices(provider);
 
     if (serviceIds.length === 0) return [];
 
-    // M5 Fix: Use viem multicall for batch fetching
-    const calls = serviceIds.map((id: bigint) => ({
-      address: this.contracts.serviceRegistry as ViemAddress,
-      abi: SERVICE_REGISTRY_ABI,
-      functionName: 'getService',
-      args: [id],
+    const results = await Promise.all(
+      serviceIds.map((id: bigint) => this.contractRead.getService(id))
+    );
+
+    return results.map(service => ({
+      id: service.id,
+      provider: service.provider as Address,
+      agentId: service.agentId,
+      name: service.name,
+      description: service.description,
+      metadataURI: service.metadataURI,
+      price: service.price,
+      paymentToken: service.paymentToken as Address,
+      isActive: service.isActive,
+      createdAt: service.createdAt,
     }));
-
-    const results = await this.viemClient.multicall({ contracts: calls });
-    const services: Service[] = [];
-
-    for (const result of results) {
-      if (result.status === 'success') {
-        const service = result.result as {
-          id: bigint;
-          provider: string;
-          agentId: bigint;
-          name: string;
-          description: string;
-          metadataURI: string;
-          price: bigint;
-          paymentToken: string;
-          isActive: boolean;
-          createdAt: bigint;
-        };
-        services.push({
-          id: service.id,
-          provider: service.provider as Address,
-          agentId: service.agentId,
-          name: service.name,
-          description: service.description,
-          metadataURI: service.metadataURI,
-          price: service.price,
-          paymentToken: service.paymentToken as Address,
-          isActive: service.isActive,
-          createdAt: service.createdAt,
-        });
-      }
-    }
-
-    return services;
   }
 
-  /**
-   * M5 Fix: Use multicall instead of N+1 queries
-   */
   async getServicesByAgent(agentId: bigint): Promise<Service[]> {
-    const serviceIds = await this.contract.getServicesByAgent(agentId);
+    const serviceIds = await this.contractRead.getServicesByAgent(agentId);
 
     if (serviceIds.length === 0) return [];
 
-    // M5 Fix: Use viem multicall for batch fetching
-    const calls = serviceIds.map((id: bigint) => ({
-      address: this.contracts.serviceRegistry as ViemAddress,
-      abi: SERVICE_REGISTRY_ABI,
-      functionName: 'getService',
-      args: [id],
+    const results = await Promise.all(
+      serviceIds.map((id: bigint) => this.contractRead.getService(id))
+    );
+
+    return results.map(service => ({
+      id: service.id,
+      provider: service.provider as Address,
+      agentId: service.agentId,
+      name: service.name,
+      description: service.description,
+      metadataURI: service.metadataURI,
+      price: service.price,
+      paymentToken: service.paymentToken as Address,
+      isActive: service.isActive,
+      createdAt: service.createdAt,
     }));
-
-    const results = await this.viemClient.multicall({ contracts: calls });
-    const services: Service[] = [];
-
-    for (const result of results) {
-      if (result.status === 'success') {
-        const service = result.result as {
-          id: bigint;
-          provider: string;
-          agentId: bigint;
-          name: string;
-          description: string;
-          metadataURI: string;
-          price: bigint;
-          paymentToken: string;
-          isActive: boolean;
-          createdAt: bigint;
-        };
-        services.push({
-          id: service.id,
-          provider: service.provider as Address,
-          agentId: service.agentId,
-          name: service.name,
-          description: service.description,
-          metadataURI: service.metadataURI,
-          price: service.price,
-          paymentToken: service.paymentToken as Address,
-          isActive: service.isActive,
-          createdAt: service.createdAt,
-        });
-      }
-    }
-
-    return services;
   }
 
   async updateService(

@@ -3,9 +3,6 @@ const nextConfig = {
   // Allow dev server to be accessed from any network origin
   allowedDevOrigins: ['*'],
 
-  // Use Turbopack for fast builds
-  turbopack: {},
-
   // Fix lockfile warning for monorepo with multiple lockfiles
   outputFileTracingRoot: __dirname,
 

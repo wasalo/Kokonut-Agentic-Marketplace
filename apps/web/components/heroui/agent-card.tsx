@@ -2,7 +2,7 @@
 
 import { Card, Chip } from '@heroui/react';
 import { Star, ExternalLink, Shield } from 'lucide-react';
-import NextLink from 'next/link';
+import { useRouter } from 'next/navigation';
 import { Address } from '@/components/Address';
 
 interface AgentCardProps {
@@ -28,9 +28,21 @@ export function AgentCard({
   agentURI,
   isActive = true,
 }: AgentCardProps) {
+  const router = useRouter();
+
+  const handleClick = () => {
+    router.push(`/identity/${id}`);
+  };
+
   return (
-    <NextLink href={`/identity/${id}`} className="block">
-      <Card className="hover:shadow-lg transition-shadow border border-divider cursor-pointer">
+    <div
+      onClick={handleClick}
+      onKeyDown={e => e.key === 'Enter' && handleClick()}
+      role="button"
+      tabIndex={0}
+      className="block cursor-pointer"
+    >
+      <Card className="hover:shadow-lg transition-shadow border border-divider">
         <div className="flex gap-4 p-4">
           <div className="relative shrink-0">
             {agentURI ? (
@@ -110,6 +122,6 @@ export function AgentCard({
           </div>
         </div>
       </Card>
-    </NextLink>
+    </div>
   );
 }
