@@ -1,7 +1,7 @@
 'use client';
 
 import { useState, useEffect, useMemo } from 'react';
-import { useAccount } from 'wagmi';
+import { useRouter } from 'next/navigation';
 import NextLink from 'next/link';
 import {
   Trophy,
@@ -104,43 +104,49 @@ interface LeaderboardRowProps {
 }
 
 function LeaderboardRow({ entry, rank }: LeaderboardRowProps) {
+  const router = useRouter();
   const agentName = entry.metadata?.name || `Agent #${entry.agentId.toString()}`;
   const trend = entry.trend || 'stable';
 
+  const handleRowClick = () => {
+    router.push(`/identity/${entry.agentId.toString()}`);
+  };
+
   return (
-    <NextLink href={`/identity/${entry.agentId.toString()}`}>
-      <div className="flex items-center gap-4 p-4 hover:bg-content2 transition-colors rounded-lg cursor-pointer">
-        <TierBadge rank={rank} />
-        <div className="flex-1 min-w-0">
-          <div className="flex items-center gap-2">
-            <h3 className="font-semibold truncate">{agentName}</h3>
-            <StatusBadge
-              status={entry.healthScore.tier === 'gold' ? 'active' : 'inactive'}
-              size="sm"
-            />
-          </div>
-          <Address
-            address={entry.owner as `0x${string}`}
-            truncate
-            className="text-xs text-default-400"
+    <div
+      onClick={handleRowClick}
+      className="flex items-center gap-4 p-4 hover:bg-content2 transition-colors rounded-lg cursor-pointer"
+    >
+      <TierBadge rank={rank} />
+      <div className="flex-1 min-w-0">
+        <div className="flex items-center gap-2">
+          <h3 className="font-semibold truncate">{agentName}</h3>
+          <StatusBadge
+            status={entry.healthScore.tier === 'gold' ? 'active' : 'inactive'}
+            size="sm"
           />
         </div>
-        <div className="flex-1 min-w-[120px]">
-          <ScoreBar score={entry.healthScore.score} />
-        </div>
-        <div className="flex items-center gap-4 text-sm text-default-500 min-w-[120px]">
-          <div className="flex items-center gap-1">
-            <Star className="w-3 h-3" />
-            <span>{entry.reputation.total}</span>
-          </div>
-          <div className="flex items-center gap-1">
-            <Clock className="w-3 h-3" />
-            <span>{entry.lastActivity}d</span>
-          </div>
-        </div>
-        <TrendBadge trend={trend} />
+        <Address
+          address={entry.owner as `0x${string}`}
+          truncate
+          className="text-xs text-default-400"
+        />
       </div>
-    </NextLink>
+      <div className="flex-1 min-w-[120px]">
+        <ScoreBar score={entry.healthScore.score} />
+      </div>
+      <div className="flex items-center gap-4 text-sm text-default-500 min-w-[120px]">
+        <div className="flex items-center gap-1">
+          <Star className="w-3 h-3" />
+          <span>{entry.reputation.total}</span>
+        </div>
+        <div className="flex items-center gap-1">
+          <Clock className="w-3 h-3" />
+          <span>{entry.lastActivity}d</span>
+        </div>
+      </div>
+      <TrendBadge trend={trend} />
+    </div>
   );
 }
 

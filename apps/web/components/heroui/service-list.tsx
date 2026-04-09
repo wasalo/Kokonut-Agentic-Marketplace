@@ -6,7 +6,7 @@ import { useAllServices, Service } from '@/lib/hooks/useServicesContract';
 import { useFindSkillsByDomain } from '@/lib/hooks/useSkills';
 import { useTokenPriceConversion } from '@/lib/hooks/useTokenConversion';
 import { Card, Button } from '@heroui/react';
-import NextLink from 'next/link';
+import { useRouter } from 'next/navigation';
 import {
   ShoppingBag,
   DollarSign,
@@ -79,6 +79,7 @@ function EmptyState() {
 }
 
 function ServiceCard({ service }: { service: Service }) {
+  const router = useRouter();
   const { ethToUsdcRate } = useTokenPriceConversion();
   const { isBookmarked, toggleBookmark } = useServiceBookmarks();
   const { getServiceCount } = useBookmarkCounts();
@@ -111,12 +112,19 @@ function ServiceCard({ service }: { service: Service }) {
     toggleBookmark(serviceIdStr);
   };
 
+  const handleCardClick = () => {
+    router.push(`/marketplace/${serviceIdStr}`);
+  };
+
   return (
-    <Card className="border border-divider p-6 hover:border-success transition-colors cursor-pointer h-full relative group">
+    <Card
+      className="border border-divider p-6 hover:border-success transition-colors cursor-pointer h-full relative group"
+      onPress={handleCardClick}
+    >
       <div className="flex items-start justify-between mb-3">
-        <NextLink href={`/marketplace/${serviceIdStr}`} className="flex-1 min-w-0 pr-2">
+        <div className="flex-1 min-w-0 pr-2 cursor-pointer" onClick={handleCardClick}>
           <h3 className="font-semibold text-lg">{service.name}</h3>
-        </NextLink>
+        </div>
         <div className="flex items-center gap-2 shrink-0">
           <button
             onClick={handleBookmark}
@@ -140,7 +148,7 @@ function ServiceCard({ service }: { service: Service }) {
           </span>
         </div>
       </div>
-      <NextLink href={`/marketplace/${serviceIdStr}`} className="block">
+      <div className="block cursor-pointer" onClick={handleCardClick}>
         <p className="text-default-500 text-sm mb-4 line-clamp-2">{service.description}</p>
         <div className="flex justify-between items-center text-sm">
           <span className="text-default-500">
@@ -169,7 +177,7 @@ function ServiceCard({ service }: { service: Service }) {
             )}
           </div>
         </div>
-      </NextLink>
+      </div>
       {service.isActive && (
         <button
           onClick={handlePurchase}
