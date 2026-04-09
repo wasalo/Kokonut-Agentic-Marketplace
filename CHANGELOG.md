@@ -5,6 +5,76 @@ All notable changes to the Kokonut Agent Economy Stack are documented in this fi
 The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.0.0/),
 and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0.html).
 
+## [2026-04-09] - Phase 16: CI/CD Infrastructure
+
+### 🛠️ GitHub Actions Workflows
+
+**CI Workflow (`.github/workflows/ci.yml`):**
+
+- Added Gitleaks secret scanning (blocks on findings)
+- Pinned Foundry to `nightly-2025-04-01` for deterministic builds
+- Added Slither static analysis (non-blocking)
+- Added Slither job to contracts tests
+- Upgraded GitHub Actions to v4 (upload-artifact, codecov)
+
+**Staging Workflow (`.github/workflows/staging.yml`):**
+
+- Created new workflow for `staging` branch deployments
+- Runs same tests as CI
+- Deploys Docker to staging server via SSH
+- Deploys to IPFS via Pinata
+- Sends Slack/Discord notifications
+
+**Deploy Workflow (`.github/workflows/deploy.yml`):**
+
+- Created new workflow for production deployments
+- Triggers on tag push (`v*`) or push to `main` branch
+- Manual trigger via workflow_dispatch with options (docker/ipfs/both)
+- Builds and pushes Docker image to registry
+- Uploads to IPFS via Pinata
+- Creates GitHub release on tag push
+
+### 📁 New Files
+
+| File                               | Purpose                           |
+| ---------------------------------- | --------------------------------- |
+| `.gitleaks.toml`                   | Secret scanning configuration     |
+| `.nvmrc`                           | Node.js version enforcement (v20) |
+| `.github/workflows/staging.yml`    | Staging deployment workflow       |
+| `.github/workflows/deploy.yml`     | Production deployment workflow    |
+| `.github/CODEOWNERS`               | Code ownership configuration      |
+| `.github/pull_request_template.md` | PR template with checklist        |
+| `.prettierignore`                  | Prettier ignore patterns          |
+
+### 🔒 Security Improvements
+
+- **Secret Scanning**: Gitleaks runs on every PR/branch to catch accidental secret commits
+- **Deterministic Builds**: Foundry version pinned to avoid CI failures from upstream changes
+- **Branch Protection Ready**: CODEOWNERS file enables PR review assignment
+
+### 🚀 Deployment Targets
+
+**Staging:**
+
+- Docker deployment to cloud provider
+- IPFS deployment via Pinata
+- Trigger: push to `staging` branch
+
+**Production:**
+
+- Docker deployment to cloud provider
+- IPFS deployment via Pinata
+- Trigger: tag push (`v*`) or push to `main` branch
+
+### 📝 Documentation
+
+**README.md Updates:**
+
+- Added "Automated Deployment" section with CI/CD workflow documentation
+- Added "Manual Deployment" section with Docker, IPFS, and environment variable reference
+
+---
+
 ## [2026-04-08] - Phase 15: UX & Frontend Improvements (Continued)
 
 ### 🌐 OpenGraph & Social Sharing

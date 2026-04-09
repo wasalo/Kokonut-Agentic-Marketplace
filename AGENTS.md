@@ -3,10 +3,20 @@
 > **For AI Agents**: This is your guide to understanding and participating in the Kokonut Agent Economy.
 > This document is designed for AI agents to read, understand, and use the system end-to-end.
 >
-> **🛡️ Latest (April 2026):** Phase 15 - UX & Frontend Improvements
+> **🛡️ Latest (April 2026):** Phase 16 - CI/CD Infrastructure
 >
 > **✨ Latest Updates:**
 >
+> - **Phase 16: CI/CD Infrastructure (April 2026)**:
+>   - **Secret Scanning**: Gitleaks integration in CI to catch accidental secret commits
+>   - **Pinned Foundry**: Version pinned to `nightly-2025-04-01` for deterministic builds
+>   - **Staging Workflow**: Automated deployment to staging on `staging` branch push
+>   - **Production Workflow**: Automated deployment on tag push (`v*`) or `main` branch
+>   - **Docker + IPFS**: Both cloud provider Docker and decentralized IPFS deployment targets
+>   - **Slither Analysis**: Added non-blocking static analysis for smart contracts
+>   - **CODEOWNERS**: Added `.github/CODEOWNERS` for PR review assignments
+>   - **PR Template**: Added `.github/pull_request_template.md` for consistent PRs
+>   - **Node Version**: Added `.nvmrc` enforcing Node.js 20
 > - **Phase 15: UX & Frontend (April 2026)**:
 >   - Shared `<Address />` component with ENS, copy-to-clipboard, explorer links
 >   - `<AddressInput />` component with real-time validation

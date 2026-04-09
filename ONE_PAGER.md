@@ -1,6 +1,6 @@
 # Kokonut Agent Economy Stack — One Pager
 
-> Last updated: 2026-04-08 | Phase 15 Complete - UX & Frontend Improvements
+> Last updated: 2026-04-09 | Phase 16 Complete - CI/CD Infrastructure
 
 ## What Is This?
 
@@ -711,3 +711,90 @@ AgenticCommerceV6.1 exceeded the 24KB contract size limit, so bidding was moved 
 - `app/dashboard/skills/page.tsx` - ConfirmModal
 - `app/notifications/page.tsx` - ConfirmModal
 - `components/PaymentTokenSelector.tsx` - USDC via CONTRACTS
+
+---
+
+## Phase 16: CI/CD Infrastructure (April 2026)
+
+### Workflow Architecture
+
+```
+develop (PR) ──▶ CI checks ──▶ staging (push) ──▶ staging.yml ──▶ Docker + IPFS
+                                                       │
+                                                       ▼
+                                              main (PR from staging)
+                                                       │
+                                                       ▼
+                                              deploy.yml ──▶ Docker + IPFS
+                                              (on tag: v*)
+```
+
+### GitHub Actions Workflows
+
+| Workflow | Trigger | Purpose |
+|----------|---------|---------|
+| **ci.yml** | PR/push to `main`, `develop`, `staging` | All tests, linting, building |
+| **staging.yml** | Push to `staging` | Deploy to staging environment |
+| **deploy.yml** | Tag push (`v*`) or push to `main` | Deploy to production |
+
+### CI Pipeline Features
+
+| Feature | Implementation |
+|---------|---------------|
+| **Secret Scanning** | Gitleaks with custom rules for Ethereum keys, API keys |
+| **Foundry Version** | Pinned to `nightly-2025-04-01` for deterministic builds |
+| **Static Analysis** | Slither (non-blocking) for smart contract vulnerabilities |
+| **Coverage Gate** | 80% minimum coverage enforced |
+| **Gas Snapshots** | Non-blocking (for now) |
+| **E2E Tests** | Playwright with artifact upload on failure |
+
+### Staging Deployment
+
+**Trigger:** Push to `staging` branch
+
+**流程:**
+1. Run all CI tests
+2. Build Docker image
+3. Push to Docker registry with `staging` tag
+4. Deploy via SSH to staging server
+5. Upload frontend to IPFS via Pinata
+6. Send Slack/Discord notification
+
+### Production Deployment
+
+**Trigger:** Tag push (`v*`) or push to `main`
+
+**流程:**
+1. Run all CI tests
+2. Build Docker image
+3. Push to Docker registry with `latest` and version tags
+4. Deploy via SSH to production server
+5. Upload frontend to IPFS via Pinata
+6. Create GitHub release
+7. Send Slack/Discord notification
+
+**Manual Trigger:** workflow_dispatch allows selecting docker/ipfs/both deployment types
+
+### New Files Added
+
+| File | Purpose |
+|------|---------|
+| `.gitleaks.toml` | Secret scanning configuration with Ethereum/private key rules |
+| `.nvmrc` | `20` - Enforces Node.js 20 for consistency |
+| `.github/CODEOWNERS` | PR review assignment rules |
+| `.github/pull_request_template.md` | Standard PR description template |
+| `.prettierignore` | Prettier file exclusions |
+
+### Deployment Targets
+
+**Docker:**
+- Builds Next.js app as Docker container
+- Pushes to configurable Docker registry
+- Deploys via SSH to cloud server (AWS, GCP, DigitalOcean, etc.)
+- docker-compose ready for orchestration
+
+**IPFS (Decentralized):**
+- Exports Next.js static files
+- Uploads to IPFS via Pinata
+- Provides IPFS hash for ENS domain linking
+- Gateway: `https://gateway.pinata.cloud/ipfs/`
