@@ -1,0 +1,361 @@
+name: Staging Deployment
+
+on:
+  push:
+    branches:
+      - staging
+
+env:
+  FOUNDRY_PROFILE: ci
+  NODE_VERSION: '20'
+  DOCKER_REGISTRY: ${{ secrets.DOCKER_REGISTRY }}
+  DOCKER_USERNAME: ${{ secrets.DOCKER_USERNAME }}
+  DOCKER_PASSWORD: ${{ secrets.DOCKER_PASSWORD }}
+  STAGING_SERVER_HOST: ${{ secrets.STAGING_SERVER_HOST }}
+  STAGING_SSH_KEY: ${{ secrets.STAGING_SSH_KEY }}
+  IPFS_PROJECT_ID: ${{ secrets.IPFS_PROJECT_ID }}
+  IPFS_PROJECT_SECRET: ${{ secrets.IPFS_PROJECT_SECRET }}
+
+jobs:
+  # ============================================
+  # Run CI Tests (same as ci.yml)
+  # ============================================
+  test:
+    name: Run Tests
+    runs-on: ubuntu-latest
+    outputs:
+      test_status: ${{ job.status }}
+
+  # ============================================
+  # Secret Scanning
+  # ============================================
+  secret-scanning:
+    name: Secret Scanning
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+
+      - name: Run Gitleaks
+        uses: gitleaks/gitleaks-action@v2
+        with:
+          config-path: .gitleaks.toml
+        env:
+          GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+
+  # ============================================
+  # Smart Contract Tests
+  # ============================================
+  contracts:
+    name: Smart Contract Tests
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+        with:
+          submodules: recursive
+
+      - name: Install Foundry
+        uses: foundry-rs/foundry-toolchain@v1
+        with:
+          version: nightly-2025-04-01
+
+      - name: Forge build
+        run: forge build --sizes
+
+      - name: Forge tests
+        run: forge test -vvv
+
+      - name: Coverage report
+        run: forge coverage --report summary
+
+      - name: Check coverage threshold
+        run: |
+          SUMMARY=$(forge coverage --report summary)
+          TOTAL_LINE=$(echo "$SUMMARY" | grep "^Total" || echo "")
+          if [ -n "$TOTAL_LINE" ]; then
+            COVERAGE=$(echo "$TOTAL_LINE" | awk '{print $4}' | tr -d '%')
+            echo "Total coverage: ${COVERAGE}%"
+            if [ -n "$COVERAGE" ] && [ "$COVERAGE" -lt 80 ]; then
+              echo "Error: Coverage ${COVERAGE}% is below threshold of 80%"
+              exit 1
+            fi
+          fi
+
+  # ============================================
+  # Gas Benchmarking
+  # ============================================
+  gas-benchmark:
+    name: Gas Benchmarking
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+        with:
+          submodules: recursive
+
+      - name: Install Foundry
+        uses: foundry-rs/foundry-toolchain@v1
+        with:
+          version: nightly-2025-04-01
+
+      - name: Run gas benchmarks
+        run: forge test --match-contract GasBenchmark -vvv
+
+  # ============================================
+  # Fuzzing Tests
+  # ============================================
+  fuzz-tests:
+    name: Fuzzing Tests
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+        with:
+          submodules: recursive
+
+      - name: Install Foundry
+        uses: foundry-rs/foundry-toolchain@v1
+        with:
+          version: nightly-2025-04-01
+
+      - name: Run fuzz tests
+        run: forge test --match-contract Fuzz -vvv --fuzz-runs 5000
+
+  # ============================================
+  # Frontend Build
+  # ============================================
+  frontend:
+    name: Frontend Build
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+
+      - name: Setup Node.js
+        uses: actions/setup-node@v4
+        with:
+          node-version: ${{ env.NODE_VERSION }}
+          cache: 'npm'
+
+      - name: Install dependencies
+        run: npm ci
+
+      - name: TypeScript check
+        run: npm run typecheck
+
+      - name: ESLint
+        run: npm run lint
+
+      - name: Next.js build
+        run: npm run build --workspace=apps/web
+        env:
+          NEXT_PUBLIC_DEPLOY_ENV: staging
+
+  # ============================================
+  # E2E Tests
+  # ============================================
+  e2e:
+    name: E2E Tests
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+
+      - name: Setup Node.js
+        uses: actions/setup-node@v4
+        with:
+          node-version: ${{ env.NODE_VERSION }}
+          cache: 'npm'
+
+      - name: Install dependencies
+        run: npm ci
+
+      - name: Install Playwright
+        run: npx playwright install chromium
+
+      - name: Build application
+        run: npm run build --workspace=apps/web
+
+      - name: Run E2E tests
+        run: npm run test:e2e --workspace=apps/web
+        env:
+          CI: true
+
+  # ============================================
+  # Security Audit
+  # ============================================
+  security:
+    name: Security Audit
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+
+      - name: Setup Node.js
+        uses: actions/setup-node@v4
+        with:
+          node-version: ${{ env.NODE_VERSION }}
+          cache: 'npm'
+
+      - name: Install dependencies
+        run: npm ci
+
+      - name: Run security audit
+        run: npm audit --audit-level=high
+
+  # ============================================
+  # Deploy to Staging (Docker)
+  # ============================================
+  deploy-docker:
+    name: Deploy Docker to Staging
+    runs-on: ubuntu-latest
+    needs: [test, contracts, frontend, e2e]
+    if: github.event_name == 'push' && github.ref == 'refs/heads/staging'
+    steps:
+      - uses: actions/checkout@v4
+
+      - name: Set up Docker Buildx
+        uses: docker/setup-buildx-action@v3
+
+      - name: Login to Docker Registry
+        uses: docker/login-action@v3
+        with:
+          registry: ${{ env.DOCKER_REGISTRY }}
+          username: ${{ env.DOCKER_USERNAME }}
+          password: ${{ env.DOCKER_PASSWORD }}
+
+      - name: Build and push Docker image
+        uses: docker/build-push-action@v5
+        with:
+          context: ./apps/web
+          push: true
+          tags: |
+            ${{ env.DOCKER_REGISTRY }}/kokonut-marketplace:staging
+            ${{ env.DOCKER_REGISTRY }}/kokonut-marketplace:staging-${{ github.sha }}
+          build-args: |
+            NEXT_PUBLIC_DEPLOY_ENV=staging
+          cache-from: type=gha
+          cache-to: type=gha,mode=max
+
+      - name: Deploy to Staging Server via SSH
+        uses: appleboy/ssh-action@v1.2.0
+        with:
+          host: ${{ env.STAGING_SERVER_HOST }}
+          username: ${{ secrets.STAGING_SSH_USER }}
+          key: ${{ env.STAGING_SSH_KEY }}
+          script: |
+            cd /opt/kokonut-staging
+            docker pull ${{ env.DOCKER_REGISTRY }}/kokonut-marketplace:staging
+            docker-compose down
+            docker-compose up -d
+            echo "Docker staging deployment complete"
+
+  # ============================================
+  # Deploy to IPFS (Decentralized)
+  # ============================================
+  deploy-ipfs:
+    name: Deploy to IPFS
+    runs-on: ubuntu-latest
+    needs: [test, contracts, frontend]
+    if: github.event_name == 'push' && github.ref == 'refs/heads/staging'
+    steps:
+      - uses: actions/checkout@v4
+
+      - name: Setup Node.js
+        uses: actions/setup-node@v4
+        with:
+          node-version: ${{ env.NODE_VERSION }}
+          cache: 'npm'
+
+      - name: Install dependencies
+        run: npm ci
+
+      - name: Build for export
+        run: npm run build --workspace=apps/web
+        env:
+          NEXT_PUBLIC_DEPLOY_ENV: staging
+
+      - name: Install IPFS CLI
+        run: |
+          npm install -g ipfs-http-client
+          # Or use Pinata for easier IPFS management
+
+      - name: Upload to IPFS via Pinata
+        run: |
+          npm install -g @pinata/cli
+          pinata upload ./apps/web/out \
+            --name "kokonut-staging-${{ github.sha }}" \
+            --gateway https://gateway.pinata.cloud/ipfs/
+        env:
+          PINATA_JWT: ${{ secrets.PINATA_JWT }}
+
+      - name: Post IPFS hash to Slack/Discord
+        uses: 8398a7/action-slack@v3
+        with:
+          status: custom
+          fields: repo,message,commit,author
+          custom_payload: |
+            {
+              "text": "🚀 Staging deployed to IPFS!",
+              "blocks": [
+                {
+                  "type": "section",
+                  "text": {
+                    "type": "mrkdwn",
+                    "text": "*Kokonut Staging IPFS Deployment*"
+                  }
+                },
+                {
+                  "type": "section",
+                  "fields": [
+                    {
+                      "type": "mrkdwn",
+                      "text": "*Commit:*\n${{ github.sha }}"
+                    },
+                    {
+                      "type": "mrkdwn",
+                      "text": "*Author:*\n${{ github.actor }}"
+                    }
+                  ]
+                }
+              ]
+            }
+        env:
+          SLACK_WEBHOOK_URL: ${{ secrets.SLACK_WEBHOOK_URL }}
+
+  # ============================================
+  # Notify Deployment Complete
+  # ============================================
+  notify:
+    name: Notify Deployment Complete
+    runs-on: ubuntu-latest
+    needs: [deploy-docker, deploy-ipfs]
+    if: always()
+    steps:
+      - name: Send deployment notification
+        uses: 8398a7/action-slack@v3
+        with:
+          status: ${{ job.status }}
+          fields: repo,message,commit,author
+          custom_payload: |
+            {
+              "text": "✅ Staging deployment ${{ job.status }}",
+              "blocks": [
+                {
+                  "type": "section",
+                  "text": {
+                    "type": "mrkdwn",
+                    "text": "*Staging Deployment ${{ job.status }}*"
+                  }
+                },
+                {
+                  "type": "section",
+                  "fields": [
+                    {
+                      "type": "mrkdwn",
+                      "text": "*Branch:*\nstaging"
+                    },
+                    {
+                      "type": "mrkdwn",
+                      "text": "*Commit:*\n${{ github.sha }}"
+                    }
+                  ]
+                }
+              ]
+            }
+        env:
+          SLACK_WEBHOOK_URL: ${{ secrets.SLACK_WEBHOOK_URL }}

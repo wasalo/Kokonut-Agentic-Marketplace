@@ -422,6 +422,165 @@ These registries provide:
 
 ## Deployment
 
+### Automated Deployment (CI/CD)
+
+This project uses GitHub Actions for automated deployments:
+
+| Environment    | Trigger                           | Workflow                        |
+| -------------- | --------------------------------- | ------------------------------- |
+| **Staging**    | Push to `staging` branch          | `.github/workflows/staging.yml` |
+| **Production** | Tag push (`v*`) or push to `main` | `.github/workflows/deploy.yml`  |
+
+**Deployment Targets:**
+
+- **Docker**: Cloud provider (AWS, GCP, DigitalOcean, etc.)
+- **IPFS**: Fully decentralized deployment via Pinata
+
+**Workflows include:**
+
+- Secret scanning (Gitleaks)
+- Smart contract tests + coverage
+- Gas benchmarking + fuzzing tests
+- Frontend build + type checking
+- E2E tests with Playwright
+- Security audit (npm audit)
+- Docker image build + push
+- IPFS upload
+- Slack/Discord notifications
+
+### Manual Deployment
+
+If you need to deploy manually (for development or troubleshooting), follow these steps:
+
+#### Prerequisites
+
+```bash
+# Install dependencies
+npm install
+
+# Install Foundry (if not already installed)
+curl -L https://foundry.paradigm.xyz | bash
+foundryup
+```
+
+#### 1. Deploy Smart Contracts
+
+```bash
+# Deploy to Sepolia (testnet)
+./deploy.sh sepolia
+
+# Deploy to Mainnet
+./deploy.sh mainnet
+```
+
+The deploy script will:
+
+1. Load environment variables from `.env`
+2. Deploy all contracts using Foundry
+3. Verify contracts on Etherscan
+4. Output contract addresses
+
+**Required Environment Variables:**
+
+```bash
+# .env file
+PRIVATE_KEY=0x...          # Your wallet private key
+ETHERSCAN_API_KEY=...      # Etherscan API key for verification
+SEPOLIA_RPC_URL=...        # Sepolia RPC URL
+ETHEREUM_RPC_URL=...       # Mainnet RPC URL (for mainnet deploy)
+```
+
+#### 2. Deploy Frontend (Docker)
+
+```bash
+# Build Docker image
+cd apps/web
+docker build -t kokonut-marketplace:latest .
+
+# Run container
+docker run -p 3000:3000 \
+  -e NEXT_PUBLIC_AGENTIC_COMMERCE_ADDRESS=0x... \
+  -e NEXT_PUBLIC_8004_REGISTRY_ADDRESS=0x... \
+  kokonut-marketplace:latest
+```
+
+**Using Docker Compose:**
+
+```yaml
+# docker-compose.yml
+version: '3.8'
+services:
+  web:
+    build: ./apps/web
+    ports:
+      - '3000:3000'
+    environment:
+      - NEXT_PUBLIC_DEPLOY_ENV=production
+      - NEXT_PUBLIC_AGENTIC_COMMERCE_ADDRESS=${AGENTIC_COMMERCE_ADDRESS}
+      - NEXT_PUBLIC_8004_REGISTRY_ADDRESS=${8004_REGISTRY_ADDRESS}
+      # Add other required env vars
+    restart: unless-stopped
+```
+
+#### 3. Deploy to IPFS (Decentralized)
+
+```bash
+# Install IPFS tools
+npm install -g ipfs-http-client @pinata/cli
+
+# Build for export
+npm run build --workspace=apps/web
+
+# Upload to IPFS via Pinata
+pinata upload ./apps/web/out \
+  --name "kokonut-production" \
+  --gateway https://gateway.pinata.cloud/ipfs/
+
+# For ENS domains, update the contenthash:
+# 1. Copy the IPFS hash from the output
+# 2. Set as ENS text record for 'contenthash'
+```
+
+#### 4. Environment Variables Reference
+
+| Variable                               | Required | Description                      |
+| -------------------------------------- | -------- | -------------------------------- |
+| `NEXT_PUBLIC_DEPLOY_ENV`               | Yes      | `staging` or `production`        |
+| `NEXT_PUBLIC_WALLETCONNECT_PROJECT_ID` | Yes      | WalletConnect project ID         |
+| `NEXT_PUBLIC_AGENTIC_COMMERCE_ADDRESS` | Yes      | AgenticCommerce contract address |
+| `NEXT_PUBLIC_SERVICE_REGISTRY_ADDRESS` | Yes      | ServiceRegistry contract address |
+| `NEXT_PUBLIC_8004_REGISTRY_ADDRESS`    | Yes      | ERC-8004 Identity Registry       |
+| `NEXT_PUBLIC_8004_REPUTATION_ADDRESS`  | Yes      | ERC-8004 Reputation Registry     |
+| `NEXT_PUBLIC_SEPOLIA_RPC_URL`          | Yes      | Sepolia RPC endpoint             |
+| `NEXT_PUBLIC_8004_API_KEY`             | No       | 8004scan API key                 |
+| `NEXT_PUBLIC_ALCHEMY_API_KEY`          | No       | Alchemy API key                  |
+
+#### Troubleshooting Manual Deployments
+
+**Contract Deployment Fails:**
+
+- Verify private key has sufficient Sepolia ETH
+- Check Etherscan API key is valid
+- Ensure RPC URL is accessible
+
+**Frontend Build Fails:**
+
+- Run `npm run typecheck` to verify TypeScript
+- Run `npm run lint` to check for linting errors
+- Verify all environment variables are set
+
+**Docker Deployment Issues:**
+
+- Ensure Docker daemon is running
+- Check port 3000 is not already in use
+- Verify environment variables are properly passed
+
+**IPFS Upload Fails:**
+
+- Verify Pinata JWT is valid
+- Check IPFS gateway is accessible
+- Ensure build output exists in `./apps/web/out`
+
 ### Deploy to Sepolia
 
 ```bash

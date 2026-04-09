@@ -1,0 +1,24 @@
+# Code Owners for Kokonut Agentic Marketplace
+# See: https://help.github.com/articles/about-code-owners/
+
+# Default owner for all files (fallback)
+* @wasalo
+
+# Smart Contracts
+contracts/ @wasalo
+
+# Frontend / Web App
+apps/web/ @wasalo
+
+# SDK
+sdk/ @wasalo
+
+# CLI
+cli/ @wasalo
+
+# GitHub workflows
+.github/ @wasalo
+
+# Deployment scripts
+deploy.sh @wasalo
+scripts/ @wasalo
