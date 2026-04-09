@@ -5,6 +5,47 @@ All notable changes to the Kokonut Agent Economy Stack are documented in this fi
 The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.0.0/),
 and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0.html).
 
+## [2026-04-09] - Phase 17: Function/Hook Parity & UX Improvements
+
+### 🎯 Missing Hooks Added
+
+Added the following hooks to bridge parity gaps between smart contract functions and React hooks:
+
+| Hook                              | Contract Function                   | Purpose                                                              |
+| --------------------------------- | ----------------------------------- | -------------------------------------------------------------------- |
+| `useCompleteAfterTimeout`         | `completeAfterTimeout(uint256)`     | Complete jobs after 7-day dispute window for unresponsive evaluators |
+| `useRefundExpired`                | `refundExpired(uint256)`            | Permissionless trigger for expired job refunds (anyone can call)     |
+| `useFinalizeDecision`             | `finalizeDecision(uint256)`         | Permissionless finalization after 7-day grace period                 |
+| `useCreateJobWithRandomEvaluator` | `createJobWithRandomEvaluator(...)` | Create jobs with randomly selected evaluator                         |
+| `useRegisterAsEvaluator`          | `registerAsEvaluator()`             | Register as evaluator for random selection                           |
+| `useUnregisterAsEvaluator`        | `unregisterAsEvaluator()`           | Unregister as evaluator                                              |
+| `useCalculateMedianScore`         | `calculateMedianScore(uint256)`     | Calculate median confidence score from evaluations                   |
+| `useSlashTreasury`                | `slashTreasury()` (read)            | Get slash treasury address                                           |
+
+### 🖥️ Job Detail Page Updates
+
+- Added "Complete After Timeout" button for clients when evaluator is unresponsive after dispute window
+- Added "Trigger Refund (Anyone)" button for permissionless expired job refunds
+- Both buttons are permissionless - anyone can call these functions
+
+### 📝 Proposal Detail Page Updates
+
+- Added "Finalize Decision" button visible after 7-day grace period expires
+- Displays median confidence score from all evaluators
+- Permissionless finalization using median evaluator as winner
+
+### ⚠️ Service Creation Warning
+
+- Added ETH bond warning banner (0.01 ETH required) to service creation form
+- Warning displayed before form submission to inform users of bond requirement
+
+### 🔒 Contract Event Added
+
+- Added `SlashTreasuryUpdated(address indexed oldTreasury, address indexed newTreasury)` event to `AgentReviewV5.sol`
+- Event emitted when slash treasury address is changed
+
+---
+
 ## [2026-04-09] - Phase 16: CI/CD Infrastructure
 
 ### 🛠️ GitHub Actions Workflows

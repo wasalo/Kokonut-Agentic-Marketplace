@@ -648,3 +648,75 @@ export function useSlashEvaluator() {
     reset,
   };
 }
+
+// ============ Phase 14/15 Missing Hooks ============
+
+/**
+ * Finalize a proposal after the 7-day grace period has passed.
+ * This is a permissionless function - anyone can call it to finalize stuck proposals.
+ * Uses the median evaluator as the winner when no consensus is reached.
+ */
+export function useFinalizeDecision() {
+  const { writeContract, data, isPending, error, reset } = useWriteContract();
+
+  return {
+    finalizeDecision: (proposalId: bigint) =>
+      writeContract({
+        address: AGENT_REVIEW_ADDRESS,
+        abi: AGENT_REVIEW_ABI,
+        functionName: 'finalizeDecision',
+        args: [proposalId],
+      }),
+    hash: data,
+    isPending,
+    error,
+    reset,
+  };
+}
+
+/**
+ * Calculate the median confidence score from all evaluators.
+ * Useful for displaying the median score in the UI.
+ */
+export function useCalculateMedianScore(proposalId: bigint | undefined) {
+  const { data, isLoading, error, refetch } = useReadContract({
+    address: AGENT_REVIEW_ADDRESS,
+    abi: AGENT_REVIEW_ABI,
+    functionName: 'calculateMedianScore',
+    args: proposalId !== undefined ? [proposalId] : undefined,
+    query: {
+      enabled: proposalId !== undefined,
+      retry: 2,
+      staleTime: 30 * 1000,
+    },
+  });
+
+  return {
+    medianScore: data ?? BigInt(0),
+    isLoading,
+    error,
+    refetch,
+  };
+}
+
+/**
+ * Get the slash treasury address.
+ */
+export function useSlashTreasury() {
+  const { data, isLoading, error, refetch } = useReadContract({
+    address: AGENT_REVIEW_ADDRESS,
+    abi: AGENT_REVIEW_ABI,
+    functionName: 'slashTreasury',
+    query: {
+      retry: 2,
+      staleTime: 60 * 60 * 1000, // Rarely changes
+    },
+  });
+
+  return {
+    treasury: data ?? '0x0000000000000000000000000000000000000000',
+    isLoading,
+    error,
+    refetch,
+  };
+}

@@ -26,6 +26,8 @@ import {
   useClaimReward,
   useReleaseStake,
   useCancelProposal,
+  useFinalizeDecision,
+  useCalculateMedianScore,
 } from '@/lib/hooks/useProposals';
 import { Address } from '@/components/Address';
 import { ErrorDisplay } from '@/components/ErrorDisplay';
@@ -92,7 +94,18 @@ export default function ProposalDetailPage({
     error: cancelError,
   } = useCancelProposal();
 
-  const txHash = evalHash || attestHash || claimHash || releaseHash || cancelHash;
+  // Phase 14: Finalize decision after grace period
+  const {
+    finalizeDecision,
+    hash: finalizeHash,
+    isPending: isFinalizePending,
+    error: finalizeError,
+  } = useFinalizeDecision();
+
+  // Phase 14: Median score calculation
+  const { medianScore } = useCalculateMedianScore(proposalId);
+
+  const txHash = evalHash || attestHash || claimHash || releaseHash || cancelHash || finalizeHash;
   const { isSuccess: isTxConfirmed } = useWaitForTransactionReceipt({ hash: txHash });
 
   const handleSubmitEvaluation = useCallback(() => {
@@ -139,14 +152,26 @@ export default function ProposalDetailPage({
   }, [isTxConfirmed, txStep, refetch]);
 
   const anyPending =
-    isEvalPending || isAttestPending || isClaimPending || isReleasePending || isCancelPending;
-  const currentError = evalError || attestError || claimError || releaseError || cancelError;
+    isEvalPending ||
+    isAttestPending ||
+    isClaimPending ||
+    isReleasePending ||
+    isCancelPending ||
+    isFinalizePending;
+  const currentError =
+    evalError || attestError || claimError || releaseError || cancelError || finalizeError;
 
   const isProposer =
     proposal && address && proposal.proposer.toLowerCase() === address.toLowerCase();
   const isWinner =
     proposal && address && proposal.winningEvaluator.toLowerCase() === address.toLowerCase();
   const deadlinePassed = proposal && Date.now() / 1000 > Number(proposal.decisionDeadline);
+
+  // Phase 14: Grace period is 7 days after decision deadline
+  const GRACE_PERIOD_SECONDS = 7 * 24 * 60 * 60; // 7 days
+  const gracePeriodPassed =
+    proposal && Date.now() / 1000 > Number(proposal.decisionDeadline) + GRACE_PERIOD_SECONDS;
+
   const hasEvaluated = myEvaluation && Number(myEvaluation.submittedAt) > 0;
 
   if (isLoading) {
@@ -388,6 +413,39 @@ export default function ProposalDetailPage({
                 {isAttestPending ? 'Attesting...' : 'Attest Decision'}
               </button>
             </div>
+          </Card>
+        )}
+
+        {/* Phase 14: Finalize Decision (permissionless after 7-day grace period) */}
+        {gracePeriodPassed && proposal.status <= 1 && (
+          <Card className="border border-primary/30 bg-primary/5 p-6">
+            <h2 className="text-base font-semibold mb-4 flex items-center gap-2">
+              <Unlock className="w-4 h-4 text-primary" />
+              Finalize Proposal
+            </h2>
+            <p className="text-sm text-default-600 mb-4">
+              The 7-day grace period has passed. Anyone can finalize this proposal to distribute
+              rewards using the median evaluator as the winner.
+            </p>
+            {evaluators.length > 0 && medianScore !== undefined && (
+              <div className="mb-4 p-3 bg-content2 rounded-lg">
+                <p className="text-xs text-default-400">Median Confidence Score</p>
+                <p className="text-lg font-semibold text-primary">{Number(medianScore)}</p>
+              </div>
+            )}
+            <button
+              onClick={() => {
+                setTxStep('Finalizing decision');
+                finalizeDecision(proposalId);
+              }}
+              disabled={anyPending || !!txStep || isFinalizePending}
+              className="w-full px-6 py-3 bg-gradient-to-r from-primary to-primary/80 text-white rounded-lg font-medium hover:opacity-90 disabled:opacity-50"
+            >
+              {isFinalizePending ? 'Finalizing...' : 'Finalize Decision (Anyone)'}
+            </button>
+            <p className="text-xs text-default-400 mt-2 text-center">
+              Permissionless — anyone can call this function
+            </p>
           </Card>
         )}
 

@@ -9,7 +9,46 @@
 
 ## Identity → Commerce → Coordination
 
-### 🎉 Latest: Phase 15 - UX & Frontend Improvements (April 2026)
+### 🎉 Latest: Phase 17 - Function/Hook Parity & UX Improvements (April 2026)
+
+**Missing Hooks Added:**
+
+- ✅ `useCompleteAfterTimeout` - Complete jobs after 7-day dispute window
+- ✅ `useRefundExpired` - Permissionless trigger for expired job refunds
+- ✅ `useFinalizeDecision` - Permissionless finalization after 7-day grace period
+- ✅ `useCreateJobWithRandomEvaluator` - Create jobs with random evaluator
+- ✅ `useCalculateMedianScore` - Display median confidence score
+
+**Job Detail Page:**
+
+- ✅ "Complete After Timeout" button for unresponsive evaluators
+- ✅ "Trigger Refund (Anyone)" button for permissionless refunds
+
+**Proposal Detail Page:**
+
+- ✅ "Finalize Decision" button after 7-day grace period
+- ✅ Median confidence score display
+
+**Service Creation:**
+
+- ✅ ETH bond warning (0.01 ETH required)
+
+**Contract:**
+
+- ✅ Added `SlashTreasuryUpdated` event to AgentReviewV5.sol
+
+### 🎉 Previous: Phase 16 - CI/CD Infrastructure (April 2026)
+
+**CI/CD Workflows:**
+
+- ✅ Secret scanning with Gitleaks
+- ✅ Staging workflow (push to `staging` branch)
+- ✅ Production workflow (tag push `v*` or `main` branch)
+- ✅ Docker + IPFS deployment targets
+- ✅ Slither static analysis
+- ✅ Pinned Foundry version
+
+### 🎉 Previous: Phase 15 - UX & Frontend Improvements (April 2026)
 
 **Frontend Enhancements:**
 

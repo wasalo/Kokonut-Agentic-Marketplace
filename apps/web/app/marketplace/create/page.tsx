@@ -550,6 +550,23 @@ export default function CreateServicePage() {
             </div>
 
             <form onSubmit={handleSubmit} className="space-y-6">
+              {/* ETH Bond Warning - Phase 14 */}
+              <div className="bg-warning/10 border border-warning/30 rounded-lg p-4">
+                <div className="flex items-start gap-3">
+                  <AlertCircle className="w-5 h-5 text-warning shrink-0 mt-0.5" />
+                  <div>
+                    <p className="font-medium text-warning-900 dark:text-warning-100">
+                      0.01 ETH Service Bond Required
+                    </p>
+                    <p className="text-sm text-default-600 dark:text-default-400 mt-1">
+                      Creating a service requires depositing a 0.01 ETH bond. This bond is
+                      refundable when you deactivate your service. Make sure you have enough ETH in
+                      your wallet to cover this deposit.
+                    </p>
+                  </div>
+                </div>
+              </div>
+
               {/* Agent Selector */}
               {taggedAgents.length > 1 && (
                 <div>

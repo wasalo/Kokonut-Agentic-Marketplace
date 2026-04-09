@@ -41,6 +41,8 @@ import {
   useUserBid,
   useWithdrawStake,
   useEvaluatorFeeEnabled,
+  useCompleteAfterTimeout,
+  useRefundExpired,
   getJobStatusLabel,
   getJobStatusColor,
   JobStatus,
@@ -160,6 +162,20 @@ export default function JobDetailPage({
 
   const { setBudget, hash: budgetHash, isPending: isBudgetPending } = useSetBudget();
 
+  // Phase 14/15 - New hooks for permissionless operations
+  const {
+    completeAfterTimeout,
+    hash: completeAfterTimeoutHash,
+    isPending: isCompleteAfterTimeoutPending,
+    error: completeAfterTimeoutError,
+  } = useCompleteAfterTimeout();
+  const {
+    refundExpired,
+    hash: refundExpiredHash,
+    isPending: isRefundExpiredPending,
+    error: refundExpiredError,
+  } = useRefundExpired();
+
   // Bidding hooks for open jobs
   const { count: bidCount } = useJobBidCount(job?.id);
   const { hash: withdrawHash, isPending: isWithdrawPending } = useWithdrawStake();
@@ -260,6 +276,12 @@ export default function JobDetailPage({
   const _needsApproval = !hasAllowance && job?.status === JobStatus.Open && isClient;
   const isExpired = job && Date.now() / 1000 > Number(job.expiredAt);
 
+  // Phase 14: Calculate dispute window - 7 days after expiration for auto-complete
+  // After expiredAt + 7 days, anyone can call completeAfterTimeout
+  const DISPUTE_WINDOW_SECONDS = 7 * 24 * 60 * 60; // 7 days
+  const isPastDisputeWindow =
+    job && Date.now() / 1000 > Number(job.expiredAt) + DISPUTE_WINDOW_SECONDS;
+
   const anyPending =
     isFundPending ||
     isFundETHPending ||
@@ -267,8 +289,17 @@ export default function JobDetailPage({
     isCompletePending ||
     isRejectPending ||
     isRefundPending ||
-    isWithdrawPending;
-  const currentError = fundError || submitError || completeError || rejectError || refundError;
+    isWithdrawPending ||
+    isCompleteAfterTimeoutPending ||
+    isRefundExpiredPending;
+  const currentError =
+    fundError ||
+    submitError ||
+    completeError ||
+    rejectError ||
+    refundError ||
+    completeAfterTimeoutError ||
+    refundExpiredError;
 
   if (isLoading) {
     return (
@@ -674,6 +705,47 @@ export default function JobDetailPage({
                     <p className="font-medium">Claim Refund</p>
                     <p className="text-xs text-default-500">
                       Job has expired — reclaim ${formattedBudget} USDC
+                    </p>
+                  </div>
+                </button>
+              )}
+
+            {/* Phase 14: Permissionless Complete After Timeout - for unresponsive evaluators */}
+            {isClient && job.status === JobStatus.Submitted && isPastDisputeWindow && (
+              <button
+                onClick={() =>
+                  handleAction('Completing job after timeout', () => completeAfterTimeout(job.id))
+                }
+                disabled={anyPending || !!txStep || isCompleteAfterTimeoutPending}
+                className="w-full flex items-center gap-3 p-4 border border-primary/30 rounded-lg hover:bg-primary/5 transition-colors disabled:opacity-50"
+              >
+                <Clock className="w-5 h-5 text-primary" />
+                <div className="text-left">
+                  <p className="font-medium">Complete After Timeout</p>
+                  <p className="text-xs text-default-500">
+                    Evaluator unresponsive — auto-complete after dispute window
+                  </p>
+                </div>
+              </button>
+            )}
+
+            {/* Phase 14: Permissionless Refund - anyone can trigger for expired jobs */}
+            {isExpired &&
+              job.status !== JobStatus.Completed &&
+              job.status !== JobStatus.Rejected &&
+              job.status !== JobStatus.Expired && (
+                <button
+                  onClick={() =>
+                    handleAction('Triggering permissionless refund', () => refundExpired(job.id))
+                  }
+                  disabled={anyPending || !!txStep || isRefundExpiredPending}
+                  className="w-full flex items-center gap-3 p-4 border border-danger/30 rounded-lg hover:bg-danger/5 transition-colors disabled:opacity-50"
+                >
+                  <RefreshCw className="w-5 h-5 text-danger" />
+                  <div className="text-left">
+                    <p className="font-medium">Trigger Refund (Anyone)</p>
+                    <p className="text-xs text-default-500">
+                      Permissionless — refund expired job for client
                     </p>
                   </div>
                 </button>

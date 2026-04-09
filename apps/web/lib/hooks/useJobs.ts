@@ -757,6 +757,122 @@ export function useTotalStakesHeld(address: `0x${string}` | undefined) {
   };
 }
 
+// ============ Phase 14/15 Missing Hooks ============
+
+/**
+ * Complete a job after the dispute window has passed.
+ * Used when the evaluator is unresponsive after the deadline.
+ * Anyone can call this function - it's permissionless.
+ */
+export function useCompleteAfterTimeout() {
+  const { writeContract, data, isPending, error, reset } = useWriteContract();
+
+  return {
+    completeAfterTimeout: (jobId: bigint) =>
+      writeContract({
+        address: AGENTIC_COMMERCE_ADDRESS,
+        abi: AGENTIC_COMMERCE_ABI,
+        functionName: 'completeAfterTimeout',
+        args: [jobId],
+      }),
+    hash: data,
+    isPending,
+    error,
+    reset,
+  };
+}
+
+/**
+ * Trigger a refund for an expired job - permissionless function.
+ * Anyone can call this to trigger a refund for jobs past their expiration date.
+ * The client will be refunded, and if the provider was non-responsive, they may be slashed.
+ */
+export function useRefundExpired() {
+  const { writeContract, data, isPending, error, reset } = useWriteContract();
+
+  return {
+    refundExpired: (jobId: bigint) =>
+      writeContract({
+        address: AGENTIC_COMMERCE_ADDRESS,
+        abi: AGENTIC_COMMERCE_ABI,
+        functionName: 'refundExpired',
+        args: [jobId],
+      }),
+    hash: data,
+    isPending,
+    error,
+    reset,
+  };
+}
+
+/**
+ * Create a job with a randomly selected evaluator from the registered evaluator pool.
+ * The evaluator is selected randomly from all registered evaluators.
+ */
+export function useCreateJobWithRandomEvaluator() {
+  const { writeContract, data, isPending, error, reset } = useWriteContract();
+
+  return {
+    createJobWithRandomEvaluator: (
+      provider: `0x${string}`,
+      expiredAt: bigint,
+      description: string,
+      paymentToken: `0x${string}` = '0x0000000000000000000000000000000000000000',
+      evaluatorFee: boolean = false
+    ) =>
+      writeContract({
+        address: AGENTIC_COMMERCE_ADDRESS,
+        abi: AGENTIC_COMMERCE_ABI,
+        functionName: 'createJobWithRandomEvaluator',
+        args: [provider, expiredAt, description, paymentToken, evaluatorFee],
+      }),
+    hash: data,
+    isPending,
+    error,
+    reset,
+  };
+}
+
+/**
+ * Register as an evaluator to be eligible for random evaluator selection.
+ */
+export function useRegisterAsEvaluator() {
+  const { writeContract, data, isPending, error, reset } = useWriteContract();
+
+  return {
+    registerAsEvaluator: () =>
+      writeContract({
+        address: AGENTIC_COMMERCE_ADDRESS,
+        abi: AGENTIC_COMMERCE_ABI,
+        functionName: 'registerAsEvaluator',
+      }),
+    hash: data,
+    isPending,
+    error,
+    reset,
+  };
+}
+
+/**
+ * Unregister as an evaluator.
+ */
+export function useUnregisterAsEvaluator() {
+  const { writeContract, data, isPending, error, reset } = useWriteContract();
+
+  return {
+    unregisterAsEvaluator: () =>
+      writeContract({
+        address: AGENTIC_COMMERCE_ADDRESS,
+        abi: AGENTIC_COMMERCE_ABI,
+        functionName: 'unregisterAsEvaluator',
+      }),
+    hash: data,
+    isPending,
+    error,
+    reset,
+  };
+}
+
 // ============ Utility Functions ============
 
 export function isOpenJob(job: Job): boolean {

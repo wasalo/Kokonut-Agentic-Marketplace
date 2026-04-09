@@ -375,6 +375,72 @@ const label = getJobStatusLabel(job.status); // "Open", "Funded", etc.
 const color = getJobStatusColor(job.status); // "default", "primary", "warning", "success", "danger"
 ```
 
+#### `useCompleteAfterTimeout()`
+
+Write hook to complete a job after the timeout period (7 days after submission) if the evaluator hasn't responded.
+
+```typescript
+const { completeAfterTimeout, hash, isPending, error, reset } = useCompleteAfterTimeout();
+
+// Usage:
+completeAfterTimeout(jobId); // bigint
+
+// Use case: When evaluator is non-responsive after 7 days from submission
+```
+
+#### `useRefundExpired()`
+
+Write hook to trigger a refund for an expired job - permissionless function. Anyone can call this to trigger a refund for jobs past their expiration date.
+
+```typescript
+const { refundExpired, hash, isPending, error, reset } = useRefundExpired();
+
+// Usage:
+refundExpired(jobId); // bigint
+
+// Use case: Client didn't respond within 7 days after provider submitted
+```
+
+#### `useCreateJobWithRandomEvaluator()`
+
+Write hook to create a job with a randomly selected evaluator from the registered evaluator pool.
+
+```typescript
+const { createJobWithRandomEvaluator, hash, isPending, error, reset } =
+  useCreateJobWithRandomEvaluator();
+
+// Usage:
+createJobWithRandomEvaluator(
+  provider, // `0x${string}`
+  expiredAt, // bigint - Unix timestamp
+  description, // string
+  paymentToken, // `0x${string}` - default: ETH (0x0)
+  evaluatorFee // boolean - whether to pay evaluator fee
+);
+```
+
+#### `useRegisterAsEvaluator()`
+
+Write hook to register as an evaluator to be eligible for random evaluator selection.
+
+```typescript
+const { registerAsEvaluator, hash, isPending, error, reset } = useRegisterAsEvaluator();
+
+// Usage:
+registerAsEvaluator();
+```
+
+#### `useUnregisterAsEvaluator()`
+
+Write hook to unregister as an evaluator.
+
+```typescript
+const { unregisterAsEvaluator, hash, isPending, error, reset } = useUnregisterAsEvaluator();
+
+// Usage:
+unregisterAsEvaluator();
+```
+
 ### Proposal Hooks
 
 #### `useProposals(start?: number, count?: number)`
@@ -991,9 +1057,44 @@ function AnalyticsDashboard() {
 }
 ```
 
-## Client Job Management Hooks
+#### `useFinalizeDecision()`
 
-#### `useClientJobCount(clientAddress)`
+Write hook to finalize a proposal decision after the grace period (7 days after decision deadline). Permissionless - anyone can call after the grace period expires.
+
+```typescript
+const { finalizeDecision, hash, isPending, error, reset } = useFinalizeDecision();
+
+// Usage:
+finalizeDecision(proposalId); // bigint
+
+// Use case: After 7-day grace period, finalize using median evaluator's decision
+```
+
+#### `useCalculateMedianScore(proposalId: bigint | undefined)`
+
+Read hook to calculate the median confidence score from all evaluators.
+
+```typescript
+const { medianScore, isLoading, error, refetch } = useCalculateMedianScore(proposalId);
+
+// Returns: bigint - median confidence score
+```
+
+#### `useSlashTreasury()`
+
+Read hook to get the slash treasury address.
+
+```typescript
+const { treasury, isLoading, error, refetch } = useSlashTreasury();
+
+// Returns: `0x${string}` - treasury address for slashed funds
+
+// Example:
+const { treasury } = useSlashTreasury();
+console.log(`Slash treasury: ${treasury}`);
+```
+
+## Client Job Management Hooks
 
 Tracks job creation limits for spam prevention (MAX_JOBS_PER_CLIENT = 100).
 

@@ -103,6 +103,7 @@ interface IAgentReviewV5 {
     event SlashManagerSet(address indexed slashManager);
     event ETHWithdrawn(address indexed to, uint256 amount);
     event RewardAmountSet(uint256 indexed proposalId, address indexed evaluator, uint256 amount);
+    event SlashTreasuryUpdated(address indexed oldTreasury, address indexed newTreasury);
 
     // Errors
     error TooManyEvaluators(uint256 proposalId);
@@ -558,6 +559,7 @@ contract AgentReviewV5 is IAgentReviewV5, ContextUpgradeable, OwnableUpgradeable
     // M2 Fix: Set slash treasury for slashed funds
     function setSlashTreasury(address treasury_) external onlyOwner {
         require(treasury_ != address(0), "Zero address");
+        emit SlashTreasuryUpdated(slashTreasury, treasury_);
         slashTreasury = treasury_;
     }
     
