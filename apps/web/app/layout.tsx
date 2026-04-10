@@ -13,6 +13,7 @@ import { Providers } from './providers';
 import { NavbarComponent } from '@/components/heroui/navbar';
 import { Footer } from '@/components/heroui/footer';
 import { ClientErrorBoundary } from '@/components/error/ClientErrorBoundary';
+import { WebVitalsProvider } from '@/components/WebVitalsProvider';
 
 const inter = Inter({ subsets: ['latin'] });
 
@@ -76,13 +77,15 @@ export default function RootLayout({
         `}</Script>
         <ThemeProvider>
           <ClientErrorBoundary>
-            <Providers>
-              <div className="min-h-screen flex flex-col bg-background">
-                <NavbarComponent />
-                <main className="flex-1">{children}</main>
-                <Footer />
-              </div>
-            </Providers>
+            <WebVitalsProvider>
+              <Providers>
+                <div className="min-h-screen flex flex-col bg-background">
+                  <NavbarComponent />
+                  <main className="flex-1">{children}</main>
+                  <Footer />
+                </div>
+              </Providers>
+            </WebVitalsProvider>
           </ClientErrorBoundary>
         </ThemeProvider>
       </body>

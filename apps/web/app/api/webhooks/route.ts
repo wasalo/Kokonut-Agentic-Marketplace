@@ -1,5 +1,6 @@
 import { NextRequest, NextResponse } from 'next/server';
 import { createWebhook, getWebhooks, getDeliveries } from '@/lib/db/webhooks';
+import { rateLimit, getClientIP } from '@/lib/rate-limit';
 
 const VALID_EVENTS = [
   'job.created',
@@ -20,6 +21,20 @@ const VALID_EVENTS = [
 
 export async function POST(request: NextRequest) {
   try {
+    const clientIP = getClientIP(request);
+    const rateLimitResult = rateLimit(request, {
+      windowMs: 60 * 1000,
+      maxRequests: 10,
+      message: 'Too many webhook registrations. Please try again in a minute.',
+    });
+
+    if (!rateLimitResult) {
+      return NextResponse.json(
+        { error: 'Too many webhook registrations. Please try again in a minute.' },
+        { status: 429 }
+      );
+    }
+
     const body = await request.json();
     const { url, events, metadata } = body;
 

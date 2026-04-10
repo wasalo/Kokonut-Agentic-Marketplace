@@ -22,7 +22,22 @@
     "audit": "pnpm audit",
     "audit:fix": "pnpm audit fix",
     "outdated": "pnpm outdated",
-    "update:deps": "pnpm update"
+    "update:deps": "pnpm update",
+    "docs:sdk": "typedoc --out docs/sdk-api sdk/typescript/index.ts"
+  },
+  "typedocOptions": {
+    "entryPoints": [
+      "sdk/typescript/index.ts"
+    ],
+    "out": "docs/sdk-api",
+    "name": "Kokonut SDK API",
+    "includeVersion": true,
+    "excludePrivate": true,
+    "excludeProtected": true,
+    "theme": "default",
+    "sidebarLinks": {
+      "GitHub": "https://github.com/anomalyco/kokonut-agentic-marketplace"
+    }
   },
   "workspaces": [
     "apps/*",
@@ -47,6 +62,9 @@
   "engines": {
     "node": ">=18.0.0",
     "pnpm": ">=8.0.0"
+  },
+  "devDependencies": {
+    "typedoc": "^0.26.0"
   },
   "dependencies": {
     "chalk": "^4.1.2",

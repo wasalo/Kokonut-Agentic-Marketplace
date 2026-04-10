@@ -86,9 +86,28 @@ jobs:
       - name: Run gas benchmarks
         run: forge test --match-contract GasBenchmark -vvv
 
+      - name: Generate gas report
+        run: forge test --gas-report --match-contract GasBenchmark > gas-report.txt || true
+        continue-on-error: true
+
       - name: Check gas snapshots
         run: forge snapshot --check || echo "Gas snapshots changed - update locally with 'forge snapshot'"
         continue-on-error: true
+
+      - name: Upload gas report
+        uses: actions/upload-artifact@v4
+        if: always()
+        with:
+          name: gas-report
+          path: gas-report.txt
+          retention-days: 30
+
+      - name: Display gas summary
+        run: |
+          echo "## Gas Summary" >> $GITHUB_STEP_SUMMARY
+          if [ -f gas-report.txt ]; then
+            head -20 gas-report.txt >> $GITHUB_STEP_SUMMARY || true
+          fi
 
   # ============================================
   # Fuzzing Tests

@@ -1,8 +1,22 @@
 import { NextRequest, NextResponse } from 'next/server';
 import { createPushSubscription } from '@/lib/db/push';
+import { rateLimit, getClientIP } from '@/lib/rate-limit';
 
 export async function POST(request: NextRequest) {
   try {
+    const rateLimitResult = rateLimit(request, {
+      windowMs: 60 * 1000,
+      maxRequests: 5,
+      message: 'Too many subscription requests. Please try again later.',
+    });
+
+    if (!rateLimitResult) {
+      return NextResponse.json(
+        { error: 'Too many subscription requests. Please try again later.' },
+        { status: 429 }
+      );
+    }
+
     const body = await request.json();
     const { subscription, address } = body;
 

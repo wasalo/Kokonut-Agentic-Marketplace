@@ -9,31 +9,46 @@
 
 ## Identity → Commerce → Coordination
 
-### 🎉 Latest: Phase 18 - Event Enhancements & UI Improvements (April 2026)
+### 🎉 Latest: Phase 19 - Performance & Analytics (April 2026)
 
-**Contract Upgrades:**
+**Web Vitals & Analytics:**
+
+- ✅ **Web Vitals**: Added FCP, LCP, TTI, CLS, FID tracking via web-vitals library
+- ✅ **Mixpanel Integration**: Analytics initialized in layout, tracks page views and events
+- ✅ **Performance Hooks**: useWebVitals hook for custom metric reporting
+
+**Configuration:**
+
+- ✅ Add `NEXT_PUBLIC_MIXPANEL_TOKEN` to enable analytics
+- ✅ Web vitals logged to console in development, sent to Mixpanel in production
+
+**Phase 18 - Event Enhancements:**
 
 - ✅ **AgenticCommerceV6**: Upgraded to `0xEecC615310f6A6144eeA0F235E83b7BD391EC251`
 - ✅ **AgentReviewV5**: Upgraded to `0xFf4D6df8dDca340e2ff59615Dd00C325706019f7`
-
-**Event Enhancements:**
-
 - ✅ Added more indexed parameters to events for off-chain filtering
 - ✅ Added `changedBy` address to JobStatusChanged and ProposalStatusChanged events
 - ✅ Added `oldValue`/`newValue` to JobUpdated event
 - ✅ Added `confidenceScore` to EvaluationFinalized event
 
-**UI Improvements:**
+**Phase 18 - Developer Experience:**
 
-- ✅ **ERROR_CODES mapping**: User-friendly error messages with resolution steps in toast.ts
-- ✅ **TransactionProgress component**: Toast-based transaction lifecycle (pending → confirming → mining → success/error)
-- ✅ **Skeleton loaders**: New reusable Skeletons.tsx component for better perceived performance
+- ✅ **Rate Limiting**: Server-side rate limiting middleware for API endpoints
+- ✅ **CLI Init**: Interactive configuration wizard (`npm run cli -- init`)
+- ✅ **API Reference**: Complete docs/API.md with SDK, CLI, and contract references
+- ✅ **Fork Testing**: ForkTest.t.sol for mainnet fork testing
+- ✅ **Gas Regression**: CI tracks gas usage over time
+- ✅ **TypeDoc**: Automated SDK documentation generation
+- ✅ **Visual Regression**: Playwright screenshot tests
+- ✅ **Tenderly Guide**: docs/TENDERLY.md for monitoring setup
+- ✅ **Troubleshooting**: docs/TROUBLESHOOTING.md with common issues
 
-**Documentation:**
+**Phase 18 - UI & Documentation:**
 
-- ✅ New docs/ERROR_CODES.md - Complete error code reference
-- ✅ New docs/SEARCH.md - Search and filtering capabilities
-- ✅ New docs/ACCESSIBILITY.md - a11y guidelines
+- ✅ **ERROR_CODES mapping**: User-friendly error messages with resolution steps
+- ✅ **TransactionProgress component**: Toast-based transaction lifecycle
+- ✅ **Skeleton loaders**: Reusable Skeletons.tsx component
+- ✅ docs/ERROR_CODES.md, docs/SEARCH.md, docs/ACCESSIBILITY.md, docs/API.md
 
 ### 🎉 Previous: Phase 17 - Function/Hook Parity & UX Improvements (April 2026)
 

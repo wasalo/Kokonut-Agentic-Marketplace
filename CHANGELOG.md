@@ -5,7 +5,64 @@ All notable changes to the Kokonut Agent Economy Stack are documented in this fi
 The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.0.0/),
 and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0.html).
 
-## [2026-04-09] - Phase 17: Function/Hook Parity & UX Improvements
+## [2026-04-09] - Phase 19: Performance & Analytics
+
+### 📊 Web Vitals & Analytics
+
+Added performance tracking and analytics integration:
+
+| Feature                  | Implementation                                              |
+| ------------------------ | ----------------------------------------------------------- |
+| **web-vitals package**   | Added `@web-vitals` library to track core web vitals        |
+| **useWebVitals hook**    | New hook in `lib/hooks/useWebVitals.ts`                     |
+| **Web Vitals Provider**  | `WebVitalsProvider.tsx` component in layout                 |
+| **Type Declarations**    | `types/web-vitals.d.ts` for TypeScript support              |
+| **Mixpanel Integration** | `lib/analytics.ts` functions now initialized in provider    |
+| **Page View Tracking**   | Automatic page view tracking on navigation                  |
+| **Event Tracking**       | All AnalyticsEvents now work when Mixpanel token configured |
+
+### 📈 Tracked Metrics
+
+| Metric  | Full Name                | Target  |
+| ------- | ------------------------ | ------- |
+| **FCP** | First Contentful Paint   | < 2.5s  |
+| **LCP** | Largest Contentful Paint | < 2.5s  |
+| **TTI** | Time to Interactive      | < 2.5s  |
+| **CLS** | Cumulative Layout Shift  | < 0.1   |
+| **FID** | First Input Delay        | < 100ms |
+
+### ⚙️ Configuration
+
+Add to `.env.local` to enable analytics:
+
+```bash
+NEXT_PUBLIC_MIXPANEL_TOKEN=your_token_here
+```
+
+In development, metrics are logged to console:
+
+```
+[WebVitals] FCP: 0.45s { id: '...', value: 452, delta: 452 }
+```
+
+In production, metrics are sent to Mixpanel as `web_vital` events.
+
+### 📦 New Files Added
+
+- `lib/hooks/useWebVitals.ts` - Web vitals reporting hook
+- `components/WebVitalsProvider.tsx` - React provider component
+- `types/web-vitals.d.ts` - TypeScript declarations for web-vitals
+
+### 🔧 Files Updated
+
+- `package.json` - Added web-vitals dependency
+- `.env.example` - Added NEXT_PUBLIC_MIXPANEL_TOKEN
+- `.env.local` - Added placeholder Mixpanel token
+- `app/layout.tsx` - Added WebVitalsProvider
+
+---
+
+## [2026-04-09] - Phase 18: Event Enhancements, Rate Limiting & Developer Experience
 
 ### 🎯 Missing Hooks Added
 
