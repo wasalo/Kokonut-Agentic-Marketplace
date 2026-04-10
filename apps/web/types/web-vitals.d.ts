@@ -1,6 +1,6 @@
 declare module 'web-vitals' {
   export interface Metric {
-    name: 'CLS' | 'FCP' | 'FID' | 'LCP' | 'TTI';
+    name: 'CLS' | 'FCP' | 'FID' | 'LCP' | 'INP' | 'TTFB';
     value: number;
     delta: number;
     id: string;
@@ -20,11 +20,15 @@ declare module 'web-vitals' {
     onReport: MetricReportCallback,
     opts?: { reportAllChanges?: boolean }
   ): void;
+  export function onINP(
+    onReport: MetricReportCallback,
+    opts?: { reportAllChanges?: boolean }
+  ): void;
   export function onLCP(
     onReport: MetricReportCallback,
     opts?: { reportAllChanges?: boolean }
   ): void;
-  export function onTTI(
+  export function onTTFB(
     onReport: MetricReportCallback,
     opts?: { reportAllChanges?: boolean }
   ): void;

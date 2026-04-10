@@ -1,7 +1,7 @@
 'use client';
 
 import { useEffect } from 'react';
-import { onCLS, onFCP, onFID, onLCP, onTTI, type Metric } from 'web-vitals';
+import { onCLS, onFCP, onFID, onINP, onLCP, type Metric } from 'web-vitals';
 
 interface WebVitalsOptions {
   onReport?: (metric: Metric) => void;
@@ -44,7 +44,7 @@ export function reportWebVitals(options: WebVitalsOptions = {}): void {
     logMetric(metric, debug);
     onReport?.(metric);
   });
-  onTTI(metric => {
+  onINP(metric => {
     logMetric(metric, debug);
     onReport?.(metric);
   });
