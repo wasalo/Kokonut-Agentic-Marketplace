@@ -5,6 +5,87 @@ All notable changes to the Kokonut Agent Economy Stack are documented in this fi
 The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.0.0/),
 and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0.html).
 
+## [2026-04-10] - Production Readiness
+
+### 🔧 TypeScript Errors Fixed
+
+All TypeScript errors were fixed for production readiness:
+
+| Issue                       | Fix                                          |
+| --------------------------- | -------------------------------------------- |
+| `Loader2` not found         | Replaced with CSS spinner in `jobs/page.tsx` |
+| Card `onPress` type error   | Removed onPress prop from Card component     |
+| `blockNumber` on never type | Added type assertion for TransactionReceipt  |
+| Missing ABI functions       | Added to `lib/contracts/abis.ts`             |
+
+### 📦 ABI Functions Added (Phase 17/18)
+
+**AgenticCommerceV6:**
+
+- `completeAfterTimeout(uint256 jobId, bytes32 reason)`
+- `refundExpired(uint256 jobId)`
+- `createJobWithRandomEvaluator(...)`
+- `registerAsEvaluator()`
+- `unregisterAsEvaluator()`
+
+**AgentReviewV5:**
+
+- `finalizeDecision(uint256 proposalId)`
+- `calculateMedianScore(uint256 proposalId) → int256`
+- `slashTreasury() → address`
+
+### 📦 Dependencies Migration
+
+- **npm → pnpm**: Switched from npm to pnpm for monorepo compatibility
+- Removed `package-lock.json` and `node_modules`
+- Now uses `pnpm-lock.yaml`
+- Clean install with no peer dependency warnings
+
+### ⚠️ Turbopack Investigation
+
+**Result: Turbopack does NOT work** with this monorepo setup due to Next.js 16 + pnpm workspace symlink resolution bug.
+
+**Working:**
+
+```json
+{
+  "dev": "next dev --webpack",
+  "build": "next build --webpack"
+}
+```
+
+Scripts available:
+
+- `pnpm run dev` - webpack (default, works)
+- `pnpm run dev:turbo` - turbopack (for testing)
+- `pnpm run build` - webpack (default, works)
+- `pnpm run build:turbo` - turbopack (for testing)
+
+### 📁 Files Created
+
+- `apps/web/lib/hooks/useWebVitals.ts` - Web vitals reporting
+- `apps/web/components/WebVitalsProvider.tsx` - React provider
+- `apps/web/types/web-vitals.d.ts` - Type declarations
+- `apps/web/.eslintrc.json` - ESLint config
+- `docs/PRODUCTION_READY.md` - Production guide
+
+### 📁 Files Updated
+
+- `tsconfig.json` - Added "apps" to exclude
+- `package.json` - Build scripts use --webpack
+- `lib/contracts/abis.ts` - New function definitions
+- `lib/hooks/useJobs.ts` - Type-safe ABI usage
+- `lib/hooks/useProposals.ts` - Type-safe ABI usage
+- `lib/hooks/useWebVitals.ts` - Web vitals hook
+- `app/jobs/page.tsx` - Removed Loader2 reference
+- `app/layout.tsx` - Added WebVitalsProvider
+- `components/heroui/service-list.tsx` - Removed onPress
+- `components/TransactionProgress.tsx` - Type assertions
+- `.env.example` - Added MIXPANEL_TOKEN
+- `.env.local` - Added placeholder MIXPANEL_TOKEN
+
+---
+
 ## [2026-04-09] - Phase 19: Performance & Analytics
 
 ### 📊 Web Vitals & Analytics

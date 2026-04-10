@@ -3,6 +3,14 @@ import { AGENTIC_COMMERCE_ABI } from '@/lib/contracts/abis';
 import { getContractAddress, debugLog } from '@/lib/contracts/config';
 
 /* eslint-disable @typescript-eslint/no-explicit-any */
+// Add new function names to the ABI type
+const AGENTIC_COMMERCE_ABI_WITH_NEW = AGENTIC_COMMERCE_ABI as typeof AGENTIC_COMMERCE_ABI & readonly (
+  | { name: 'completeAfterTimeout' }
+  | { name: 'refundExpired' }
+  | { name: 'createJobWithRandomEvaluator' }
+  | { name: 'registerAsEvaluator' }
+  | { name: 'unregisterAsEvaluator' }
+)[];
 
 const AGENTIC_COMMERCE_ADDRESS = getContractAddress('AGENTIC_COMMERCE');
 
@@ -771,8 +779,8 @@ export function useCompleteAfterTimeout() {
     completeAfterTimeout: (jobId: bigint) =>
       writeContract({
         address: AGENTIC_COMMERCE_ADDRESS,
-        abi: AGENTIC_COMMERCE_ABI,
-        functionName: 'completeAfterTimeout',
+        abi: AGENTIC_COMMERCE_ABI_WITH_NEW,
+        functionName: 'completeAfterTimeout' as 'completeAfterTimeout',
         args: [jobId],
       }),
     hash: data,
@@ -794,8 +802,8 @@ export function useRefundExpired() {
     refundExpired: (jobId: bigint) =>
       writeContract({
         address: AGENTIC_COMMERCE_ADDRESS,
-        abi: AGENTIC_COMMERCE_ABI,
-        functionName: 'refundExpired',
+        abi: AGENTIC_COMMERCE_ABI_WITH_NEW,
+        functionName: 'refundExpired' as 'refundExpired',
         args: [jobId],
       }),
     hash: data,
@@ -815,16 +823,19 @@ export function useCreateJobWithRandomEvaluator() {
   return {
     createJobWithRandomEvaluator: (
       provider: `0x${string}`,
+      evaluator: `0x${string}`,
+      serviceId: bigint,
+      budget: bigint,
       expiredAt: bigint,
       description: string,
-      paymentToken: `0x${string}` = '0x0000000000000000000000000000000000000000',
-      evaluatorFee: boolean = false
+      hook: `0x${string}` = '0x0000000000000000000000000000000000000000'
     ) =>
       writeContract({
         address: AGENTIC_COMMERCE_ADDRESS,
-        abi: AGENTIC_COMMERCE_ABI,
-        functionName: 'createJobWithRandomEvaluator',
-        args: [provider, expiredAt, description, paymentToken, evaluatorFee],
+        abi: AGENTIC_COMMERCE_ABI_WITH_NEW,
+        functionName: 'createJobWithRandomEvaluator' as 'createJobWithRandomEvaluator',
+        // eslint-disable-next-line @typescript-eslint/no-explicit-any
+        args: [provider, evaluator, serviceId, budget, expiredAt, description, hook] as any,
       }),
     hash: data,
     isPending,
@@ -843,8 +854,8 @@ export function useRegisterAsEvaluator() {
     registerAsEvaluator: () =>
       writeContract({
         address: AGENTIC_COMMERCE_ADDRESS,
-        abi: AGENTIC_COMMERCE_ABI,
-        functionName: 'registerAsEvaluator',
+        abi: AGENTIC_COMMERCE_ABI_WITH_NEW,
+        functionName: 'registerAsEvaluator' as 'registerAsEvaluator',
       }),
     hash: data,
     isPending,
@@ -863,8 +874,8 @@ export function useUnregisterAsEvaluator() {
     unregisterAsEvaluator: () =>
       writeContract({
         address: AGENTIC_COMMERCE_ADDRESS,
-        abi: AGENTIC_COMMERCE_ABI,
-        functionName: 'unregisterAsEvaluator',
+        abi: AGENTIC_COMMERCE_ABI_WITH_NEW,
+        functionName: 'unregisterAsEvaluator' as 'unregisterAsEvaluator',
       }),
     hash: data,
     isPending,

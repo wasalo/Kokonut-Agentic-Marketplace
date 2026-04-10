@@ -744,6 +744,50 @@ export const AGENTIC_COMMERCE_ABI = [
     stateMutability: 'nonpayable',
     type: 'function',
   },
+  // === V6.1 New Functions ===
+  {
+    inputs: [{ name: 'jobId', type: 'uint256' }],
+    name: 'completeAfterTimeout',
+    outputs: [],
+    stateMutability: 'nonpayable',
+    type: 'function',
+  },
+  {
+    inputs: [{ name: 'jobId', type: 'uint256' }],
+    name: 'refundExpired',
+    outputs: [],
+    stateMutability: 'nonpayable',
+    type: 'function',
+  },
+  {
+    inputs: [
+      { name: 'provider', type: 'address' },
+      { name: 'evaluator', type: 'address' },
+      { name: 'serviceId', type: 'uint256' },
+      { name: 'budget', type: 'uint256' },
+      { name: 'expiredAt', type: 'uint256' },
+      { name: 'description', type: 'string' },
+      { name: 'hook', type: 'address' },
+    ],
+    name: 'createJobWithRandomEvaluator',
+    outputs: [{ name: 'jobId', type: 'uint256' }],
+    stateMutability: 'nonpayable',
+    type: 'function',
+  },
+  {
+    inputs: [],
+    name: 'registerAsEvaluator',
+    outputs: [],
+    stateMutability: 'nonpayable',
+    type: 'function',
+  },
+  {
+    inputs: [],
+    name: 'unregisterAsEvaluator',
+    outputs: [],
+    stateMutability: 'nonpayable',
+    type: 'function',
+  },
 ] as const;
 
 // === V5 Events (for useWatchContractEvents) ===
@@ -1102,6 +1146,28 @@ export const AGENT_REVIEW_ABI = [
     inputs: [{ name: 'proposalId', type: 'uint256' }],
     name: 'getEvaluatorCount',
     outputs: [{ name: '', type: 'uint256' }],
+    stateMutability: 'view',
+    type: 'function',
+  },
+  // === V5 New Functions ===
+  {
+    inputs: [{ name: 'proposalId', type: 'uint256' }],
+    name: 'finalizeDecision',
+    outputs: [],
+    stateMutability: 'nonpayable',
+    type: 'function',
+  },
+  {
+    inputs: [{ name: 'proposalId', type: 'uint256' }],
+    name: 'calculateMedianScore',
+    outputs: [{ name: '', type: 'int256' }],
+    stateMutability: 'view',
+    type: 'function',
+  },
+  {
+    inputs: [],
+    name: 'slashTreasury',
+    outputs: [{ name: '', type: 'address' }],
     stateMutability: 'view',
     type: 'function',
   },

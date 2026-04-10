@@ -268,7 +268,7 @@ export default function JobsPage(): JSX.Element {
               onChange={e => setSearchQuery(e.target.value)}
             />
             {isSearching && (
-              <Loader2 className="absolute right-3 top-1/2 -translate-y-1/2 h-4 w-4 animate-spin text-default-400" />
+              <span className="absolute right-3 top-1/2 -translate-y-1/2 h-4 w-4 animate-spin rounded-full border-2 border-default-400 border-t-transparent" />
             )}
           </div>
           <button

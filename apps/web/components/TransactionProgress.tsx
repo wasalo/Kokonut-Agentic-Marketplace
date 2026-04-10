@@ -88,9 +88,10 @@ export function useTransactionProgress({
     if (receipt && !isSuccess && !waitError && phase === 'confirming') {
       setPhase('mining');
       if (toastId) {
+        const blockNum = (receipt as { blockNumber?: bigint }).blockNumber;
         toast.loading('⛏️ Mining transaction...', {
           id: toastId,
-          description: `Block #${receipt.blockNumber}`,
+          description: `Block #${blockNum !== undefined ? blockNum.toString() : 'pending'}`,
           duration: Infinity,
         });
       }
@@ -103,9 +104,10 @@ export function useTransactionProgress({
       setGasUsed(receipt.gasUsed);
       setPhase('success');
       if (toastId) {
+        const blockNum = (receipt as { blockNumber?: bigint }).blockNumber;
         toast.success('✅ Transaction confirmed!', {
           id: toastId,
-          description: `Gas used: ${Number(receipt.gasUsed).toLocaleString()} | Block: ${receipt.blockNumber}`,
+          description: `Gas used: ${Number(receipt.gasUsed).toLocaleString()} | Block: ${blockNum !== undefined ? blockNum.toString() : 'N/A'}`,
           duration: 5000,
         });
       }

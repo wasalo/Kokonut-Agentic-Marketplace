@@ -117,10 +117,7 @@ function ServiceCard({ service }: { service: Service }) {
   };
 
   return (
-    <Card
-      className="border border-divider p-6 hover:border-success transition-colors cursor-pointer h-full relative group"
-      onPress={handleCardClick}
-    >
+    <Card className="border border-divider p-6 hover:border-success transition-colors cursor-pointer h-full relative group">
       <div className="flex items-start justify-between mb-3">
         <div className="flex-1 min-w-0 pr-2 cursor-pointer" onClick={handleCardClick}>
           <h3 className="font-semibold text-lg">{service.name}</h3>

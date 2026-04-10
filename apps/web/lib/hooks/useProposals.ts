@@ -7,7 +7,13 @@ import { getContractAddress, debugLog } from '@/lib/contracts/config';
 import { debugError } from '@/lib/debug';
 import { getQueryConfig } from '@/lib/queryConfig';
 
-/* eslint-disable @typescript-eslint/no-explicit-any */
+/* eslint-disable @typescript-eslint/no-explicitany */
+// Add new function names to the ABI type
+const AGENT_REVIEW_ABI_WITH_NEW = AGENT_REVIEW_ABI as typeof AGENT_REVIEW_ABI & readonly (
+  | { name: 'finalizeDecision' }
+  | { name: 'calculateMedianScore' }
+  | { name: 'slashTreasury' }
+)[];
 
 const AGENT_REVIEW_ADDRESS = getContractAddress('AGENT_REVIEW');
 
@@ -663,8 +669,8 @@ export function useFinalizeDecision() {
     finalizeDecision: (proposalId: bigint) =>
       writeContract({
         address: AGENT_REVIEW_ADDRESS,
-        abi: AGENT_REVIEW_ABI,
-        functionName: 'finalizeDecision',
+        abi: AGENT_REVIEW_ABI_WITH_NEW,
+        functionName: 'finalizeDecision' as 'finalizeDecision',
         args: [proposalId],
       }),
     hash: data,
@@ -681,8 +687,8 @@ export function useFinalizeDecision() {
 export function useCalculateMedianScore(proposalId: bigint | undefined) {
   const { data, isLoading, error, refetch } = useReadContract({
     address: AGENT_REVIEW_ADDRESS,
-    abi: AGENT_REVIEW_ABI,
-    functionName: 'calculateMedianScore',
+    abi: AGENT_REVIEW_ABI_WITH_NEW,
+    functionName: 'calculateMedianScore' as 'calculateMedianScore',
     args: proposalId !== undefined ? [proposalId] : undefined,
     query: {
       enabled: proposalId !== undefined,
@@ -705,8 +711,8 @@ export function useCalculateMedianScore(proposalId: bigint | undefined) {
 export function useSlashTreasury() {
   const { data, isLoading, error, refetch } = useReadContract({
     address: AGENT_REVIEW_ADDRESS,
-    abi: AGENT_REVIEW_ABI,
-    functionName: 'slashTreasury',
+    abi: AGENT_REVIEW_ABI_WITH_NEW,
+    functionName: 'slashTreasury' as 'slashTreasury',
     query: {
       retry: 2,
       staleTime: 60 * 60 * 1000, // Rarely changes
