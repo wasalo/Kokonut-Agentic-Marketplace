@@ -6,6 +6,114 @@ const nextConfig = {
   // Fix lockfile warning for monorepo with multiple lockfiles
   outputFileTracingRoot: __dirname,
 
+  // OpenAPI/Swagger documentation
+  ...(process.env.NODE_ENV !== 'production' && {
+    swaggerDocGenerator: async lib => ({
+      openapi: '3.0.0',
+      info: {
+        title: 'Kokonut Agent Economy API',
+        description:
+          'API for the Kokonut Agent Economy Stack - Webhooks, Push Notifications, and Email',
+        version: '1.0.0',
+        contact: {
+          name: 'Kokonut Support',
+          url: 'https://kokonut.network',
+        },
+      },
+      servers: [
+        {
+          url: 'http://localhost:3000',
+          description: 'Local development server',
+        },
+        {
+          url: 'https://market.kokonut.network',
+          description: 'Production server',
+        },
+      ],
+      components: {
+        schemas: {
+          Webhook: {
+            type: 'object',
+            properties: {
+              id: { type: 'string' },
+              url: { type: 'string', format: 'uri' },
+              events: { type: 'array', items: { type: 'string' } },
+              secret: { type: 'string' },
+              isActive: { type: 'boolean' },
+              createdAt: { type: 'string', format: 'date-time' },
+            },
+          },
+          WebhookWithDeliveries: {
+            type: 'object',
+            properties: {
+              id: { type: 'string' },
+              url: { type: 'string', format: 'uri' },
+              events: { type: 'array', items: { type: 'string' } },
+              isActive: { type: 'boolean' },
+              createdAt: { type: 'string', format: 'date-time' },
+              updatedAt: { type: 'string', format: 'date-time' },
+              recentDeliveries: {
+                type: 'array',
+                items: {
+                  type: 'object',
+                  properties: {
+                    id: { type: 'string' },
+                    event: { type: 'string' },
+                    status: { type: 'string', enum: ['pending', 'success', 'failed'] },
+                    statusCode: { type: 'integer' },
+                    createdAt: { type: 'string', format: 'date-time' },
+                  },
+                },
+              },
+            },
+          },
+          PushSubscription: {
+            type: 'object',
+            properties: {
+              endpoint: { type: 'string' },
+              keys: {
+                type: 'object',
+                properties: {
+                  p256dh: { type: 'string' },
+                  auth: { type: 'string' },
+                },
+              },
+            },
+          },
+          EmailPreferences: {
+            type: 'object',
+            properties: {
+              address: { type: 'string', format: 'email' },
+              notifications: {
+                type: 'object',
+                properties: {
+                  paymentReceived: { type: 'boolean' },
+                  jobCreated: { type: 'boolean' },
+                  weeklyDigest: { type: 'boolean' },
+                },
+              },
+            },
+          },
+          Error: {
+            type: 'object',
+            properties: {
+              error: { type: 'string' },
+            },
+          },
+        },
+        securitySchemes: {
+          OwnerAddress: {
+            type: 'apiKey',
+            in: 'header',
+            name: 'x-owner-address',
+            description: 'Ethereum address of the webhook owner',
+          },
+        },
+      },
+      security: [{ OwnerAddress: [] }],
+    }),
+  }),
+
   // Phase 3: Security Headers
   // CSP is in report-only mode for testing phase
   async headers() {

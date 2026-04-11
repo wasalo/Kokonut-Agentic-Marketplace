@@ -2,6 +2,98 @@ import { NextRequest, NextResponse } from 'next/server';
 import { createWebhook, getWebhooks, getDeliveries } from '@/lib/db/webhooks';
 import { rateLimit, getClientIP } from '@/lib/rate-limit';
 
+/**
+ * @swagger
+ * /api/webhooks:
+ *   post:
+ *     summary: Register a new webhook
+ *     description: Register an HTTP endpoint to receive blockchain event notifications
+ *     tags:
+ *       - Webhooks
+ *     requestBody:
+ *       required: true
+ *       content:
+ *         application/json:
+ *           schema:
+ *             type: object
+ *             required:
+ *               - url
+ *               - events
+ *             properties:
+ *               url:
+ *                 type: string
+ *                 format: uri
+ *                 description: HTTPS URL to receive webhook notifications
+ *               events:
+ *                 type: array
+ *                 items:
+ *                   type: string
+ *                   enum:
+ *                     - job.created
+ *                     - job.funded
+ *                     - job.submitted
+ *                     - job.completed
+ *                     - job.rejected
+ *                     - job.expired
+ *                     - service.created
+ *                     - service.updated
+ *                     - service.deactivated
+ *                     - proposal.created
+ *                     - proposal.evaluation_submitted
+ *                     - proposal.decided
+ *                     - payment.received
+ *                     - payment.sent
+ *                 description: List of events to subscribe to
+ *               metadata:
+ *                 type: object
+ *                 description: Optional metadata for the webhook
+ *     responses:
+ *       201:
+ *         description: Webhook created successfully
+ *         content:
+ *           application/json:
+ *             schema:
+ *               type: object
+ *               properties:
+ *                 success:
+ *                   type: boolean
+ *                 webhook:
+ *                   $ref: '#/components/schemas/Webhook'
+ *       400:
+ *         description: Invalid request body
+ *       401:
+ *         description: Missing owner address header
+ *       429:
+ *         description: Rate limit exceeded
+ *   get:
+ *     summary: List webhooks
+ *     description: Get all webhooks registered by the authenticated owner
+ *     tags:
+ *       - Webhooks
+ *     parameters:
+ *       - in: header
+ *         name: x-owner-address
+ *         required: true
+ *         schema:
+ *           type: string
+ *           format: ethereum-address
+ *         description: The owner's Ethereum address
+ *     responses:
+ *       200:
+ *         description: List of webhooks
+ *         content:
+ *           application/json:
+ *             schema:
+ *               type: object
+ *               properties:
+ *                 webhooks:
+ *                   type: array
+ *                   items:
+ *                     $ref: '#/components/schemas/WebhookWithDeliveries'
+ *       401:
+ *         description: Missing owner address header
+ */
+
 const VALID_EVENTS = [
   'job.created',
   'job.funded',

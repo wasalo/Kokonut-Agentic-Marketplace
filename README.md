@@ -27,9 +27,15 @@ pnpm run build  # Uses webpack (works)
 
 **Web Vitals & Analytics:**
 
-- ✅ **Web Vitals**: Added FCP, LCP, TTI, CLS, FID tracking via web-vitals library
+- ✅ **Web Vitals**: Added FCP, LCP, INP, CLS, FID tracking via web-vitals library
 - ✅ **Mixpanel Integration**: Analytics initialized in layout, tracks page views and events
 - ✅ **Performance Hooks**: useWebVitals hook for custom metric reporting
+
+**API Documentation:**
+
+- ✅ **Swagger UI**: Interactive API docs at `/api-docs`
+- ✅ **OpenAPI Spec**: JSON endpoint at `/api/swagger.json`
+- ✅ **Try-it-out**: Test API endpoints directly in the browser
 
 **Configuration:**
 

@@ -61,6 +61,27 @@ Scripts available:
 - `pnpm run build` - webpack (default, works)
 - `pnpm run build:turbo` - turbopack (for testing)
 
+### 🔵 OpenAPI / Swagger Implementation
+
+Added auto-generated API documentation:
+
+| Feature               | Implementation                                      |
+| --------------------- | --------------------------------------------------- |
+| **swagger-ui-react**  | UI library for interactive API docs                 |
+| **Type declarations** | `types/swagger-ui-react.d.ts`                       |
+| **Swagger endpoint**  | `app/api/swagger/route.ts` - Returns OpenAPI JSON   |
+| **API docs page**     | `app/api-docs/page.tsx` - Swagger UI at `/api-docs` |
+
+**Access:** http://localhost:3000/api-docs
+
+**Endpoints documented:**
+
+- `/api/swagger.json` - OpenAPI spec
+- `/api/health` - Health check
+- `/api/webhooks` - Webhook CRUD
+- `/api/push/*` - Push notifications
+- `/api/emails/*` - Email preferences
+
 ### 📁 Files Created
 
 - `apps/web/lib/hooks/useWebVitals.ts` - Web vitals reporting
@@ -68,15 +89,18 @@ Scripts available:
 - `apps/web/types/web-vitals.d.ts` - Type declarations
 - `apps/web/.eslintrc.json` - ESLint config
 - `docs/PRODUCTION_READY.md` - Production guide
+- `apps/web/types/swagger-ui-react.d.ts` - Swagger types
+- `apps/web/app/api/swagger/route.ts` - OpenAPI spec endpoint
+- `apps/web/app/api-docs/page.tsx` - Swagger UI page
 
 ### 📁 Files Updated
 
 - `tsconfig.json` - Added "apps" to exclude
-- `package.json` - Build scripts use --webpack
+- `package.json` - Added swagger-ui-react, build scripts use --webpack
 - `lib/contracts/abis.ts` - New function definitions
 - `lib/hooks/useJobs.ts` - Type-safe ABI usage
 - `lib/hooks/useProposals.ts` - Type-safe ABI usage
-- `lib/hooks/useWebVitals.ts` - Web vitals hook
+- `lib/hooks/useWebVitals.ts` - Replaced TTI with INP
 - `app/jobs/page.tsx` - Removed Loader2 reference
 - `app/layout.tsx` - Added WebVitalsProvider
 - `components/heroui/service-list.tsx` - Removed onPress
@@ -104,13 +128,13 @@ Added performance tracking and analytics integration:
 
 ### 📈 Tracked Metrics
 
-| Metric  | Full Name                | Target  |
-| ------- | ------------------------ | ------- |
-| **FCP** | First Contentful Paint   | < 2.5s  |
-| **LCP** | Largest Contentful Paint | < 2.5s  |
-| **TTI** | Time to Interactive      | < 2.5s  |
-| **CLS** | Cumulative Layout Shift  | < 0.1   |
-| **FID** | First Input Delay        | < 100ms |
+| Metric  | Full Name                 | Target  |
+| ------- | ------------------------- | ------- |
+| **FCP** | First Contentful Paint    | < 2.5s  |
+| **LCP** | Largest Contentful Paint  | < 2.5s  |
+| **INP** | Interaction to Next Paint | < 200ms |
+| **CLS** | Cumulative Layout Shift   | < 0.1   |
+| **FID** | First Input Delay         | < 100ms |
 
 ### ⚙️ Configuration
 

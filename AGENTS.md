@@ -13,8 +13,9 @@
 >   - **ABIs**: Added Phase 17/18 functions to type definitions
 >   - **Turbopack**: ❌ DOES NOT WORK - Next.js 16 + pnpm monorepo bug
 >   - **webpack**: Now default - `pnpm run dev` works reliably
+>   - **OpenAPI**: Added Swagger UI at `/api-docs` with interactive API docs
 > - **Phase 19: Performance & Analytics (April 2026)**:
->   - **Web Vitals**: Added FCP, LCP, TTI, CLS, FID tracking via web-vitals library
+>   - **Web Vitals**: Added FCP, LCP, INP, CLS, FID tracking via web-vitals library
 >   - **Mixpanel Integration**: Analytics initialized in layout, tracks page views and events
 >   - **Performance Hooks**: useWebVitals hook for custom metric reporting
 > - **Phase 18: Event Enhancements (April 2026)**:
