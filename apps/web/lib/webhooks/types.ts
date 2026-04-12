@@ -5,12 +5,17 @@ export type WebhookEventType =
   | 'job.completed'
   | 'job.rejected'
   | 'job.expired'
+  | 'job.status_changed'
+  | 'job.limit_exceeded'
   | 'service.created'
   | 'service.updated'
   | 'service.deactivated'
+  | 'service.activated'
   | 'proposal.created'
   | 'proposal.evaluation_submitted'
   | 'proposal.decided'
+  | 'proposal.status_changed'
+  | 'evaluator.slashed'
   | 'payment.received'
   | 'payment.sent';
 
@@ -62,16 +67,21 @@ export interface WebhookUpdate {
 export const WEBHOOK_EVENT_LABELS: Record<WebhookEventType, string> = {
   'job.created': 'Job Created',
   'job.funded': 'Job Funded',
-  'job.submitted': 'Job Submitted',
+  'job.submitted': 'Work Submitted',
   'job.completed': 'Job Completed',
   'job.rejected': 'Job Rejected',
   'job.expired': 'Job Expired',
+  'job.status_changed': 'Job Status Changed',
+  'job.limit_exceeded': 'Job Limit Exceeded',
   'service.created': 'Service Created',
   'service.updated': 'Service Updated',
   'service.deactivated': 'Service Deactivated',
+  'service.activated': 'Service Activated',
   'proposal.created': 'Proposal Created',
   'proposal.evaluation_submitted': 'Evaluation Submitted',
   'proposal.decided': 'Proposal Decided',
+  'proposal.status_changed': 'Proposal Status Changed',
+  'evaluator.slashed': 'Evaluator Slashed',
   'payment.received': 'Payment Received',
   'payment.sent': 'Payment Sent',
 };

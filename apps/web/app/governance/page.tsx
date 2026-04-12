@@ -14,6 +14,7 @@ import {
   useExecuteSlashProposal,
   useExecutionDelay,
   useMaxSlashAmount,
+  useSlashManagerOwner,
 } from '@/lib/hooks/useSlashManager';
 
 export default function GovernancePage() {
@@ -26,6 +27,7 @@ export default function GovernancePage() {
   const { required } = useRequiredConfirmations();
   const { delayInHours } = useExecutionDelay();
   const { maxAmountInEth } = useMaxSlashAmount();
+  const { owner: contractOwner } = useSlashManagerOwner();
 
   const {
     createProposal,
@@ -89,7 +91,7 @@ export default function GovernancePage() {
     executeProposal(executeProposalId as `0x${string}`);
   }, [executeProposalId, executeProposal]);
 
-  const isOwner = address && address.toLowerCase() === '0x3394c45b5938127eb56603a6051df26cfaf08c26';
+  const isOwner = address && contractOwner && address.toLowerCase() === contractOwner.toLowerCase();
   const _anyPending = isCreatePending || isConfirmPending || isExecutePending;
 
   return (

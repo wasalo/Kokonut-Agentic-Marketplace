@@ -3,7 +3,7 @@
 import { useState, useEffect, useCallback, useMemo } from 'react';
 import { usePublicClient } from 'wagmi';
 import { parseAbiItem, formatUnits } from 'viem';
-import { getContractAddress, debugLog } from '@/lib/contracts/config';
+import { getContractAddress, debugLog, DEFAULT_FROM_BLOCK } from '@/lib/contracts/config';
 
 // Contract addresses
 const AGENTIC_COMMERCE_ADDRESS = getContractAddress('AGENTIC_COMMERCE');
@@ -11,7 +11,7 @@ const SERVICE_REGISTRY_ADDRESS = getContractAddress('SERVICE_REGISTRY');
 const AGENT_REVIEW_ADDRESS = getContractAddress('AGENT_REVIEW');
 
 // From block (Sepolia deployment)
-const FROM_BLOCK = BigInt(9989393);
+const FROM_BLOCK = DEFAULT_FROM_BLOCK;
 
 // Time range constants (approx 12s per block)
 export type TimeRange = '7D' | '30D' | '3M';

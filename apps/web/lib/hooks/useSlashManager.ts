@@ -252,3 +252,26 @@ export function useMaxSlashAmount() {
     refetch,
   };
 }
+
+/**
+ * Hook to get the contract owner
+ * @returns Owner address
+ */
+export function useSlashManagerOwner() {
+  const { data, isLoading, error, refetch } = useReadContract({
+    address: SLASH_MANAGER_ADDRESS,
+    abi: SLASH_MANAGER_ABI,
+    functionName: 'owner',
+    query: {
+      retry: 2,
+      staleTime: 60 * 1000,
+    },
+  });
+
+  return {
+    owner: data,
+    isLoading,
+    error,
+    refetch,
+  };
+}

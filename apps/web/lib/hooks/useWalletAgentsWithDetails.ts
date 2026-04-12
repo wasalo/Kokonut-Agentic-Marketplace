@@ -5,12 +5,12 @@ import { usePublicClient, useReadContract } from 'wagmi';
 import { parseAbiItem } from 'viem';
 import { ERC8004_ABI } from '@/lib/8004contracts';
 import { decodeAgentMetadata } from '@/lib/metadata';
-import { getContractAddress } from '@/lib/contracts/config';
+import { getContractAddress, DEFAULT_FROM_BLOCK } from '@/lib/contracts/config';
 import { debugLog, debugError } from '@/lib/debug';
 
 const ERC8004_ADDRESS = getContractAddress('ERC8004_REGISTRY');
 
-const FROM_BLOCK = BigInt(9989393);
+const FROM_BLOCK = DEFAULT_FROM_BLOCK;
 
 export interface AgentWithDetails {
   id: number;

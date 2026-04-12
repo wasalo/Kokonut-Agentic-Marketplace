@@ -3,7 +3,7 @@
 import { useEffect, useCallback, useRef } from 'react';
 import { usePublicClient, useAccount } from 'wagmi';
 import { parseAbiItem } from 'viem';
-import { getContractAddress, debugLog } from '@/lib/contracts/config';
+import { getContractAddress, debugLog, DEFAULT_FROM_BLOCK } from '@/lib/contracts/config';
 import { useNotifications } from '@/lib/hooks/useNotifications';
 import { triggerWebhooks, getWebhookEventFromNotification } from '@/lib/webhooks/trigger';
 import { sendNotificationEmail } from '@/lib/emails/notification-bridge';
@@ -15,9 +15,9 @@ const AGENT_REVIEW_ADDRESS = getContractAddress('AGENT_REVIEW');
 const STORAGE_KEY = 'kokonut_last_notification_block';
 
 function getLastProcessedBlock(): bigint {
-  if (typeof window === 'undefined') return BigInt(9989393);
+  if (typeof window === 'undefined') return DEFAULT_FROM_BLOCK;
   const stored = localStorage.getItem(STORAGE_KEY);
-  return stored ? BigInt(stored) : BigInt(9989393);
+  return stored ? BigInt(stored) : DEFAULT_FROM_BLOCK;
 }
 
 function setLastProcessedBlock(block: bigint) {
@@ -35,14 +35,25 @@ const EVENT_ABI_ITEMS = {
     'event JobCompleted(uint256 indexed jobId, uint256 payment, address recipient)'
   ),
   jobRejected: parseAbiItem('event JobRejected(uint256 indexed jobId, string reason)'),
+  jobExpired: parseAbiItem('event JobExpired(uint256 indexed jobId)'),
   paymentReleased: parseAbiItem(
     'event PaymentReleased(uint256 indexed jobId, uint256 amount, address recipient)'
+  ),
+  jobStatusChanged: parseAbiItem(
+    'event JobStatusChanged(uint256 indexed jobId, uint8 indexed oldStatus, uint8 indexed newStatus, uint256 timestamp)'
+  ),
+  jobLimitExceeded: parseAbiItem(
+    'event JobLimitExceeded(address indexed client, uint256 attemptedCount, uint256 maxAllowed)'
+  ),
+  evaluatorSlashedForInactivity: parseAbiItem(
+    'event EvaluatorSlashedForInactivity(uint256 indexed jobId, address indexed evaluator, uint256 slashAmount)'
   ),
   serviceCreated: parseAbiItem(
     'event ServiceCreated(uint256 indexed serviceId, address indexed provider, uint256 indexed agentId, string name, uint256 price)'
   ),
   serviceUpdated: parseAbiItem('event ServiceUpdated(uint256 indexed serviceId)'),
   serviceDeactivated: parseAbiItem('event ServiceDeactivated(uint256 indexed serviceId)'),
+  serviceActivated: parseAbiItem('event ServiceActivated(uint256 indexed serviceId)'),
   proposalCreated: parseAbiItem(
     'event ProposalCreated(uint256 indexed proposalId, address indexed proposer, uint256 reward)'
   ),
@@ -51,6 +62,12 @@ const EVENT_ABI_ITEMS = {
   ),
   proposalDecided: parseAbiItem(
     'event ProposalDecided(uint256 indexed proposalId, address indexed winner)'
+  ),
+  proposalStatusChanged: parseAbiItem(
+    'event ProposalStatusChanged(uint256 indexed proposalId, uint8 indexed oldStatus, uint8 indexed newStatus)'
+  ),
+  evaluatorSlashed: parseAbiItem(
+    'event EvaluatorSlashed(address indexed evaluator, uint256 indexed proposalId, uint256 slashAmount)'
   ),
 } as const;
 
@@ -85,7 +102,18 @@ export function useNotificationEvents() {
       try {
         const logs = await publicClient.getLogs({
           address: AGENTIC_COMMERCE_ADDRESS,
-          events: Object.values(EVENT_ABI_ITEMS).slice(0, 6),
+          events: [
+            EVENT_ABI_ITEMS.jobCreated,
+            EVENT_ABI_ITEMS.jobFunded,
+            EVENT_ABI_ITEMS.jobSubmitted,
+            EVENT_ABI_ITEMS.jobCompleted,
+            EVENT_ABI_ITEMS.jobRejected,
+            EVENT_ABI_ITEMS.jobExpired,
+            EVENT_ABI_ITEMS.paymentReleased,
+            EVENT_ABI_ITEMS.jobStatusChanged,
+            EVENT_ABI_ITEMS.jobLimitExceeded,
+            EVENT_ABI_ITEMS.evaluatorSlashedForInactivity,
+          ],
           fromBlock,
           toBlock,
         });
@@ -241,6 +269,113 @@ export function useNotificationEvents() {
               },
             });
           }
+
+          if (event === 'JobExpired' && log.args.jobId) {
+            if (address) {
+              await notifyAndEmail({
+                type: 'job',
+                action: 'job.expired',
+                title: 'Job Expired',
+                message: `Job #${log.args.jobId} has expired`,
+                link: `/jobs/${log.args.jobId}`,
+                metadata: { jobId: log.args.jobId.toString() },
+              });
+            }
+            triggerWebhooks({
+              event: 'job.expired',
+              data: { jobId: log.args.jobId.toString() },
+            });
+          }
+
+          if (
+            event === 'JobStatusChanged' &&
+            log.args.jobId &&
+            log.args.oldStatus !== undefined &&
+            log.args.newStatus !== undefined
+          ) {
+            if (address) {
+              const statusNames = ['Open', 'Funded', 'Submitted', 'Completed', 'Rejected', 'Expired'];
+              await notifyAndEmail({
+                type: 'job',
+                action: 'job.status_changed',
+                title: 'Job Status Changed',
+                message: `Job #${log.args.jobId} changed from ${statusNames[Number(log.args.oldStatus)] || 'Unknown'} to ${statusNames[Number(log.args.newStatus)] || 'Unknown'}`,
+                link: `/jobs/${log.args.jobId}`,
+                metadata: {
+                  jobId: log.args.jobId.toString(),
+                  oldStatus: log.args.oldStatus.toString(),
+                  newStatus: log.args.newStatus.toString(),
+                },
+              });
+            }
+            triggerWebhooks({
+              event: 'job.status_changed',
+              data: {
+                jobId: log.args.jobId.toString(),
+                oldStatus: log.args.oldStatus.toString(),
+                newStatus: log.args.newStatus.toString(),
+              },
+            });
+          }
+
+          if (
+            event === 'JobLimitExceeded' &&
+            log.args.client &&
+            log.args.attemptedCount &&
+            log.args.maxAllowed !== undefined
+          ) {
+            if (address && log.args.client.toLowerCase() === address.toLowerCase()) {
+              await notifyAndEmail({
+                type: 'job',
+                action: 'job.limit_exceeded',
+                title: 'Job Limit Exceeded',
+                message: `You have reached the maximum of ${log.args.maxAllowed} active jobs`,
+                link: `/jobs`,
+                metadata: {
+                  attemptedCount: log.args.attemptedCount.toString(),
+                  maxAllowed: log.args.maxAllowed.toString(),
+                },
+              });
+            }
+            triggerWebhooks({
+              event: 'job.limit_exceeded',
+              data: {
+                client: log.args.client,
+                attemptedCount: log.args.attemptedCount.toString(),
+                maxAllowed: log.args.maxAllowed.toString(),
+              },
+            });
+          }
+
+          if (
+            event === 'EvaluatorSlashedForInactivity' &&
+            log.args.jobId &&
+            log.args.evaluator &&
+            log.args.slashAmount !== undefined
+          ) {
+            if (address && log.args.evaluator.toLowerCase() === address.toLowerCase()) {
+              const amount = Number(log.args.slashAmount) / 1e18;
+              await notifyAndEmail({
+                type: 'proposal',
+                action: 'evaluator.slashed',
+                title: 'Evaluator Slashed',
+                message: `You were slashed ${amount.toFixed(4)} ETH for inactivity on job #${log.args.jobId}`,
+                link: `/jobs/${log.args.jobId}`,
+                metadata: {
+                  jobId: log.args.jobId.toString(),
+                  slashAmount: log.args.slashAmount.toString(),
+                },
+              });
+            }
+            triggerWebhooks({
+              event: 'evaluator.slashed',
+              data: {
+                jobId: log.args.jobId.toString(),
+                evaluator: log.args.evaluator,
+                slashAmount: log.args.slashAmount.toString(),
+              },
+            });
+          }
         }
       } catch (error) {
         debugLog('errors', `Error processing AgenticCommerce events: ${error}`);
@@ -262,6 +397,7 @@ export function useNotificationEvents() {
             EVENT_ABI_ITEMS.serviceCreated,
             EVENT_ABI_ITEMS.serviceUpdated,
             EVENT_ABI_ITEMS.serviceDeactivated,
+            EVENT_ABI_ITEMS.serviceActivated,
           ],
           fromBlock,
           toBlock,
@@ -338,6 +474,25 @@ export function useNotificationEvents() {
               },
             });
           }
+
+          if (event === 'ServiceActivated' && log.args.serviceId) {
+            if (address) {
+              await notifyAndEmail({
+                type: 'service',
+                action: 'service.activated',
+                title: 'Service Activated',
+                message: `Service #${log.args.serviceId} is now active`,
+                link: `/marketplace/${log.args.serviceId}`,
+                metadata: { serviceId: log.args.serviceId.toString() },
+              });
+            }
+            triggerWebhooks({
+              event: 'service.activated',
+              data: {
+                serviceId: log.args.serviceId.toString(),
+              },
+            });
+          }
         }
       } catch (error) {
         debugLog('errors', `Error processing ServiceRegistry events: ${error}`);
@@ -359,6 +514,7 @@ export function useNotificationEvents() {
             EVENT_ABI_ITEMS.proposalCreated,
             EVENT_ABI_ITEMS.evaluationSubmitted,
             EVENT_ABI_ITEMS.proposalDecided,
+            EVENT_ABI_ITEMS.proposalStatusChanged,
           ],
           fromBlock,
           toBlock,
@@ -440,6 +596,37 @@ export function useNotificationEvents() {
               data: {
                 proposalId: log.args.proposalId.toString(),
                 winner: log.args.winner,
+              },
+            });
+          }
+
+          if (
+            event === 'ProposalStatusChanged' &&
+            log.args.proposalId &&
+            log.args.oldStatus !== undefined &&
+            log.args.newStatus !== undefined
+          ) {
+            if (address) {
+              const statusNames = ['Open', 'UnderReview', 'Decided', 'Cancelled'];
+              await notifyAndEmail({
+                type: 'proposal',
+                action: 'proposal.status_changed',
+                title: 'Proposal Status Changed',
+                message: `Proposal #${log.args.proposalId} changed from ${statusNames[Number(log.args.oldStatus)] || 'Unknown'} to ${statusNames[Number(log.args.newStatus)] || 'Unknown'}`,
+                link: `/review/${log.args.proposalId}`,
+                metadata: {
+                  proposalId: log.args.proposalId.toString(),
+                  oldStatus: log.args.oldStatus.toString(),
+                  newStatus: log.args.newStatus.toString(),
+                },
+              });
+            }
+            triggerWebhooks({
+              event: 'proposal.status_changed',
+              data: {
+                proposalId: log.args.proposalId.toString(),
+                oldStatus: log.args.oldStatus.toString(),
+                newStatus: log.args.newStatus.toString(),
               },
             });
           }

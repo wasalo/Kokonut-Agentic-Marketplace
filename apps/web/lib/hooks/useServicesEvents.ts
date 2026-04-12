@@ -3,13 +3,13 @@
 import { useState, useEffect, useCallback } from 'react';
 import { usePublicClient } from 'wagmi';
 import { parseAbiItem } from 'viem';
-import { getContractAddress, debugLog } from '@/lib/contracts/config';
+import { getContractAddress, debugLog, DEFAULT_FROM_BLOCK } from '@/lib/contracts/config';
 import { SERVICE_REGISTRY_ABI } from '@/lib/contracts/abis';
 
 const SERVICE_REGISTRY_ADDRESS = getContractAddress('SERVICE_REGISTRY');
 
 // From block 9989393 as specified by user
-const FROM_BLOCK = BigInt(9989393);
+const FROM_BLOCK = DEFAULT_FROM_BLOCK;
 
 export interface Service {
   id: bigint;

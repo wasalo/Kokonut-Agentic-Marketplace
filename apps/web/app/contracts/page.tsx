@@ -2,64 +2,71 @@
 
 import { Code2, ExternalLink } from 'lucide-react';
 import { Card } from '@heroui/react';
+import { CONTRACT_ADDRESSES } from '@/lib/contracts/config';
 
 const SEPOLIA_EXPLORER = 'https://sepolia.etherscan.io';
 
 const contracts = [
   {
     name: 'AgentSkillRegistryV2',
-    address: '0xA84684261558f342d6871DD2CFef90A2117Aa20A',
+    address: CONTRACT_ADDRESSES.sepolia.skillRegistry,
     description: 'Skills/capabilities registry (UUPS Proxy)',
     abi: 'AgentSkillRegistryV2.sol',
   },
   {
     name: 'ServiceRegistryV2',
-    address: '0x62E1eeEa1A2Ab987004F35bDA430457Ed6077201',
+    address: CONTRACT_ADDRESSES.sepolia.serviceRegistry,
     description: 'Service listings registry (UUPS Proxy)',
     abi: 'ServiceRegistryV2.sol',
   },
   {
     name: 'AgenticCommerce',
-    address: '0x948d97EA7F0c49796fB576ADff375C900627568E',
+    address: CONTRACT_ADDRESSES.sepolia.agenticCommerce,
     description: 'Job escrow with bidding (UUPS Proxy)',
     abi: 'AgenticCommerce.sol',
   },
   {
-    name: 'AgentReview',
-    address: '0x716B02447b52Eab450e31bD77103B41bC2c7bE0b',
+    name: 'AgentReviewV5',
+    address: CONTRACT_ADDRESSES.sepolia.agentReview,
     description: 'A/B evaluation with staking',
-    abi: 'AgentReview.sol',
+    abi: 'AgentReviewV5.sol',
   },
   {
     name: 'PriceOracle',
-    address: '0x5C4AC3dAF76708DCd51911BA3B33027eAB1B4047',
+    address: CONTRACT_ADDRESSES.sepolia.priceOracle,
     description: 'Price feeds (Chainlink on Sepolia)',
     abi: 'PriceOracle.sol',
   },
   {
     name: 'CommitReveal',
-    address: '0x6CEd1574A3dF7ec646e43DD8408300117c453Aa3',
+    address: CONTRACT_ADDRESSES.sepolia.commitReveal,
     description: 'Front-running protection',
     abi: 'CommitReveal.sol',
   },
   {
     name: 'SlashManager',
-    address: '0x7Cf955900FD7a12680E90D834eAf19346f5DBcf9',
+    address: CONTRACT_ADDRESSES.sepolia.slashManager,
     description: '3-of-5 multisig governance',
     abi: 'SlashManager.sol',
+  },
+  {
+    name: 'BiddingSystem',
+    address: CONTRACT_ADDRESSES.sepolia.biddingSystem,
+    description: 'Standalone commit-reveal bidding (UUPS)',
+    abi: 'BiddingSystem.sol',
   },
 ];
 
 const erc8004Registries = [
   {
     name: 'ERC-8004 Identity Registry',
-    address: '0x8004A818BFB912233c491871b3d84c89A494BD9e',
+    address: CONTRACT_ADDRESSES.sepolia.erc8004Registry,
     description: 'Official agent identities',
   },
   {
     name: 'ERC-8004 Reputation Registry',
-    address: '0x8004B663056A597Dffe9eCcC1965A193B7388713',
-    description: 'Official agent reputation',
+    address: CONTRACT_ADDRESSES.sepolia.erc8004Reputation,
+    description: 'Agent reputation tracking',
   },
 ];
 

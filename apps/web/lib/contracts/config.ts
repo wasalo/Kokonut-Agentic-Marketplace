@@ -25,8 +25,10 @@ export const CONTRACT_ADDRESSES = {
     agentReview: '0x5CDb592Fd37749bF87448FBf5725D1Cd986dd1Cb', // AgentReviewV5
     agentReviewImpl: '0xFf4D6df8dDca340e2ff59615Dd00C325706019f7', // Phase 18
     priceOracle: '0x5C4AC3dAF76708DCd51911BA3B33027eAB1B4047',
-    commitReveal: '0x6CEd1574A3dF7ec646e43DD8408300117c453Aa3',
-    slashManager: '0x7Cf955900FD7a12680E90D834eAf19346f5DBcf9',
+    commitReveal: '0x85F193670fCb7B0c97D55E70Bf2a950b1065Fb3a',
+    commitRevealImpl: '0xd9efa18c45357CC3d218E1FEC86E0C851270d33D',
+    slashManager: '0x1B8373cDF4f2eD740c3478e0129f0B8494CE4Fa3',
+    slashManagerImpl: '0x240eeC04F12d11eE6e4d03B00FB2148bFD4887F9',
 
     // Tokens
     usdc: '0x1c7D4B196Cb0C7B01d743Fbc6116a902379C7238',
@@ -102,3 +104,11 @@ export function getContractAddressFromEnv(
 
 // Re-export debug utilities from lib/debug.ts for backward compatibility
 export { debugLog, debugError, isDebugEnabled, enableDebug, disableDebug } from '@/lib/debug';
+
+// Default starting block for event queries on Sepolia (deployed contracts)
+export const DEFAULT_FROM_BLOCK = BigInt(9989393);
+
+// Explorer URLs
+export const EXPLORER_URLS = {
+  sepolia: 'https://sepolia.etherscan.io',
+} as const;

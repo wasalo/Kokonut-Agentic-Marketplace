@@ -5,6 +5,83 @@ All notable changes to the Kokonut Agent Economy Stack are documented in this fi
 The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.0.0/),
 and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0.html).
 
+## [2026-04-12] - Parity Fixes & Config Updates
+
+### 🔧 Notification System Coverage (Phase 1)
+
+Extended event → notification → webhook coverage from ~25% to ~50%:
+
+| Event Type               | Before   | After     | Files Changed              |
+| ------------------------ | -------- | --------- | -------------------------- |
+| **Job Events**           | 6 events | 10 events | useNotificationEvents.ts   |
+| **Service Events**       | 3 events | 4 events  | useNotificationEvents.ts   |
+| **Proposal Events**      | 3 events | 5 events  | useNotificationEvents.ts   |
+| **Webhook Types**        | 15 types | 21 types  | lib/webhooks/types.ts      |
+| **Notification Actions** | 17 types | 25 types  | lib/notifications/types.ts |
+
+**New Events Added:**
+
+- `JobExpired` - Job expiration notifications
+- `JobStatusChanged` - Status transition notifications (Open → Funded → etc.)
+- `JobLimitExceeded` - Warning when client hits 100 job limit
+- `EvaluatorSlashedForInactivity` - Slash notifications for non-responsive evaluators
+- `ServiceActivated` - Service activation notifications
+- `ProposalStatusChanged` - Proposal status transition notifications
+
+### 🔧 Contract Config Fixes
+
+**CommitReveal/SlashManager Addresses Fixed:**
+
+| Contract     | Before (Wrong)  | After (Correct from AGENTS.md)               |
+| ------------ | --------------- | -------------------------------------------- |
+| CommitReveal | `0x6CEd157...`  | `0x85F193670fCb7B0c97D55E70Bf2a950b1065Fb3a` |
+| SlashManager | `0x7Cf95590...` | `0x1B8373cDF4f2eD740c3478e0129f0B8494CE4Fa3` |
+
+**Files:**
+
+- `lib/contracts/config.ts` - Fixed addresses with implementation addresses
+
+### 🔧 FROM_BLOCK Centralization
+
+Made starting block configurable across 6 hook files:
+
+| Hook File                       | Change                    |
+| ------------------------------- | ------------------------- |
+| `useActivityFeed.ts`            | Uses `DEFAULT_FROM_BLOCK` |
+| `useWalletAgentsWithDetails.ts` | Uses `DEFAULT_FROM_BLOCK` |
+| `useServicesEvents.ts`          | Uses `DEFAULT_FROM_BLOCK` |
+| `useJobsEvents.ts`              | Uses `DEFAULT_FROM_BLOCK` |
+| `useAnalytics.ts`               | Uses `DEFAULT_FROM_BLOCK` |
+| `useNotificationEvents.ts`      | Uses `DEFAULT_FROM_BLOCK` |
+
+**Config:**
+
+- Added `DEFAULT_FROM_BLOCK` constant to `lib/contracts/config.ts`
+- Added `EXPLORER_URLS` for centralized explorer URLs
+
+### 🔧 Governance Page Fix
+
+Replaced hardcoded owner address with dynamic contract lookup:
+
+| Before                                       | After                         |
+| -------------------------------------------- | ----------------------------- |
+| `0x3394c45b5938127eb56603a6051df26cfaf08c26` | `useSlashManagerOwner()` hook |
+
+**Files:**
+
+- `lib/hooks/useSlashManager.ts` - Added `useSlashManagerOwner()` hook
+- `lib/contracts/abis.ts` - Added `owner()` to SLASH_MANAGER_ABI
+- `app/governance/page.tsx` - Uses dynamic owner lookup
+
+### 🔧 /contracts Page Fix
+
+Fixed syntax error causing build failure:
+
+- Removed duplicate/dead code block after `erc8004Registries` array
+- Page now properly uses `CONTRACT_ADDRESSES` config
+
+---
+
 ## [2026-04-12] - Server Stability & Swagger
 
 ### 🔧 Server Crash Fix

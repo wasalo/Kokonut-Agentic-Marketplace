@@ -1561,6 +1561,14 @@ export const SLASH_MANAGER_ABI = [
     stateMutability: 'view',
     type: 'function',
   },
+  // Ownable2Step (Phase 14)
+  {
+    inputs: [],
+    name: 'owner',
+    outputs: [{ name: '', type: 'address' }],
+    stateMutability: 'view',
+    type: 'function',
+  },
 ] as const;
 
 // Chainlink Aggregator ABI (for reading price feeds)
