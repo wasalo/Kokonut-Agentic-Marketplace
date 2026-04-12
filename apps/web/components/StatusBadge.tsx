@@ -30,7 +30,9 @@ export type StatusType =
   | 'warning'
   | 'success'
   | 'error'
-  | 'info';
+  | 'info'
+  | 'usdc'
+  | 'eth';
 
 interface StatusBadgeProps {
   status: StatusType;
@@ -143,6 +145,18 @@ const statusConfig: Record<
     color: 'text-primary',
     bgColor: 'bg-primary/10',
     icon: Shield,
+  },
+  usdc: {
+    label: 'USDC',
+    color: 'text-success',
+    bgColor: 'bg-success/10',
+    icon: DollarSign,
+  },
+  eth: {
+    label: 'ETH',
+    color: 'text-warning',
+    bgColor: 'bg-warning/10',
+    icon: DollarSign,
   },
 };
 

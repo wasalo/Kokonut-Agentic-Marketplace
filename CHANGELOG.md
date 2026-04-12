@@ -32,20 +32,58 @@ Fixed critical git repository corruption issues:
 
 **Phase 3 - Medium Priority:**
 
-- **Centralized formatAddress**: Replaced inline address truncation with centralized utility from `@/lib/utils` in 4 files:
-  - `useNotifications.ts`
-  - `useActivityFeed.ts`
-  - `AddressInput.tsx`
-  - `jobs/create/page.tsx`
-- **Consolidated StatCard**: Extracted to shared component `components/ui/stat-card.tsx` with support for:
-  - `variant` prop (`'card'` or `'simple'`)
-  - `icon` prop for analytics page
-  - `subtext` prop for additional info
-  - Updated 4 pages: review, marketplace, identity, analytics
+- **Centralized formatAddress**: Replaced inline address truncation with centralized utility from `@/lib/utils` in 4 files
+- **Consolidated StatCard**: Extracted to shared component with variant/icon/subtext support
 
-**Phase 4 - Optimization:**
+---
 
-- **Standardized viem**: Added viem to root devDependencies for consistency across monorepo
+## [2026-04-11] - Type & Hook Consolidation
+
+### 🎯 Type Deduplication (P0)
+
+Created centralized types at `lib/types/contracts.ts`:
+
+- **Service interface** - Single definition, imported by useServices.ts, useServicesEvents.ts, useServicesContract.ts
+- **Job interface** - Single definition, imported by useJobs.ts, useJobsEvents.ts
+- **JobStatus/JobType enums** - Single definition, imported by all hooks
+- **Proposal types** - Exported for centralized access
+- **Agent types** - Base AgentMetadata8004 interface
+- **Utility types** - ZERO_ADDRESS constant added to contracts/config.ts
+
+### 🎯 Hook Factory Pattern (P0-P1)
+
+Created reusable factory patterns in `lib/hooks/factories/`:
+
+| Factory             | Purpose                                  | Lines Saved |
+| ------------------- | ---------------------------------------- | ----------- |
+| `api.ts`            | Shared fetchWithBackoff(), cache helpers | ~150 lines  |
+| `useWriteAction.ts` | Generic write contract wrapper           | ~200 lines  |
+| `useCounter.ts`     | Generic count hooks                      | ~80 lines   |
+| `useEntity.ts`      | Generic single entity hooks + mappers    | ~120 lines  |
+| `useEntityList.ts`  | Generic list hooks                       | ~100 lines  |
+
+**Estimated total reduction: ~650+ duplicate lines**
+
+### 🎯 UI Component Consolidation (P1)
+
+**New shared components:**
+
+| Component             | Purpose                                                        |
+| --------------------- | -------------------------------------------------------------- |
+| `ui/copy-button.tsx`  | Reusable copy-to-clipboard with icon state                     |
+| `ui/empty-state.tsx`  | Pre-configured empty states for jobs/services/proposals/agents |
+| `ui/filter-panel.tsx` | Unified filter UI with search/select/range support             |
+| `ui/pagination.tsx`   | Standardized pagination with usePagination hook                |
+| `ui/stat-card.tsx`    | Enhanced with heroui Card (removed shadcn dependency)          |
+
+**Removed unused shadcn components:**
+
+- `ui/button.tsx` - Not imported anywhere
+- `ui/card.tsx` - Only used by stat-card (switched to heroui)
+
+**StatusBadge enhancements:**
+
+- Added `usdc` and `eth` token status types for payment badges
 
 ---
 

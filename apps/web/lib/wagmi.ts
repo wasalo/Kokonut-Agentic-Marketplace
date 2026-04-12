@@ -1,6 +1,6 @@
 import { http, createConfig, fallback } from 'wagmi';
 import { sepolia } from 'wagmi/chains';
-import { injected, walletConnect } from 'wagmi/connectors';
+import { injected, walletConnect, metaMask } from 'wagmi/connectors';
 import { getContractAddress } from '@/lib/contracts/config';
 
 const projectId = process.env.NEXT_PUBLIC_WALLETCONNECT_PROJECT_ID || 'demo';

@@ -4,23 +4,14 @@ import { SERVICE_REGISTRY_ABI } from '@/lib/contracts/abis';
 import { getContractAddress } from '@/lib/contracts/config';
 import { getQueryConfig } from '@/lib/queryConfig';
 import { debugLog, debugError } from '@/lib/debug';
+import type { Service } from '@/lib/types/contracts';
 
 /* eslint-disable @typescript-eslint/no-explicit-any */
 
 const SERVICE_REGISTRY_ADDRESS = getContractAddress('SERVICE_REGISTRY');
 
-export interface Service {
-  id: bigint;
-  provider: `0x${string}`;
-  agentId: bigint;
-  name: string;
-  description: string;
-  metadataURI: string;
-  price: bigint;
-  paymentToken: `0x${string}`;
-  isActive: boolean;
-  createdAt: bigint;
-}
+// Re-export Service for backward compatibility
+export type { Service };
 
 function mapServiceData(id: bigint, data: unknown): Service | null {
   // Debug: Log raw input

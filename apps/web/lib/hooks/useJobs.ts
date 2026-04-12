@@ -1,6 +1,7 @@
 import { useReadContract, useReadContracts, useWriteContract } from 'wagmi';
 import { AGENTIC_COMMERCE_ABI } from '@/lib/contracts/abis';
 import { getContractAddress, debugLog } from '@/lib/contracts/config';
+import type { Job, JobStatus, JobStatusType, JobType, JobTypeType, Bid } from '@/lib/types/contracts';
 
 /* eslint-disable @typescript-eslint/no-explicit-any */
 // Add new function names to the ABI type
@@ -14,51 +15,9 @@ const AGENTIC_COMMERCE_ABI_WITH_NEW = AGENTIC_COMMERCE_ABI as typeof AGENTIC_COM
 
 const AGENTIC_COMMERCE_ADDRESS = getContractAddress('AGENTIC_COMMERCE');
 
-export interface Job {
-  id: bigint;
-  client: `0x${string}`;
-  provider: `0x${string}`;
-  evaluator: `0x${string}`;
-  serviceId: bigint;
-  paymentToken: `0x${string}`;
-  description: string;
-  budget: bigint;
-  expiredAt: bigint;
-  status: number;
-  hook: `0x${string}`;
-  deliverable: `0x${string}`;
-}
-
-export const JobStatus = {
-  Open: 0,
-  Funded: 1,
-  Submitted: 2,
-  Completed: 3,
-  Rejected: 4,
-  Expired: 5,
-} as const;
-
-export type JobStatusType = (typeof JobStatus)[keyof typeof JobStatus];
-
-export const JobType = {
-  Direct: 0,
-  Open: 1,
-} as const;
-
-export type JobTypeType = (typeof JobType)[keyof typeof JobType];
-
-export interface Bid {
-  bidId: bigint;
-  bidder: `0x${string}`;
-  proposedAmount: bigint;
-  stake: bigint;
-  message: string;
-  commitHash: `0x${string}`;
-  revealed: boolean;
-  accepted: boolean;
-  withdrawn: boolean;
-  timestamp: bigint;
-}
+// Re-export from centralized types for backward compatibility
+export type { Job, JobStatusType, JobTypeType, Bid };
+export { JobStatus, JobType };
 
 // ============ Read Hooks ============
 

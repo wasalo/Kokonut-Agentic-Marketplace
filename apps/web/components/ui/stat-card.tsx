@@ -1,6 +1,6 @@
 'use client';
 
-import { Card } from './card';
+import { Card } from '@heroui/react';
 import { Skeleton } from '@heroui/react';
 import { memo } from 'react';
 

@@ -1,6 +1,10 @@
 // Contract addresses with fallbacks for Sepolia testnet
 // Phase 18: AgenticCommerceV6 + AgentReviewV5 - Event Enhancements, Median Evaluator (Deployed 2026-04-08)
 
+// Common address constants
+export const ZERO_ADDRESS = '0x0000000000000000000000000000000000000000' as const;
+export const MAX_UINT256 = '0xffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffff' as const;
+
 export const CONTRACT_ADDRESSES = {
   sepolia: {
     // Official ERC-8004 Registries
