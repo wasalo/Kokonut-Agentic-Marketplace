@@ -5,30 +5,11 @@ import { useAccount } from 'wagmi';
 import { useSearchParams, useRouter } from 'next/navigation';
 import NextLink from 'next/link';
 import { Plus, Search, ShoppingBag, SlidersHorizontal, Loader2, Code } from 'lucide-react';
-import { Card } from '@heroui/react';
 import { ServiceList } from '@/components/heroui/service-list';
 import { useAllServices } from '@/lib/hooks/useServicesContract';
 import { useProviderServices, useTotalServiceCount } from '@/lib/hooks/useServices';
 import { useDebounce } from '@/lib/hooks/useDebounce';
-
-interface StatCardProps {
-  label: string;
-  value: string;
-  isLoading?: boolean;
-}
-
-function StatCard({ label, value, isLoading }: StatCardProps): JSX.Element {
-  return (
-    <Card className="border border-divider p-6">
-      <div className="text-sm font-medium text-default-500">{label}</div>
-      {isLoading ? (
-        <div className="h-8 w-16 bg-content3 rounded animate-pulse mt-2" />
-      ) : (
-        <div className="text-2xl font-bold mt-1">{value}</div>
-      )}
-    </Card>
-  );
-}
+import { StatCard } from '@/components/ui/stat-card';
 
 // Popular skill domains for filtering
 const SKILL_DOMAINS = [

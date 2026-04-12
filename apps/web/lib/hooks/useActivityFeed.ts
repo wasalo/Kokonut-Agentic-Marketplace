@@ -5,6 +5,7 @@ import { usePublicClient } from 'wagmi';
 import { parseAbiItem, formatUnits } from 'viem';
 import { getContractAddress, debugLog } from '@/lib/contracts/config';
 import { AGENTIC_COMMERCE_ABI, AGENT_REVIEW_ABI, SERVICE_REGISTRY_ABI } from '@/lib/contracts/abis';
+import { formatAddress } from '@/lib/utils';
 
 // Contract addresses
 const AGENTIC_COMMERCE_ADDRESS = getContractAddress('AGENTIC_COMMERCE');
@@ -76,7 +77,7 @@ export function useActivityFeed(type: ActivityType = 'all', limit: number = 50) 
               actor: log.args.client as `0x${string}`,
               details: {
                 title: `Job #${log.args.jobId}`,
-                description: `New job created by ${(log.args.client as string).slice(0, 6)}...${(log.args.client as string).slice(-4)}`,
+                description: `New job created by ${formatAddress(log.args.client as string)}`,
                 targetId: log.args.jobId?.toString(),
               },
               blockNumber: BigInt(log.blockNumber),
@@ -138,7 +139,7 @@ export function useActivityFeed(type: ActivityType = 'all', limit: number = 50) 
               actor: log.args.provider as `0x${string}`,
               details: {
                 title: `Service #${log.args.serviceId}`,
-                description: `New service listed by ${(log.args.provider as string).slice(0, 6)}...${(log.args.provider as string).slice(-4)}`,
+                description: `New service listed by ${formatAddress(log.args.provider as string)}`,
                 targetId: log.args.serviceId?.toString(),
               },
               blockNumber: BigInt(log.blockNumber),

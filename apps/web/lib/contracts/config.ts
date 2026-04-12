@@ -1,5 +1,5 @@
 // Contract addresses with fallbacks for Sepolia testnet
-// Phase 6: AgenticCommerceV6 - ERC-2771, Evaluator Fees, Loser Stake Withdrawal (Deployed 2026-04-03)
+// Phase 18: AgenticCommerceV6 + AgentReviewV5 - Event Enhancements, Median Evaluator (Deployed 2026-04-08)
 
 export const CONTRACT_ADDRESSES = {
   sepolia: {
@@ -12,13 +12,14 @@ export const CONTRACT_ADDRESSES = {
     skillRegistryImpl: '0x3Eec6BAF9FAc410B9C580d3Eb8c971a14298BC87',
     serviceRegistry: '0x62E1eeEa1A2Ab987004F35bDA430457Ed6077201',
     serviceRegistryImpl: '0x218340e07bEd7fD15058414388F2C82E0f3B04f9',
-    // Phase 6: V6 - ERC-2771, Evaluator Fees, Loser Stake Withdrawal
+    // Phase 18: V6 - Event Enhancements, Permissionless Refund, CompleteAfterTimeout
     agenticCommerce: '0x948d97EA7F0c49796fB576ADff375C900627568E',
-    agenticCommerceImpl: '0x71EF7B696dbcfbb09029c8c60D78949C8309cA16',
+    agenticCommerceImpl: '0xEecC615310f6A6144eeA0F235E83b7BD391EC251',
     // Phase 11: BiddingSystem - Standalone commit-reveal bidding
     biddingSystem: '0x32c9d069a248a619d3EAc4D1FC76F2639AaBeF04',
     biddingSystemImpl: '0x0A09e4Ff6DAa0eeA49526560e2c946Ea32a293Bb',
     agentReview: '0x5CDb592Fd37749bF87448FBf5725D1Cd986dd1Cb', // AgentReviewV5
+    agentReviewImpl: '0xFf4D6df8dDca340e2ff59615Dd00C325706019f7', // Phase 18
     priceOracle: '0x5C4AC3dAF76708DCd51911BA3B33027eAB1B4047',
     commitReveal: '0x6CEd1574A3dF7ec646e43DD8408300117c453Aa3',
     slashManager: '0x7Cf955900FD7a12680E90D834eAf19346f5DBcf9',

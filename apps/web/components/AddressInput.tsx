@@ -4,6 +4,7 @@ import { useState, useCallback, useEffect } from 'react';
 import { useEnsAddress, useChainId } from 'wagmi';
 import { Check, AlertCircle, Loader2 } from 'lucide-react';
 import { validateAddress } from '@/lib/hooks/useValidation';
+import { formatAddress } from '@/lib/utils';
 
 interface AddressInputProps {
   value: string;
@@ -123,7 +124,7 @@ export function AddressInput({
       {resolveEns && value.endsWith('.eth') && ensAddress && (
         <p className="text-xs text-success flex items-center gap-1">
           <Check className="w-3 h-3" />
-          Resolved: {ensAddress.slice(0, 6)}...{ensAddress.slice(-4)}
+          Resolved: {formatAddress(ensAddress)}
         </p>
       )}
     </div>

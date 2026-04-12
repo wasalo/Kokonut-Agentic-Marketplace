@@ -22,6 +22,7 @@ import {
 } from '@/lib/hooks/useTokenConversion';
 import { showToast } from '@/lib/toast';
 import { AddressInput } from '@/components/AddressInput';
+import { formatAddress } from '@/lib/utils';
 
 const MAX_DESCRIPTION_LENGTH = 1000;
 const MIN_EXPIRY_DURATION = 5 * 60 * 1000;
@@ -403,7 +404,7 @@ function CreateJobContent() {
                 <h3 className="font-semibold">{service.name}</h3>
                 <p className="text-sm text-default-500 mt-0.5">{service.description}</p>
                 <p className="text-xs text-default-400 mt-1">
-                  Provider: {service.provider.slice(0, 6)}...{service.provider.slice(-4)}
+                  Provider: {formatAddress(service.provider)}
                 </p>
                 <p className="text-xs text-default-400 mt-1">
                   Job Budget:{' '}

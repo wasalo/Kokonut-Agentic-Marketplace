@@ -21,25 +21,7 @@ import { useProposals, useReviewStats, Proposal } from '@/lib/hooks/useProposals
 import { StatusBadge, getProposalStatusBadgeType } from '@/components/StatusBadge';
 import { useDebounce } from '@/lib/hooks/useDebounce';
 import { Address } from '@/components/Address';
-
-interface StatCardProps {
-  label: string;
-  value: string;
-  isLoading?: boolean;
-}
-
-const StatCard = memo(function StatCard({ label, value, isLoading }: StatCardProps) {
-  return (
-    <Card className="border border-divider p-4">
-      <div className="text-sm font-medium text-default-500">{label}</div>
-      {isLoading ? (
-        <div className="h-8 w-16 bg-content3 rounded animate-pulse mt-2" />
-      ) : (
-        <div className="text-2xl font-bold mt-1">{value}</div>
-      )}
-    </Card>
-  );
-});
+import { StatCard } from '@/components/ui/stat-card';
 
 function ProposalCardSkeleton() {
   return (

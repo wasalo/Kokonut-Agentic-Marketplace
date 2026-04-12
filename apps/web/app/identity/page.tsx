@@ -6,25 +6,7 @@ import { useAccount } from 'wagmi';
 import NextLink from 'next/link';
 import { Plus, Search } from 'lucide-react';
 import { useCallback, useState } from 'react';
-
-interface StatCardProps {
-  label: string;
-  value: string;
-  isLoading?: boolean;
-}
-
-function StatCard({ label, value, isLoading }: StatCardProps): JSX.Element {
-  return (
-    <div className="p-4 bg-content2 rounded-lg border border-divider">
-      <p className="text-small text-default-500 mb-1">{label}</p>
-      {isLoading ? (
-        <div className="h-8 w-16 bg-content3 rounded animate-pulse" />
-      ) : (
-        <p className="text-2xl font-bold">{value}</p>
-      )}
-    </div>
-  );
-}
+import { StatCard } from '@/components/ui/stat-card';
 
 export default function IdentityPage(): JSX.Element {
   const { isConnected } = useAccount();
@@ -73,17 +55,25 @@ export default function IdentityPage(): JSX.Element {
           label="Kokonut Agents"
           value={totalAgents?.toString() ?? '0'}
           isLoading={isLoading}
+          variant="simple"
         />
-        <StatCard label="Active" value={activeAgents?.toString() ?? '0'} isLoading={isLoading} />
+        <StatCard
+          label="Active"
+          value={activeAgents?.toString() ?? '0'}
+          isLoading={isLoading}
+          variant="simple"
+        />
         <StatCard
           label="Total Reviews"
           value={(totalReviews ?? 0).toString()}
           isLoading={isLoading}
+          variant="simple"
         />
         <StatCard
           label="Avg Rating"
           value={(averageRating ?? 0).toFixed(1)}
           isLoading={isLoading}
+          variant="simple"
         />
       </div>
 

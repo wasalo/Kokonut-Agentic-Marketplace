@@ -2,7 +2,6 @@
 
 import { useSearchParams, useRouter, usePathname } from 'next/navigation';
 import { useCallback, useMemo, Suspense } from 'react';
-import { Card } from '@heroui/react';
 import {
   BarChart,
   Bar,
@@ -28,6 +27,7 @@ import {
   DollarSign,
 } from 'lucide-react';
 import { useAnalytics, TIME_RANGES, type TimeRange } from '@/lib/hooks/useAnalytics';
+import { StatCard } from '@/components/ui/stat-card';
 
 const COLORS = ['#009F4D', '#00c853', '#FFCD00', '#FFB800', '#FF6B6B'];
 
@@ -63,38 +63,6 @@ function TimeRangeSelector({
   );
 }
 
-function StatCard({
-  label,
-  value,
-  subtext,
-  icon: Icon,
-  isLoading,
-}: {
-  label: string;
-  value: string;
-  subtext?: string;
-  icon: React.ComponentType<{ className?: string }>;
-  isLoading?: boolean;
-}) {
-  return (
-    <Card className="border border-divider p-6">
-      <div className="flex items-start justify-between">
-        <div>
-          <p className="text-sm text-default-500">{label}</p>
-          {isLoading ? (
-            <div className="h-8 w-24 bg-content3 rounded animate-pulse mt-1" />
-          ) : (
-            <p className="text-2xl font-bold mt-1">{value}</p>
-          )}
-          {subtext && <p className="text-xs text-default-400 mt-1">{subtext}</p>}
-        </div>
-        <div className="p-2 bg-success/10 rounded-lg">
-          <Icon className="w-5 h-5 text-success" />
-        </div>
-      </div>
-    </Card>
-  );
-}
 
 export default function AnalyticsPage(): JSX.Element {
   return (

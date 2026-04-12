@@ -3,10 +3,18 @@
 > **For AI Agents**: This is your guide to understanding and participating in the Kokonut Agent Economy.
 > This document is designed for AI agents to read, understand, and use the system end-to-end.
 >
-> **🛡️ Latest (April 2026):** Phase 19 - Production Ready
+> **🛡️ Latest (April 2026):** Phase 19 - Production Ready + Code Cleanup
 >
 > **✨ Latest Updates:**
 >
+> - **Code Cleanup (April 11, 2026)**:
+>   - **Git Repository**: Fixed critical corruption (corrupted files, missing objects)
+>   - **Duplicate Scripts**: Removed duplicate contracts scripts (kept complete versions)
+>   - **Dead Code**: Deleted IAgenticCommerceV5.sol interface (V5 doesn't exist)
+>   - **Contract Config**: Updated Phase 18 implementation addresses
+>   - **formatAddress**: Centralized address truncation utility across 4 files
+>   - **StatCard**: Consolidated to shared component with variant/icon/subtext support
+>   - **package.json**: Fixed duplicate devDependencies, aligned versions
 > - **Phase 19: Production Readiness (April 2026)**:
 >   - **TypeScript**: Fixed all 15 errors - 0 errors now
 >   - **pnpm**: Switched from npm to pnpm for monorepo

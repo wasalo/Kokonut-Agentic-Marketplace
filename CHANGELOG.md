@@ -5,6 +5,50 @@ All notable changes to the Kokonut Agent Economy Stack are documented in this fi
 The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.0.0/),
 and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0.html).
 
+## [2026-04-11] - Code Cleanup & Consolidation
+
+### 🔧 Git Repository Fixes
+
+Fixed critical git repository corruption issues:
+
+| Issue                       | Fix                                            |
+| --------------------------- | ---------------------------------------------- |
+| Corrupted `HEAD 2` file     | Removed corrupted files with spaces in names   |
+| Corrupted `index 2` file    | Removed stale index file                       |
+| Missing `.git/index`        | Rebuilt index with `git read-tree HEAD`        |
+| Missing objects             | Replaced corrupted pack files with fresh clone |
+| `.DS_Store` files in `.git` | Removed all macOS system files                 |
+
+### 🧹 Code Duplication Cleanup
+
+**Phase 2 - High Priority:**
+
+- **Deleted duplicate contracts scripts**: Removed `contracts/script/DeployAgentReviewV5.s.sol` and `contracts/script/UpgradeAgenticCommerceV6.s.sol` (kept more complete versions in `contracts/scripts/`)
+- **Removed dead interface**: Deleted `contracts/interfaces/IAgenticCommerceV5.sol` (V5 doesn't exist)
+- **Updated contract config**: Added Phase 18 implementation addresses to `lib/contracts/config.ts`:
+  - `agenticCommerceImpl`: `0xEecC615310f6A6144eeA0F235E83b7BD391EC251`
+  - `agentReviewImpl`: `0xFf4D6df8dDca340e2ff59615Dd00C325706019f7`
+- **Fixed package.json**: Fixed duplicate `devDependencies` keys (invalid JSON), aligned versions across packages
+
+**Phase 3 - Medium Priority:**
+
+- **Centralized formatAddress**: Replaced inline address truncation with centralized utility from `@/lib/utils` in 4 files:
+  - `useNotifications.ts`
+  - `useActivityFeed.ts`
+  - `AddressInput.tsx`
+  - `jobs/create/page.tsx`
+- **Consolidated StatCard**: Extracted to shared component `components/ui/stat-card.tsx` with support for:
+  - `variant` prop (`'card'` or `'simple'`)
+  - `icon` prop for analytics page
+  - `subtext` prop for additional info
+  - Updated 4 pages: review, marketplace, identity, analytics
+
+**Phase 4 - Optimization:**
+
+- **Standardized viem**: Added viem to root devDependencies for consistency across monorepo
+
+---
+
 ## [2026-04-10] - Production Readiness
 
 ### 🔧 TypeScript Errors Fixed
