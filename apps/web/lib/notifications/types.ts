@@ -21,7 +21,15 @@ export type NotificationAction =
   | 'evaluator.slashed'
   | 'payment.received'
   | 'payment.sent'
-  | 'system.announcement';
+  | 'system.announcement'
+  | 'bidding.session_created'
+  | 'bidding.bid_committed'
+  | 'bidding.bid_accepted'
+  | 'bidding.bid_rejected'
+  | 'bidding.stake_claimed'
+  | 'bidding.stake_withdrawn'
+  | 'bidding.job_created'
+  | 'bidding.session_cancelled';
 
 export interface Notification {
   id: string;
@@ -79,6 +87,14 @@ export const NOTIFICATION_ACTION_LABELS: Record<NotificationAction, string> = {
   'payment.received': 'Payment Received',
   'payment.sent': 'Payment Sent',
   'system.announcement': 'System Announcement',
+  'bidding.session_created': 'Bidding Session Created',
+  'bidding.bid_committed': 'Bid Committed',
+  'bidding.bid_accepted': 'Bid Accepted',
+  'bidding.bid_rejected': 'Bid Rejected',
+  'bidding.stake_claimed': 'Stake Claimed',
+  'bidding.stake_withdrawn': 'Stake Withdrawn',
+  'bidding.job_created': 'Job Created from Bid',
+  'bidding.session_cancelled': 'Session Cancelled',
 };
 
 export const NOTIFICATION_ICONS: Record<NotificationType, string> = {

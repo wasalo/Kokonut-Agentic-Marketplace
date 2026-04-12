@@ -29,6 +29,9 @@ const EVENT_ABI_ITEMS = {
   jobCreated: parseAbiItem(
     'event JobCreated(uint256 indexed jobId, address indexed client, address indexed provider, address evaluator, uint256 serviceId, uint256 expiredAt)'
   ),
+  openJobCreated: parseAbiItem(
+    'event OpenJobCreated(uint256 indexed jobId, address indexed client, address indexed evaluator, uint256 maxBudget, uint256 expiredAt)'
+  ),
   jobFunded: parseAbiItem('event JobFunded(uint256 indexed jobId, uint256 amount)'),
   jobSubmitted: parseAbiItem('event JobSubmitted(uint256 indexed jobId, bytes32 deliverable)'),
   jobCompleted: parseAbiItem(
@@ -39,8 +42,13 @@ const EVENT_ABI_ITEMS = {
   paymentReleased: parseAbiItem(
     'event PaymentReleased(uint256 indexed jobId, uint256 amount, address recipient)'
   ),
+  refunded: parseAbiItem('event Refunded(uint256 indexed jobId, address indexed recipient, uint256 amount)'),
+  permissionlessRefund: parseAbiItem('event PermissionlessRefund(uint256 indexed jobId, address indexed caller, uint256 amount)'),
   jobStatusChanged: parseAbiItem(
     'event JobStatusChanged(uint256 indexed jobId, uint8 indexed oldStatus, uint8 indexed newStatus, uint256 timestamp)'
+  ),
+  jobUpdated: parseAbiItem(
+    'event JobUpdated(uint256 indexed jobId, bytes32 indexed updateType, uint256 timestamp)'
   ),
   jobLimitExceeded: parseAbiItem(
     'event JobLimitExceeded(address indexed client, uint256 attemptedCount, uint256 maxAllowed)'
@@ -48,12 +56,23 @@ const EVENT_ABI_ITEMS = {
   evaluatorSlashedForInactivity: parseAbiItem(
     'event EvaluatorSlashedForInactivity(uint256 indexed jobId, address indexed evaluator, uint256 slashAmount)'
   ),
+  evaluatorRegistered: parseAbiItem('event EvaluatorRegistered(address indexed evaluator)'),
+  evaluatorUnregistered: parseAbiItem('event EvaluatorUnregistered(address indexed evaluator)'),
+  evaluatorRandomlySelected: parseAbiItem(
+    'event EvaluatorRandomlySelected(uint256 indexed jobId, address indexed evaluator)'
+  ),
   serviceCreated: parseAbiItem(
     'event ServiceCreated(uint256 indexed serviceId, address indexed provider, uint256 indexed agentId, string name, uint256 price)'
   ),
   serviceUpdated: parseAbiItem('event ServiceUpdated(uint256 indexed serviceId)'),
   serviceDeactivated: parseAbiItem('event ServiceDeactivated(uint256 indexed serviceId)'),
   serviceActivated: parseAbiItem('event ServiceActivated(uint256 indexed serviceId)'),
+  serviceBondDeposited: parseAbiItem(
+    'event ServiceBondDeposited(uint256 indexed serviceId, address indexed provider, uint256 amount)'
+  ),
+  serviceBondRefunded: parseAbiItem(
+    'event ServiceBondRefunded(uint256 indexed serviceId, address indexed recipient, uint256 amount)'
+  ),
   proposalCreated: parseAbiItem(
     'event ProposalCreated(uint256 indexed proposalId, address indexed proposer, uint256 reward)'
   ),
@@ -68,6 +87,21 @@ const EVENT_ABI_ITEMS = {
   ),
   evaluatorSlashed: parseAbiItem(
     'event EvaluatorSlashed(address indexed evaluator, uint256 indexed proposalId, uint256 slashAmount)'
+  ),
+  evaluationFinalized: parseAbiItem(
+    'event EvaluationFinalized(uint256 indexed proposalId, address indexed winner, int256 medianScore)'
+  ),
+  rewardClaimed: parseAbiItem(
+    'event RewardClaimed(uint256 indexed proposalId, address indexed evaluator, uint256 amount)'
+  ),
+  stakeReleased: parseAbiItem(
+    'event StakeReleased(uint256 indexed proposalId, address indexed evaluator, uint256 amount)'
+  ),
+  decisionAttested: parseAbiItem(
+    'event DecisionAttested(uint256 indexed proposalId, address indexed evaluator, address winner)'
+  ),
+  proposalCancelledByProposer: parseAbiItem(
+    'event ProposalCancelledByProposer(uint256 indexed proposalId, address indexed proposer)'
   ),
 } as const;
 
@@ -104,15 +138,22 @@ export function useNotificationEvents() {
           address: AGENTIC_COMMERCE_ADDRESS,
           events: [
             EVENT_ABI_ITEMS.jobCreated,
+            EVENT_ABI_ITEMS.openJobCreated,
             EVENT_ABI_ITEMS.jobFunded,
             EVENT_ABI_ITEMS.jobSubmitted,
             EVENT_ABI_ITEMS.jobCompleted,
             EVENT_ABI_ITEMS.jobRejected,
             EVENT_ABI_ITEMS.jobExpired,
             EVENT_ABI_ITEMS.paymentReleased,
+            EVENT_ABI_ITEMS.refunded,
+            EVENT_ABI_ITEMS.permissionlessRefund,
             EVENT_ABI_ITEMS.jobStatusChanged,
+            EVENT_ABI_ITEMS.jobUpdated,
             EVENT_ABI_ITEMS.jobLimitExceeded,
             EVENT_ABI_ITEMS.evaluatorSlashedForInactivity,
+            EVENT_ABI_ITEMS.evaluatorRegistered,
+            EVENT_ABI_ITEMS.evaluatorUnregistered,
+            EVENT_ABI_ITEMS.evaluatorRandomlySelected,
           ],
           fromBlock,
           toBlock,
