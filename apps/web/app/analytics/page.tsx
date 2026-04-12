@@ -28,6 +28,7 @@ import {
 } from 'lucide-react';
 import { useAnalytics, TIME_RANGES, type TimeRange } from '@/lib/hooks/useAnalytics';
 import { StatCard } from '@/components/ui/stat-card';
+import { Card } from '@heroui/react';
 
 const COLORS = ['#009F4D', '#00c853', '#FFCD00', '#FFB800', '#FF6B6B'];
 
@@ -62,7 +63,6 @@ function TimeRangeSelector({
     </div>
   );
 }
-
 
 export default function AnalyticsPage(): JSX.Element {
   return (

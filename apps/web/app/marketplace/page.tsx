@@ -5,6 +5,7 @@ import { useAccount } from 'wagmi';
 import { useSearchParams, useRouter } from 'next/navigation';
 import NextLink from 'next/link';
 import { Plus, Search, ShoppingBag, SlidersHorizontal, Loader2, Code } from 'lucide-react';
+import { Card } from '@heroui/react';
 import { ServiceList } from '@/components/heroui/service-list';
 import { useAllServices } from '@/lib/hooks/useServicesContract';
 import { useProviderServices, useTotalServiceCount } from '@/lib/hooks/useServices';

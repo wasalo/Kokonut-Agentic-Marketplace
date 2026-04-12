@@ -85,7 +85,7 @@ export function Pagination({
         <Button
           isIconOnly
           size="sm"
-          variant="light"
+          variant="ghost"
           onPress={() => onPageChange(0)}
           isDisabled={!hasPrevPage}
           aria-label="First page"
@@ -97,7 +97,7 @@ export function Pagination({
         <Button
           isIconOnly
           size="sm"
-          variant="light"
+          variant="ghost"
           onPress={() => onPageChange(currentPage - 1)}
           isDisabled={!hasPrevPage}
           aria-label="Previous page"
@@ -112,8 +112,6 @@ export function Pagination({
               <Button
                 key={`${page}-${idx}`}
                 size="sm"
-                variant={page === currentPage ? 'flat' : 'light'}
-                color={page === currentPage ? 'primary' : 'default'}
                 onPress={() => onPageChange(page)}
                 className="min-w-8"
               >
@@ -131,7 +129,7 @@ export function Pagination({
         <Button
           isIconOnly
           size="sm"
-          variant="light"
+          variant="ghost"
           onPress={() => onPageChange(currentPage + 1)}
           isDisabled={!hasNextPage}
           aria-label="Next page"
@@ -143,7 +141,7 @@ export function Pagination({
         <Button
           isIconOnly
           size="sm"
-          variant="light"
+          variant="ghost"
           onPress={() => onPageChange(totalPages - 1)}
           isDisabled={!hasNextPage}
           aria-label="Last page"

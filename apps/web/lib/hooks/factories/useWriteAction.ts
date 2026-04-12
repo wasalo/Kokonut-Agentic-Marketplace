@@ -44,15 +44,14 @@ export function createWriteAction(config: WriteActionConfig) {
     const execute = useCallback(
       async (args: unknown[]): Promise<`0x${string}` | undefined> => {
         try {
-          const txHash = await writeContract({
+          const txHash = (await writeContract({
             address: config.address as `0x${string}`,
             abi: config.abi as readonly unknown[],
             functionName: config.functionName,
             args,
-          });
+          })) as unknown as `0x${string}`;
           return txHash;
         } catch (err) {
-          // Re-throw to let caller handle
           throw err;
         }
       },
@@ -94,12 +93,12 @@ export function createWriteActionWithConfirmation(config: WriteActionConfig) {
 
     const execute = useCallback(
       async (args: unknown[]): Promise<`0x${string}` | undefined> => {
-        const txHash = await writeContract({
+        const txHash = (await writeContract({
           address: config.address as `0x${string}`,
           abi: config.abi as readonly unknown[],
           functionName: config.functionName,
           args,
-        });
+        })) as unknown as `0x${string}`;
         return txHash;
       },
       [writeContract, config.address, config.abi, config.functionName]

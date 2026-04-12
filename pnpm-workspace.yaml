@@ -3,3 +3,15 @@ packages:
   - 'packages/*'
   - 'sdk/typescript'
   - 'cli'
+allowBuilds:
+  '@reown/appkit': true
+  '@scarf/scarf': true
+  '@tree-sitter-grammars/tree-sitter-yaml': true
+  bufferutil: true
+  core-js-pure: true
+  esbuild: true
+  sharp: true
+  tree-sitter: true
+  tree-sitter-json: true
+  unrs-resolver: true
+  utf-8-validate: true

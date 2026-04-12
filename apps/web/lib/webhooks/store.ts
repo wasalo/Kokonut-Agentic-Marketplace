@@ -1,7 +1,7 @@
 'use client';
 
 import { create } from 'zustand';
-import { persist } from 'zustand/middleware';
+import { persist, createJSONStorage, StateStorage } from 'zustand/middleware';
 import type {
   Webhook,
   WebhookRegistration,
@@ -11,6 +11,23 @@ import type {
   WebhookEventType,
 } from './types';
 import { generateWebhookId, generateSecret, MAX_WEBHOOKS_PER_AGENT } from './types';
+
+const noopStorage: StateStorage = {
+  getItem: () => null,
+  setItem: () => {},
+  removeItem: () => {},
+};
+
+const getBrowserStorage = (): StateStorage => {
+  if (typeof window === 'undefined') {
+    return noopStorage;
+  }
+  return {
+    getItem: (name: string) => localStorage.getItem(name),
+    setItem: (name: string, value: string) => localStorage.setItem(name, value),
+    removeItem: (name: string) => localStorage.removeItem(name),
+  };
+};
 
 interface WebhookState {
   webhooks: Webhook[];
@@ -146,6 +163,7 @@ export const useWebhookStore = create<WebhookState>()(
     }),
     {
       name: 'kokonut_webhooks',
+      storage: createJSONStorage(() => getBrowserStorage()),
       partialize: state => ({
         webhooks: state.webhooks,
         deliveries: state.deliveries,

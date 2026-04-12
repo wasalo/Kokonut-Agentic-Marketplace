@@ -5,6 +5,56 @@ All notable changes to the Kokonut Agent Economy Stack are documented in this fi
 The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.0.0/),
 and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0.html).
 
+## [2026-04-12] - Server Stability & Swagger
+
+### 🔧 Server Crash Fix
+
+Fixed Next.js dev server crashing after compilation:
+
+| Issue                      | Fix                                                   |
+| -------------------------- | ----------------------------------------------------- |
+| `indexedDB is not defined` | Added SSR guards to Zustand persist middleware        |
+| Unhandled rejections       | Added lazy browser storage initialization in 3 stores |
+
+**Files Fixed:**
+
+- `lib/webhooks/store.ts` - Added `getBrowserStorage()` with window check
+- `lib/notifications/store.ts` - Added SSR-safe storage adapter
+- `lib/emails/store.ts` - Added SSR-safe storage adapter
+
+### 📚 Swagger Documentation
+
+Fixed `next-swagger-doc` integration:
+
+| Before                                          | After                            |
+| ----------------------------------------------- | -------------------------------- |
+| Invalid `swaggerDocGenerator` in next.config.js | Using proper `createSwaggerSpec` |
+| Manual 366-line route.ts                        | 13-line route.ts using library   |
+
+**Files Created:**
+
+- `lib/swagger.ts` - Created using `next-swagger-doc` library
+
+**Files Updated:**
+
+- `next.config.js` - Removed invalid `swaggerDocGenerator` config
+- `/api/swagger/route.ts` - Now uses `getApiDocs()` from library
+
+### 📦 TypeScript
+
+All TypeScript errors resolved:
+
+- Fixed Button variant types in `filter-panel.tsx`, `pagination.tsx`
+- Fixed `useEntityList.ts` generic type issues
+- Fixed `useWriteAction.ts` return type casting
+- Added Card import to `marketplace/page.tsx`, `analytics/page.tsx`
+
+### 📦 Dependencies
+
+- Approved build scripts with `pnpm approve-builds --all`
+
+---
+
 ## [2026-04-11] - Code Cleanup & Consolidation
 
 ### 🔧 Git Repository Fixes

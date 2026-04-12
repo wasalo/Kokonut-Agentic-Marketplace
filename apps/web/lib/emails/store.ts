@@ -1,8 +1,25 @@
 'use client';
 
 import { create } from 'zustand';
-import { persist } from 'zustand/middleware';
+import { persist, createJSONStorage, StateStorage } from 'zustand/middleware';
 import type { EmailPreferences, EmailDelivery, EmailTemplateType } from './types';
+
+const noopStorage: StateStorage = {
+  getItem: () => null,
+  setItem: () => {},
+  removeItem: () => {},
+};
+
+const getBrowserStorage = (): StateStorage => {
+  if (typeof window === 'undefined') {
+    return noopStorage;
+  }
+  return {
+    getItem: (name: string) => localStorage.getItem(name),
+    setItem: (name: string, value: string) => localStorage.setItem(name, value),
+    removeItem: (name: string) => localStorage.removeItem(name),
+  };
+};
 
 interface EmailState {
   preferences: Record<string, EmailPreferences>;
@@ -89,6 +106,7 @@ export const useEmailStore = create<EmailState>()(
     }),
     {
       name: 'kokonut_emails',
+      storage: createJSONStorage(() => getBrowserStorage()),
       partialize: state => ({
         preferences: state.preferences,
       }),

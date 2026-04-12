@@ -57,19 +57,19 @@ export function createEntityListHook<T>(config: EntityListConfig<T>) {
     const total = totalData?.[0]?.result ? Number(totalData[0].result) : 0;
 
     const queries = useMemo(() => {
-      const result = [];
       const effectiveCount = Math.min(count, total - start);
-      if (effectiveCount <= 0) return result;
+      if (effectiveCount <= 0) return [];
 
+      const result = [];
       for (let i = start; i < start + effectiveCount; i++) {
         result.push({
           address: config.address as `0x${string}`,
-          abi: config.abi as readonly unknown[],
+          abi: config.abi as unknown as readonly never[],
           functionName: config.getFunction,
           args: [BigInt(i)],
         });
       }
-      return result;
+      return result as never[];
     }, [config.address, config.abi, config.getFunction, start, count, total]);
 
     const { data: results, isLoading, error, refetch } = useReadContracts({
@@ -83,12 +83,15 @@ export function createEntityListHook<T>(config: EntityListConfig<T>) {
     const entities = useMemo(() => {
       if (!results) return [];
 
-      return results
-        .map((result, index) => {
-          if (!result.result) return null;
-          return config.mapData(BigInt(start + index), result.result);
-        })
-        .filter((entity): entity is T => entity !== null);
+      const mapped: T[] = [];
+      for (let i = 0; i < results.length; i++) {
+        const result = results[i] as { status: string; result?: unknown } | undefined;
+        if (result && result.status === 'success' && result.result) {
+          const entity = config.mapData(BigInt(start + i), result.result);
+          if (entity) mapped.push(entity);
+        }
+      }
+      return mapped;
     }, [results, start, config]);
 
     return {

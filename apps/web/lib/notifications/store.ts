@@ -1,8 +1,25 @@
 'use client';
 
 import { create } from 'zustand';
-import { persist } from 'zustand/middleware';
+import { persist, createJSONStorage, StateStorage } from 'zustand/middleware';
 import type { Notification, NotificationPreferences } from './types';
+
+const noopStorage: StateStorage = {
+  getItem: () => null,
+  setItem: () => {},
+  removeItem: () => {},
+};
+
+const getBrowserStorage = (): StateStorage => {
+  if (typeof window === 'undefined') {
+    return noopStorage;
+  }
+  return {
+    getItem: (name: string) => localStorage.getItem(name),
+    setItem: (name: string, value: string) => localStorage.setItem(name, value),
+    removeItem: (name: string) => localStorage.removeItem(name),
+  };
+};
 
 const MAX_NOTIFICATIONS = 100;
 const NOTIFICATION_RETENTION_DAYS = 30;
@@ -128,6 +145,7 @@ export const useNotificationStore = create<NotificationState>()(
     }),
     {
       name: 'kokonut_notifications',
+      storage: createJSONStorage(() => getBrowserStorage()),
       partialize: state => ({
         notifications: state.notifications,
         unreadCount: state.unreadCount,

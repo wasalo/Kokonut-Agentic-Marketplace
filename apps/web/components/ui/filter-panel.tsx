@@ -63,30 +63,27 @@ export function FilterPanel({
             value={localSearch}
             onChange={handleSearchChange}
             className="pl-10"
-            variant="flat"
           />
         </div>
         {filters.length > 0 && (
-          <Button
-            variant={isExpanded || hasActiveFilters ? 'flat' : 'light'}
-            color={hasActiveFilters ? 'primary' : 'default'}
-            startContent={<SlidersHorizontal className="w-4 h-4" />}
-            onPress={() => setIsExpanded(!isExpanded)}
+          <button
+            type="button"
+            onClick={() => setIsExpanded(!isExpanded)}
+            className="px-4 py-2 rounded-lg bg-default-100 hover:bg-default-200 transition-colors"
           >
             Filters{' '}
             {hasActiveFilters &&
               `(${filters.filter(f => filterValues[f.key] !== undefined && filterValues[f.key] !== '').length})`}
-          </Button>
+          </button>
         )}
         {hasActiveFilters && onReset && (
-          <Button
-            variant="light"
-            color="danger"
-            startContent={<X className="w-4 h-4" />}
-            onPress={onReset}
+          <button
+            type="button"
+            onClick={onReset}
+            className="px-4 py-2 rounded-lg text-danger hover:bg-danger-50 transition-colors"
           >
             Reset
-          </Button>
+          </button>
         )}
       </div>
 
@@ -117,7 +114,6 @@ export function FilterPanel({
                     placeholder={filter.placeholder || `Search ${filter.label}`}
                     value={(filterValues[filter.key] as string) || ''}
                     onChange={e => onFilterChange?.(filter.key, e.target.value)}
-                    variant="flat"
                   />
                 )}
                 {filter.type === 'range' && (
@@ -127,14 +123,12 @@ export function FilterPanel({
                       placeholder="Min"
                       value={(filterValues[`${filter.key}Min`] as string) || ''}
                       onChange={e => onFilterChange?.(`${filter.key}Min`, e.target.value)}
-                      variant="flat"
                     />
                     <Input
                       type="number"
                       placeholder="Max"
                       value={(filterValues[`${filter.key}Max`] as string) || ''}
                       onChange={e => onFilterChange?.(`${filter.key}Max`, e.target.value)}
-                      variant="flat"
                     />
                   </div>
                 )}

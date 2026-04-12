@@ -2,6 +2,45 @@ import { NextRequest, NextResponse } from 'next/server';
 import { createPushSubscription } from '@/lib/db/push';
 import { rateLimit, getClientIP } from '@/lib/rate-limit';
 
+/**
+ * @swagger
+ * /api/push/subscribe:
+ *   post:
+ *     summary: Subscribe to push notifications
+ *     description: Subscribe a browser to receive push notifications
+ *     tags:
+ *       - Push Notifications
+ *     requestBody:
+ *       required: true
+ *       content:
+ *         application/json:
+ *           schema:
+ *             type: object
+ *             properties:
+ *               subscription:
+ *                 type: object
+ *                 properties:
+ *                   endpoint:
+ *                     type: string
+ *                   keys:
+ *                     type: object
+ *                     properties:
+ *                       p256dh:
+ *                         type: string
+ *                       auth:
+ *                         type: string
+ *               address:
+ *                 type: string
+ *                 description: User's Ethereum address
+ *     responses:
+ *       201:
+ *         description: Subscription created
+ *       400:
+ *         description: Invalid subscription
+ *       429:
+ *         description: Rate limit exceeded
+ */
+
 export async function POST(request: NextRequest) {
   try {
     const rateLimitResult = rateLimit(request, {

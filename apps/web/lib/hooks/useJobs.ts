@@ -1,7 +1,8 @@
 import { useReadContract, useReadContracts, useWriteContract } from 'wagmi';
 import { AGENTIC_COMMERCE_ABI } from '@/lib/contracts/abis';
 import { getContractAddress, debugLog } from '@/lib/contracts/config';
-import type { Job, JobStatus, JobStatusType, JobType, JobTypeType, Bid } from '@/lib/types/contracts';
+import type { Job, JobStatusType, JobTypeType, Bid } from '@/lib/types/contracts';
+import { JobStatus, JobType } from '@/lib/types/contracts';
 
 /* eslint-disable @typescript-eslint/no-explicit-any */
 // Add new function names to the ABI type
