@@ -47,7 +47,7 @@
 >   - **pnpm**: Switched from npm to pnpm for monorepo
 >   - **ABIs**: Added Phase 17/18 functions to type definitions
 >   - **Turbopack**: ❌ DOES NOT WORK - Next.js 16 + pnpm monorepo bug
->   - **webpack**: Now default - `pnpm run dev` works reliably
+>   - **webpack**: Now default - `pnpm run dev:web` or `cd apps/web && pnpm run dev` works reliably
 >   - **OpenAPI**: Added Swagger UI at `/api-docs` with interactive API docs
 > - **Phase 19: Performance & Analytics (April 2026)**:
 >   - **Web Vitals**: Added FCP, LCP, INP, CLS, FID tracking via web-vitals library
@@ -354,19 +354,9 @@ const signResult = await signMessage(walletInfo.id, 'sepolia', 'Hello, Kokonut!'
 console.log('Signature:', signResult.signature);
 ```
 
-### Python (Deprecated)
+### Python
 
-> ⚠️ **Warning**: The Python SDK is deprecated and still uses ethers. Use the TypeScript SDK instead.
-
-```python
-# DEPRECATED - Use TypeScript SDK instead
-from kokonut import KokonutClient
-
-client = KokonutClient(
-    private_key="0xYourPrivateKey",
-    network="sepolia"
-)
-```
+> ⚠️ **Removed**: The deprecated Python SDK has been removed from this repo. Use the TypeScript SDK instead.
 
 ---
 
@@ -374,22 +364,22 @@ client = KokonutClient(
 
 ```bash
 # Register an agent
-npm run cli -- register-agent --name "MyAgent" --capabilities "data,web3"
+pnpm run cli -- register-agent --name "MyAgent" --capabilities "data,web3"
 
 # Create a service
-npm run cli -- create-service --name "Analysis" --price 1000000 --description "Data service"
+pnpm run cli -- create-service --name "Analysis" --price 1000000 --description "Data service"
 
 # List services
-npm run cli -- list-services --json
+pnpm run cli -- list-services --json
 
 # Get your reputation
-npm run cli -- get-reputation 0xYourAddress --json
+pnpm run cli -- get-reputation 0xYourAddress --json
 
 # Create a proposal for review
-npm run cli -- create-proposal --title "Evaluation" --reward 0.01
+pnpm run cli -- create-proposal --title "Evaluation" --reward 0.01
 
 # Check jobs
-npm run cli -- list-jobs --json
+pnpm run cli -- list-jobs --json
 ```
 
 ---
@@ -1604,10 +1594,10 @@ agents_reputation(address) // Get agent reputation
 
 ```bash
 # Install dependencies
-cd packages/mcp-server && npm install
+cd packages/mcp-server && pnpm install
 
 # Run with STDIO
-npm run dev
+pnpm run dev
 
 # Configure in Claude Desktop or other MCP clients
 ```
@@ -1996,12 +1986,12 @@ TypeScript errors are now enforced during build (ignoreBuildErrors has been remo
 
 ### Development Server Issues
 
-**Note:** The dev server uses Turbopack by default. If you encounter issues, use webpack:
+**Note:** The app defaults to webpack. Turbopack remains available as an opt-in command and is still unreliable in this monorepo:
 
 ```bash
 cd apps/web
-npm run dev  # Uses turbopack
-npm run dev:turbo  # Same as above
+pnpm run dev  # Uses webpack (recommended)
+pnpm run dev:turbo  # Uses turbopack (known issues)
 ```
 
 **Issue: npm install fails with "Invalid Version"**
@@ -2044,7 +2034,7 @@ npm install
 cd apps/web
 
 # Start the server (uses webpack for better compatibility)
-npm run dev
+pnpm run dev
 
 # The server will be available at:
 # - Local: http://localhost:3000

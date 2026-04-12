@@ -1,6 +1,6 @@
 'use client';
 
-import React, { useMemo, memo, useState, useCallback, useEffect } from 'react';
+import { useMemo, useState, useCallback, useEffect } from 'react';
 import { useAccount } from 'wagmi';
 import { useSearchParams, useRouter } from 'next/navigation';
 import NextLink from 'next/link';

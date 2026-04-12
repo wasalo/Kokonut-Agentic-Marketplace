@@ -70,7 +70,7 @@ const SERVICE_REGISTRY_ABI = parseAbi([
   'function updateService(uint256 serviceId, string calldata name, string calldata description, string calldata metadataURI, uint256 price) external',
   'function deactivateService(uint256 serviceId) external',
   'function activateService(uint256 serviceId) external',
-  'function getService(uint256 serviceId) external view returns (tuple(uint256 id, address provider, uint256 agentId, string name, string description, string metadataURI, uint256 price, address paymentToken, bool isActive, uint256 createdAt))',
+  'function getService(uint256 serviceId) external view returns ((uint256 id, address provider, uint256 agentId, string name, string description, string metadataURI, uint256 price, address paymentToken, bool isActive, uint256 createdAt))',
   'function getServices(uint256 start, uint256 count) external view returns (uint256[] memory)',
   'function getActiveServiceCount() external view returns (uint256)',
   'function getProviderServices(address provider) external view returns (uint256[] memory)',
@@ -104,7 +104,7 @@ const AGENTIC_COMMERCE_ABI = parseAbi([
   // 'function acceptBid(uint256 jobId, uint256 bidId) external', // DISABLED
   // 'function withdrawStake(uint256 jobId) external', // DISABLED
   // View Functions
-  'function getJob(uint256 jobId) external view returns (tuple(uint256 id, address client, address provider, address evaluator, uint256 serviceId, address paymentToken, string description, uint256 budget, uint256 expiredAt, uint8 status, address hook, bytes32 deliverable))',
+  'function getJob(uint256 jobId) external view returns ((uint256 id, address client, address provider, address evaluator, uint256 serviceId, address paymentToken, string description, uint256 budget, uint256 expiredAt, uint8 status, address hook, bytes32 deliverable))',
   'function jobCounter() external view returns (uint256)',
   'function getClientJobCount(address client) external view returns (uint256)',
   // NOTE: getUserBid, jobBidCount are DISABLED in V6.1 - use BiddingSystem instead
@@ -143,8 +143,8 @@ const AGENT_REVIEW_ABI = parseAbi([
   'function claimReward(uint256 proposalId) external',
   'function releaseStake(uint256 proposalId) external',
   'function cancelProposal(uint256 proposalId) external',
-  'function getProposal(uint256 proposalId) external view returns (tuple(uint256 id, address proposer, string title, string description, string criteriaURI, uint256 reward, uint8 status, uint256 createdAt, uint256 decisionDeadline, address winningEvaluator))',
-  'function getEvaluation(uint256 proposalId, address evaluator) external view returns (tuple(uint256 proposalId, address evaluator, int256 confidenceScore, string reasoningURI, uint256 stakeAmount, bool isFinal, bool rewardClaimed, bool stakeReleased, uint256 submittedAt, uint256 rewardAmount))',
+  'function getProposal(uint256 proposalId) external view returns ((uint256 id, address proposer, string title, string description, string criteriaURI, uint256 reward, uint8 status, uint256 createdAt, uint256 decisionDeadline, address winningEvaluator))',
+  'function getEvaluation(uint256 proposalId, address evaluator) external view returns ((uint256 proposalId, address evaluator, int256 confidenceScore, string reasoningURI, uint256 stakeAmount, bool isFinal, bool rewardClaimed, bool stakeReleased, uint256 submittedAt, uint256 rewardAmount))',
   'function getProposalEvaluators(uint256 proposalId) external view returns (address[] memory)',
   // V5: Admin functions
   'function setSlashManager(address slashManager_) external',
@@ -1460,8 +1460,8 @@ const AGENT_SKILL_REGISTRY_ABI = parseAbi([
   'function registerSkill(uint256 agentId, string calldata name, string calldata version, string calldata description, string calldata endpoint, string[] calldata domains) external returns (uint256 skillId)',
   'function updateSkill(uint256 skillId, string calldata name, string calldata version, string calldata description, string calldata endpoint, string[] calldata domains) external',
   'function getAgentSkills(uint256 agentId) external view returns (uint256[] memory)',
-  'function getSkill(uint256 skillId) external view returns (tuple(uint256 agentId, string name, string version, string description, string endpoint, string[] domains, bool isActive, address registeredBy, uint256 registeredAt))',
-  'function getSkillData(uint256 skillId) external view returns (tuple(uint256 id, uint256 agentId, string name, string version, string description, string endpoint, string[] domains, bool isActive, address registeredBy, uint256 registeredAt))',
+  'function getSkill(uint256 skillId) external view returns ((uint256 agentId, string name, string version, string description, string endpoint, string[] domains, bool isActive, address registeredBy, uint256 registeredAt))',
+  'function getSkillData(uint256 skillId) external view returns ((uint256 id, uint256 agentId, string name, string version, string description, string endpoint, string[] domains, bool isActive, address registeredBy, uint256 registeredAt))',
   'function deactivateSkill(uint256 skillId) external',
   'function getTotalSkillCount() external view returns (uint256)',
   'function getAgentSkillCount(uint256 agentId) external view returns (uint256)',
@@ -1904,8 +1904,8 @@ const BIDDING_SYSTEM_ABI = parseAbi([
   'function createJobAndFund(uint256 sessionId, uint256 jobExpiredAt, string calldata description) external payable returns (uint256 jobId)',
   'function cancelSession(uint256 sessionId) external',
   'function extendRevealWindow(uint256 sessionId, uint256 additionalSeconds) external',
-  'function getSession(uint256 sessionId) external view returns (tuple(uint256 id, address creator, address evaluator, uint256 maxBudget, uint256 deadline, uint256 revealWindowEnd, bytes metadata, uint256 serviceId, uint256 jobId, address winner, uint256 winningBidId, bool jobCreated, uint8 status))',
-  'function getUserBid(uint256 sessionId, address user) external view returns (tuple(uint256 bidId, address bidder, uint256 proposedAmount, uint256 stake, string message, bytes32 commitHash, bool revealed, bool accepted, bool stakeWithdrawn, uint256 timestamp))',
+  'function getSession(uint256 sessionId) external view returns ((uint256 id, address creator, address evaluator, uint256 maxBudget, uint256 deadline, uint256 revealWindowEnd, bytes metadata, uint256 serviceId, uint256 jobId, address winner, uint256 winningBidId, bool jobCreated, uint8 status))',
+  'function getUserBid(uint256 sessionId, address user) external view returns ((uint256 bidId, address bidder, uint256 proposedAmount, uint256 stake, string message, bytes32 commitHash, bool revealed, bool accepted, bool stakeWithdrawn, uint256 timestamp))',
   'function sessionCounter() external view returns (uint256)',
   'function calculateStake(uint256 maxBudget) external pure returns (uint256)',
   'function commerce() external view returns (address)',

@@ -39,23 +39,21 @@ export default function BiddingSessionDetailPage({
   const sessionId = BigInt(id);
   const { address, isConnected } = useAccount();
 
-  const { session, isLoading, refetch } = useBiddingSession(sessionId);
-  const { bid: userBid, refetch: refetchUserBid } = useBiddingUserBid(sessionId, address);
-  const { acceptBid, hash: acceptHash, isPending: isAcceptPending } = useBiddingAcceptBid();
+  const { session, isLoading } = useBiddingSession(sessionId);
+  const { bid: userBid } = useBiddingUserBid(sessionId, address);
+  const { acceptBid, isPending: isAcceptPending } = useBiddingAcceptBid();
   const {
     withdrawStake,
-    hash: withdrawHash,
     isPending: isWithdrawPending,
   } = useBiddingWithdrawStake();
-  const { claimStake, hash: claimHash, isPending: isClaimPending } = useBiddingClaimStake();
-  const { cancelSession, hash: cancelHash, isPending: isCancelPending } = useBiddingCancelSession();
+  const { claimStake, isPending: isClaimPending } = useBiddingClaimStake();
+  const { cancelSession, isPending: isCancelPending } = useBiddingCancelSession();
   const {
     extendRevealWindow,
-    hash: extendHash,
     isPending: isExtendPending,
   } = useBiddingExtendRevealWindow();
-  const { commitBid, hash: commitHash, isPending: isCommitPending } = useBiddingCommitBid();
-  const { revealBid, hash: revealHash, isPending: isRevealPending } = useBiddingRevealBid();
+  const { commitBid, isPending: isCommitPending } = useBiddingCommitBid();
+  const { revealBid, isPending: isRevealPending } = useBiddingRevealBid();
 
   const { data: ethBalance } = useBalance({ address });
 

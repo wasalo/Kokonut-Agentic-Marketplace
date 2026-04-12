@@ -1,5 +1,5 @@
 import { NextRequest, NextResponse } from 'next/server';
-import { createPublicClient, http, type Log } from 'viem';
+import { createPublicClient, http } from 'viem';
 import { sepolia } from 'viem/chains';
 import { AGENTIC_COMMERCE_ABI } from '@/lib/contracts/abis';
 import { getContractAddress } from '@/lib/contracts/config';

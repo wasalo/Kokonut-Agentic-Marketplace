@@ -1,6 +1,6 @@
 import { NextRequest, NextResponse } from 'next/server';
 import { createWebhook, getWebhooks, getDeliveries } from '@/lib/db/webhooks';
-import { rateLimit, getClientIP } from '@/lib/rate-limit';
+import { rateLimit } from '@/lib/rate-limit';
 
 /**
  * @swagger
@@ -113,7 +113,6 @@ const VALID_EVENTS = [
 
 export async function POST(request: NextRequest) {
   try {
-    const clientIP = getClientIP(request);
     const rateLimitResult = rateLimit(request, {
       windowMs: 60 * 1000,
       maxRequests: 10,

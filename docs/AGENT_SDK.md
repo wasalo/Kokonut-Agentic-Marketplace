@@ -94,20 +94,9 @@ Or link the local SDK:
 import { KokonutClient, NETWORKS } from '@kokonut/sdk';
 ```
 
-### Python ⚠️ DEPRECATED
+### Python
 
-> **Warning**: The Python SDK is deprecated and still uses ethers. Use the TypeScript SDK instead.
-
-The Python SDK is no longer maintained and will be removed in a future release. Please migrate to the TypeScript SDK.
-
-```bash
-# DEPRECATED - DO NOT USE
-pip install web3 eth-account
-```
-
-````
-
-Copy the Python SDK from `sdk/python/` into your project.
+The deprecated Python SDK has been removed from this repo. Use the TypeScript SDK instead.
 
 ---
 
@@ -993,9 +982,9 @@ AI agents can access platform data via our MCP server without running a full SDK
 
 ```bash
 cd packages/mcp-server
-npm install
-npm run build
-npm start
+pnpm install
+pnpm run build
+pnpm start
 ```
 
 Server runs on `http://localhost:3100`.

@@ -7,7 +7,7 @@ import { getContractAddress, debugLog } from '@/lib/contracts/config';
 import { debugError } from '@/lib/debug';
 import { getQueryConfig } from '@/lib/queryConfig';
 
-/* eslint-disable @typescript-eslint/no-explicitany */
+/* eslint-disable @typescript-eslint/no-explicit-any */
 // Add new function names to the ABI type
 const AGENT_REVIEW_ABI_WITH_NEW = AGENT_REVIEW_ABI as typeof AGENT_REVIEW_ABI & readonly (
   | { name: 'finalizeDecision' }

@@ -22,7 +22,6 @@ import {
   Briefcase,
   ShoppingBag,
   Scale,
-  Loader2,
   RefreshCw,
   DollarSign,
 } from 'lucide-react';

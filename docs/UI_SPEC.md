@@ -1250,10 +1250,10 @@ NEXT_PUBLIC_ALCHEMY_API_KEY=xxx
 
 ```bash
 # Development
-cd apps/web && npm run dev
+cd apps/web && pnpm run dev
 
 # Build
-cd apps/web && npm run build
+cd apps/web && pnpm run build
 
 # Type check
 cd apps/web && npx tsc --noEmit

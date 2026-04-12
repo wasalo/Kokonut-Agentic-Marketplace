@@ -4,7 +4,6 @@ import { getUsersWithDigestEnabled } from '@/lib/db/email';
 import path from 'path';
 
 const DATA_DIR = path.join(process.cwd(), 'data');
-const EVENTS_FILE = path.join(DATA_DIR, 'events.json');
 
 const resend = new Resend(process.env.RESEND_KEY);
 

@@ -1471,16 +1471,16 @@ rm -rf apps/web/.next
 rm -rf apps/web/node_modules/.cache
 
 # 2. Rebuild
-cd apps/web && npm run build
+cd apps/web && pnpm run build
 
 # 3. Restart server
 pkill -f "next start"
-cd apps/web && npm start
+cd apps/web && pnpm start
 ```
 
 ### Development vs Production Caching
 
 | Environment                 | Behavior                                |
 | --------------------------- | --------------------------------------- |
-| Development (`npm run dev`) | No caching - hot reload for all changes |
-| Production (`npm start`)    | Smart caching with unique build IDs     |
+| Development (`pnpm run dev`) | No caching - hot reload for all changes |
+| Production (`pnpm start`)    | Smart caching with unique build IDs     |

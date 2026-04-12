@@ -1,22 +1,18 @@
 'use client';
 
-import { useState, useCallback } from 'react';
+import { useState, useCallback, useEffect } from 'react';
 import { useRouter } from 'next/navigation';
-import { useAccount, useBalance, useWaitForTransactionReceipt } from 'wagmi';
-import { ArrowLeft, Loader2, AlertCircle, DollarSign, Clock, Users } from 'lucide-react';
+import { useAccount, useBalance } from 'wagmi';
+import { ArrowLeft, Loader2, AlertCircle, DollarSign, Clock } from 'lucide-react';
 import { Card } from '@heroui/react';
 import NextLink from 'next/link';
 import { parseEther, formatEther } from 'viem';
 import { useBiddingCalculateStake, useCreateBiddingSession } from '@/lib/hooks/useBiddingSystem';
-import { CONTRACTS } from '@/lib/wagmi';
-import { BIDDING_SYSTEM_ABI } from '@/lib/contracts/abis';
 import { validateAddress } from '@/lib/hooks/useValidation';
 import { showToast } from '@/lib/toast';
 
 const MIN_DEADLINE = 5 * 60; // 5 minutes in seconds
 const MAX_DEADLINE = 365 * 24 * 60 * 60; // 1 year in seconds
-const DEFAULT_REVEAL_WINDOW = 60 * 60; // 1 hour in seconds
-
 export default function CreateBiddingSessionPage(): JSX.Element {
   const router = useRouter();
   const { address, isConnected } = useAccount();
@@ -89,10 +85,7 @@ export default function CreateBiddingSessionPage(): JSX.Element {
 
       const deadlineSeconds = BigInt(parseInt(deadline) * 60);
       const budgetWei = parseEther(maxBudget);
-      const stake = calculatedStake;
       const sid = serviceId ? BigInt(parseInt(serviceId)) : 0n;
-
-      const BIDDING_SYSTEM_ADDRESS = CONTRACTS[11155111].biddingSystem as `0x${string}`;
 
       createSession({
         evaluator: evaluator as `0x${string}`,
@@ -105,13 +98,18 @@ export default function CreateBiddingSessionPage(): JSX.Element {
     [validate, evaluator, maxBudget, deadline, metadata, serviceId, calculatedStake, createSession]
   );
 
-  // Redirect on success
-  if (isConfirmed && hash) {
-    setTimeout(() => {
+  useEffect(() => {
+    if (!isConfirmed || !hash) {
+      return;
+    }
+
+    const timeoutId = window.setTimeout(() => {
       showToast.success('Session created!', 'Your bidding session has been created successfully.');
       router.push('/bidding');
     }, 2000);
-  }
+
+    return () => window.clearTimeout(timeoutId);
+  }, [hash, isConfirmed, router]);
 
   if (!isConnected) {
     return (
@@ -326,10 +324,4 @@ export default function CreateBiddingSessionPage(): JSX.Element {
       </Card>
     </div>
   );
-}
-
-// Local write contract hook to avoid circular dependencies
-function useWriteContractLocal() {
-  const { useWriteContract: useWagmiWrite } = require('wagmi');
-  return useWagmiWrite();
 }

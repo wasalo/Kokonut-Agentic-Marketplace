@@ -4,7 +4,22 @@
  */
 
 import { Command } from 'commander';
-import { parseAbi, http, createPublicClient, createWalletClient, formatEther, parseEther, keccak256, encodePacked, toBytes, ZeroAddress, getContract, waitForTransactionReceipt, parseLog } from 'viem';
+import {
+  parseAbi,
+  http,
+  createPublicClient,
+  createWalletClient,
+  formatEther,
+  parseEther,
+  keccak256,
+  encodePacked,
+  toBytes,
+  zeroAddress,
+  getContract,
+  decodeEventLog,
+} from 'viem';
+import { mainnet, sepolia } from 'viem/chains';
+import { ethers } from 'ethers';
 import { privateKeyToAccount } from 'viem/accounts';
 import chalk from 'chalk';
 import * as dotenv from 'dotenv';
@@ -12,12 +27,14 @@ import { createRequire } from 'module';
 import { fileURLToPath } from 'url';
 import { dirname, join } from 'path';
 import { randomBytes } from 'crypto';
+import * as readline from 'readline';
 
 const __filename = fileURLToPath(import.meta.url);
 const __dirname = dirname(__filename);
 
 const require = createRequire(import.meta.url);
 const { NETWORKS } = require(join(__dirname, '../../config/networks.js'));
+const ZeroAddress = zeroAddress;
 
 type NetworkName = 'sepolia' | 'mainnet';
 
@@ -30,13 +47,23 @@ let walletClient: ReturnType<typeof createWalletClient> | null = null;
 let account: ReturnType<typeof privateKeyToAccount> | null = null;
 
 // Configuration
-const config = {
+const config: {
+  network: NetworkName;
+  readonly networkConfig: any;
+  rpcUrl: string;
+  signerAddress: `0x${string}`;
+  provider: ethers.JsonRpcProvider | null;
+  signer: ethers.Wallet | null;
+  readonly contracts: any;
+} = {
   network: (process.env.NETWORK as NetworkName) || 'sepolia',
   get networkConfig() {
     return NETWORKS[this.network];
   },
   rpcUrl: '',
   signerAddress: '' as `0x${string}`,
+  provider: null,
+  signer: null,
 
   get contracts() {
     return this.networkConfig.contracts;
@@ -56,17 +83,20 @@ function initWallet() {
 
   const privateKey = process.env.PRIVATE_KEY as `0x${string}`;
   account = privateKeyToAccount(privateKey);
+  const chain = config.networkConfig.chainId === 11155111 ? sepolia : mainnet;
 
   publicClient = createPublicClient({
     transport: http(config.rpcUrl),
-    chain: config.networkConfig.chainId === 11155111 ? 'sepolia' : 'mainnet',
+    chain,
   });
 
   walletClient = createWalletClient({
     account,
     transport: http(config.rpcUrl),
-    chain: config.networkConfig.chainId === 11155111 ? 'sepolia' : 'mainnet',
+    chain,
   });
+  config.provider = new ethers.JsonRpcProvider(config.rpcUrl);
+  config.signer = new ethers.Wallet(privateKey, config.provider);
 
   config.signerAddress = account.address;
 
@@ -76,6 +106,22 @@ function initWallet() {
     config.networkConfig.name,
     `(chainId: ${config.networkConfig.chainId})`
   );
+}
+
+async function waitForTransactionReceipt(hash: `0x${string}`) {
+  if (!publicClient) {
+    throw new Error('Public client not initialized');
+  }
+
+  return publicClient.waitForTransactionReceipt({ hash });
+}
+
+function parseLog(args: { log: any; abi: any }): any {
+  return decodeEventLog({
+    abi: args.abi,
+    data: args.log.data,
+    topics: args.log.topics as any,
+  }) as any;
 }
 
 // Create CLI program
@@ -96,7 +142,6 @@ program
       process.exit(1);
     }
   });
-}
 
 // 🔧 INIT COMMAND - Configuration wizard
 
@@ -165,7 +210,7 @@ ${customRpc ? `RPC_URL=${customRpc}` : '# RPC_URL=custom_rpc_here'}
       console.log(chalk.green('\n✅ Configuration saved to:'), envPath);
       console.log(chalk.dim('\nTo use this configuration, run:'));
       console.log(chalk.cyan('  source .env.kokonut'));
-      console.log(chalk.cyan('  npm run cli -- <command>'));
+      console.log(chalk.cyan('  pnpm run cli -- <command>'));
 
       // Validate by checking address
       try {
@@ -176,7 +221,7 @@ ${customRpc ? `RPC_URL=${customRpc}` : '# RPC_URL=custom_rpc_here'}
       }
 
       console.log(chalk.bold('\n🎉 Setup complete! Try:'));
-      console.log(chalk.cyan('  npm run cli -- help'));
+      console.log(chalk.cyan('  pnpm run cli -- help'));
 
     } catch (error) {
       console.error(chalk.red('❌ Error during setup:'), error);
@@ -241,8 +286,11 @@ program
       const identityRegistry = getContract({
         address: config.contracts.identityRegistry,
         abi: identityRegistryABI,
-        client: walletClient,
-      });
+        client: {
+          public: publicClient!,
+          wallet: walletClient!,
+        },
+      } as any) as any;
 
       // Prepare agent data
       const agentName = options.name || `Agent_${config.signerAddress.slice(2, 10)}`;
@@ -297,7 +345,7 @@ program
       const tx = await identityRegistry.write.register(metadataURI);
       console.log(chalk.cyan('Transaction sent:'), tx);
 
-      const receipt = await waitForTransactionReceipt({ hash: tx });
+      const receipt = await waitForTransactionReceipt(tx);
       console.log(chalk.green('✅ Agent registered successfully!'));
       console.log(chalk.cyan('Gas used:'), receipt.gasUsed.toString());
 
@@ -359,8 +407,8 @@ program
       const identityRegistry = getContract({
         address: config.contracts.identityRegistry,
         abi: identityRegistryABI,
-        client: publicClient,
-      });
+        client: publicClient!,
+      } as any) as any;
 
       const address = target;
 
@@ -419,8 +467,8 @@ program
       const identityRegistry = getContract({
         address: config.contracts.identityRegistry,
         abi: identityRegistryABI,
-        client: publicClient,
-      });
+        client: publicClient!,
+      } as any) as any;
 
       const count = await identityRegistry.read.getAgentCount();
       console.log(chalk.green(`\n📊 Total Agents: ${count.toString()}`));
@@ -675,7 +723,7 @@ program
         console.log(chalk.green('\n✅ This address is a registered agent in the Kokonut economy!'));
       } else {
         console.log(chalk.yellow('\n⚠️  This address is not registered. Register with:'));
-        console.log(chalk.cyan('  npm run cli -- register-agent --name "YourAgent"'));
+        console.log(chalk.cyan('  pnpm run cli -- register-agent --name "YourAgent"'));
       }
     } catch (error) {
       console.error(chalk.red('❌ Error verifying agent:'), error.message);

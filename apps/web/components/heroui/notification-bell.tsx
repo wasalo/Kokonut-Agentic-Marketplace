@@ -10,23 +10,12 @@ import {
   FileText,
   Wallet,
   Check,
-  BellRing,
-  Smartphone,
 } from 'lucide-react';
 import { useNotifications } from '@/lib/hooks/useNotifications';
-import { usePushNotifications } from '@/lib/hooks/usePushNotifications';
 
 export function NotificationBell() {
   const router = useRouter();
   const { unreadCount, markAllAsRead, notifications } = useNotifications();
-  const {
-    supported,
-    subscribed,
-    loading: pushLoading,
-    subscribe,
-    unsubscribe,
-    sendTestNotification,
-  } = usePushNotifications();
   const [isOpen, setIsOpen] = useState(false);
   const dropdownRef = useRef<HTMLDivElement>(null);
 
