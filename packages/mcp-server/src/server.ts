@@ -1,6 +1,7 @@
 import { createServer, IncomingMessage, ServerResponse } from 'http';
 import { parse } from 'url';
 import { publicClient, CONTRACTS, JOB_STATUS } from './client.js';
+import { createWallet, listWallets, getWallet, signMessage } from '@open-wallet-standard/core';
 
 const PORT = parseInt(process.env.MCP_PORT || '3100', 10);
 const HOST = process.env.MCP_HOST || '0.0.0.0';
@@ -237,6 +238,30 @@ async function handleToolCall(toolName: string, args: Record<string, unknown>) {
       return getAgent(args.agentId as string);
     case 'agents_reputation':
       return getAgentReputation(args.address as string);
+    case 'ows_create_wallet':
+      return createWallet(args.name as string, args.passphrase as string);
+    case 'ows_import_wallet':
+      if (args.importType === 'mnemonic') {
+        return {
+          wallet: createWallet(
+            args.name as string,
+            args.passphrase as string,
+            128,
+            args.value as string
+          ),
+        };
+      } else {
+        return { wallet: createWallet(args.name as string, args.passphrase as string) };
+      }
+    case 'ows_list_wallets':
+      return listWallets();
+    case 'ows_sign_message':
+      return signMessage(
+        args.wallet as string,
+        args.chain as string,
+        args.message as string,
+        args.passphrase as string
+      );
     default:
       throw new Error(`Unknown tool: ${toolName}`);
   }
@@ -293,6 +318,59 @@ const TOOLS = [
       type: 'object',
       properties: { address: { type: 'string' } },
       required: ['address'],
+    },
+  },
+  // OWS Wallet Tools
+  {
+    name: 'ows_create_wallet',
+    description: 'Create a new OWS wallet with a BIP-39 mnemonic',
+    inputSchema: {
+      type: 'object',
+      properties: {
+        name: { type: 'string', description: 'Wallet name' },
+        passphrase: { type: 'string', description: 'Wallet passphrase (8-128 chars)' },
+      },
+      required: ['name', 'passphrase'],
+    },
+  },
+  {
+    name: 'ows_import_wallet',
+    description: 'Import an OWS wallet from a mnemonic or private key',
+    inputSchema: {
+      type: 'object',
+      properties: {
+        name: { type: 'string', description: 'Wallet name' },
+        passphrase: { type: 'string', description: 'Wallet passphrase' },
+        importType: {
+          type: 'string',
+          enum: ['mnemonic', 'privateKey'],
+          description: 'Import type',
+        },
+        value: { type: 'string', description: 'Mnemonic phrase or private key hex' },
+      },
+      required: ['name', 'passphrase', 'importType', 'value'],
+    },
+  },
+  {
+    name: 'ows_list_wallets',
+    description: 'List all OWS wallets in the vault',
+    inputSchema: {
+      type: 'object',
+      properties: {},
+    },
+  },
+  {
+    name: 'ows_sign_message',
+    description: 'Sign a message with an OWS wallet',
+    inputSchema: {
+      type: 'object',
+      properties: {
+        wallet: { type: 'string', description: 'Wallet name or ID' },
+        chain: { type: 'string', description: 'Chain (evm, solana, etc.)' },
+        message: { type: 'string', description: 'Message to sign' },
+        passphrase: { type: 'string', description: 'Wallet passphrase' },
+      },
+      required: ['wallet', 'chain', 'message', 'passphrase'],
     },
   },
 ];

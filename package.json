@@ -80,6 +80,7 @@
     "tsx": "^4.6.0",
     "typedoc": "^0.26.0",
     "typescript": "^5.9.3",
-    "viem": "^2.47.6"
+    "viem": "^2.47.6",
+    "@open-wallet-standard/core": "^1.2.0"
   }
 }

@@ -9,6 +9,7 @@ Command-line interface for interacting with the Kokonut Agent Economy Stack.
 1. [Installation](#installation)
 2. [Configuration](#configuration)
 3. [Commands](#commands)
+   - [OWS Wallet Commands](#ows-wallet-commands)
    - [V6 Bidding Commands](#v6-bidding-commands)
    - [V6 Review Commands](#v6-review-commands)
    - [V6 Services Commands](#v6-services-commands)
@@ -64,6 +65,153 @@ SEPOLIA_RPC_URL=https://ethereum-sepolia.publicnode.com
 ---
 
 ## Commands
+
+### OWS Wallet Commands
+
+The CLI uses **@open-wallet-standard/core** for secure wallet management.
+
+#### `ows-create-wallet`
+
+Create a new OWS wallet with mnemonic.
+
+```bash
+npm run cli -- ows-create-wallet \
+  --name "MyAgent" \
+  --passphrase "securepass123" \
+  --words "word1 word2 word3 ..." # 12 or 24 word mnemonic
+```
+
+Options:
+
+- `--name` - Wallet name (required)
+- `--passphrase` - Wallet passphrase (required)
+- `--words` - Mnemonic words (required)
+
+#### `ows-import-wallet`
+
+Import an existing wallet by mnemonic or private key.
+
+```bash
+# Import via mnemonic
+npm run cli -- ows-import-wallet \
+  --name "ImportedWallet" \
+  --passphrase "mypass" \
+  --words "word1 word2 word3 ..."
+
+# Import via private key
+npm run cli -- ows-import-wallet \
+  --name "ImportedWallet" \
+  --passphrase "mypass" \
+  --private-key "0x..."
+```
+
+Options:
+
+- `--name` - Wallet name (required)
+- `--passphrase` - Wallet passphrase (required)
+- `--words` - Mnemonic words (mutually exclusive with --private-key)
+- `--private-key` - Private key hex (mutually exclusive with --words)
+
+#### `ows-list-wallets`
+
+List all OWS wallets.
+
+```bash
+npm run cli -- ows-list-wallets
+```
+
+#### `ows-get-wallet`
+
+Get detailed wallet information.
+
+```bash
+npm run cli -- ows-get-wallet --name "MyAgent"
+# Or by ID
+npm run cli -- ows-get-wallet --id "wallet-id-here"
+```
+
+Options:
+
+- `--name` - Wallet name (mutually exclusive with --id)
+- `--id` - Wallet ID (mutually exclusive with --name)
+
+#### `ows-delete-wallet`
+
+Delete a wallet.
+
+```bash
+npm run cli -- ows-delete-wallet --name "MyAgent"
+```
+
+Options:
+
+- `--name` - Wallet name (required)
+
+#### `ows-sign-message`
+
+Sign a message using an OWS wallet.
+
+```bash
+npm run cli -- ows-sign-message \
+  --wallet "MyAgent" \
+  --chain "sepolia" \
+  --message "Hello, Kokonut!"
+```
+
+Options:
+
+- `--wallet` - Wallet name or ID (required)
+- `--chain` - Chain name (sepolia, mainnet) (default: sepolia)
+- `--message` - Message to sign (required)
+
+#### `ows-list-policies`
+
+List security policies for a wallet.
+
+```bash
+npm run cli -- ows-list-policies --wallet "MyAgent"
+```
+
+#### `ows-create-policy`
+
+Create a security policy for a wallet.
+
+```bash
+npm run cli -- ows-create-policy \
+  --wallet "MyAgent" \
+  --policy-name "MyPolicy" \
+  --max-value 1000000000000000000 \
+  --trusted-contracts "0x123...,0x456..."
+```
+
+Options:
+
+- `--wallet` - Wallet name (required)
+- `--policy-name` - Policy name (required)
+- `--max-value` - Maximum transaction value in wei (default: unlimited)
+- `--trusted-contracts` - Comma-separated trusted contract addresses
+
+#### `ows-get-policy`
+
+Get policy details.
+
+```bash
+npm run cli -- ows-get-policy \
+  --wallet "MyAgent" \
+  --policy-name "MyPolicy"
+```
+
+#### `ows-delete-policy`
+
+Delete a security policy.
+
+```bash
+npm run cli -- ows-delete-policy \
+  --wallet "MyAgent" \
+  --policy-name "MyPolicy"
+```
+
+---
 
 ### V6 Bidding Commands
 

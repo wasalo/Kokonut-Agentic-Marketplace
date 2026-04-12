@@ -3,13 +3,46 @@
  * Type definitions for agent interactions with the Kokonut Agent Economy Stack
  */
 
-import type { ethers } from 'ethers';
+import type { Address as viemAddress, PrivateKeyAccount } from 'viem';
+import type { TransactionReceipt } from 'viem';
+import type {
+  AccountInfo,
+  WalletInfo,
+  SignResult,
+  SendResult,
+  ApiKeyResult,
+} from '@open-wallet-standard/core';
 
 // ============================================================================
-// Network Configuration
+// OWS Types (re-exported from official OWS package)
 // ============================================================================
 
-export type NetworkName = 'sepolia' | 'mainnet';
+export type { AccountInfo, WalletInfo, SignResult, SendResult, ApiKeyResult };
+
+export type OWSWallet = WalletInfo;
+export type OWSSignResult = SignResult;
+export type OWSSendResult = SendResult;
+export type OWSApiKeyResult = ApiKeyResult;
+
+export interface OWSWalletCreateOptions {
+  name: string;
+  passphrase?: string;
+  words?: 128 | 256;
+  vaultPath?: string;
+}
+
+export interface OWSWalletImportOptions {
+  name: string;
+  passphrase?: string;
+  importType: 'mnemonic' | 'privateKey';
+  value: string;
+  vaultPath?: string;
+}
+
+export interface OWSBalance {
+  native: bigint;
+  erc20: Record<string, bigint>;
+}
 
 export interface NetworkConfig {
   name: string;
@@ -35,8 +68,10 @@ export interface ContractAddresses {
   usdc: `0x${string}`;
 }
 
+export type NetworkName = 'sepolia' | 'mainnet';
+
 export interface SDKConfig {
-  wallet: `0x${string}` | ethers.HDNodeWallet | ethers.Wallet;
+  wallet: viemAddress | PrivateKeyAccount;
   network?: NetworkName;
   rpcUrl?: string;
   contracts?: Partial<ContractAddresses>;
@@ -290,7 +325,7 @@ export type SDKEventHandler<T = unknown> = (event: T) => void;
 
 export interface TransactionResult {
   hash: string;
-  wait: () => Promise<ethers.TransactionReceipt>;
+  wait: () => Promise<TransactionReceipt>;
 }
 
 export interface PaginatedResult<T> {
@@ -341,7 +376,7 @@ export class TransactionError extends SDKError {
   constructor(
     message: string,
     public hash?: string,
-    public receipt?: ethers.TransactionReceipt
+    public receipt?: TransactionReceipt
   ) {
     super(message, 'TRANSACTION_ERROR');
     this.name = 'TransactionError';

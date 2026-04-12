@@ -18,7 +18,8 @@
   "author": "Kokonut Network",
   "license": "MIT",
   "dependencies": {
-    "ethers": "^6.13.0",
+    "viem": "^2.47.6",
+    "@open-wallet-standard/core": "^1.2.0",
     "zod": "^3.23.0"
   },
   "devDependencies": {

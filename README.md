@@ -82,9 +82,19 @@ Safety layers: No single person can slash arbitrarily. Even if 3 collude, timelo
 ### Prerequisites
 
 - **Node.js 20+** (required for Next.js 16)
-- **pnpm** (recommended for monorepo)
+- **pnpm** v10+ (required for monorepo - npm has compatibility issues)
 - **Foundry** (for smart contracts)
 - **Sepolia ETH** (for testnet transactions)
+
+### Technology Stack
+
+| Layer               | Technology                                 |
+| ------------------- | ------------------------------------------ |
+| **Blockchain**      | viem v2 (标准库)                           |
+| **Wallet**          | @open-wallet-standard/core (OWS)           |
+| **Frontend**        | Next.js 16, React 19, Tailwind CSS, HeroUI |
+| **State**           | React Query, Zustand                       |
+| **Smart Contracts** | Foundry, OpenZeppelin v5                   |
 
 ### 1. Clone & Install
 
@@ -194,11 +204,12 @@ Kokonut-Agentic-Marketplace/
 ├── apps/web/              # Next.js 16 frontend
 │   ├── app/              # App router pages
 │   ├── components/        # UI components
-│   └── lib/               # Hooks, ABIs, utils
-├── cli/                   # CLI tooling
-├── sdk/typescript/        # TypeScript SDK
-├── packages/mcp-server/   # MCP server (AI agents)
-├── packages/a2a-protocol/ # Agent-to-Agent protocol
+│   └── lib/               # Hooks, ABIs, utils, OWS (browser-native)
+├── cli/                   # CLI tooling (viem + OWS)
+├── sdk/typescript/        # TypeScript SDK (viem + OWS)
+├── packages/
+│   ├── mcp-server/       # MCP server (AI agents, OWS)
+│   └── a2a-protocol/     # Agent-to-Agent protocol
 └── docs/                  # Technical documentation
 ```
 

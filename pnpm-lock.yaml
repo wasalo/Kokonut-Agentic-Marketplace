@@ -8,6 +8,9 @@ importers:
 
   .:
     devDependencies:
+      '@open-wallet-standard/core':
+        specifier: ^1.2.0
+        version: 1.2.4
       '@types/jest':
         specifier: ^29.5.11
         version: 29.5.14
@@ -219,6 +222,9 @@ importers:
 
   cli:
     dependencies:
+      '@open-wallet-standard/core':
+        specifier: ^1.2.0
+        version: 1.2.4
       chalk:
         specifier: ^4.1.2
         version: 4.1.2
@@ -228,9 +234,6 @@ importers:
       dotenv:
         specifier: ^16.3.1
         version: 16.6.1
-      ethers:
-        specifier: ^6.16.0
-        version: 6.16.0(bufferutil@4.1.0)(utf-8-validate@5.0.10)
       viem:
         specifier: ^2.47.6
         version: 2.47.10(bufferutil@4.1.0)(typescript@5.9.3)(utf-8-validate@5.0.10)(zod@4.3.6)
@@ -266,6 +269,9 @@ importers:
       '@modelcontextprotocol/sdk':
         specifier: ^1.0.0
         version: 1.29.0(zod@3.25.76)
+      '@open-wallet-standard/core':
+        specifier: ^1.2.0
+        version: 1.2.4
       viem:
         specifier: ^2.47.6
         version: 2.47.10(bufferutil@4.1.0)(typescript@5.9.3)(utf-8-validate@5.0.10)(zod@3.25.76)
@@ -283,11 +289,30 @@ importers:
         specifier: ^5.0.0
         version: 5.9.3
 
+  packages/ows-core:
+    dependencies:
+      viem:
+        specifier: ^2.47.6
+        version: 2.47.10(bufferutil@4.1.0)(typescript@5.9.3)(utf-8-validate@5.0.10)(zod@3.25.76)
+      zod:
+        specifier: ^3.23.0
+        version: 3.25.76
+    devDependencies:
+      '@types/node':
+        specifier: ^22.0.0
+        version: 22.19.17
+      typescript:
+        specifier: ^5.9.3
+        version: 5.9.3
+
   sdk/typescript:
     dependencies:
-      ethers:
-        specifier: ^6.13.0
-        version: 6.16.0(bufferutil@4.1.0)(utf-8-validate@5.0.10)
+      '@open-wallet-standard/core':
+        specifier: ^1.2.0
+        version: 1.2.4
+      viem:
+        specifier: ^2.47.6
+        version: 2.47.10(bufferutil@4.1.0)(typescript@5.9.3)(utf-8-validate@5.0.10)(zod@3.25.76)
       zod:
         specifier: ^3.23.0
         version: 3.25.76
@@ -1215,6 +1240,30 @@ packages:
   '@nolyfill/is-core-module@1.0.39':
     resolution: {integrity: sha512-nn5ozdjYQpUCZlWGuxcJY/KpxkWQs4DcbMCmKojjyrYDEAGy4Ce19NN4v5MduafTwJlbKc99UA8YhSVqq9yPZA==}
     engines: {node: '>=12.4.0'}
+
+  '@open-wallet-standard/core-darwin-arm64@1.2.4':
+    resolution: {integrity: sha512-8agmSGltu3N/9t+en+XFiOdNCpQX9IdQYw3jfU71GdP2O9aF+mb1BUKkdBIPfdUfj5aqMeDMs/5N2q4kpEp4mg==}
+    cpu: [arm64]
+    os: [darwin]
+
+  '@open-wallet-standard/core-darwin-x64@1.2.4':
+    resolution: {integrity: sha512-sW16I0xiUkz7Cv4D+s+aLfnDsPLKUomZR3wegOtKh3F1OYBCojV8jHmxi0BxcrM2FWjpJNGGfW6ziTouEpo/kQ==}
+    cpu: [x64]
+    os: [darwin]
+
+  '@open-wallet-standard/core-linux-arm64-gnu@1.2.4':
+    resolution: {integrity: sha512-zvyakDe44soyVdr/jVcf8o4hZv+/UsXuxoLcN/lgD3cGN78fc9MhZQ3Ywsam5RFMc4autjgOcBdkoIfdVNOLJA==}
+    cpu: [arm64]
+    os: [linux]
+
+  '@open-wallet-standard/core-linux-x64-gnu@1.2.4':
+    resolution: {integrity: sha512-VshwFQWe5qH6Gk8Rps7SGeta9vl0iANnhU30Xt3O8o4Z3La/F4mphXX594bNq2yRzOlALM1D6EhVQIXy0H7Bdw==}
+    cpu: [x64]
+    os: [linux]
+
+  '@open-wallet-standard/core@1.2.4':
+    resolution: {integrity: sha512-NikPf+TvFl9OB0vBs9VdGsrc6GVfM4w04KYJ0SgQCZBcIOGM0hR5MU1x+WIYQfNIqv9XPIfHxDZBRr2C3ZtKWw==}
+    hasBin: true
 
   '@phosphor-icons/webcomponents@2.1.5':
     resolution: {integrity: sha512-JcvQkZxvcX2jK+QCclm8+e8HXqtdFW9xV4/kk2aL9Y3dJA2oQVt+pzbv1orkumz3rfx4K9mn9fDoMr1He1yr7Q==}
@@ -8192,6 +8241,25 @@ snapshots:
       fastq: 1.20.1
 
   '@nolyfill/is-core-module@1.0.39': {}
+
+  '@open-wallet-standard/core-darwin-arm64@1.2.4':
+    optional: true
+
+  '@open-wallet-standard/core-darwin-x64@1.2.4':
+    optional: true
+
+  '@open-wallet-standard/core-linux-arm64-gnu@1.2.4':
+    optional: true
+
+  '@open-wallet-standard/core-linux-x64-gnu@1.2.4':
+    optional: true
+
+  '@open-wallet-standard/core@1.2.4':
+    optionalDependencies:
+      '@open-wallet-standard/core-darwin-arm64': 1.2.4
+      '@open-wallet-standard/core-darwin-x64': 1.2.4
+      '@open-wallet-standard/core-linux-arm64-gnu': 1.2.4
+      '@open-wallet-standard/core-linux-x64-gnu': 1.2.4
 
   '@phosphor-icons/webcomponents@2.1.5':
     dependencies:

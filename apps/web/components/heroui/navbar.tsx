@@ -34,6 +34,7 @@ const primaryNavLinks = [
 const moreLinks = [
   { name: 'Activity', href: '/activity', description: 'Recent events' },
   { name: 'Analytics', href: '/analytics', description: 'Platform metrics' },
+  { name: 'Wallets', href: '/dashboard/wallets', description: 'OWS agent wallets' },
   { name: 'Integrations', href: '/integrations', description: 'MCP, webhooks, email' },
   { name: 'Webhooks', href: '/dashboard/webhooks', description: 'HTTP callbacks' },
   { name: 'Review', href: '/review', description: 'Evaluation proposals' },

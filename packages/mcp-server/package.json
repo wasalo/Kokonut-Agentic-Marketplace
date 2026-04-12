@@ -14,6 +14,7 @@
   },
   "dependencies": {
     "@modelcontextprotocol/sdk": "^1.0.0",
+    "@open-wallet-standard/core": "^1.2.0",
     "viem": "^2.47.6",
     "zod": "^3.23.0"
   },

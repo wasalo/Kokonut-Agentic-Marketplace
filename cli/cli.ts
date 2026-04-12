@@ -4,12 +4,14 @@
  */
 
 import { Command } from 'commander';
-import { ethers } from 'ethers';
+import { parseAbi, http, createPublicClient, createWalletClient, formatEther, parseEther, keccak256, encodePacked, toBytes, ZeroAddress, getContract, waitForTransactionReceipt, parseLog } from 'viem';
+import { privateKeyToAccount } from 'viem/accounts';
 import chalk from 'chalk';
 import * as dotenv from 'dotenv';
 import { createRequire } from 'module';
 import { fileURLToPath } from 'url';
 import { dirname, join } from 'path';
+import { randomBytes } from 'crypto';
 
 const __filename = fileURLToPath(import.meta.url);
 const __dirname = dirname(__filename);
@@ -22,6 +24,11 @@ type NetworkName = 'sepolia' | 'mainnet';
 // Load environment variables
 dotenv.config();
 
+// viem clients
+let publicClient: ReturnType<typeof createPublicClient> | null = null;
+let walletClient: ReturnType<typeof createWalletClient> | null = null;
+let account: ReturnType<typeof privateKeyToAccount> | null = null;
+
 // Configuration
 const config = {
   network: (process.env.NETWORK as NetworkName) || 'sepolia',
@@ -29,8 +36,7 @@ const config = {
     return NETWORKS[this.network];
   },
   rpcUrl: '',
-  provider: null as null | ethers.JsonRpcProvider,
-  signer: null as null | ethers.Wallet,
+  signerAddress: '' as `0x${string}`,
 
   get contracts() {
     return this.networkConfig.contracts;
@@ -47,13 +53,24 @@ function initWallet() {
   }
 
   config.rpcUrl = config.networkConfig.rpcUrl;
-  const provider = new ethers.JsonRpcProvider(config.rpcUrl);
-  const wallet = new ethers.Wallet(process.env.PRIVATE_KEY, provider);
 
-  config.provider = provider;
-  config.signer = wallet;
+  const privateKey = process.env.PRIVATE_KEY as `0x${string}`;
+  account = privateKeyToAccount(privateKey);
 
-  console.log(chalk.green('✅ Wallet initialized:'), wallet.address);
+  publicClient = createPublicClient({
+    transport: http(config.rpcUrl),
+    chain: config.networkConfig.chainId === 11155111 ? 'sepolia' : 'mainnet',
+  });
+
+  walletClient = createWalletClient({
+    account,
+    transport: http(config.rpcUrl),
+    chain: config.networkConfig.chainId === 11155111 ? 'sepolia' : 'mainnet',
+  });
+
+  config.signerAddress = account.address;
+
+  console.log(chalk.green('✅ Wallet initialized:'), account.address);
   console.log(
     chalk.cyan('Network:'),
     config.networkConfig.name,
@@ -82,7 +99,6 @@ program
 }
 
 // 🔧 INIT COMMAND - Configuration wizard
-const readline = require('readline');
 
 function createInterface() {
   return readline.createInterface({
@@ -153,7 +169,7 @@ ${customRpc ? `RPC_URL=${customRpc}` : '# RPC_URL=custom_rpc_here'}
 
       // Validate by checking address
       try {
-        const wallet = new ethers.Wallet(privateKey);
+        const wallet = privateKeyToAccount(privateKey as `0x${string}`);
         console.log(chalk.green('\n✅ Wallet validated:'), wallet.address);
       } catch (e) {
         console.log(chalk.yellow('\n⚠️  Warning: Could not validate wallet. Please check your private key.'));
@@ -188,7 +204,7 @@ program
 
       if (
         !config.contracts.identityRegistry ||
-        config.contracts.identityRegistry === ethers.ZeroAddress
+        config.contracts.identityRegistry === ZeroAddress
       ) {
         console.log(chalk.yellow('⚠️  Identity Registry not deployed yet.'));
         console.log(chalk.cyan('Deploy first:'));
@@ -202,7 +218,7 @@ program
       }
 
       // Initialize contract
-      const identityRegistryABI = [
+      const identityRegistryABI = parseAbi([
         'function register() external returns (uint256 agentId)',
         'function register(string agentURI) external returns (uint256 agentId)',
         'function registerWithMetadata(string agentURI, tuple(string metadataKey, bytes metadataValue)[] metadata) external returns (uint256 agentId)',
@@ -220,16 +236,16 @@ program
         'event URIUpdated(uint256 indexed agentId, string newURI, address indexed updatedBy)',
         'event MetadataSet(uint256 indexed agentId, string indexed indexedMetadataKey, string metadataKey, bytes metadataValue)',
         'event AgentWalletSet(uint256 indexed agentId, address indexed newWallet)',
-      ];
+      ]);
 
-      const identityRegistry = new ethers.Contract(
-        config.contracts.identityRegistry,
-        identityRegistryABI,
-        config.signer
-      );
+      const identityRegistry = getContract({
+        address: config.contracts.identityRegistry,
+        abi: identityRegistryABI,
+        client: walletClient,
+      });
 
       // Prepare agent data
-      const agentName = options.name || `Agent_${config.signer.address.slice(2, 10)}`;
+      const agentName = options.name || `Agent_${config.signerAddress.slice(2, 10)}`;
       const capabilities = options.capabilities
         ? options.capabilities.split(',')
         : ['coordination'];
@@ -237,16 +253,16 @@ program
 
       console.log(chalk.cyan('\n🌴 Creating Agent Identity...'));
       console.log(chalk.dim('Agent Name:'), agentName);
-      console.log(chalk.dim('Wallet:'), config.signer.address);
+      console.log(chalk.dim('Wallet:'), config.signerAddress);
       console.log(chalk.dim('Capabilities:'), capabilities.join(', '));
       console.log(chalk.dim('Skills:'), skills.join(', '));
 
       // Prepare metadata
       const metadata = {
-        agentId: `eip155:8453:${config.signer.address}`,
+        agentId: `eip155:8453:${config.signerAddress}`,
         name: agentName,
         description: 'AI agent for onchain economy coordination',
-        owner: config.signer.address,
+        owner: config.signerAddress,
         capabilities: capabilities,
         skills: skills,
         framework: options.framework || 'Hermes Agent',
@@ -278,10 +294,10 @@ program
 
       // Register agent (ERC-8004 compliant)
       console.log('\n' + chalk.cyan('📝 Registering agent on-chain...'));
-      const tx = await identityRegistry.register(metadataURI);
-      console.log(chalk.cyan('Transaction sent:'), tx.hash);
+      const tx = await identityRegistry.write.register(metadataURI);
+      console.log(chalk.cyan('Transaction sent:'), tx);
 
-      const receipt = await tx.wait();
+      const receipt = await waitForTransactionReceipt({ hash: tx });
       console.log(chalk.green('✅ Agent registered successfully!'));
       console.log(chalk.cyan('Gas used:'), receipt.gasUsed.toString());
 
@@ -289,9 +305,9 @@ program
       let agentId;
       for (const log of receipt.logs) {
         try {
-          const parsed = identityRegistry.interface.parseLog(log);
-          if (parsed && parsed.name === 'Registered') {
-            agentId = parsed.args.agentId.toString();
+          const parsed = parseLog({ log, abi: identityRegistryABI });
+          if (parsed && parsed.eventName === 'Registered') {
+            agentId = (parsed.args as { agentId: bigint }).agentId.toString();
             break;
           }
         } catch (e) {
@@ -305,7 +321,7 @@ program
         console.log(chalk.cyan('Contract:'), config.contracts.identityRegistry);
 
         // Verify registration
-        const agent = await identityRegistry.getAgent(agentId);
+        const agent = await identityRegistry.read.getAgent([BigInt(agentId)]);
         console.log('\n' + chalk.cyan('🔍 Verification:'));
         console.log(chalk.dim('Owner:'), agent[0]);
         console.log(chalk.dim('URI:'), agent[1].substring(0, 50) + '...');
@@ -313,7 +329,7 @@ program
         console.log(chalk.dim('Active:'), agent[3]);
       }
     } catch (error) {
-      console.error(chalk.red('❌ Error registering agent:'), error.message || error);
+      console.error(chalk.red('❌ Error registering agent:'), (error as Error).message || error);
     }
   });
 
@@ -328,37 +344,37 @@ program
 
       if (
         !config.contracts.identityRegistry ||
-        config.contracts.identityRegistry === ethers.ZeroAddress
+        config.contracts.identityRegistry === ZeroAddress
       ) {
         console.log(chalk.yellow('⚠️  Identity Registry not deployed yet.'));
         return;
       }
 
-      const identityRegistryABI = [
+      const identityRegistryABI = parseAbi([
         'function resolveAgent(address agentAddress) external view returns (uint256 tokenId, string memory did)',
         'function getAgent(uint256 tokenId) external view returns (address owner, string memory did, string memory metadataURI)',
         'function isAgent(address agentAddress) external view returns (bool)',
-      ];
+      ]);
 
-      const identityRegistry = new ethers.Contract(
-        config.contracts.identityRegistry,
-        identityRegistryABI,
-        config.provider
-      );
+      const identityRegistry = getContract({
+        address: config.contracts.identityRegistry,
+        abi: identityRegistryABI,
+        client: publicClient,
+      });
 
       const address = target;
 
-      if (!(await identityRegistry.isAgent(address))) {
+      if (!(await identityRegistry.read.isAgent([address]))) {
         console.log(chalk.yellow('⚠️  Address is not a registered agent'));
         return;
       }
 
-      const result = await identityRegistry.resolveAgent(address);
-      const tokenId = result.tokenId.toString();
-      const did = result.did;
+      const result = await identityRegistry.read.resolveAgent([address]);
+      const tokenId = result[0].toString();
+      const did = result[1];
 
       // Get full agent info
-      const agent = await identityRegistry.getAgent(tokenId);
+      const agent = await identityRegistry.read.getAgent([BigInt(tokenId)]);
 
       console.log(chalk.green('\n🔍 Agent Identity Resolved:'));
       console.log(chalk.cyan('Address:'), address);
@@ -387,26 +403,26 @@ program
 
       if (
         !config.contracts.identityRegistry ||
-        config.contracts.identityRegistry === ethers.ZeroAddress
+        config.contracts.identityRegistry === ZeroAddress
       ) {
         console.log(chalk.yellow('⚠️  Identity Registry not deployed yet.'));
         return;
       }
 
-      const identityRegistryABI = [
+      const identityRegistryABI = parseAbi([
         'function getAgentCount() external view returns (uint256)',
         'function getCurrentTokenId() external view returns (uint256)',
         'function getAgent(uint256 tokenId) external view returns (address owner, string memory did, string memory metadataURI)',
         'function isAgent(address agentAddress) external view returns (bool)',
-      ];
+      ]);
 
-      const identityRegistry = new ethers.Contract(
-        config.contracts.identityRegistry,
-        identityRegistryABI,
-        config.provider
-      );
+      const identityRegistry = getContract({
+        address: config.contracts.identityRegistry,
+        abi: identityRegistryABI,
+        client: publicClient,
+      });
 
-      const count = await identityRegistry.getAgentCount();
+      const count = await identityRegistry.read.getAgentCount();
       console.log(chalk.green(`\n📊 Total Agents: ${count.toString()}`));
 
       if (count === 0n) {
@@ -424,7 +440,7 @@ program
 
         for (let j = i; j < batchEnd; j++) {
           batchPromises.push(
-            identityRegistry.getAgent(j).then(agent => ({
+            identityRegistry.read.getAgent([j]).then(agent => ({
               tokenId: j.toString(),
               owner: agent[0],
               did: agent[1],
@@ -480,7 +496,7 @@ program
 
       if (
         !config.contracts.reputationRegistry ||
-        config.contracts.reputationRegistry === ethers.ZeroAddress
+        config.contracts.reputationRegistry === ZeroAddress
       ) {
         console.log(chalk.yellow('⚠️  Reputation Registry not deployed yet.'));
         console.log(chalk.cyan('Deploy first:'));
@@ -580,7 +596,7 @@ program
 
       if (
         !config.contracts.reputationRegistry ||
-        config.contracts.reputationRegistry === ethers.ZeroAddress
+        config.contracts.reputationRegistry === ZeroAddress
       ) {
         console.log(chalk.yellow('⚠️  Reputation Registry not deployed yet.'));
         return;
@@ -627,7 +643,7 @@ program
 
       if (
         !config.contracts.identityRegistry ||
-        config.contracts.identityRegistry === ethers.ZeroAddress
+        config.contracts.identityRegistry === ZeroAddress
       ) {
         console.log(chalk.yellow('⚠️  Identity Registry not deployed yet.'));
         return;
@@ -691,7 +707,7 @@ program
 
       if (
         !config.contracts.serviceRegistry ||
-        config.contracts.serviceRegistry === ethers.ZeroAddress
+        config.contracts.serviceRegistry === ZeroAddress
       ) {
         console.log(chalk.yellow('⚠️  Service Registry not deployed yet.'));
         console.log(chalk.cyan('Deploy first:'));
@@ -779,7 +795,7 @@ program
 
       if (
         !config.contracts.serviceRegistry ||
-        config.contracts.serviceRegistry === ethers.ZeroAddress
+        config.contracts.serviceRegistry === ZeroAddress
       ) {
         console.log(chalk.yellow('⚠️  Service Registry not deployed yet.'));
         return;
@@ -853,7 +869,7 @@ program
 
       if (
         !config.contracts.agenticCommerce ||
-        config.contracts.agenticCommerce === ethers.ZeroAddress
+        config.contracts.agenticCommerce === ZeroAddress
       ) {
         console.log(chalk.yellow('⚠️  Agentic Commerce not deployed yet.'));
         console.log(chalk.cyan('Deploy first:'));
@@ -957,7 +973,7 @@ program
 
       if (
         !config.contracts.agenticCommerce ||
-        config.contracts.agenticCommerce === ethers.ZeroAddress
+        config.contracts.agenticCommerce === ZeroAddress
       ) {
         console.log(chalk.yellow('⚠️  Agentic Commerce not deployed yet.'));
         return;
@@ -1010,7 +1026,7 @@ program
 
       if (
         !config.contracts.agenticCommerce ||
-        config.contracts.agenticCommerce === ethers.ZeroAddress
+        config.contracts.agenticCommerce === ZeroAddress
       ) {
         console.log(chalk.yellow('⚠️  Agentic Commerce not deployed yet.'));
         return;
@@ -1059,7 +1075,7 @@ program
 
       if (
         !config.contracts.agenticCommerce ||
-        config.contracts.agenticCommerce === ethers.ZeroAddress
+        config.contracts.agenticCommerce === ZeroAddress
       ) {
         console.log(chalk.yellow('⚠️  Agentic Commerce not deployed yet.'));
         return;
@@ -1109,7 +1125,7 @@ program
 
       if (
         !config.contracts.agenticCommerce ||
-        config.contracts.agenticCommerce === ethers.ZeroAddress
+        config.contracts.agenticCommerce === ZeroAddress
       ) {
         console.log(chalk.yellow('⚠️  Agentic Commerce not deployed yet.'));
         return;
@@ -1153,7 +1169,7 @@ program
 
       if (
         !config.contracts.agenticCommerce ||
-        config.contracts.agenticCommerce === ethers.ZeroAddress
+        config.contracts.agenticCommerce === ZeroAddress
       ) {
         console.log(chalk.yellow('⚠️  Agentic Commerce not deployed yet.'));
         return;
@@ -1207,7 +1223,7 @@ program
     try {
       initWallet();
 
-      if (!config.contracts.agentReview || config.contracts.agentReview === ethers.ZeroAddress) {
+      if (!config.contracts.agentReview || config.contracts.agentReview === ZeroAddress) {
         console.log(chalk.yellow('⚠️  Agent Review not deployed yet.'));
         console.log(chalk.cyan('Deploy first:'));
         console.log(
@@ -1294,7 +1310,7 @@ program
     try {
       initWallet();
 
-      if (!config.contracts.agentReview || config.contracts.agentReview === ethers.ZeroAddress) {
+      if (!config.contracts.agentReview || config.contracts.agentReview === ZeroAddress) {
         console.log(chalk.yellow('⚠️  Agent Review not deployed yet.'));
         return;
       }
@@ -1343,7 +1359,7 @@ program
     try {
       initWallet();
 
-      if (!config.contracts.agentReview || config.contracts.agentReview === ethers.ZeroAddress) {
+      if (!config.contracts.agentReview || config.contracts.agentReview === ZeroAddress) {
         console.log(chalk.yellow('⚠️  Agent Review not deployed yet.'));
         return;
       }
@@ -1386,7 +1402,7 @@ program
     try {
       initWallet();
 
-      if (!config.contracts.agentReview || config.contracts.agentReview === ethers.ZeroAddress) {
+      if (!config.contracts.agentReview || config.contracts.agentReview === ZeroAddress) {
         console.log(chalk.yellow('⚠️  Agent Review not deployed yet.'));
         return;
       }
@@ -1482,7 +1498,7 @@ program
 
       if (
         !config.contracts.agenticCommerce ||
-        config.contracts.agenticCommerce === ethers.ZeroAddress
+        config.contracts.agenticCommerce === ZeroAddress
       ) {
         console.log(chalk.yellow('⚠️  Agentic Commerce not deployed yet.'));
         return;
@@ -1580,7 +1596,7 @@ program
 
       if (
         !config.contracts.reputationRegistry ||
-        config.contracts.reputationRegistry === ethers.ZeroAddress
+        config.contracts.reputationRegistry === ZeroAddress
       ) {
         console.log(chalk.yellow('⚠️  Reputation Registry not deployed yet.'));
         return;

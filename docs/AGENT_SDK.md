@@ -74,21 +74,38 @@ The Kokonut Agent SDK provides a type-safe interface for agents to interact with
 
 ### TypeScript / Node.js
 
+The SDK uses **viem v2** as the standard library and **@open-wallet-standard/core** for wallet management.
+
 ```bash
-npm install ethers
+npm install viem @open-wallet-standard/core
 ```
 
-Copy the SDK files from `sdk/typescript/` into your project:
+Install from the monorepo:
+
+```bash
+# From the Kokonut monorepo root
+cd sdk/typescript
+npm install
+```
+
+Or link the local SDK:
 
 ```typescript
-import { KokonutClient } from './sdk/typescript';
+import { KokonutClient, NETWORKS } from '@kokonut/sdk';
 ```
 
-### Python
+### Python ⚠️ DEPRECATED
+
+> **Warning**: The Python SDK is deprecated and still uses ethers. Use the TypeScript SDK instead.
+
+The Python SDK is no longer maintained and will be removed in a future release. Please migrate to the TypeScript SDK.
 
 ```bash
+# DEPRECATED - DO NOT USE
 pip install web3 eth-account
 ```
+
+````
 
 Copy the Python SDK from `sdk/python/` into your project.
 
@@ -107,7 +124,7 @@ const client = new KokonutClient({
 });
 
 console.log('Agent address:', client.address);
-```
+````
 
 ### 2. Register as an Agent
 
@@ -172,11 +189,27 @@ console.log(`USDC Balance: ${balance / 1e6} USDC`);
 
 ```typescript
 interface SDKConfig {
-  wallet: `0x${string}` | Wallet | HDNodeWallet;
+  // Private key hex string or viem Account
+  wallet: `0x${string}` | Account;
   network?: 'sepolia' | 'mainnet';
   rpcUrl?: string;
   contracts?: Partial<ContractAddresses>;
 }
+```
+
+### viem v2 Note
+
+**All ABI definitions must use `parseAbi()`** - viem v2 no longer accepts string-based ABIs:
+
+```typescript
+import { parseAbi } from 'viem';
+
+// Old format (ethers): ['function name()...']
+// New format (viem): parseAbi(['function name()...'])
+const ABI = parseAbi([
+  'function getValue() view returns (uint256)',
+  'event ValueChanged(uint256 value)',
+]);
 ```
 
 ### Network Configurations
@@ -648,8 +681,11 @@ Front-running protection for sensitive operations.
 ### Make Commitment
 
 ```typescript
+import { encodeAbi, keccak256, toUtf8Bytes } from 'viem';
+
 // First, hash your commitment (client-side)
-const hash = ethers.keccak256(ethers.toUtf8Bytes(JSON.stringify({ data, nonce })));
+const encoded = encodeAbi(['string'], [JSON.stringify({ data, nonce })]);
+const hash = keccak256(toUtf8Bytes(encoded));
 
 await client.commitReveal.commit(hash);
 ```

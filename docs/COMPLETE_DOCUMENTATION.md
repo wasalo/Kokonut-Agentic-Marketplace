@@ -1,9 +1,9 @@
 # Kokonut Agent Economy Stack - Complete Documentation
 
-> **Version**: Phase 4 (Production)  
-> **Last Updated**: March 30, 2026  
+> **Version**: Phase 20 (OWS Integration & viem Migration)  
+> **Last Updated**: April 13, 2026  
 > **Network**: Sepolia Testnet (Chain ID: 11155111)  
-> **Status**: ✅ Security Audited | ✅ 201 Tests Passing | ✅ 87%+ Coverage
+> **Status**: ✅ Security Audited | ✅ 318 Tests Passing | ✅ 87%+ Coverage | ✅ OWS Integrated | ✅ viem Migrated
 
 ---
 
@@ -18,8 +18,24 @@
 7. [Contract Addresses](#contract-addresses)
 8. [Dependencies](#dependencies)
 9. [Development Guide](#development-guide)
-10. [Security](#security)
-11. [Troubleshooting](#troubleshooting)
+10. [OWS Integration](#ows-integration)
+11. [viem v2 Migration](#viem-v2-migration)
+12. [Security](#security)
+13. [Troubleshooting](#troubleshooting)
+
+14. [Quick Start](#quick-start)
+15. [System Architecture](#system-architecture)
+16. [Smart Contracts](#smart-contracts)
+17. [User Journey](#user-journey)
+18. [Frontend / UI](#frontend--ui)
+19. [Testing & Quality](#testing--quality)
+20. [Contract Addresses](#contract-addresses)
+21. [Dependencies](#dependencies)
+22. [Development Guide](#development-guide)
+23. [OWS Integration](#ows-integration)
+24. [viem v2 Migration](#viem-v2-migration)
+25. [Security](#security)
+26. [Troubleshooting](#troubleshooting)
 
 ---
 
@@ -27,17 +43,27 @@
 
 ### Prerequisites
 
-- Node.js 18+
-- Foundry (for smart contracts)
-- Sepolia ETH (for transactions)
-- Git
+- **Node.js 20+** (required for Next.js 16)
+- **pnpm v10+** (required for monorepo)
+- **Foundry** (for smart contracts)
+- **Sepolia ETH** (for transactions)
+
+### Technology Stack
+
+| Layer               | Technology                                 |
+| ------------------- | ------------------------------------------ |
+| **Blockchain**      | viem v2 (standard library)                 |
+| **Wallet**          | @open-wallet-standard/core (OWS)           |
+| **Frontend**        | Next.js 16, React 19, Tailwind CSS, HeroUI |
+| **SDK**             | TypeScript SDK with viem + OWS             |
+| **Smart Contracts** | Foundry, OpenZeppelin v5                   |
 
 ### 1. Clone & Install
 
 ```bash
 git clone https://github.com/wasalo/Kokonut-Agentic-Marketplace.git
 cd Kokonut-Agentic-Marketplace
-npm install
+pnpm install
 ```
 
 ### 2. Configure Environment
@@ -51,6 +77,7 @@ Edit `.env`:
 ```env
 PRIVATE_KEY=your_private_key_here
 ETHEREUM_RPC_URL=https://eth.llamarpc.com
+NETWORK=sepolia
 ```
 
 ### 3. Configure Frontend
@@ -60,37 +87,31 @@ Create `apps/web/.env.local`:
 ```env
 NEXT_PUBLIC_WALLETCONNECT_PROJECT_ID=your_walletconnect_project_id
 
-# Phase 4 Contract Addresses (201 Tests Passing, 87%+ Coverage)
-NEXT_PUBLIC_SKILL_REGISTRY_ADDRESS=0x7cf16C00ed4831EB9eE3a8765831968F0a28f53D
+# Phase 20 Contract Addresses
+NEXT_PUBLIC_SKILL_REGISTRY_ADDRESS=0xA84684261558f342d6871DD2CFef90A2117Aa20A
 NEXT_PUBLIC_SERVICE_REGISTRY_ADDRESS=0x62E1eeEa1A2Ab987004F35bDA430457Ed6077201
-NEXT_PUBLIC_AGENT_REVIEW_ADDRESS=0x716B02447b52Eab450e31bD77103B41bC2c7bE0b
-NEXT_PUBLIC_AGENTIC_COMMERCE_ADDRESS=0xA7E8F13AC8E659356333Bf3e579BF3f39334821e
-NEXT_PUBLIC_USDC_ADDRESS=0x1c7D4B196Cb0C7B01d743Fbc6116a902379C7238
+NEXT_PUBLIC_AGENT_REVIEW_ADDRESS=0x5CDb592Fd37749bF87448FBf5725D1Cd986dd1Cb
+NEXT_PUBLIC_AGENTIC_COMMERCE_ADDRESS=0x948d97EA7F0c49796fB576ADff375C900627568E
+NEXT_PUBLIC_BIDDING_SYSTEM_ADDRESS=0x32c9d069a248a619d3EAc4dFC76F2639AaBeF04
 
 # ERC-8004 Official Registry
 NEXT_PUBLIC_8004_REGISTRY_ADDRESS=0x8004A818BFB912233c491871b3d84c89A494BD9e
 NEXT_PUBLIC_8004_REPUTATION_ADDRESS=0x8004B663056A597Dffe9eCcC1965A193B7388713
 
-# Supporting Contracts
-NEXT_PUBLIC_PRICE_ORACLE_ADDRESS=0x5C4AC3dAF76708DCd51911BA3B33027eAB1B4047
-NEXT_PUBLIC_COMMIT_REVEAL_ADDRESS=0x6CEd1574A3dF7ec646e43DD8408300117c453Aa3
-NEXT_PUBLIC_SLASH_MANAGER_ADDRESS=0x7Cf955900FD7a12680E90D834eAf19346f5DBcf9
-
 NEXT_PUBLIC_SEPOLIA_RPC_URL=https://ethereum-sepolia.publicnode.com
 ```
 
-### 4. Run Tests
+### 4. Run Development
 
 ```bash
+# Frontend (uses webpack - turbopack has issues with monorepo)
+pnpm run dev
+
 # Smart contract tests
-forge test
+cd contracts && forge test
 
-# With coverage
-forge coverage
-
-# Frontend
-cd apps/web
-npm run dev
+# SDK build
+cd sdk/typescript && pnpm build
 ```
 
 ### 5. Deploy (Optional)
@@ -536,6 +557,116 @@ Kokonut-Agentic-Marketplace/
 
 ---
 
+## OWS Integration
+
+The Kokonut Agent Economy Stack integrates the **Open Wallet Standard (OWS)** for secure wallet management.
+
+### What is OWS?
+
+The [Open Wallet Standard](https://github.com/open-wallet-standard/core) is a Rust-based Node.js implementation that provides:
+
+- **Secure wallet storage** with encrypted mnemonic/private key management
+- **Security policies** to limit transaction values and trusted contracts
+- **Multi-wallet support** with passphrase-protected vaults
+- **Standardized API** across all packages
+
+### Packages Using OWS
+
+| Package               | OWS Usage            | Description                                   |
+| --------------------- | -------------------- | --------------------------------------------- |
+| `@kokonut/sdk`        | Wallet operations    | TypeScript SDK uses OWS for wallet management |
+| `@kokonut/cli`        | 10 OWS commands      | CLI provides full OWS wallet management       |
+| `@kokonut/mcp-server` | Wallet tools         | MCP server exposes OWS tools to AI agents     |
+| Web App               | Local implementation | Browser-native OWS using Web Crypto API       |
+
+### OWS CLI Commands
+
+```bash
+# Create a new wallet
+npm run cli -- ows-create-wallet --name "MyAgent" --passphrase "pass" --words "word1 word2..."
+
+# List all wallets
+npm run cli -- ows-list-wallets
+
+# Get wallet info
+npm run cli -- ows-get-wallet --name "MyAgent"
+
+# Sign a message
+npm run cli -- ows-sign-message --wallet "MyAgent" --chain "sepolia" --message "Hello!"
+
+# Create a security policy
+npm run cli -- ows-create-policy --wallet "MyAgent" --policy-name "MyPolicy" --max-value 1000000000000000000
+```
+
+### Web App OWS
+
+The web application has its own browser-native OWS implementation in `apps/web/lib/ows/` that uses:
+
+- **Web Crypto API** for encryption
+- **localStorage** for persistence
+- **Service Worker** for push notifications
+
+---
+
+## viem v2 Migration
+
+As of Phase 20, all packages have migrated from **ethers** to **viem v2** as the standard blockchain library.
+
+### Breaking Changes
+
+#### 1. ABI Definitions Must Use `parseAbi()`
+
+viem v2 no longer accepts string-based ABIs. All ABI definitions must be wrapped with `parseAbi()`:
+
+```typescript
+// Old format (ethers)
+const ABI = ['function getValue() view returns (uint256)', 'event ValueChanged(uint256 value)'];
+
+// New format (viem v2)
+import { parseAbi } from 'viem';
+const ABI = parseAbi([
+  'function getValue() view returns (uint256)',
+  'event ValueChanged(uint256 indexed value)',
+]);
+```
+
+#### 2. Client Creation
+
+```typescript
+// Old (ethers)
+const provider = new ethers.JsonRpcProvider(rpcUrl);
+const wallet = new ethers.Wallet(privateKey, provider);
+
+// New (viem)
+import { createPublicClient, createWalletClient, http, privateKeyToAccount } from 'viem';
+const account = privateKeyToAccount(privateKey);
+const wallet = createWalletClient({ account, transport: http(rpcUrl) });
+const publicClient = createPublicClient({ transport: http(rpcUrl) });
+```
+
+#### 3. Transaction Submission
+
+```typescript
+// Old (ethers)
+const tx = await contract.functionName(params, { value: amount });
+await tx.wait();
+
+// New (viem)
+const hash = await wallet.writeContract({ address, abi, functionName, args, value: amount });
+await publicClient.waitForTransactionReceipt({ hash });
+```
+
+### Migration Status
+
+| Package                | Status         | Notes                                                      |
+| ---------------------- | -------------- | ---------------------------------------------------------- |
+| SDK (`sdk/typescript`) | ✅ Complete    | All modules migrated, all ABIs wrapped with parseAbi       |
+| CLI (`cli/cli.ts`)     | 🔄 In Progress | OWS commands added, still uses ethers for blockchain calls |
+| MCP Server             | ✅ Complete    | OWS tools added                                            |
+| Web App                | ✅ Complete    | Uses viem + wagmi                                          |
+
+---
+
 ## Security
 
 The Kokonut Agent Economy Stack implements comprehensive security measures across all layers. All security audit recommendations have been implemented.
@@ -629,7 +760,7 @@ npm outdated
 
 #### Test Coverage
 
-- **201 tests passing** with 87%+ coverage
+- **318 tests passing** with 87%+ coverage
 - **Fuzzing tests** - 5000+ random input combinations
 - **Invariant tests** - System-wide property verification
 - **Gas benchmarks** - Performance regression detection
