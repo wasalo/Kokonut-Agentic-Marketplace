@@ -5,21 +5,32 @@ import { persist, createJSONStorage, StateStorage } from 'zustand/middleware';
 import { OWSWallet, OWSPolicy } from '@/lib/ows/types';
 import { owsClient } from '@/lib/ows/client';
 
-const noopStorage: StateStorage = {
-  getItem: () => null,
-  setItem: () => {},
-  removeItem: () => {},
+// SSR check
+const isBrowser = typeof window !== 'undefined';
+
+// Stub storage for SSR - prevents any indexedDB access
+const stubStorage: StateStorage = {
+  getItem: async () => null,
+  setItem: async () => {},
+  removeItem: async () => {},
 };
 
-const getBrowserStorage = (): StateStorage => {
-  if (typeof window === 'undefined') {
-    return noopStorage;
-  }
-  return {
-    getItem: (name: string) => localStorage.getItem(name),
-    setItem: (name: string, value: string) => localStorage.setItem(name, value),
-    removeItem: (name: string) => localStorage.removeItem(name),
-  };
+const getStorage = (): StateStorage => {
+  // Always use stub during SSR OR if no browser
+  if (!isBrowser) return stubStorage;
+  
+  // Only create actual storage adapter in browser
+  return createJSONStorage(() => {
+    try {
+      return {
+        getItem: (name: string) => localStorage.getItem(name),
+        setItem: (name: string, value: string) => localStorage.setItem(name, value),
+        removeItem: (name: string) => localStorage.removeItem(name),
+      };
+    } catch {
+      return stubStorage;
+    }
+  });
 };
 
 interface WalletState {
@@ -142,7 +153,7 @@ export const useWalletStore = create<WalletState>()(
     }),
     {
       name: 'kokonut_wallet_store',
-      storage: createJSONStorage(() => getBrowserStorage()),
+      storage: getStorage(),
       partialize: () => ({}),
     }
   )

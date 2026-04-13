@@ -6,12 +6,14 @@ declare global {
 
 let mixpanel: any = null;
 
-export function initMixpanel(token: string) {
+export async function initMixpanel(token: string) {
   if (typeof window === 'undefined') return;
 
   if (!mixpanel && token) {
     try {
-      mixpanel = require('mixpanel-browser').init(token, {
+      // Use dynamic import for webpack compatibility
+      const mp = await import('mixpanel-browser');
+      mixpanel = mp.init(token, {
         debug: process.env.NODE_ENV === 'development',
         track_pageview: true,
         persistence: 'localStorage',

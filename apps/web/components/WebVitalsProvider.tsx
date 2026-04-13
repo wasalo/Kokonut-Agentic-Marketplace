@@ -8,8 +8,13 @@ export function WebVitalsProvider({ children }: { children: React.ReactNode }) {
   useEffect(() => {
     const mixpanelToken = process.env.NEXT_PUBLIC_MIXPANEL_TOKEN;
     if (mixpanelToken) {
-      initMixpanel(mixpanelToken);
-      trackPageView(window.location.pathname);
+      initMixpanel(mixpanelToken)
+        .then(() => {
+          trackPageView(window.location.pathname);
+        })
+        .catch(e => {
+          console.warn('Mixpanel init failed:', e);
+        });
     }
 
     reportWebVitals({
