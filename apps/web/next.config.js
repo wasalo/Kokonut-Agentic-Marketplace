@@ -1,7 +1,13 @@
 /** @type {import('next').NextConfig} */
 const nextConfig = {
   // Allow dev server to be accessed from any network origin
-  allowedDevOrigins: ['*'],
+  // For allowedDevOrigins, we need to extract base IP without wildcard
+  // e.g., '10.108.1.*' -> '10.108.1' (will match 10.108.1.0 - 10.108.1.255)
+  allowedDevOrigins: (process.env.NEXT_PUBLIC_DEV_HOST || 'localhost').split(',').map(h => {
+    const trimmed = h.trim();
+    // Remove trailing * but keep the base (e.g., '10.108.1.*' -> '10.108.1')
+    return trimmed.endsWith('*') ? trimmed.slice(0, -1).replace(/\.$/, '') : trimmed;
+  }),
 
   // Fix lockfile warning for monorepo with multiple lockfiles
   outputFileTracingRoot: __dirname,
@@ -26,7 +32,9 @@ const nextConfig = {
         )
         .filter(Boolean);
 
+    // CSP supports wildcards natively, so '10.108.1.*' works directly
     const devHosts = parseDevHosts(devHostEnv);
+
     const devHttpSources = [
       'http://localhost:*',
       'http://127.0.0.1:*',

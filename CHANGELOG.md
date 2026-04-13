@@ -44,6 +44,30 @@ Standardized on viem v2 as the primary blockchain library across the entire mono
 - Fixed cyclic dependency issues between SDK and CLI during build
 - Resolved all TypeScript errors related to the migration
 
+### 🌐 Local Network Access Fix
+
+Fixed wallet connection and blockchain data not loading when accessed via local network IP.
+
+| Issue                           | Fix                                         |
+| ------------------------------- | ------------------------------------------- |
+| WalletConnect metadata mismatch | Dynamic host detection in wagmi config      |
+| CSP blocking network IPs        | Added wildcard support (e.g., `10.108.1.*`) |
+| Next.js HMR blocked             | Added IP to `allowedDevOrigins`             |
+
+**Configuration:**
+
+Add to `apps/web/.env.local`:
+
+```bash
+NEXT_PUBLIC_DEV_HOST=10.108.1.*,10.108.1.45
+```
+
+**Files Changed:**
+
+- `apps/web/next.config.js` - Dynamic CSP with wildcard support
+- `apps/web/lib/wagmi.ts` - Dynamic metadata URL detection
+- `apps/web/.env.local` - Added NEXT_PUBLIC_DEV_HOST
+
 ### 📚 Documentation Updates
 
 - **AGENTS.md**: Phase 20 marked as complete; added SDK/CLI Migration Guide
@@ -62,12 +86,11 @@ Standardized on viem v2 as the primary blockchain library across the entire mono
 
 ### 📦 Key Files Refactored
 
-| Component | Files |
-| :--- | :--- |
-| **SDK** | `sdk/typescript/client.ts`, `sdk/typescript/test/integration.test.ts` |
-| **CLI** | `cli/cli.ts`, `cli/package.json`, `cli/lib/storage/ows-storage.ts` |
-| **Registry** | `package.json` (root), `AGENTS.md`, `README.md` |
-
+| Component    | Files                                                                 |
+| :----------- | :-------------------------------------------------------------------- |
+| **SDK**      | `sdk/typescript/client.ts`, `sdk/typescript/test/integration.test.ts` |
+| **CLI**      | `cli/cli.ts`, `cli/package.json`, `cli/lib/storage/ows-storage.ts`    |
+| **Registry** | `package.json` (root), `AGENTS.md`, `README.md`                       |
 
 ### 📦 Files Changed
 

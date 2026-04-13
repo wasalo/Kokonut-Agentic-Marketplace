@@ -365,6 +365,7 @@ console.log('Signature:', signResult.signature);
 Phase 20 marks a major architectural shift from `ethers.js` to `viem` v2. This migration improves performance, reduces bundle size, and provides first-class TypeScript type safety for contract interactions.
 
 ### 1. Provider → PublicClient
+
 Instead of `JsonRpcProvider`, use `createPublicClient` with the appropriate transport.
 
 ```typescript
@@ -374,11 +375,12 @@ const provider = new ethers.JsonRpcProvider(rpcUrl);
 // New (viem)
 const publicClient = createPublicClient({
   chain: sepolia,
-  transport: http(rpcUrl)
+  transport: http(rpcUrl),
 });
 ```
 
 ### 2. Signer → WalletClient
+
 Instead of `ethers.Wallet`, use `createWalletClient` with an account (via private key or OWS).
 
 ```typescript
@@ -389,11 +391,12 @@ const wallet = new ethers.Wallet(privateKey, provider);
 const walletClient = createWalletClient({
   account: privateKeyToAccount(privateKey),
   chain: sepolia,
-  transport: http(rpcUrl)
+  transport: http(rpcUrl),
 });
 ```
 
 ### 3. Contract Interaction
+
 Use `readContract` and `writeContract` instead of the `new ethers.Contract()` instance.
 
 ```typescript
@@ -408,12 +411,13 @@ const { request } = await publicClient.simulateContract({
   functionName: 'fundJob',
   args: [jobId],
   account,
-  value: amount
+  value: amount,
 });
 const hash = await walletClient.writeContract(request);
 ```
 
 ### 4. ABI Definitions
+
 All ABI definitions must be wrapped in `parseAbi()` from `viem`.
 
 ```typescript
@@ -421,11 +425,12 @@ import { parseAbi } from 'viem';
 
 const abi = parseAbi([
   'function registerAgent(string name, string[] capabilities) external',
-  'event AgentRegistered(uint256 indexed agentId, address indexed wallet)'
+  'event AgentRegistered(uint256 indexed agentId, address indexed wallet)',
 ]);
 ```
 
 ### 5. BigInt vs BigNumber
+
 Viem uses native JavaScript `BigInt` instead of the `BigNumber` library. Use literals like `1000000n` or `BigInt(value)`.
 
 ---
@@ -2003,21 +2008,39 @@ cast call 0xA846... "ownerOf(uint256)" 2326 \
 
 **Symptoms:** App works on `http://localhost:3000` but fails on `http://<your-ip>:3000`. Wallet won't connect, no blockchain data loads.
 
-**Root Cause:** Browsers don't expose `crypto.randomUUID()` in non-secure contexts (HTTP with IP addresses). `localhost` is treated as a secure context, but network IPs are not. This breaks WalletConnect, wagmi, React Query, and RainbowKit.
+**Root Cause:** Multiple issues when accessing via local network IP:
 
-**Solution:** The app now includes a crypto polyfill (`/public/crypto-polyfill.js`) that provides `crypto.randomUUID()` and `crypto.subtle` for non-secure contexts. Additionally, the CSP configuration has been updated to allow HTTP connections in development mode.
+1. Browsers don't expose `crypto.randomUUID()` in non-secure contexts (HTTP with IP addresses)
+2. CSP blocks connections from network IPs
+3. WalletConnect metadata URL doesn't match the actual network URL
+
+**Solution:** Configure `NEXT_PUBLIC_DEV_HOST` in `.env.local`:
+
+```bash
+# In apps/web/.env.local
+NEXT_PUBLIC_DEV_HOST=10.108.1.*,10.108.1.45
+```
+
+The environment variable enables:
+
+- **Next.js HMR**: Adds IP to `allowedDevOrigins` for hot reload from network devices
+- **CSP**: Adds wildcard (e.g., `10.108.1.*`) to connect-src and ws-src directives
+- **WalletConnect**: Dynamic metadata URL detection uses first non-wildcard IP
 
 **Verification:**
 
 1. Check the health endpoint: `http://<your-ip>:3000/api/health`
-2. Check browser console for `[crypto-polyfill]` logs
-3. Verify CSP headers don't include `upgrade-insecure-requests` in development
+2. Check browser console for WalletConnect metadata warnings (should be gone after config)
+3. Verify CSP headers include your network IP:
+   ```bash
+   curl -sI http://localhost:3000 | grep content-security-policy
+   ```
 
 **Configuration:**
 
-- Development CSP: Allows HTTP, includes network IPs, Report-Only mode
-- Production CSP: Enforces HTTPS, `upgrade-insecure-requests`, Enforce mode
-- WalletConnect metadata URL: Hardcoded to `https://kokonut.network` to prevent origin mismatch
+- Wildcard format: `10.108.1.*` allows any IP in that subnet
+- Explicit IP: `10.108.1.45` ensures WalletConnect metadata matches exactly
+- Multiple subnets: `10.108.1.*,192.168.1.*` for multiple networks
 
 ---
 

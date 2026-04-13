@@ -86,13 +86,13 @@ Safety layers: No single person can slash arbitrarily. Even if 3 collude, timelo
 - **Foundry** (for smart contracts)
 - **Sepolia ETH** (for testnet transactions)
 
-| Layer               | Technology                                 |
-| ------------------- | ------------------------------------------ |
-| **Blockchain**      | viem v2 (Standard Library)                 |
+| Layer               | Technology                                   |
+| ------------------- | -------------------------------------------- |
+| **Blockchain**      | viem v2 (Standard Library)                   |
 | **Wallet**          | @open-wallet-standard/core (OWS Integration) |
-| **Frontend**        | Next.js 16, React 19, Tailwind CSS, HeroUI |
-| **State**           | React Query, Zustand                       |
-| **Smart Contracts** | Foundry, OpenZeppelin v5                   |
+| **Frontend**        | Next.js 16, React 19, Tailwind CSS, HeroUI   |
+| **State**           | React Query, Zustand                         |
+| **Smart Contracts** | Foundry, OpenZeppelin v5                     |
 
 ### 1. Clone & Install
 
@@ -146,6 +146,17 @@ pnpm run dev:web
 
 - **Local:** http://localhost:3000
 - **Network:** http://\<your-ip\>:3000 (requires `NEXT_PUBLIC_DEV_HOST`)
+
+#### Local Network Access
+
+To access the app from other devices on your local network, add your network IP range to `.env.local`:
+
+```bash
+# In apps/web/.env.local
+NEXT_PUBLIC_DEV_HOST=10.108.1.*,10.108.1.45
+```
+
+The wildcard format (e.g., `10.108.1.*`) allows any IP in that subnet. Add explicit IPs for WalletConnect metadata detection.
 
 **Health Check:** http://localhost:3000/api/health
 

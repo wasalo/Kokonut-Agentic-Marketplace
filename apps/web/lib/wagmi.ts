@@ -6,6 +6,28 @@ import { getContractAddress } from '@/lib/contracts/config';
 const projectId = process.env.NEXT_PUBLIC_WALLETCONNECT_PROJECT_ID || 'demo';
 const alchemyApiKey = process.env.NEXT_PUBLIC_ALCHEMY_API_KEY || '';
 
+// Dynamically detect the current host for WalletConnect metadata
+// This allows the app to work on both localhost and local network IPs
+const getMetadataUrl = () => {
+  // In development, find the first non-wildcard host from NEXT_PUBLIC_DEV_HOST
+  if (process.env.NODE_ENV === 'development') {
+    const devHosts = (process.env.NEXT_PUBLIC_DEV_HOST || '').split(',');
+    // Find first host without wildcard
+    const validHost = devHosts
+      .map(h => h.trim())
+      .find(h => h && !h.includes('*'));
+    if (validHost) {
+      // Include port if it's not default (80/443)
+      const port = process.env.NEXT_PUBLIC_DEV_PORT || '3000';
+      return port !== '80' && port !== '443'
+        ? `http://${validHost}:${port}`
+        : `http://${validHost}`;
+    }
+  }
+  // Fallback for production or when no valid dev host is set
+  return 'https://kokonut.network';
+};
+
 // Alchemy RPC - Primary for reliability
 const alchemyRpc = alchemyApiKey
   ? `https://eth-sepolia.g.alchemy.com/v2/${alchemyApiKey}`
@@ -36,7 +58,7 @@ export const config = createConfig({
       metadata: {
         name: 'Kokonut Agent Economy',
         description: 'Identity, Commerce, and Coordination for AI Agents onchain',
-        url: 'https://kokonut.network',
+        url: getMetadataUrl(),
         icons: ['https://kokonut.network/favicon.ico'],
       },
       showQrModal: true,
