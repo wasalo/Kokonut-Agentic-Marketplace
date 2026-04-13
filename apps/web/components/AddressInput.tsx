@@ -1,7 +1,7 @@
 'use client';
 
 import { useState, useCallback, useEffect } from 'react';
-import { useEnsAddress, useChainId } from 'wagmi';
+import { useEnsAddress } from 'wagmi';
 import { Check, AlertCircle, Loader2 } from 'lucide-react';
 import { validateAddress } from '@/lib/hooks/useValidation';
 import { formatAddress } from '@/lib/utils';
@@ -34,8 +34,6 @@ export function AddressInput({
   const [internalError, setInternalError] = useState<string | null>(null);
   const [touched, setTouched] = useState(false);
   const [mounted, setMounted] = useState(false);
-
-  const chainId = useChainId();
 
   const isValidFormat = value.length === 0 || validateAddress(value);
 
@@ -75,7 +73,7 @@ export function AddressInput({
     onBlur?.();
   }, [onBlur]);
 
-  const handlePaste = useCallback((e: React.ClipboardEvent) => {
+  const handlePaste = useCallback((_e: React.ClipboardEvent) => {
     setTouched(true);
   }, []);
 

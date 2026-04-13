@@ -43,7 +43,7 @@ interface WalletState {
 
 export const useWalletStore = create<WalletState>()(
   persist(
-    (set, get) => ({
+    (set) => ({
       wallets: [],
       activeWallet: null,
       policies: [],

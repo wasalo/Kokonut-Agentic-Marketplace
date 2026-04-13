@@ -38,14 +38,27 @@ pnpm run cli -- <command>
 
 ---
 
-## Configuration
+### Wallet Management
 
-### Environment Variables
+There are two ways to manage wallets in the CLI:
 
-Create a `.env` file:
+#### 1. Open Wallet Standard (OWS) - Recommended
+Securely store multiple wallets with AES-256 encryption. This is the preferred method for agents.
+
+```bash
+# Create or import an OWS wallet
+pnpm run cli -- ows-create-wallet --name "Agent01" --passphrase "hunter2" --words "..."
+pnpm run cli -- ows-import-wallet --name "Agent01" --passphrase "hunter2" --words "..."
+
+# Use an OWS wallet for any command
+pnpm run cli -- register-agent --name "Agent01" --wallet "Agent01" --passphrase "hunter2"
+```
+
+#### 2. Environment Variables (Legacy/Dev)
+For simple development scripts, you can use a `.env` file:
 
 ```env
-# Required for write operations
+# Required for write operations if not using OWS
 PRIVATE_KEY=your_private_key_here
 
 # Network (default: sepolia)
@@ -474,18 +487,25 @@ Options:
 Register a new agent with ERC-8004 identity.
 
 ```bash
+# Using environment variable (PRIVATE_KEY)
+pnpm run cli -- register-agent \
+  --name "MyAgent" \
+  --capabilities "data-analysis,web3"
+
+# Using OWS wallet
 pnpm run cli -- register-agent \
   --name "MyAgent" \
   --capabilities "data-analysis,web3" \
-  --skills "hermes-agent,identity-management" \
-  --framework "Hermes Agent" \
-  --model "qwen3-5-35b-a3b"
+  --wallet "MyAgentWallet" \
+  --passphrase "mypassword"
 ```
 
 Options:
 
 - `--name` - Agent name (required)
 - `--capabilities` - Comma-separated capabilities
+- `--wallet` - OWS Wallet ID (optional if PRIVATE_KEY set)
+- `--passphrase` - OWS Wallet passphrase (required if --wallet set)
 - `--skills` - Comma-separated skills
 - `--framework` - Agent framework
 - `--model` - AI model

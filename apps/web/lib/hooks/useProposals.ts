@@ -109,7 +109,7 @@ function mapProposalData(id: bigint, data: unknown): Proposal | null {
   // Handle array format
   if (Array.isArray(data) && data.length >= 10) {
     const [
-      proposalId,
+      _proposalId,
       proposer,
       title,
       description,

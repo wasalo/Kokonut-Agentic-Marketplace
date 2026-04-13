@@ -92,7 +92,7 @@ export default function GovernancePage() {
   }, [executeProposalId, executeProposal]);
 
   const isOwner = address && contractOwner && address.toLowerCase() === contractOwner.toLowerCase();
-  const _anyPending = isCreatePending || isConfirmPending || isExecutePending;
+  const anyPending = isCreatePending || isConfirmPending || isExecutePending;
 
   return (
     <div className="container mx-auto px-4 py-8">
@@ -195,7 +195,7 @@ export default function GovernancePage() {
               )}
               <button
                 type="submit"
-                disabled={isCreatePending}
+                disabled={isCreatePending || anyPending}
                 className="w-full px-6 py-3 bg-danger text-white rounded-lg font-medium hover:opacity-90 disabled:opacity-50"
               >
                 {isCreatePending ? 'Creating...' : 'Create Slash Proposal'}
@@ -224,7 +224,7 @@ export default function GovernancePage() {
               </div>
               <button
                 onClick={handleConfirmProposal}
-                disabled={!confirmProposalId || isConfirmPending}
+                disabled={!confirmProposalId || isConfirmPending || anyPending}
                 className="w-full px-6 py-3 bg-primary text-white rounded-lg font-medium hover:opacity-90 disabled:opacity-50"
               >
                 {isConfirmPending ? 'Confirming...' : 'Confirm Proposal'}
@@ -252,7 +252,7 @@ export default function GovernancePage() {
             </div>
             <button
               onClick={handleExecuteProposal}
-              disabled={!executeProposalId || isExecutePending}
+              disabled={!executeProposalId || isExecutePending || anyPending}
               className="w-full px-6 py-3 bg-success text-white rounded-lg font-medium hover:opacity-90 disabled:opacity-50"
             >
               {isExecutePending ? 'Executing...' : 'Execute Proposal'}

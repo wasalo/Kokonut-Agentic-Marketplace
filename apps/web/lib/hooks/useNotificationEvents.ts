@@ -5,7 +5,7 @@ import { usePublicClient, useAccount } from 'wagmi';
 import { parseAbiItem } from 'viem';
 import { getContractAddress, debugLog, DEFAULT_FROM_BLOCK } from '@/lib/contracts/config';
 import { useNotifications } from '@/lib/hooks/useNotifications';
-import { triggerWebhooks, getWebhookEventFromNotification } from '@/lib/webhooks/trigger';
+import { triggerWebhooks } from '@/lib/webhooks/trigger';
 import { sendNotificationEmail } from '@/lib/emails/notification-bridge';
 
 const AGENTIC_COMMERCE_ADDRESS = getContractAddress('AGENTIC_COMMERCE');

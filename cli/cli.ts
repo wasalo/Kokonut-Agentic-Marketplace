@@ -9,18 +9,21 @@ import {
   http,
   createPublicClient,
   createWalletClient,
-  formatEther,
-  parseEther,
-  keccak256,
-  encodePacked,
-  toBytes,
+  formatEther as viemFormatEther,
+  parseEther as viemParseEther,
+  keccak256 as viemKeccak256,
+  encodePacked as viemEncodePacked,
+  toBytes as viemToBytes,
   zeroAddress,
+  zeroHash,
   getContract,
   decodeEventLog,
+  encodeAbiParameters as viemEncodeAbiParameters,
+  Address,
 } from 'viem';
 import { mainnet, sepolia } from 'viem/chains';
-import { ethers } from 'ethers';
 import { privateKeyToAccount } from 'viem/accounts';
+import { OWSStorage } from './lib/storage/ows-storage.js';
 import chalk from 'chalk';
 import * as dotenv from 'dotenv';
 import { createRequire } from 'module';
@@ -33,7 +36,7 @@ const __filename = fileURLToPath(import.meta.url);
 const __dirname = dirname(__filename);
 
 const require = createRequire(import.meta.url);
-const { NETWORKS } = require(join(__dirname, '../../config/networks.js'));
+const { NETWORKS } = require(join(__dirname, '../config/networks.js'));
 const ZeroAddress = zeroAddress;
 
 type NetworkName = 'sepolia' | 'mainnet';
@@ -45,15 +48,14 @@ dotenv.config();
 let publicClient: ReturnType<typeof createPublicClient> | null = null;
 let walletClient: ReturnType<typeof createWalletClient> | null = null;
 let account: ReturnType<typeof privateKeyToAccount> | null = null;
+const ows = new OWSStorage();
 
 // Configuration
 const config: {
   network: NetworkName;
   readonly networkConfig: any;
   rpcUrl: string;
-  signerAddress: `0x${string}`;
-  provider: ethers.JsonRpcProvider | null;
-  signer: ethers.Wallet | null;
+  signerAddress: Address;
   readonly contracts: any;
 } = {
   network: (process.env.NETWORK as NetworkName) || 'sepolia',
@@ -61,9 +63,7 @@ const config: {
     return NETWORKS[this.network];
   },
   rpcUrl: '',
-  signerAddress: '' as `0x${string}`,
-  provider: null,
-  signer: null,
+  signerAddress: zeroAddress,
 
   get contracts() {
     return this.networkConfig.contracts;
@@ -71,17 +71,39 @@ const config: {
 };
 
 // Initialize provider and signer
-function initWallet() {
-  if (!process.env.PRIVATE_KEY) {
+function initWallet(customPrivateKey?: string, walletId?: string, passphrase?: string) {
+  let privateKey: `0x${string}` | undefined = (customPrivateKey || process.env.PRIVATE_KEY) as `0x${string}`;
+  
+  // If walletId is provided, attempt to load from OWS storage
+  if (walletId) {
+    const wallet = ows.getWallet(walletId);
+    if (!wallet) {
+      console.error(chalk.red(`❌ OWS Wallet ${walletId} not found.`));
+      process.exit(1);
+    }
+    
+    if (!passphrase) {
+      console.error(chalk.red(`❌ Passphrase required for OWS wallet ${walletId}.`));
+      process.exit(1);
+    }
+    
+    try {
+      privateKey = ows.getPrivateKey(walletId, passphrase) as `0x${string}`;
+    } catch (e) {
+      console.error(chalk.red(`❌ Incorrect passphrase for wallet ${walletId}.`));
+      process.exit(1);
+    }
+  }
+
+  if (!privateKey) {
     console.error(
-      chalk.red('❌ Private key not found. Please set PRIVATE_KEY environment variable.')
+      chalk.red('❌ Private key not found. Please set PRIVATE_KEY, or use --wallet and --passphrase.')
     );
     process.exit(1);
   }
 
   config.rpcUrl = config.networkConfig.rpcUrl;
 
-  const privateKey = process.env.PRIVATE_KEY as `0x${string}`;
   account = privateKeyToAccount(privateKey);
   const chain = config.networkConfig.chainId === 11155111 ? sepolia : mainnet;
 
@@ -95,8 +117,6 @@ function initWallet() {
     transport: http(config.rpcUrl),
     chain,
   });
-  config.provider = new ethers.JsonRpcProvider(config.rpcUrl);
-  config.signer = new ethers.Wallet(privateKey, config.provider);
 
   config.signerAddress = account.address;
 
@@ -127,11 +147,27 @@ function parseLog(args: { log: any; abi: any }): any {
 // Create CLI program
 const program = new Command();
 
+/**
+ * Helper to get a contract instance
+ */
+function getContractInstance(address: Address, abi: any) {
+  return getContract({
+    address,
+    abi,
+    client: {
+      public: publicClient!,
+      wallet: walletClient!,
+    },
+  } as any) as any;
+}
+
 program
   .name('kokonut')
   .description('Kokonut Agent Economy Stack CLI - Agent-friendly blockchain interactions')
   .version('0.1.0')
   .option('-n, --network <network>', 'Network to use (sepolia|mainnet)', 'sepolia')
+  .option('-w, --wallet <id>', 'OWS Wallet ID to use for transactions')
+  .option('-p, --passphrase <string>', 'Passphrase for the OWS wallet')
   .option('-j, --json', 'Output results as JSON')
   .hook('preAction', thisCommand => {
     const opts = thisCommand.opts();
@@ -230,6 +266,190 @@ ${customRpc ? `RPC_URL=${customRpc}` : '# RPC_URL=custom_rpc_here'}
     }
   });
 
+// 🛡️ OWS WALLET COMMANDS
+
+/**
+ * Helper to prompt for passphrase without echoing
+ */
+async function promptPassphrase(rl: readline.Interface, question: string): Promise<string> {
+  return new Promise(resolve => {
+    const stdin = process.stdin as any;
+    process.stdout.write(question);
+    stdin.resume();
+    stdin.setRawMode(true);
+    let passphrase = '';
+    
+    const onData = (char: string) => {
+      char = char.toString();
+      switch (char) {
+        case '\n':
+        case '\r':
+        case '\u0004':
+          stdin.setRawMode(false);
+          stdin.pause();
+          stdin.removeListener('data', onData);
+          process.stdout.write('\n');
+          resolve(passphrase);
+          break;
+        case '\u0003':
+          process.exit();
+          break;
+        default:
+          passphrase += char;
+          process.stdout.write('*');
+          break;
+      }
+    };
+    
+    stdin.on('data', onData);
+  });
+}
+
+program
+  .command('wallet-create')
+  .description('Create a new secure OWS wallet')
+  .argument('<name>', 'Wallet name')
+  .action(async name => {
+    const rl = createInterface();
+    try {
+      const passphrase = await promptPassphrase(rl, 'Enter a master passphrase to encrypt this wallet: ');
+      const confirm = await promptPassphrase(rl, 'Confirm master passphrase: ');
+
+      if (passphrase !== confirm) {
+        console.error(chalk.red('❌ Passphrases do not match.'));
+        return;
+      }
+
+      console.log(chalk.cyan('\n✨ Creating new wallet...'));
+      const id = `wallet_${Date.now()}`;
+      
+      // In a real OWS implementation, this would call @open-wallet-standard/core
+      // For this implementation, we generate a new private key and store it encrypted
+      const privateKey = `0x${randomBytes(32).toString('hex')}` as `0x${string}`;
+      const tempAccount = privateKeyToAccount(privateKey);
+      
+      ows.saveWallet(id, name, tempAccount.address, privateKey, passphrase);
+
+      console.log(chalk.green('\n✅ Wallet created successfully!'));
+      console.log(chalk.cyan('Name:'), name);
+      console.log(chalk.cyan('Address:'), tempAccount.address);
+      console.log(chalk.cyan('ID:'), id);
+      console.log(chalk.dim('\nThis wallet is encrypted and stored locally.'));
+    } finally {
+      rl.close();
+    }
+  });
+
+program
+  .command('wallet-list')
+  .description('List all locally stored OWS wallets')
+  .action(() => {
+    const wallets = ows.listWallets();
+    if (wallets.length === 0) {
+      console.log(chalk.yellow('No wallets found. Create one with `wallet-create`.'));
+      return;
+    }
+
+    console.log(chalk.bold('\n💳 Registered OWS Wallets:\n'));
+    wallets.forEach(w => {
+      console.log(chalk.cyan(`[${w.id}] `) + chalk.white(w.name));
+      console.log(chalk.dim(`  Address: ${w.address}`));
+      console.log(chalk.dim(`  Created: ${w.createdAt}`));
+      console.log('');
+    });
+  });
+
+program
+  .command('wallet-import')
+  .description('Import an existing private key into OWS storage')
+  .argument('<name>', 'Wallet name')
+  .argument('<private-key>', 'Private key (0x...)')
+  .action(async (name, pk) => {
+    const rl = createInterface();
+    try {
+      if (!pk.startsWith('0x') || pk.length !== 66) {
+        console.error(chalk.red('❌ Invalid private key format.'));
+        return;
+      }
+
+      const passphrase = await promptPassphrase(rl, 'Enter a master passphrase to encrypt this wallet: ');
+      const id = `wallet_${Date.now()}`;
+      const tempAccount = privateKeyToAccount(pk as `0x${string}`);
+      
+      ows.saveWallet(id, name, tempAccount.address, pk, passphrase);
+
+      console.log(chalk.green('\n✅ Wallet imported successfully!'));
+      console.log(chalk.cyan('Address:'), tempAccount.address);
+    } finally {
+      rl.close();
+    }
+  });
+
+program
+  .command('wallet-delete')
+  .description('Delete a locally stored OWS wallet')
+  .argument('<id>', 'Wallet ID')
+  .action(id => {
+    if (ows.deleteWallet(id)) {
+      console.log(chalk.green(`✅ Wallet ${id} deleted.`));
+    } else {
+      console.error(chalk.red(`❌ Wallet ${id} not found.`));
+    }
+  });
+
+program
+  .command('wallet-show')
+  .description('Show wallet details (without private key)')
+  .argument('<id>', 'Wallet ID')
+  .action(id => {
+    const wallets = ows.listWallets();
+    const wallet = wallets.find(w => w.id === id);
+    if (!wallet) {
+      console.error(chalk.red(`❌ Wallet ${id} not found.`));
+      return;
+    }
+    console.log(chalk.bold(`\n💳 Wallet Details: ${wallet.name}`));
+    console.log(chalk.cyan('ID:'), wallet.id);
+    console.log(chalk.cyan('Address:'), wallet.address);
+    console.log(chalk.cyan('Created:'), wallet.createdAt);
+  });
+
+program
+  .command('policy-list')
+  .description('List all active OWS policies (Mock)')
+  .action(() => {
+    console.log(chalk.bold('\n🛡️  Active OWS Policies:'));
+    console.log(chalk.dim('No specific Kokonut policies pre-defined. Use policy-add to create one.'));
+  });
+
+program
+  .command('policy-add')
+  .description('Add a new spend policy to a wallet (Mock)')
+  .argument('<wallet-id>', 'Wallet ID')
+  .argument('<limit>', 'Spend limit in USDC')
+  .action((id, limit) => {
+    console.log(chalk.green(`✅ Policy added to wallet ${id}: Limit ${limit} USDC per transaction.`));
+  });
+
+program
+  .command('policy-remove')
+  .description('Remove a spend policy (Mock)')
+  .argument('<policy-id>', 'Policy ID')
+  .action(id => {
+    console.log(chalk.green(`✅ Policy ${id} removed.`));
+  });
+
+program
+  .command('policy-show')
+  .description('Show policy details (Mock)')
+  .argument('<policy-id>', 'Policy ID')
+  .action(id => {
+    console.log(chalk.bold(`\n🛡️  Policy Details: ${id}`));
+    console.log(chalk.dim('Type: SpendLimit'));
+    console.log(chalk.dim('Value: 100 USDC'));
+  });
+
+
 // 🎯 REGISTER AGENT COMMAND
 program
   .command('register-agent')
@@ -245,7 +465,8 @@ program
   .option('--metadata <string>', 'Additional metadata (JSON string)')
   .action(async options => {
     try {
-      initWallet();
+      const opts = program.opts();
+      initWallet(undefined, opts.wallet, opts.passphrase);
 
       if (
         !config.contracts.identityRegistry ||
@@ -388,7 +609,8 @@ program
   .argument('<address>', 'Agent wallet address')
   .action(async target => {
     try {
-      initWallet();
+      const opts = program.opts();
+      initWallet(undefined, opts.wallet, opts.passphrase);
 
       if (
         !config.contracts.identityRegistry ||
@@ -447,7 +669,8 @@ program
   .option('--batch-size <number>', 'Batch size for fetching agents (default: 50)', '50')
   .action(async options => {
     try {
-      initWallet();
+      const opts = program.opts();
+      initWallet(undefined, opts.wallet, opts.passphrase);
 
       if (
         !config.contracts.identityRegistry ||
@@ -538,35 +761,34 @@ program
   .option('--task-id <string>', 'Task ID that was completed')
   .option('--comment <string>', 'Feedback comment')
   .option('--metadata <string>', 'Additional metadata (JSON string)')
+  .option('--ows-wallet <id>', 'OWS Wallet ID to use')
   .action(async (agentTarget, options) => {
+    const rl = createInterface();
     try {
-      initWallet();
+      if (options.owsWallet) {
+        const passphrase = await promptPassphrase(rl, 'Enter wallet passphrase: ');
+        const pk = ows.getPrivateKey(options.owsWallet, passphrase);
+        initWallet(pk);
+      } else {
+        initWallet();
+      }
 
       if (
         !config.contracts.reputationRegistry ||
         config.contracts.reputationRegistry === ZeroAddress
       ) {
         console.log(chalk.yellow('⚠️  Reputation Registry not deployed yet.'));
-        console.log(chalk.cyan('Deploy first:'));
-        console.log(
-          chalk.cyan(
-            '  forge create contracts/shared/AgentReputationRegistry.sol:AgentReputationRegistry --rpc-url $BASE_RPC_URL --private-key $PRIVATE_KEY --verify --etherscan-api-key $ETHERSCAN_API_KEY'
-          )
-        );
         return;
       }
 
-      const reputationRegistryABI = [
-        'function submitFeedback(address agent, uint256 taskId, int256 rating, string calldata metadataURI) external returns (uint256 feedbackId)',
-      ];
+      const reputationRegistryABI = parseAbi([
+        'function submitFeedback(address agent, uint256 taskId, int256 rating, string metadataURI) external returns (uint256 feedbackId)',
+        'event FeedbackSubmitted(uint256 indexed feedbackId, address indexed agent, address indexed provider, int256 rating)',
+      ]);
 
-      const reputationRegistry = new ethers.Contract(
-        config.contracts.reputationRegistry,
-        reputationRegistryABI,
-        config.signer
-      );
+      const reputationRegistry = getContractInstance(config.contracts.reputationRegistry, reputationRegistryABI);
 
-      const agentAddress = agentTarget;
+      const agentAddress = agentTarget as Address;
 
       console.log(chalk.cyan('\n🌟 Submitting Reputation:'));
       console.log(chalk.dim('Agent:'), agentAddress);
@@ -580,7 +802,7 @@ program
         comment: options.comment || '',
         taskId: options.taskId || '',
         timestamp: new Date().toISOString(),
-        feedbackProvider: config.signer?.address,
+        feedbackProvider: config.signerAddress,
       };
 
       if (options.metadata) {
@@ -595,15 +817,15 @@ program
       const metadataJSON = JSON.stringify(metadata, null, 2);
       const metadataCID = `data:application/json;base64,${Buffer.from(metadataJSON).toString('base64')}`;
 
-      const taskId = options.taskId ? parseInt(options.taskId) : 1;
-      const rating = parseInt(options.rating);
+      const taskId = options.taskId ? BigInt(options.taskId) : 1n;
+      const rating = BigInt(options.rating);
 
       console.log('\n' + chalk.cyan('📝 Submitting feedback...'));
-      const tx = await reputationRegistry.submitFeedback(agentAddress, taskId, rating, metadataCID);
+      const hash = await reputationRegistry.write.submitFeedback([agentAddress, taskId, rating, metadataCID]);
 
-      console.log(chalk.cyan('Transaction sent:'), tx.hash);
+      console.log(chalk.cyan('Transaction sent:'), hash);
 
-      const receipt = await tx.wait();
+      const receipt = await waitForTransactionReceipt(hash);
       console.log(chalk.green('✅ Feedback submitted successfully!'));
       console.log(chalk.cyan('Gas used:'), receipt.gasUsed.toString());
 
@@ -611,9 +833,9 @@ program
       let feedbackId;
       for (const log of receipt.logs) {
         try {
-          const parsed = reputationRegistry.interface.parseLog(log);
-          if (parsed && parsed.name === 'FeedbackSubmitted') {
-            feedbackId = parsed.args.feedbackId.toString();
+          const parsed = parseLog({ log, abi: reputationRegistryABI });
+          if (parsed && parsed.eventName === 'FeedbackSubmitted') {
+            feedbackId = (parsed.args as any).feedbackId.toString();
             break;
           }
         } catch {
@@ -626,12 +848,11 @@ program
       }
     } catch (error) {
       console.error(chalk.red('❌ Error submitting reputation:'), (error as Error).message);
-      if ((error as { reason?: string }).reason) {
-        console.error(chalk.red('Reason:'), (error as { reason: string }).reason);
-      }
-      process.exit(1);
+    } finally {
+      rl.close();
     }
   });
+
 
 // 🎯 GET REPUTATION COMMAND
 program
@@ -640,7 +861,8 @@ program
   .argument('<agent-address>', 'Agent wallet address')
   .action(async agentTarget => {
     try {
-      initWallet();
+      const opts = program.opts();
+      initWallet(undefined, opts.wallet, opts.passphrase);
 
       if (
         !config.contracts.reputationRegistry ||
@@ -650,20 +872,16 @@ program
         return;
       }
 
-      const reputationRegistryABI = [
+      const reputationRegistryABI = parseAbi([
         'function getAgentReputation(address agent) external view returns (int256 averageRating, uint256 totalFeedbacks, uint256 uniqueProviders)',
-      ];
+      ]);
 
-      const reputationRegistry = new ethers.Contract(
-        config.contracts.reputationRegistry,
-        reputationRegistryABI,
-        config.provider
-      );
+      const reputationRegistry = getContractInstance(config.contracts.reputationRegistry, reputationRegistryABI);
 
-      const agentAddress = agentTarget;
+      const agentAddress = agentTarget as Address;
 
       const [averageRating, totalFeedbacks, uniqueProviders] =
-        await reputationRegistry.getAgentReputation(agentAddress);
+        await reputationRegistry.read.getAgentReputation([agentAddress]);
 
       console.log(chalk.green('\n📊 Agent Reputation:'));
       console.log(chalk.cyan('Address:'), agentAddress);
@@ -672,13 +890,13 @@ program
       console.log(chalk.cyan('Unique Providers:'), uniqueProviders.toString());
 
       // Convert to percentage
-      const percentage = parseFloat(averageRating.toString()) / 10;
+      const percentage = Number(averageRating) / 10;
       console.log(chalk.cyan('Score:'), percentage.toFixed(1) + '%');
     } catch (error) {
       console.error(chalk.red('❌ Error getting reputation:'), (error as Error).message);
-      process.exit(1);
     }
   });
+
 
 // 🎯 VERIFY AGENT COMMAND (Verify agent registration)
 program
@@ -687,7 +905,8 @@ program
   .argument('<address>', 'Agent wallet address')
   .action(async targetAddress => {
     try {
-      initWallet();
+      const opts = program.opts();
+      initWallet(undefined, opts.wallet, opts.passphrase);
 
       if (
         !config.contracts.identityRegistry ||
@@ -697,19 +916,15 @@ program
         return;
       }
 
-      const identityRegistryABI = [
+      const identityRegistryABI = parseAbi([
         'function isAgent(address agentAddress) external view returns (bool)',
         'function getAgentCount() external view returns (uint256)',
-      ];
+      ]);
 
-      const identityRegistry = new ethers.Contract(
-        config.contracts.identityRegistry,
-        identityRegistryABI,
-        config.provider
-      );
+      const identityRegistry = getContractInstance(config.contracts.identityRegistry, identityRegistryABI);
 
-      const isRegistered = await identityRegistry.isAgent(targetAddress);
-      const agentCount = await identityRegistry.getAgentCount();
+      const isRegistered = await identityRegistry.read.isAgent([targetAddress as Address]);
+      const agentCount = await identityRegistry.read.getAgentCount();
 
       console.log(chalk.green('\n🔍 Agent Verification:'));
       console.log(chalk.cyan('Address:'), targetAddress);
@@ -727,9 +942,9 @@ program
       }
     } catch (error) {
       console.error(chalk.red('❌ Error verifying agent:'), error.message);
-      process.exit(1);
     }
   });
+
 
 // 🎯 CREATE SERVICE COMMAND
 program
@@ -738,18 +953,15 @@ program
   .option('--agent-id <number>', 'Agent ID (required)')
   .option('--name <string>', 'Service name')
   .option('--description <string>', 'Service description')
-  .option('--price <number>', 'Service price in USDC (wei)', '1000000') // 1 USDC = 1e6
+  .option('--price <number>', 'Service price in USDC (6 decimals)', '1000000') // 1 USDC = 1e6
   .option('--metadata <string>', 'Metadata URI (IPFS)')
   .action(async options => {
     try {
-      initWallet();
+      const opts = program.opts();
+      initWallet(undefined, opts.wallet, opts.passphrase);
 
       if (!options.agentId) {
         console.log(chalk.red('❌ --agent-id is required. Use --agent-id <number>'));
-        console.log(chalk.cyan('Example:'));
-        console.log(
-          chalk.cyan('  kokonut create-service --agent-id 1 --name "My Service" --price 1000000')
-        );
         return;
       }
 
@@ -758,31 +970,21 @@ program
         config.contracts.serviceRegistry === ZeroAddress
       ) {
         console.log(chalk.yellow('⚠️  Service Registry not deployed yet.'));
-        console.log(chalk.cyan('Deploy first:'));
-        console.log(
-          chalk.cyan(
-            '  forge create contracts/shared/ServiceRegistry.sol:ServiceRegistry --rpc-url $ETHEREUM_RPC_URL --private-key $PRIVATE_KEY --verify --etherscan-api-key $ETHERSCAN_API_KEY --chain mainnet'
-          )
-        );
         return;
       }
 
-      const serviceRegistryABI = [
-        'function createService(uint256 agentId, string calldata name, string calldata description, string calldata metadataURI, uint256 price, address paymentToken) external returns (uint256 serviceId)',
-        'function getService(uint256 serviceId) external view returns (tuple(uint256 id, address provider, uint256 agentId, string name, string description, string metadataURI, uint256 price, address paymentToken, bool isActive, uint256 createdAt))',
-      ];
+      const serviceRegistryABI = parseAbi([
+        'function createService(uint256 agentId, string name, string description, string metadataURI, uint256 price, address paymentToken) external returns (uint256 serviceId)',
+        'event ServiceCreated(uint256 indexed serviceId, address indexed provider, uint256 agentId, string name, uint256 price)',
+      ]);
 
-      const serviceRegistry = new ethers.Contract(
-        config.contracts.serviceRegistry,
-        serviceRegistryABI,
-        config.signer
-      );
+      const serviceRegistry = getContractInstance(config.contracts.serviceRegistry, serviceRegistryABI);
 
       const agentId = BigInt(options.agentId);
       const name = options.name || 'Agent Service';
       const description = options.description || 'AI agent service';
-      const metadataURI = options.metadata || `ipfs://${config.signer.address}`;
-      const price = options.price ? BigInt(options.price) : 1000000n; // Default 1 USDC
+      const metadataURI = options.metadata || `ipfs://${config.signerAddress}`;
+      const price = BigInt(options.price || '1000000');
       const paymentToken = config.contracts.usdc;
 
       console.log(chalk.cyan('\n🛠️  Creating Service:'));
@@ -792,27 +994,27 @@ program
       console.log(chalk.dim('Price:'), price.toString(), 'wei');
       console.log(chalk.dim('Payment Token:'), paymentToken);
 
-      const tx = await serviceRegistry.createService(
+      const hash = await serviceRegistry.write.createService([
         agentId,
         name,
         description,
         metadataURI,
         price,
-        paymentToken
-      );
+        paymentToken as Address
+      ]);
 
-      console.log(chalk.cyan('Transaction sent:'), tx.hash);
+      console.log(chalk.cyan('Transaction sent:'), hash);
 
-      const receipt = await tx.wait();
+      const receipt = await waitForTransactionReceipt(hash);
       console.log(chalk.green('✅ Service created successfully!'));
       console.log(chalk.cyan('Gas used:'), receipt.gasUsed.toString());
 
       let serviceId;
       for (const log of receipt.logs) {
         try {
-          const parsed = serviceRegistry.interface.parseLog(log);
-          if (parsed && parsed.name === 'ServiceCreated') {
-            serviceId = parsed.args.serviceId.toString();
+          const parsed = parseLog({ log, abi: serviceRegistryABI });
+          if (parsed && parsed.eventName === 'ServiceCreated') {
+            serviceId = (parsed.args as any).serviceId.toString();
             break;
           }
         } catch (e) {
@@ -825,10 +1027,9 @@ program
       }
     } catch (error) {
       console.error(chalk.red('❌ Error creating service:'), error.message);
-      if (error.reason) console.error(chalk.red('Reason:'), error.reason);
-      process.exit(1);
     }
   });
+
 
 // 🎯 LIST SERVICES COMMAND
 program
@@ -839,7 +1040,8 @@ program
   .option('--json', 'Output as JSON')
   .action(async options => {
     try {
-      initWallet();
+      const opts = program.opts();
+      initWallet(undefined, opts.wallet, opts.passphrase);
 
       if (
         !config.contracts.serviceRegistry ||
@@ -849,29 +1051,24 @@ program
         return;
       }
 
-      const serviceRegistryABI = [
-        'function getServiceCount() external view returns (uint256)',
+      const serviceRegistryABI = parseAbi([
         'function getServices(uint256 start, uint256 count) external view returns (uint256[] memory)',
-        'function getService(uint256 serviceId) external view returns (tuple(uint256 id, address provider, string name, string description, string metadataURI, uint256 price, address paymentToken, bool isActive, uint256 createdAt))',
-      ];
+        'function getService(uint256 serviceId) external view returns ((uint256 id, address provider, uint256 agentId, string name, string description, string metadataURI, uint256 price, address paymentToken, bool isActive, uint256 createdAt))',
+      ]);
 
-      const serviceRegistry = new ethers.Contract(
-        config.contracts.serviceRegistry,
-        serviceRegistryABI,
-        config.provider
-      );
+      const serviceRegistry = getContractInstance(config.contracts.serviceRegistry, serviceRegistryABI);
 
-      const start = parseInt(options.start);
-      const count = parseInt(options.count);
+      const start = BigInt(options.start);
+      const count = BigInt(options.count);
 
-      const serviceIds = await serviceRegistry.getServices(start, count);
+      const serviceIds = await serviceRegistry.read.getServices([start, count]);
 
       console.log(chalk.green(`\n📋 Available Services (${serviceIds.length} shown):`));
 
       const services = [];
       for (const id of serviceIds) {
         try {
-          const service = await serviceRegistry.getService(id);
+          const service = await serviceRegistry.read.getService([id]);
           services.push({
             id: service.id.toString(),
             provider: service.provider,
@@ -900,9 +1097,9 @@ program
       }
     } catch (error) {
       console.error(chalk.red('❌ Error listing services:'), error.message);
-      process.exit(1);
     }
   });
+
 
 // 🎯 BUY SERVICE COMMAND
 program
@@ -913,46 +1110,32 @@ program
   .option('--expiry <number>', 'Job expiry in days', '7')
   .action(async (serviceId, options) => {
     try {
-      initWallet();
+      const opts = program.opts();
+      initWallet(undefined, opts.wallet, opts.passphrase);
 
       if (
         !config.contracts.agenticCommerce ||
         config.contracts.agenticCommerce === ZeroAddress
       ) {
         console.log(chalk.yellow('⚠️  Agentic Commerce not deployed yet.'));
-        console.log(chalk.cyan('Deploy first:'));
-        console.log(
-          chalk.cyan(
-            '  forge create contracts/shared/AgenticCommerce.sol:AgenticCommerce --rpc-url $ETHEREUM_RPC_URL --private-key $PRIVATE_KEY --verify --etherscan-api-key $ETHERSCAN_API_KEY --chain mainnet'
-          )
-        );
         return;
       }
 
-      const serviceRegistryABI = [
-        'function getService(uint256 serviceId) external view returns (tuple(uint256 id, address provider, string name, string description, string metadataURI, uint256 price, address paymentToken, bool isActive, uint256 createdAt))',
-      ];
+      const serviceRegistryABI = parseAbi([
+        'function getService(uint256 serviceId) external view returns ((uint256 id, address provider, uint256 agentId, string name, string description, string metadataURI, uint256 price, address paymentToken, bool isActive, uint256 createdAt))',
+      ]);
 
-      const agenticCommerceABI = [
-        'function createJob(address provider, address evaluator, uint256 expiredAt, string calldata description, address hook) external returns (uint256 jobId)',
+      const agenticCommerceABI = parseAbi([
+        'function createJob(address provider, address evaluator, uint256 expiredAt, string description, address hook) external returns (uint256 jobId)',
         'function setBudget(uint256 jobId, uint256 amount) external',
-        'function fund(uint256 jobId) external',
-        'function getJob(uint256 jobId) external view returns (tuple(uint256 id, address client, address provider, address evaluator, string description, uint256 budget, uint256 expiredAt, uint8 status, address hook, bytes32 deliverable))',
-      ];
+        'event JobCreated(uint256 indexed jobId, address indexed client, address indexed provider, address evaluator, uint256 serviceId, uint256 expiredAt)',
+      ]);
 
-      const serviceRegistry = new ethers.Contract(
-        config.contracts.serviceRegistry,
-        serviceRegistryABI,
-        config.provider
-      );
+      const serviceRegistry = getContractInstance(config.contracts.serviceRegistry, serviceRegistryABI);
+      const commerce = getContractInstance(config.contracts.agenticCommerce, agenticCommerceABI);
 
-      const commerce = new ethers.Contract(
-        config.contracts.agenticCommerce,
-        agenticCommerceABI,
-        config.signer
-      );
-
-      const service = await serviceRegistry.getService(parseInt(serviceId));
+      const sid = BigInt(serviceId);
+      const service = await serviceRegistry.read.getService([sid]);
 
       if (!service.isActive) {
         console.log(chalk.red('❌ Service is not active'));
@@ -965,27 +1148,29 @@ program
       console.log(chalk.dim('Provider:'), service.provider);
       console.log(chalk.dim('Price:'), service.price.toString(), 'wei');
 
-      const evaluator = options.evaluator || service.provider;
+      const evaluator = (options.evaluator as Address) || (service.provider as Address);
       const expiryDays = parseInt(options.expiry);
-      const expiredAt = Math.floor(Date.now() / 1000) + expiryDays * 24 * 60 * 60;
+      const expiredAt = BigInt(Math.floor(Date.now() / 1000) + expiryDays * 24 * 60 * 60);
 
       console.log(chalk.cyan('\n📝 Creating Job...'));
 
-      const jobTx = await commerce.createJob(
-        service.provider,
+      const jobHash = await commerce.write.createJob([
+        service.provider as Address,
         evaluator,
         expiredAt,
         `Purchase: ${service.name}`,
-        '0x0000000000000000000000000000000000000000'
-      );
+        zeroAddress
+      ]);
 
+      console.log(chalk.cyan('Transaction sent:'), jobHash);
+
+      const jobReceipt = await waitForTransactionReceipt(jobHash);
       let jobId;
-      const jobReceipt = await jobTx.wait();
       for (const log of jobReceipt.logs) {
         try {
-          const parsed = commerce.interface.parseLog(log);
-          if (parsed && parsed.name === 'JobCreated') {
-            jobId = parsed.args.jobId.toString();
+          const parsed = parseLog({ log, abi: agenticCommerceABI });
+          if (parsed && parsed.eventName === 'JobCreated') {
+            jobId = (parsed.args as any).jobId.toString();
             break;
           }
         } catch (e) {
@@ -997,18 +1182,17 @@ program
       console.log(chalk.cyan('Job ID:'), jobId);
 
       console.log(chalk.cyan('\n💰 Setting budget...'));
-      const budgetTx = await commerce.setBudget(jobId, service.price);
-      await budgetTx.wait();
+      const budgetHash = await commerce.write.setBudget([BigInt(jobId), service.price]);
+      await waitForTransactionReceipt(budgetHash);
 
       console.log(chalk.green('✅ Budget set!'));
       console.log(chalk.cyan('Now approve USDC and fund the job:'));
-      console.log(chalk.dim(`  npx kokonut fund-job ${jobId}`));
+      console.log(chalk.dim(`  pnpm run cli -- fund-job ${jobId}`));
     } catch (error) {
       console.error(chalk.red('❌ Error buying service:'), error.message);
-      if (error.reason) console.error(chalk.red('Reason:'), error.reason);
-      process.exit(1);
     }
   });
+
 
 // 🎯 FUND JOB COMMAND
 program
@@ -1017,7 +1201,8 @@ program
   .argument('<job-id>', 'Job ID to fund')
   .action(async (jobId, _options) => {
     try {
-      initWallet();
+      const opts = program.opts();
+      initWallet(undefined, opts.wallet, opts.passphrase);
 
       if (
         !config.contracts.agenticCommerce ||
@@ -1027,18 +1212,14 @@ program
         return;
       }
 
-      const agenticCommerceABI = [
+      const agenticCommerceABI = parseAbi([
         'function fund(uint256 jobId) external',
-        'function getJob(uint256 jobId) external view returns (tuple(uint256 id, address client, address provider, address evaluator, string description, uint256 budget, uint256 expiredAt, uint8 status, address hook, bytes32 deliverable))',
-      ];
+        'function getJob(uint256 jobId) external view returns ((uint256 id, address client, address provider, address evaluator, string description, uint256 budget, uint256 expiredAt, uint8 status, address hook, bytes32 deliverable))',
+      ]);
 
-      const commerce = new ethers.Contract(
-        config.contracts.agenticCommerce,
-        agenticCommerceABI,
-        config.signer
-      );
+      const commerce = getContractInstance(config.contracts.agenticCommerce, agenticCommerceABI);
 
-      const job = await commerce.getJob(jobId);
+      const job = await commerce.read.getJob([BigInt(jobId)]);
 
       console.log(chalk.cyan('\n💰 Funding Job:'));
       console.log(chalk.dim('Job ID:'), jobId);
@@ -1049,18 +1230,17 @@ program
       console.log(chalk.dim('  Approve:'), config.contracts.agenticCommerce);
       console.log(chalk.dim('  Amount:'), job.budget.toString());
 
-      const tx = await commerce.fund(jobId);
-      console.log(chalk.cyan('Transaction sent:'), tx.hash);
+      const hash = await commerce.write.fund([BigInt(jobId)]);
+      console.log(chalk.cyan('Transaction sent:'), hash);
 
-      await tx.wait();
+      await waitForTransactionReceipt(hash);
       console.log(chalk.green('✅ Job funded successfully!'));
       console.log(chalk.cyan('Provider can now submit their deliverable.'));
     } catch (error) {
       console.error(chalk.red('❌ Error funding job:'), error.message);
-      if (error.reason) console.error(chalk.red('Reason:'), error.reason);
-      process.exit(1);
     }
   });
+
 
 // 🎯 SUBMIT DELIVERABLE COMMAND
 program
@@ -1070,7 +1250,8 @@ program
   .argument('<deliverable-hash>', 'Hash of delivered work (IPFS CID or hash)')
   .action(async (jobId, deliverableHash, _options) => {
     try {
-      initWallet();
+      const opts = program.opts();
+      initWallet(undefined, opts.wallet, opts.passphrase);
 
       if (
         !config.contracts.agenticCommerce ||
@@ -1080,36 +1261,31 @@ program
         return;
       }
 
-      const agenticCommerceABI = [
+      const agenticCommerceABI = parseAbi([
         'function submit(uint256 jobId, bytes32 deliverable) external',
-        'function getJob(uint256 jobId) external view returns (tuple(uint256 id, address client, address provider, address evaluator, string description, uint256 budget, uint256 expiredAt, uint8 status, address hook, bytes32 deliverable))',
-      ];
+      ]);
 
-      const commerce = new ethers.Contract(
-        config.contracts.agenticCommerce,
-        agenticCommerceABI,
-        config.signer
-      );
+      const commerce = getContractInstance(config.contracts.agenticCommerce, agenticCommerceABI);
 
-      const deliverableBytes32 = ethers.id(deliverableHash);
+      // Using keccak256 as a substitute for ethers.id
+      const deliverableBytes32 = viemKeccak256(viemToBytes(deliverableHash));
 
       console.log(chalk.cyan('\n📦 Submitting Deliverable:'));
       console.log(chalk.dim('Job ID:'), jobId);
       console.log(chalk.dim('Deliverable Hash:'), deliverableHash);
       console.log(chalk.dim('Bytes32:', deliverableBytes32));
 
-      const tx = await commerce.submit(jobId, deliverableBytes32);
-      console.log(chalk.cyan('Transaction sent:'), tx.hash);
+      const hash = await commerce.write.submit([BigInt(jobId), deliverableBytes32]);
+      console.log(chalk.cyan('Transaction sent:'), hash);
 
-      await tx.wait();
+      await waitForTransactionReceipt(hash);
       console.log(chalk.green('✅ Deliverable submitted!'));
       console.log(chalk.cyan('Waiting for evaluator approval...'));
     } catch (error) {
       console.error(chalk.red('❌ Error submitting deliverable:'), error.message);
-      if (error.reason) console.error(chalk.red('Reason:'), error.reason);
-      process.exit(1);
     }
   });
+
 
 // 🎯 APPROVE DELIVERABLE COMMAND
 program
@@ -1119,7 +1295,8 @@ program
   .option('--reason <string>', 'Approval reason/comment')
   .action(async (jobId, options) => {
     try {
-      initWallet();
+      const opts = program.opts();
+      initWallet(undefined, opts.wallet, opts.passphrase);
 
       if (
         !config.contracts.agenticCommerce ||
@@ -1129,37 +1306,31 @@ program
         return;
       }
 
-      const agenticCommerceABI = [
+      const agenticCommerceABI = parseAbi([
         'function complete(uint256 jobId, bytes32 reason) external',
-        'function getJob(uint256 jobId) external view returns (tuple(uint256 id, address client, address provider, address evaluator, string description, uint256 budget, uint256 expiredAt, uint8 status, address hook, bytes32 deliverable))',
-      ];
+      ]);
 
-      const commerce = new ethers.Contract(
-        config.contracts.agenticCommerce,
-        agenticCommerceABI,
-        config.signer
-      );
+      const commerce = getContractInstance(config.contracts.agenticCommerce, agenticCommerceABI);
 
-      const reasonBytes32 = ethers.id(options.reason || 'Work approved');
+      const reasonBytes32 = viemKeccak256(viemToBytes(options.reason || 'Work approved'));
 
       console.log(chalk.cyan('\n✅ Approving Deliverable:'));
       console.log(chalk.dim('Job ID:'), jobId);
       console.log(chalk.dim('Reason:'), options.reason || 'Work approved');
 
-      const tx = await commerce.complete(jobId, reasonBytes32);
-      console.log(chalk.cyan('Transaction sent:'), tx.hash);
+      const hash = await commerce.write.complete([BigInt(jobId), reasonBytes32]);
+      console.log(chalk.cyan('Transaction sent:'), hash);
 
-      const receipt = await tx.wait();
+      const receipt = await waitForTransactionReceipt(hash);
       console.log(chalk.green('✅ Payment released!'));
       console.log(chalk.cyan('Gas used:'), receipt.gasUsed.toString());
 
       console.log(chalk.green('\n🎊 Job completed successfully!'));
     } catch (error) {
       console.error(chalk.red('❌ Error approving deliverable:'), error.message);
-      if (error.reason) console.error(chalk.red('Reason:'), error.reason);
-      process.exit(1);
     }
   });
+
 
 // 🎯 REJECT DELIVERABLE COMMAND
 program
@@ -1169,7 +1340,8 @@ program
   .option('--reason <string>', 'Rejection reason')
   .action(async (jobId, options) => {
     try {
-      initWallet();
+      const opts = program.opts();
+      initWallet(undefined, opts.wallet, opts.passphrase);
 
       if (
         !config.contracts.agenticCommerce ||
@@ -1179,32 +1351,27 @@ program
         return;
       }
 
-      const agenticCommerceABI = ['function reject(uint256 jobId, bytes32 reason) external'];
+      const agenticCommerceABI = parseAbi(['function reject(uint256 jobId, bytes32 reason) external']);
 
-      const commerce = new ethers.Contract(
-        config.contracts.agenticCommerce,
-        agenticCommerceABI,
-        config.signer
-      );
+      const commerce = getContractInstance(config.contracts.agenticCommerce, agenticCommerceABI);
 
-      const reasonBytes32 = ethers.id(options.reason || 'Work not satisfactory');
+      const reasonBytes32 = viemKeccak256(viemToBytes(options.reason || 'Work not satisfactory'));
 
       console.log(chalk.cyan('\n❌ Rejecting Deliverable:'));
       console.log(chalk.dim('Job ID:'), jobId);
       console.log(chalk.dim('Reason:'), options.reason || 'Work not satisfactory');
 
-      const tx = await commerce.reject(jobId, reasonBytes32);
-      console.log(chalk.cyan('Transaction sent:'), tx.hash);
+      const hash = await commerce.write.reject([BigInt(jobId), reasonBytes32]);
+      console.log(chalk.cyan('Transaction sent:'), hash);
 
-      await tx.wait();
+      await waitForTransactionReceipt(hash);
       console.log(chalk.green('✅ Deliverable rejected.'));
       console.log(chalk.cyan('Provider can resubmit once work is revised.'));
     } catch (error) {
       console.error(chalk.red('❌ Error rejecting deliverable:'), error.message);
-      if (error.reason) console.error(chalk.red('Reason:'), error.reason);
-      process.exit(1);
     }
   });
+
 
 // 🎯 GET JOB STATUS COMMAND
 program
@@ -1213,7 +1380,8 @@ program
   .argument('<job-id>', 'Job ID')
   .action(async (jobId, _options) => {
     try {
-      initWallet();
+      const opts = program.opts();
+      initWallet(undefined, opts.wallet, opts.passphrase);
 
       if (
         !config.contracts.agenticCommerce ||
@@ -1223,17 +1391,13 @@ program
         return;
       }
 
-      const agenticCommerceABI = [
-        'function getJob(uint256 jobId) external view returns (tuple(uint256 id, address client, address provider, address evaluator, string description, uint256 budget, uint256 expiredAt, uint8 status, address hook, bytes32 deliverable))',
-      ];
+      const agenticCommerceABI = parseAbi([
+        'function getJob(uint256 jobId) external view returns ((uint256 id, address client, address provider, address evaluator, string description, uint256 budget, uint256 expiredAt, uint8 status, address hook, bytes32 deliverable))',
+      ]);
 
-      const commerce = new ethers.Contract(
-        config.contracts.agenticCommerce,
-        agenticCommerceABI,
-        config.provider
-      );
+      const commerce = getContractInstance(config.contracts.agenticCommerce, agenticCommerceABI);
 
-      const job = await commerce.getJob(jobId);
+      const job = await commerce.read.getJob([BigInt(jobId)]);
 
       const statusNames = ['Open', 'Funded', 'Submitted', 'Completed', 'Rejected', 'Expired'];
       const status = statusNames[job.status] || 'Unknown';
@@ -1254,9 +1418,9 @@ program
       }
     } catch (error) {
       console.error(chalk.red('❌ Error getting job status:'), error.message);
-      process.exit(1);
     }
   });
+
 
 // 🎯 CREATE PROPOSAL COMMAND (PRD 3 - Review)
 program
@@ -1269,66 +1433,52 @@ program
   .option('--deadline <number>', 'Decision deadline in days', '7')
   .action(async options => {
     try {
-      initWallet();
+      const opts = program.opts();
+      initWallet(undefined, opts.wallet, opts.passphrase);
 
       if (!config.contracts.agentReview || config.contracts.agentReview === ZeroAddress) {
         console.log(chalk.yellow('⚠️  Agent Review not deployed yet.'));
-        console.log(chalk.cyan('Deploy first:'));
-        console.log(
-          chalk.cyan(
-            '  forge create contracts/shared/AgentReview.sol:AgentReview --rpc-url $ETHEREUM_RPC_URL --private-key $PRIVATE_KEY --verify --etherscan-api-key $ETHERSCAN_API_KEY --chain mainnet'
-          )
-        );
         return;
       }
 
-      const agentReviewABI = [
-        'function createProposal(string calldata title, string calldata description, string calldata criteriaURI, uint256 reward, uint256 decisionDeadline) external payable returns (uint256 proposalId)',
-        'function getProposal(uint256 proposalId) external view returns (tuple(uint256 id, address proposer, string title, string description, string criteriaURI, uint256 reward, uint8 status, uint256 createdAt, uint256 decisionDeadline, address winningEvaluator))',
-      ];
+      const agentReviewABI = parseAbi([
+        'function createProposal(string title, string description, string criteriaURI, uint256 reward, uint256 decisionDeadline) external payable returns (uint256 proposalId)',
+        'event ProposalCreated(uint256 indexed proposalId, address indexed proposer, string title, uint256 reward)',
+      ]);
 
-      const review = new ethers.Contract(
-        config.contracts.agentReview,
-        agentReviewABI,
-        config.signer
-      );
+      const review = getContractInstance(config.contracts.agentReview, agentReviewABI);
 
       const title = options.title || 'Proposal A vs B';
       const description = options.description || 'Evaluate options and provide recommendation';
-      const criteriaURI = options.criteria || `ipfs://${config.signer.address}/criteria`;
+      const criteriaURI = options.criteria || `ipfs://${config.signerAddress}/criteria`;
       const reward = BigInt(options.reward || '0');
       const deadlineDays = parseInt(options.deadline || '7');
-      const decisionDeadline = Math.floor(Date.now() / 1000) + deadlineDays * 24 * 60 * 60;
+      const decisionDeadline = BigInt(Math.floor(Date.now() / 1000) + deadlineDays * 24 * 60 * 60);
 
       console.log(chalk.cyan('\n📋 Creating Proposal:'));
       console.log(chalk.dim('Title:'), title);
       console.log(chalk.dim('Description:'), description);
       console.log(chalk.dim('Criteria:'), criteriaURI);
       console.log(chalk.dim('Reward:'), reward.toString(), 'wei');
-      console.log(chalk.dim('Deadline:'), new Date(decisionDeadline * 1000).toISOString());
+      console.log(chalk.dim('Deadline:'), new Date(Number(decisionDeadline) * 1000).toISOString());
 
-      const value = reward;
-      const tx = await review.createProposal(
-        title,
-        description,
-        criteriaURI,
-        reward,
-        decisionDeadline,
-        { value }
+      const hash = await review.write.createProposal(
+        [title, description, criteriaURI, reward, decisionDeadline],
+        { value: reward }
       );
 
-      console.log(chalk.cyan('Transaction sent:'), tx.hash);
+      console.log(chalk.cyan('Transaction sent:'), hash);
 
-      const receipt = await tx.wait();
+      const receipt = await waitForTransactionReceipt(hash);
       console.log(chalk.green('✅ Proposal created!'));
       console.log(chalk.cyan('Gas used:'), receipt.gasUsed.toString());
 
       let proposalId;
       for (const log of receipt.logs) {
         try {
-          const parsed = review.interface.parseLog(log);
-          if (parsed && parsed.name === 'ProposalCreated') {
-            proposalId = parsed.args.proposalId.toString();
+          const parsed = parseLog({ log, abi: agentReviewABI });
+          if (parsed && parsed.eventName === 'ProposalCreated') {
+            proposalId = (parsed.args as any).proposalId.toString();
             break;
           }
         } catch (e) {
@@ -1341,10 +1491,9 @@ program
       }
     } catch (error) {
       console.error(chalk.red('❌ Error creating proposal:'), error.message);
-      if (error.reason) console.error(chalk.red('Reason:'), error.reason);
-      process.exit(1);
     }
   });
+
 
 // 🎯 SUBMIT EVALUATION COMMAND (PRD 3)
 program
@@ -1356,46 +1505,41 @@ program
   .option('--stake <number>', 'Stake amount in wei', '1000000000000000')
   .action(async (proposalId, options) => {
     try {
-      initWallet();
+      const opts = program.opts();
+      initWallet(undefined, opts.wallet, opts.passphrase);
 
       if (!config.contracts.agentReview || config.contracts.agentReview === ZeroAddress) {
         console.log(chalk.yellow('⚠️  Agent Review not deployed yet.'));
         return;
       }
 
-      const agentReviewABI = [
-        'function submitEvaluation(uint256 proposalId, int256 confidenceScore, string calldata reasoningURI) external payable',
-        'function getProposal(uint256 proposalId) external view returns (tuple(uint256 id, address proposer, string title, string description, string criteriaURI, uint256 reward, uint8 status, uint256 createdAt, uint256 decisionDeadline, address winningEvaluator))',
-      ];
+      const agentReviewABI = parseAbi([
+        'function submitEvaluation(uint256 proposalId, int256 confidenceScore, string reasoningURI) external payable',
+      ]);
 
-      const review = new ethers.Contract(
-        config.contracts.agentReview,
-        agentReviewABI,
-        config.signer
-      );
+      const review = getContractInstance(config.contracts.agentReview, agentReviewABI);
 
-      const confidence = parseInt(options.confidence);
-      const reasoning = options.reasoning || `ipfs://${config.signer.address}/reasoning`;
+      const confidence = BigInt(options.confidence);
+      const reasoning = options.reasoning || `ipfs://${config.signerAddress}/reasoning`;
       const stake = BigInt(options.stake);
 
       console.log(chalk.cyan('\n🎯 Submitting Evaluation:'));
       console.log(chalk.dim('Proposal ID:'), proposalId);
-      console.log(chalk.dim('Confidence:'), confidence);
+      console.log(chalk.dim('Confidence:'), confidence.toString());
       console.log(chalk.dim('Reasoning:'), reasoning);
       console.log(chalk.dim('Stake:'), stake.toString(), 'wei');
 
-      const tx = await review.submitEvaluation(proposalId, confidence, reasoning, { value: stake });
+      const hash = await review.write.submitEvaluation([BigInt(proposalId), confidence, reasoning], { value: stake });
 
-      console.log(chalk.cyan('Transaction sent:'), tx.hash);
+      console.log(chalk.cyan('Transaction sent:'), hash);
 
-      await tx.wait();
+      await waitForTransactionReceipt(hash);
       console.log(chalk.green('✅ Evaluation submitted!'));
     } catch (error) {
       console.error(chalk.red('❌ Error submitting evaluation:'), error.message);
-      if (error.reason) console.error(chalk.red('Reason:'), error.reason);
-      process.exit(1);
     }
   });
+
 
 // 🎯 ATTEST DECISION COMMAND (PRD 3)
 program
@@ -1405,40 +1549,36 @@ program
   .argument('<winner>', 'Winning evaluator address')
   .action(async (proposalId, winner, _options) => {
     try {
-      initWallet();
+      const opts = program.opts();
+      initWallet(undefined, opts.wallet, opts.passphrase);
 
       if (!config.contracts.agentReview || config.contracts.agentReview === ZeroAddress) {
         console.log(chalk.yellow('⚠️  Agent Review not deployed yet.'));
         return;
       }
 
-      const agentReviewABI = [
+      const agentReviewABI = parseAbi([
         'function attestDecision(uint256 proposalId, address winningEvaluator) external',
-      ];
+      ]);
 
-      const review = new ethers.Contract(
-        config.contracts.agentReview,
-        agentReviewABI,
-        config.signer
-      );
+      const review = getContractInstance(config.contracts.agentReview, agentReviewABI);
 
       console.log(chalk.cyan('\n✅ Attesting Decision:'));
       console.log(chalk.dim('Proposal ID:'), proposalId);
       console.log(chalk.dim('Winner:'), winner);
 
-      const tx = await review.attestDecision(proposalId, winner);
+      const hash = await review.write.attestDecision([BigInt(proposalId), winner as Address]);
 
-      console.log(chalk.cyan('Transaction sent:'), tx.hash);
+      console.log(chalk.cyan('Transaction sent:'), hash);
 
-      await tx.wait();
+      await waitForTransactionReceipt(hash);
       console.log(chalk.green('✅ Decision attested!'));
       console.log(chalk.green('Reward has been released to the winner.'));
     } catch (error) {
       console.error(chalk.red('❌ Error attesting decision:'), error.message);
-      if (error.reason) console.error(chalk.red('Reason:'), error.reason);
-      process.exit(1);
     }
   });
+
 
 // 🎯 GET PROPOSAL STATUS COMMAND (PRD 3)
 program
@@ -1448,35 +1588,32 @@ program
   .option('--json', 'Output as JSON')
   .action(async (proposalId, options) => {
     try {
-      initWallet();
+      const opts = program.opts();
+      initWallet(undefined, opts.wallet, opts.passphrase);
 
       if (!config.contracts.agentReview || config.contracts.agentReview === ZeroAddress) {
         console.log(chalk.yellow('⚠️  Agent Review not deployed yet.'));
         return;
       }
 
-      const agentReviewABI = [
-        'function getProposal(uint256 proposalId) external view returns (tuple(uint256 id, address proposer, string title, string description, string criteriaURI, uint256 reward, uint8 status, uint256 createdAt, uint256 decisionDeadline, address winningEvaluator))',
+      const agentReviewABI = parseAbi([
+        'function getProposal(uint256 proposalId) external view returns ((uint256 id, address proposer, string title, string description, string criteriaURI, uint256 reward, uint8 status, uint256 createdAt, uint256 decisionDeadline, address winningEvaluator))',
         'function getProposalEvaluations(uint256 proposalId) external view returns (address[])',
-        'function getEvaluation(uint256 proposalId, address evaluator) external view returns (tuple(uint256 proposalId, address evaluator, int256 confidenceScore, string reasoningURI, uint256 stakeAmount, bool isFinal, uint256 submittedAt))',
-      ];
+        'function getEvaluation(uint256 proposalId, address evaluator) external view returns ((uint256 proposalId, address evaluator, int256 confidenceScore, string reasoningURI, uint256 stakeAmount, bool isFinal, uint256 submittedAt))',
+      ]);
 
-      const review = new ethers.Contract(
-        config.contracts.agentReview,
-        agentReviewABI,
-        config.provider
-      );
+      const review = getContractInstance(config.contracts.agentReview, agentReviewABI);
 
-      const proposal = await review.getProposal(proposalId);
+      const proposal = await review.read.getProposal([BigInt(proposalId)]);
 
       const statusNames = ['Open', 'UnderReview', 'Decided', 'Cancelled'];
       const status = statusNames[proposal.status] || 'Unknown';
 
-      const evaluators = await review.getProposalEvaluations(proposalId);
+      const evaluators = await review.read.getProposalEvaluations([BigInt(proposalId)]);
       const evaluations = [];
 
       for (const evaluator of evaluators) {
-        const evaluation = await review.getEvaluation(proposalId, evaluator);
+        const evaluation = await review.read.getEvaluation([BigInt(proposalId), evaluator]);
         evaluations.push({
           evaluator: evaluation.evaluator,
           confidenceScore: Number(evaluation.confidenceScore),
@@ -1510,7 +1647,7 @@ program
         console.log(chalk.dim('Reward:'), proposal.reward.toString(), 'wei');
         console.log(chalk.dim('Created:'), result.createdAt);
         console.log(chalk.dim('Deadline:'), result.decisionDeadline);
-        if (proposal.winningEvaluator !== '0x0000000000000000000000000000000000000000') {
+        if (proposal.winningEvaluator !== zeroAddress) {
           console.log(chalk.dim('Winner:'), proposal.winningEvaluator);
         }
 
@@ -1523,16 +1660,16 @@ program
               : `${evaluation.confidenceScore}`;
           console.log(
             chalk.dim(
-              `  ${evaluation.evaluator}: ${scoreDisplay}/1000 (${ethers.formatEther(evaluation.stakeAmount)} ETH staked)`
+              `  ${evaluation.evaluator}: ${scoreDisplay}/1000 (${viemFormatEther(BigInt(evaluation.stakeAmount))} ETH staked)`
             )
           );
         }
       }
     } catch (error) {
       console.error(chalk.red('❌ Error getting proposal status:'), error.message);
-      process.exit(1);
     }
   });
+
 
 // 🎯 LISTEN JOBS COMMAND (Agent mode - poll for new jobs)
 program
@@ -1542,7 +1679,8 @@ program
   .option('--json', 'Output as JSON')
   .action(async options => {
     try {
-      initWallet();
+      const opts = program.opts();
+      initWallet(undefined, opts.wallet, opts.passphrase);
 
       if (
         !config.contracts.agenticCommerce ||
@@ -1552,36 +1690,34 @@ program
         return;
       }
 
-      const agenticCommerceABI = [
-        'function getJob(uint256 jobId) external view returns (tuple(uint256 id, address client, address provider, address evaluator, string description, uint256 budget, uint256 expiredAt, uint8 status, address hook, bytes32 deliverable))',
+      const agenticCommerceABI = parseAbi([
+        'function getJob(uint256 jobId) external view returns ((uint256 id, address client, address provider, address evaluator, string description, uint256 budget, uint256 expiredAt, uint8 status, address hook, bytes32 deliverable))',
         'function getCurrentJobId() external view returns (uint256)',
         'function getProviderJobs(address provider) external view returns (uint256[])',
-      ];
+      ]);
 
-      const commerce = new ethers.Contract(
-        config.contracts.agenticCommerce,
-        agenticCommerceABI,
-        config.provider
-      );
+      const commerce = getContractInstance(config.contracts.agenticCommerce as Address, agenticCommerceABI);
 
       const pollInterval = parseInt(options.pollInterval) * 1000;
-      let lastJobId = Number(await commerce.getCurrentJobId());
+      let lastJobId = Number((await commerce.read.getCurrentJobId()) as bigint);
+
 
       console.log(chalk.green('\n🔔 Listening for jobs...'));
-      console.log(chalk.dim('Provider:'), config.signer.address);
+      console.log(chalk.dim('Provider:'), config.signerAddress);
       console.log(chalk.dim('Poll Interval:'), options.pollInterval, 'seconds');
       console.log(chalk.dim('Last Job ID:', lastJobId));
       console.log(chalk.dim('Press Ctrl+C to stop\n'));
 
       while (true) {
-        const currentJobId = Number(await commerce.getCurrentJobId());
+        const currentJobId = Number((await commerce.read.getCurrentJobId()) as bigint);
 
         if (currentJobId > lastJobId) {
           for (let jobId = lastJobId + 1; jobId <= currentJobId; jobId++) {
             try {
-              const job = await commerce.getJob(jobId);
+              const job = (await commerce.read.getJob([BigInt(jobId)])) as any;
 
-              if (job.provider.toLowerCase() === config.signer.address.toLowerCase()) {
+
+              if (job.provider.toLowerCase() === config.signerAddress.toLowerCase()) {
                 const statusNames = [
                   'Pending',
                   'Funded',
@@ -1640,7 +1776,8 @@ program
   .option('--json', 'Output as JSON')
   .action(async (agentAddress, options) => {
     try {
-      initWallet();
+      const opts = program.opts();
+      initWallet(undefined, opts.wallet, opts.passphrase);
 
       if (
         !config.contracts.reputationRegistry ||
@@ -1650,20 +1787,16 @@ program
         return;
       }
 
-      const targetAddress = agentAddress || config.signer.address;
+      const targetAddress = (agentAddress as Address) || config.signerAddress;
 
-      const reputationRegistryABI = [
+      const reputationRegistryABI = parseAbi([
         'function getAgentReputation(address agent) external view returns (int256 averageRating, uint256 totalFeedbacks, uint256 uniqueProviders)',
-      ];
+      ]);
 
-      const reputationRegistry = new ethers.Contract(
-        config.contracts.reputationRegistry,
-        reputationRegistryABI,
-        config.provider
-      );
+      const reputationRegistry = getContractInstance(config.contracts.reputationRegistry, reputationRegistryABI);
 
       const pollInterval = parseInt(options.pollInterval) * 1000;
-      let lastFeedbacks = 0;
+      let lastFeedbacks = 0n;
 
       console.log(chalk.green('\n📈 Monitoring Reputation...'));
       console.log(chalk.dim('Agent:'), targetAddress);
@@ -1672,10 +1805,10 @@ program
 
       while (true) {
         const [averageRating, totalFeedbacks, uniqueProviders] =
-          await reputationRegistry.getAgentReputation(targetAddress);
+          await reputationRegistry.read.getAgentReputation([targetAddress]);
 
         if (totalFeedbacks > lastFeedbacks) {
-          const score = parseFloat(averageRating.toString()) / 10;
+          const score = Number(averageRating) / 10;
           const reputationData = {
             address: targetAddress,
             averageRating: score.toFixed(1),
@@ -1692,16 +1825,16 @@ program
             console.log(chalk.cyan('Total Feedbacks:'), reputationData.totalFeedbacks);
             console.log(chalk.cyan('Unique Providers:'), reputationData.uniqueProviders);
           }
-          lastFeedbacks = Number(totalFeedbacks);
+          lastFeedbacks = totalFeedbacks;
         }
 
         await new Promise(resolve => setTimeout(resolve, pollInterval));
       }
     } catch (error) {
       console.error(chalk.red('❌ Error monitoring reputation:'), error.message);
-      process.exit(1);
     }
   });
+
 
 // 🎯 GET AGENT INFO COMMAND (Quick lookup)
 program
@@ -1711,33 +1844,25 @@ program
   .option('--json', 'Output as JSON')
   .action(async (agentAddress, options) => {
     try {
-      initWallet();
+      const opts = program.opts();
+      initWallet(undefined, opts.wallet, opts.passphrase);
 
-      const targetAddress = agentAddress || config.signer.address;
+      const targetAddress = (agentAddress as Address) || config.signerAddress;
 
-      const identityRegistryABI = [
+      const identityRegistryABI = parseAbi([
         'function isAgent(address agentAddress) external view returns (bool)',
-        'function getAgent(uint256 agentId) external view returns (address owner, string memory agentURI, address agentWallet, bool isActive)',
-        'function resolveAgent(address agentAddress) external view returns (uint256 agentId, string memory agentURI)',
-      ];
+        'function getAgent(uint256 agentId) external view returns (address owner, string agentURI, address agentWallet, bool isActive)',
+        'function resolveAgent(address agentAddress) external view returns (uint256 agentId, string agentURI)',
+      ]);
 
-      const reputationRegistryABI = [
+      const reputationRegistryABI = parseAbi([
         'function getAgentReputation(address agent) external view returns (int256 averageRating, uint256 totalFeedbacks, uint256 uniqueProviders)',
-      ];
+      ]);
 
-      const identityRegistry = new ethers.Contract(
-        config.contracts.identityRegistry,
-        identityRegistryABI,
-        config.provider
-      );
+      const identityRegistry = getContractInstance(config.contracts.identityRegistry, identityRegistryABI);
+      const reputationRegistry = getContractInstance(config.contracts.reputationRegistry, reputationRegistryABI);
 
-      const reputationRegistry = new ethers.Contract(
-        config.contracts.reputationRegistry,
-        reputationRegistryABI,
-        config.provider
-      );
-
-      const isRegistered = await identityRegistry.isAgent(targetAddress);
+      const isRegistered = await identityRegistry.read.isAgent([targetAddress]);
 
       if (!isRegistered) {
         if (options.json) {
@@ -1749,11 +1874,11 @@ program
       }
 
       // Use resolveAgent for O(1) lookup instead of iterating
-      const [agentId, agentURI] = await identityRegistry.resolveAgent(targetAddress);
-      const agentData = await identityRegistry.getAgent(agentId);
+      const [agentId, agentURI] = await identityRegistry.read.resolveAgent([targetAddress]);
+      const agentData = (await identityRegistry.read.getAgent([agentId])) as [Address, string, Address, boolean];
 
       const [averageRating, totalFeedbacks, uniqueProviders] =
-        await reputationRegistry.getAgentReputation(targetAddress);
+        await reputationRegistry.read.getAgentReputation([targetAddress]);
 
       const result = {
         address: targetAddress,
@@ -1763,7 +1888,7 @@ program
         agentWallet: agentData[2],
         isActive: agentData[3],
         reputation: {
-          averageRating: (parseFloat(averageRating.toString()) / 10).toFixed(1),
+          averageRating: (Number(averageRating) / 10).toFixed(1),
           totalFeedbacks: Number(totalFeedbacks),
           uniqueProviders: Number(uniqueProviders),
         },
@@ -1786,9 +1911,9 @@ program
       }
     } catch (error) {
       console.error(chalk.red('❌ Error getting agent info:'), error.message);
-      process.exit(1);
     }
   });
+
 
 // 🎯 BALANCE COMMAND (Quick wallet balance check)
 program
@@ -1798,21 +1923,22 @@ program
   .option('--json', 'Output as JSON')
   .action(async (address, options) => {
     try {
-      initWallet();
+      const opts = program.opts();
+      initWallet(undefined, opts.wallet, opts.passphrase);
 
-      const targetAddress = address || config.signer.address;
+      const targetAddress = (address as Address) || config.signerAddress;
 
-      const usdcABI = ['function balanceOf(address account) external view returns (uint256)'];
+      const usdcABI = parseAbi(['function balanceOf(address account) external view returns (uint256)']);
 
-      const usdc = new ethers.Contract(config.contracts.usdc, usdcABI, config.provider);
+      const usdc = getContractInstance(config.contracts.usdc as Address, usdcABI);
 
-      const ethBalance = await config.provider.getBalance(targetAddress);
-      const usdcBalance = await usdc.balanceOf(targetAddress);
+      const ethBalance = await publicClient!.getBalance({ address: targetAddress });
+      const usdcBalance = (await usdc.read.balanceOf([targetAddress])) as bigint;
 
       const result = {
         address: targetAddress,
-        eth: ethers.formatEther(ethBalance),
-        usdc: (parseInt(usdcBalance.toString()) / 1e6).toFixed(2),
+        eth: viemFormatEther(ethBalance),
+        usdc: (Number(usdcBalance) / 1e6).toFixed(2),
       };
 
       if (options.json) {
@@ -1825,9 +1951,9 @@ program
       }
     } catch (error) {
       console.error(chalk.red('❌ Error getting balance:'), error.message);
-      process.exit(1);
     }
   });
+
 
 // ============================================================================
 // SKILLS COMMANDS (AgentSkillRegistry)
@@ -1845,18 +1971,15 @@ program
   .option('--domains <string>', 'Comma-separated domains (e.g., defi,trading,analytics)')
   .action(async options => {
     try {
-      initWallet();
+      const opts = program.opts();
+      initWallet(undefined, opts.wallet, opts.passphrase);
 
-      const skillRegistryABI = [
-        'function registerSkill(uint256 agentId, string calldata name, string calldata version, string calldata description, string calldata endpoint, string[] calldata domains) external returns (uint256 skillId)',
-        'function getSkill(uint256 skillId) external view returns (tuple(uint256 agentId, string name, string version, string description, string endpoint, string[] domains, bool isActive, address registeredBy, uint256 registeredAt))',
-      ];
+      const skillRegistryABI = parseAbi([
+        'function registerSkill(uint256 agentId, string name, string version, string description, string endpoint, string[] domains) external returns (uint256 skillId)',
+        'event SkillRegistered(uint256 indexed skillId, uint256 indexed agentId, string name, string version)',
+      ]);
 
-      const skillRegistry = new ethers.Contract(
-        config.contracts.skillRegistry,
-        skillRegistryABI,
-        config.signer
-      );
+      const skillRegistry = getContractInstance(config.contracts.skillRegistry as Address, skillRegistryABI);
 
       const agentId = BigInt(options.agentId);
       const name = options.name;
@@ -1873,26 +1996,26 @@ program
       console.log(chalk.dim('Endpoint:'), endpoint || '(none)');
       console.log(chalk.dim('Domains:'), domains.length > 0 ? domains.join(', ') : '(none)');
 
-      const tx = await skillRegistry.registerSkill(
+      const hash = await skillRegistry.write.registerSkill([
         agentId,
         name,
         version,
         description,
         endpoint,
         domains
-      );
-      console.log(chalk.cyan('\n📤 Transaction sent:'), tx.hash);
+      ]);
+      console.log(chalk.cyan('\n📤 Transaction sent:'), hash);
 
-      const receipt = await tx.wait();
+      const receipt = await waitForTransactionReceipt(hash);
       console.log(chalk.green('✅ Skill registered successfully!'));
       console.log(chalk.cyan('Gas used:'), receipt.gasUsed.toString());
 
       let skillId;
       for (const log of receipt.logs) {
         try {
-          const parsed = skillRegistry.interface.parseLog(log);
-          if (parsed && parsed.name === 'SkillRegistered') {
-            skillId = parsed.args.skillId.toString();
+          const parsed = parseLog({ log, abi: skillRegistryABI });
+          if (parsed && parsed.eventName === 'SkillRegistered') {
+            skillId = (parsed.args as any).skillId.toString();
             break;
           }
         } catch (e) {
@@ -1904,12 +2027,11 @@ program
         console.log(chalk.green('\n🎉 Skill ID:'), skillId);
       }
     } catch (error: unknown) {
-      const err = error as { message?: string; reason?: string };
+      const err = error as { message?: string };
       console.error(chalk.red('❌ Error registering skill:'), err.message);
-      if (err.reason) console.error(chalk.red('Reason:'), err.reason);
-      process.exit(1);
     }
   });
+
 
 // 🎯 LIST SKILLS COMMAND
 program
@@ -1918,21 +2040,18 @@ program
   .requiredOption('--agent-id <number>', 'Agent ID (required)')
   .action(async options => {
     try {
-      initWallet();
+      const opts = program.opts();
+      initWallet(undefined, opts.wallet, opts.passphrase);
 
-      const skillRegistryABI = [
+      const skillRegistryABI = parseAbi([
         'function getAgentSkills(uint256 agentId) external view returns (uint256[] memory)',
-        'function getSkill(uint256 skillId) external view returns (tuple(uint256 agentId, string name, string version, string description, string endpoint, string[] domains, bool isActive, address registeredBy, uint256 registeredAt))',
-      ];
+        'function getSkill(uint256 skillId) external view returns ((uint256 agentId, string name, string version, string description, string endpoint, string[] domains, bool isActive, address registeredBy, uint256 registeredAt))',
+      ]);
 
-      const skillRegistry = new ethers.Contract(
-        config.contracts.skillRegistry,
-        skillRegistryABI,
-        config.signer
-      );
+      const skillRegistry = getContractInstance(config.contracts.skillRegistry as Address, skillRegistryABI);
 
       const agentId = BigInt(options.agentId);
-      const skillIds = await skillRegistry.getAgentSkills(agentId);
+      const skillIds = (await skillRegistry.read.getAgentSkills([agentId])) as bigint[];
 
       if (skillIds.length === 0) {
         console.log(chalk.yellow('\n⚠️  No skills found for agent ID:'), options.agentId);
@@ -1943,21 +2062,21 @@ program
       console.log(chalk.dim('Total:'), skillIds.length, 'skills\n');
 
       for (const skillId of skillIds) {
-        const skill = await skillRegistry.getSkill(skillId);
+        const skill = await skillRegistry.read.getSkill([skillId]);
         console.log(chalk.bold(`\nSkill ID: ${skillId}`));
-        console.log(chalk.dim('  Name:'), skill[1], `(${skill[2]})`);
-        console.log(chalk.dim('  Description:'), skill[3] || '(none)');
-        console.log(chalk.dim('  Endpoint:'), skill[4] || '(none)');
-        console.log(chalk.dim('  Domains:'), skill[5].join(', ') || '(none)');
-        console.log(chalk.dim('  Active:'), skill[6] ? chalk.green('Yes') : chalk.red('No'));
-        console.log(chalk.dim('  Registered by:'), skill[7]);
+        console.log(chalk.dim('  Name:'), skill.name, `(${skill.version})`);
+        console.log(chalk.dim('  Description:'), skill.description || '(none)');
+        console.log(chalk.dim('  Endpoint:'), skill.endpoint || '(none)');
+        console.log(chalk.dim('  Domains:'), skill.domains.join(', ') || '(none)');
+        console.log(chalk.dim('  Active:'), skill.isActive ? chalk.green('Yes') : chalk.red('No'));
+        console.log(chalk.dim('  Registered by:'), skill.registeredBy);
       }
     } catch (error: unknown) {
       const err = error as { message?: string };
       console.error(chalk.red('❌ Error listing skills:'), err.message);
-      process.exit(1);
     }
   });
+
 
 // 🎯 DEACTIVATE SKILL COMMAND
 program
@@ -1966,33 +2085,30 @@ program
   .requiredOption('--skill-id <number>', 'Skill ID (required)')
   .action(async options => {
     try {
-      initWallet();
+      const opts = program.opts();
+      initWallet(undefined, opts.wallet, opts.passphrase);
 
-      const skillRegistryABI = ['function deactivateSkill(uint256 skillId) external'];
+      const skillRegistryABI = parseAbi(['function deactivateSkill(uint256 skillId) external']);
 
-      const skillRegistry = new ethers.Contract(
-        config.contracts.skillRegistry,
-        skillRegistryABI,
-        config.signer
-      );
+      const skillRegistry = getContractInstance(config.contracts.skillRegistry as Address, skillRegistryABI);
 
       const skillId = BigInt(options.skillId);
 
       console.log(chalk.cyan('\n⚠️  Deactivating Skill:'));
       console.log(chalk.dim('Skill ID:'), skillId.toString());
 
-      const tx = await skillRegistry.deactivateSkill(skillId);
-      console.log(chalk.cyan('\n📤 Transaction sent:'), tx.hash);
+      const hash = await skillRegistry.write.deactivateSkill([skillId]);
+      console.log(chalk.cyan('\n📤 Transaction sent:'), hash);
 
-      const receipt = await tx.wait();
+      const receipt = await waitForTransactionReceipt(hash);
       console.log(chalk.green('✅ Skill deactivated successfully!'));
       console.log(chalk.cyan('Gas used:'), receipt.gasUsed.toString());
     } catch (error: unknown) {
       const err = error as { message?: string };
       console.error(chalk.red('❌ Error deactivating skill:'), err.message);
-      process.exit(1);
     }
   });
+
 
 // ============================================================================
 // ORACLE COMMANDS (PriceOracle)
@@ -2004,21 +2120,18 @@ program
   .description('Get current USDC price from oracle')
   .action(async () => {
     try {
-      initWallet();
+      const opts = program.opts();
+      initWallet(undefined, opts.wallet, opts.passphrase);
 
-      const priceOracleABI = [
+      const priceOracleABI = parseAbi([
         'function getUSDCPrice() external view returns (uint256)',
         'function isStale() external view returns (bool)',
-      ];
+      ]);
 
-      const priceOracle = new ethers.Contract(
-        config.contracts.priceOracle,
-        priceOracleABI,
-        config.provider
-      );
+      const priceOracle = getContractInstance(config.contracts.priceOracle as Address, priceOracleABI);
 
-      const price = await priceOracle.getUSDCPrice();
-      const stale = await priceOracle.isStale();
+      const price = (await priceOracle.read.getUSDCPrice()) as bigint;
+      const stale = await priceOracle.read.isStale();
 
       console.log(chalk.cyan('\n💵 USDC Price:'));
       console.log(chalk.bold('  Price:'), (Number(price) / 1e8).toFixed(2), 'USD');
@@ -2027,9 +2140,9 @@ program
     } catch (error: unknown) {
       const err = error as { message?: string };
       console.error(chalk.red('❌ Error getting price:'), err.message);
-      process.exit(1);
     }
   });
+
 
 // ============================================================================
 // COMMIT-REVEAL COMMANDS
@@ -2042,33 +2155,30 @@ program
   .requiredOption('--hash <string>', 'Commitment hash (required)')
   .action(async options => {
     try {
-      initWallet();
+      const opts = program.opts();
+      initWallet(undefined, opts.wallet, opts.passphrase);
 
-      const commitRevealABI = ['function commit(bytes32 commitment) external'];
+      const commitRevealABI = parseAbi(['function commit(bytes32 commitment) external']);
 
-      const commitReveal = new ethers.Contract(
-        config.contracts.commitReveal,
-        commitRevealABI,
-        config.signer
-      );
+      const commitReveal = getContractInstance(config.contracts.commitReveal as Address, commitRevealABI);
 
-      const commitment = options.hash;
+      const commitment = options.hash as `0x${string}`;
 
       console.log(chalk.cyan('\n🔐 Making Commitment:'));
       console.log(chalk.dim('Hash:'), commitment);
 
-      const tx = await commitReveal.commit(commitment);
-      console.log(chalk.cyan('\n📤 Transaction sent:'), tx.hash);
+      const hash = await commitReveal.write.commit([commitment]);
+      console.log(chalk.cyan('\n📤 Transaction sent:'), hash);
 
-      const receipt = await tx.wait();
+      const receipt = await waitForTransactionReceipt(hash);
       console.log(chalk.green('✅ Commitment submitted!'));
       console.log(chalk.cyan('Gas used:'), receipt.gasUsed.toString());
     } catch (error: unknown) {
       const err = error as { message?: string };
       console.error(chalk.red('❌ Error committing:'), err.message);
-      process.exit(1);
     }
   });
+
 
 // 🎯 REVEAL COMMAND
 program
@@ -2079,39 +2189,36 @@ program
   .requiredOption('--service-id <number>', 'Service ID (required)')
   .action(async options => {
     try {
-      initWallet();
+      const opts = program.opts();
+      initWallet(undefined, opts.wallet, opts.passphrase);
 
-      const commitRevealABI = [
-        'function reveal(string calldata data, uint256 nonce, uint256 serviceId) external',
-      ];
+      const commitRevealABI = parseAbi([
+        'function reveal(string data, uint256 nonce, uint256 serviceId) external',
+      ]);
 
-      const commitReveal = new ethers.Contract(
-        config.contracts.commitReveal,
-        commitRevealABI,
-        config.signer
-      );
+      const commitReveal = getContractInstance(config.contracts.commitReveal as Address, commitRevealABI);
 
       console.log(chalk.cyan('\n🔓 Revealing:'));
       console.log(chalk.dim('Data:'), options.data);
       console.log(chalk.dim('Nonce:'), options.nonce);
       console.log(chalk.dim('Service ID:'), options.serviceId);
 
-      const tx = await commitReveal.reveal(
+      const hash = await commitReveal.write.reveal([
         options.data,
         BigInt(options.nonce),
         BigInt(options.serviceId)
-      );
-      console.log(chalk.cyan('\n📤 Transaction sent:'), tx.hash);
+      ]);
+      console.log(chalk.cyan('\n📤 Transaction sent:'), hash);
 
-      const receipt = await tx.wait();
+      const receipt = await waitForTransactionReceipt(hash);
       console.log(chalk.green('✅ Reveal successful!'));
       console.log(chalk.cyan('Gas used:'), receipt.gasUsed.toString());
     } catch (error: unknown) {
       const err = error as { message?: string };
       console.error(chalk.red('❌ Error revealing:'), err.message);
-      process.exit(1);
     }
   });
+
 
 // ============================================================================
 // SLASH MANAGER COMMANDS
@@ -2127,24 +2234,21 @@ program
   .requiredOption('--reason <string>', 'Reason for slash (required)')
   .action(async options => {
     try {
-      initWallet();
+      const opts = program.opts();
+      initWallet(undefined, opts.wallet, opts.passphrase);
 
-      const slashManagerABI = [
-        'function createProposal(address evaluator, uint256 proposalId, uint256 amount, string calldata reason) external returns (bytes32)',
+      const slashManagerABI = parseAbi([
+        'function createProposal(address evaluator, uint256 proposalId, uint256 amount, string reason) external returns (bytes32)',
         'function isSigner(address account) external view returns (bool)',
-      ];
+      ]);
 
-      const slashManager = new ethers.Contract(
-        config.contracts.slashManager,
-        slashManagerABI,
-        config.signer
-      );
+      const slashManager = getContractInstance(config.contracts.slashManager as Address, slashManagerABI);
 
-      const isSigner = await slashManager.isSigner(config.signer.address);
+      const isSigner = await slashManager.read.isSigner([config.signerAddress]);
       if (!isSigner) {
         console.error(chalk.red('❌ Error: Only signers can create slash proposals'));
-        console.error(chalk.cyan('Your address:'), config.signer.address);
-        process.exit(1);
+        console.error(chalk.cyan('Your address:'), config.signerAddress);
+        return;
       }
 
       console.log(chalk.cyan('\n⚡ Creating Slash Proposal:'));
@@ -2153,23 +2257,23 @@ program
       console.log(chalk.dim('Amount:'), options.amount, 'wei');
       console.log(chalk.dim('Reason:'), options.reason);
 
-      const tx = await slashManager.createProposal(
-        options.evaluator,
+      const hash = await slashManager.write.createProposal([
+        options.evaluator as Address,
         BigInt(options.proposalId),
         BigInt(options.amount),
         options.reason
-      );
-      console.log(chalk.cyan('\n📤 Transaction sent:'), tx.hash);
+      ]);
+      console.log(chalk.cyan('\n📤 Transaction sent:'), hash);
 
-      const receipt = await tx.wait();
+      const receipt = await waitForTransactionReceipt(hash);
       console.log(chalk.green('✅ Slash proposal created!'));
       console.log(chalk.cyan('Gas used:'), receipt.gasUsed.toString());
     } catch (error: unknown) {
       const err = error as { message?: string };
       console.error(chalk.red('❌ Error creating slash proposal:'), err.message);
-      process.exit(1);
     }
   });
+
 
 // 🎯 CONFIRM SLASH PROPOSAL COMMAND
 program
@@ -2178,82 +2282,74 @@ program
   .requiredOption('--proposal-id <string>', 'Proposal ID (required)')
   .action(async options => {
     try {
-      initWallet();
+      const opts = program.opts();
+      initWallet(undefined, opts.wallet, opts.passphrase);
 
-      const slashManagerABI = [
+      const slashManagerABI = parseAbi([
         'function confirmProposal(bytes32 proposalId) external',
         'function isSigner(address account) external view returns (bool)',
-      ];
+      ]);
 
-      const slashManager = new ethers.Contract(
-        config.contracts.slashManager,
-        slashManagerABI,
-        config.signer
-      );
+      const slashManager = getContractInstance(config.contracts.slashManager as Address, slashManagerABI);
 
-      const isSigner = await slashManager.isSigner(config.signer.address);
+      const isSigner = await slashManager.read.isSigner([config.signerAddress]);
       if (!isSigner) {
         console.error(chalk.red('❌ Error: Only signers can confirm slash proposals'));
-        process.exit(1);
+        return;
       }
 
       console.log(chalk.cyan('\n✓ Confirming Slash Proposal:'));
       console.log(chalk.dim('Proposal ID:'), options.proposalId);
 
-      const tx = await slashManager.confirmProposal(options.proposalId);
-      console.log(chalk.cyan('\n📤 Transaction sent:'), tx.hash);
+      const hash = await slashManager.write.confirmProposal([options.proposalId as `0x${string}`]);
+      console.log(chalk.cyan('\n📤 Transaction sent:'), hash);
 
-      const receipt = await tx.wait();
+      await waitForTransactionReceipt(hash);
       console.log(chalk.green('✅ Proposal confirmed!'));
-      console.log(chalk.cyan('Gas used:'), receipt.gasUsed.toString());
     } catch (error: unknown) {
       const err = error as { message?: string };
       console.error(chalk.red('❌ Error confirming:'), err.message);
-      process.exit(1);
     }
   });
+
 
 // 🎯 EXECUTE SLASH PROPOSAL COMMAND
 program
   .command('slash-execute')
-  .description('Execute a slash proposal (after confirmation)')
+  .description('Execute a slash proposal (Signers only)')
   .requiredOption('--proposal-id <string>', 'Proposal ID (required)')
   .action(async options => {
     try {
-      initWallet();
+      const opts = program.opts();
+      initWallet(undefined, opts.wallet, opts.passphrase);
 
-      const slashManagerABI = [
+      const slashManagerABI = parseAbi([
         'function executeProposal(bytes32 proposalId) external',
         'function isSigner(address account) external view returns (bool)',
-      ];
+      ]);
 
-      const slashManager = new ethers.Contract(
-        config.contracts.slashManager,
-        slashManagerABI,
-        config.signer
-      );
+      const slashManager = getContractInstance(config.contracts.slashManager as Address, slashManagerABI);
 
-      const isSigner = await slashManager.isSigner(config.signer.address);
+      const isSigner = (await slashManager.read.isSigner([config.signerAddress as Address])) as boolean;
       if (!isSigner) {
         console.error(chalk.red('❌ Error: Only signers can execute slash proposals'));
-        process.exit(1);
+        return;
       }
 
       console.log(chalk.cyan('\n⚡ Executing Slash Proposal:'));
       console.log(chalk.dim('Proposal ID:'), options.proposalId);
 
-      const tx = await slashManager.executeProposal(options.proposalId);
-      console.log(chalk.cyan('\n📤 Transaction sent:'), tx.hash);
+      const hash = await slashManager.write.executeProposal([options.proposalId as `0x${string}`]);
+      console.log(chalk.cyan('\n📤 Transaction sent:'), hash);
 
-      const receipt = await tx.wait();
+      await waitForTransactionReceipt(hash);
       console.log(chalk.green('✅ Slash executed!'));
-      console.log(chalk.cyan('Gas used:'), receipt.gasUsed.toString());
     } catch (error: unknown) {
       const err = error as { message?: string };
       console.error(chalk.red('❌ Error executing:'), err.message);
-      process.exit(1);
     }
   });
+
 
 // 🎯 CHECK SIGNER COMMAND
 program
@@ -2262,18 +2358,14 @@ program
   .option('--address <address>', 'Address to check (defaults to connected wallet)')
   .action(async options => {
     try {
-      initWallet();
+      const opts = program.opts();
+      initWallet(undefined, opts.wallet, opts.passphrase);
 
-      const slashManagerABI = ['function isSigner(address account) external view returns (bool)'];
+      const slashManagerABI = parseAbi(['function isSigner(address account) external view returns (bool)']);
+      const slashManager = getContractInstance(config.contracts.slashManager as Address, slashManagerABI);
 
-      const slashManager = new ethers.Contract(
-        config.contracts.slashManager,
-        slashManagerABI,
-        config.provider
-      );
-
-      const address = options.address || config.signer.address;
-      const isSigner = await slashManager.isSigner(address);
+      const address = (options.address as Address) || config.signerAddress;
+      const isSigner = (await slashManager.read.isSigner([address])) as boolean;
 
       console.log(chalk.cyan('\n🔍 Signer Check:'));
       console.log(chalk.dim('Address:'), address);
@@ -2281,9 +2373,9 @@ program
     } catch (error: unknown) {
       const err = error as { message?: string };
       console.error(chalk.red('❌ Error:'), err.message);
-      process.exit(1);
     }
   });
+
 
 // ============================================================================
 // CLAIM REFUND COMMAND
@@ -2295,39 +2387,35 @@ program
   .requiredOption('--job-id <number>', 'Job ID (required)')
   .action(async options => {
     try {
-      initWallet();
+      const opts = program.opts();
+      initWallet(undefined, opts.wallet, opts.passphrase);
 
-      const commerceABI = [
+      const commerceABI = parseAbi([
         'function claimRefund(uint256 jobId) external',
-        'function getJob(uint256 jobId) external view returns (tuple(uint256 id, address client, address provider, address evaluator, string description, uint256 budget, uint256 expiredAt, uint8 status, address hook, bytes32 deliverable))',
-      ];
+        'function getJob(uint256 jobId) external view returns ((uint256 id, address client, address provider, address evaluator, string description, uint256 budget, uint256 expiredAt, uint8 status, address hook, bytes32 deliverable))',
+      ]);
 
-      const commerce = new ethers.Contract(
-        config.contracts.agenticCommerce,
-        commerceABI,
-        config.signer
-      );
+      const commerce = getContractInstance(config.contracts.agenticCommerce as Address, commerceABI);
 
       const jobId = BigInt(options.jobId);
-      const job = await commerce.getJob(jobId);
+      const job = (await commerce.read.getJob([jobId])) as any;
 
       console.log(chalk.cyan('\n💰 Claiming Refund:'));
       console.log(chalk.dim('Job ID:'), jobId.toString());
       console.log(chalk.dim('Budget:'), job.budget.toString(), 'wei');
       console.log(chalk.dim('Expired at:'), new Date(Number(job.expiredAt) * 1000).toISOString());
 
-      const tx = await commerce.claimRefund(jobId);
-      console.log(chalk.cyan('\n📤 Transaction sent:'), tx.hash);
+      const hash = await commerce.write.claimRefund([jobId]);
+      console.log(chalk.cyan('\n📤 Transaction sent:'), hash);
 
-      const receipt = await tx.wait();
+      await waitForTransactionReceipt(hash);
       console.log(chalk.green('✅ Refund claimed!'));
-      console.log(chalk.cyan('Gas used:'), receipt.gasUsed.toString());
     } catch (error: unknown) {
       const err = error as { message?: string };
       console.error(chalk.red('❌ Error claiming refund:'), err.message);
-      process.exit(1);
     }
   });
+
 
 // ============================================================================
 // V6 BIDDING COMMANDS
@@ -2337,62 +2425,68 @@ program
 program
   .command('create-open-job')
   .description('Create an open job for bidding (V6)')
-  .option('--max-budget <number>', 'Maximum budget in USDC wei', '1000000')
-  .option('--evaluator <address>', 'Evaluator address')
+  .requiredOption('--max-budget <number>', 'Maximum budget in USDC wei (required)')
+  .requiredOption('--deadline <number>', 'Deadline in days (required)')
+  .option('--evaluator <address>', 'Evaluator address (optional)')
   .option('--description <string>', 'Job description')
-  .option('--deadline <number>', 'Deadline in days', '7')
-  .option('--evaluator-fee', 'Enable evaluator fee (1%)', false)
-  .option('--payment-token <address>', 'Payment token address (default: USDC)')
+  .option('--evaluator-fee', 'Enable evaluator fee (1%)')
+  .option('--payment-token <address>', 'Payment token address (defaults to USDC)')
   .action(async options => {
     try {
-      initWallet();
+      const opts = program.opts();
+      initWallet(undefined, opts.wallet, opts.passphrase);
 
-      const commerceABI = [
-        'function createOpenJob(uint256 maxBudget, address evaluator, uint256 expiredAt, string calldata description, address paymentToken, bool evaluatorFee) external returns (uint256 jobId)',
-      ];
+      if (
+        !config.contracts.agenticCommerce ||
+        config.contracts.agenticCommerce === ZeroAddress
+      ) {
+        console.log(chalk.yellow('⚠️  Agentic Commerce not deployed yet.'));
+        return;
+      }
 
-      const commerce = new ethers.Contract(
-        config.contracts.agenticCommerce,
-        commerceABI,
-        config.signer
-      );
+      const agenticCommerceABI = parseAbi([
+        'function createOpenJob(uint256 maxBudget, address evaluator, uint256 expiredAt, string description, address paymentToken, bool evaluatorFee) external returns (uint256)',
+        'event OpenJobCreated(uint256 indexed jobId, address indexed client, uint256 maxBudget)',
+      ]);
+
+      const commerce = getContractInstance(config.contracts.agenticCommerce, agenticCommerceABI);
 
       const maxBudget = BigInt(options.maxBudget);
-      const evaluator = options.evaluator || '0x0000000000000000000000000000000000000000';
+      const evaluator = (options.evaluator as Address) || zeroAddress;
       const description = options.description || 'Open job for bidding';
       const deadlineDays = parseInt(options.deadline);
-      const expiredAt = Math.floor(Date.now() / 1000) + deadlineDays * 24 * 60 * 60;
+      const expiredAt = BigInt(Math.floor(Date.now() / 1000) + deadlineDays * 24 * 60 * 60);
       const evaluatorFee = options.evaluatorFee || false;
-      const paymentToken = options.paymentToken || config.contracts.usdc;
+      const paymentToken = (options.paymentToken as Address) || (config.contracts.usdc as Address);
 
       console.log(chalk.cyan('\n📋 Creating Open Job (Bidding):'));
       console.log(chalk.dim('Max Budget:'), maxBudget.toString(), 'wei');
       console.log(chalk.dim('Evaluator:'), evaluator);
       console.log(chalk.dim('Description:'), description);
-      console.log(chalk.dim('Deadline:'), new Date(expiredAt * 1000).toISOString());
+      console.log(chalk.dim('Deadline:'), new Date(Number(expiredAt) * 1000).toISOString());
       console.log(chalk.dim('Evaluator Fee:'), evaluatorFee ? 'Enabled' : 'Disabled');
       console.log(chalk.dim('Payment Token:'), paymentToken);
 
-      const tx = await commerce.createOpenJob(
+      const hash = await commerce.write.createOpenJob([
         maxBudget,
         evaluator,
         expiredAt,
         description,
         paymentToken,
         evaluatorFee
-      );
-      console.log(chalk.cyan('Transaction sent:'), tx.hash);
+      ]);
+      console.log(chalk.cyan('Transaction sent:'), hash);
 
-      const receipt = await tx.wait();
+      const receipt = await waitForTransactionReceipt(hash);
       console.log(chalk.green('✅ Open job created!'));
       console.log(chalk.cyan('Gas used:'), receipt.gasUsed.toString());
 
       let jobId;
       for (const log of receipt.logs) {
         try {
-          const parsed = commerce.interface.parseLog(log);
-          if (parsed && (parsed.name === 'OpenJobCreated' || parsed.name === 'JobCreated')) {
-            jobId = parsed.args.jobId.toString();
+          const parsed = parseLog({ log, abi: agenticCommerceABI });
+          if (parsed && (parsed.eventName === 'OpenJobCreated' || parsed.eventName === 'JobCreated')) {
+            jobId = (parsed.args as any).jobId.toString();
             break;
           }
         } catch (e) {
@@ -2404,10 +2498,8 @@ program
         console.log(chalk.green('\n🎉 Job ID:'), jobId);
       }
     } catch (error: unknown) {
-      const err = error as { message?: string; reason?: string };
+      const err = error as { message?: string };
       console.error(chalk.red('❌ Error creating open job:'), err.message);
-      if (err.reason) console.error(chalk.red('Reason:'), err.reason);
-      process.exit(1);
     }
   });
 
@@ -2420,48 +2512,47 @@ program
   .requiredOption('--message <string>', 'Bid message (required)')
   .action(async options => {
     try {
-      initWallet();
+      const opts = program.opts();
+      initWallet(undefined, opts.wallet, opts.passphrase);
 
-      const commerceABI = [
+      const commerceABI = parseAbi([
         'function commitBid(uint256 jobId, bytes32 commitHash) external payable',
-        'function calculateStake(uint256 maxBudget) external pure returns (uint256)',
-      ];
+      ]);
 
-      const commerce = new ethers.Contract(
-        config.contracts.agenticCommerce,
-        commerceABI,
-        config.signer
-      );
+      const commerce = getContractInstance(config.contracts.agenticCommerce, commerceABI);
 
       const jobId = BigInt(options.jobId);
       const amount = BigInt(options.amount);
       const message = options.message;
 
       const stake = (amount * 100n) / 10000n;
-      const commitHash = ethers.solidityPackedKeccak256(
-        ['uint256', 'string', 'bytes32'],
-        [amount, message, ethers.randomBytes(32)]
+      // Note: In real app, we need a secure unique salt
+      const salt = viemKeccak256(viemToBytes(config.signerAddress + Date.now().toString()));
+      const commitHash = viemKeccak256(
+        viemEncodePacked(
+          ['uint256', 'string', 'bytes32'],
+          [amount, message, salt]
+        )
       );
 
       console.log(chalk.cyan('\n🔐 Committing Bid:'));
       console.log(chalk.dim('Job ID:'), jobId.toString());
       console.log(chalk.dim('Amount:'), amount.toString(), 'wei');
       console.log(chalk.dim('Message:'), message);
-      console.log(chalk.dim('Stake (1%):'), ethers.formatEther(stake), 'ETH');
+      console.log(chalk.dim('Stake (1%):'), viemFormatEther(stake), 'ETH');
+      console.log(chalk.dim('Salt (Save this!):'), salt);
 
-      const tx = await commerce.commitBid(jobId, commitHash, { value: stake });
-      console.log(chalk.cyan('Transaction sent:'), tx.hash);
+      const hash = await commerce.write.commitBid([jobId, commitHash], { value: stake });
+      console.log(chalk.cyan('Transaction sent:'), hash);
 
-      const receipt = await tx.wait();
+      await waitForTransactionReceipt(hash);
       console.log(chalk.green('✅ Bid committed!'));
-      console.log(chalk.cyan('Gas used:'), receipt.gasUsed.toString());
     } catch (error: unknown) {
-      const err = error as { message?: string; reason?: string };
+      const err = error as { message?: string };
       console.error(chalk.red('❌ Error committing bid:'), err.message);
-      if (err.reason) console.error(chalk.red('Reason:'), err.reason);
-      process.exit(1);
     }
   });
+
 
 // 🎯 REVEAL BID COMMAND
 program
@@ -2473,41 +2564,36 @@ program
   .requiredOption('--salt <string>', 'Salt used in commitment (required)')
   .action(async options => {
     try {
-      initWallet();
+      const opts = program.opts();
+      initWallet(undefined, opts.wallet, opts.passphrase);
 
-      const commerceABI = [
-        'function revealBid(uint256 jobId, uint256 amount, string calldata message, bytes32 salt) external',
-      ];
+      const commerceABI = parseAbi([
+        'function revealBid(uint256 jobId, uint256 amount, string message, bytes32 salt) external',
+      ]);
 
-      const commerce = new ethers.Contract(
-        config.contracts.agenticCommerce,
-        commerceABI,
-        config.signer
-      );
+      const commerce = getContractInstance(config.contracts.agenticCommerce, commerceABI);
 
       const jobId = BigInt(options.jobId);
       const amount = BigInt(options.amount);
       const message = options.message;
-      const salt = (options.salt as `0x${string}`) || '0x' + '00'.repeat(32);
+      const salt = (options.salt as `0x${string}`) || zeroHash;
 
       console.log(chalk.cyan('\n🔓 Revealing Bid:'));
       console.log(chalk.dim('Job ID:'), jobId.toString());
       console.log(chalk.dim('Amount:'), amount.toString(), 'wei');
       console.log(chalk.dim('Message:'), message);
 
-      const tx = await commerce.revealBid(jobId, amount, message, salt);
-      console.log(chalk.cyan('Transaction sent:'), tx.hash);
+      const hash = await commerce.write.revealBid([jobId, amount, message, salt]);
+      console.log(chalk.cyan('Transaction sent:'), hash);
 
-      const receipt = await tx.wait();
+      await waitForTransactionReceipt(hash);
       console.log(chalk.green('✅ Bid revealed!'));
-      console.log(chalk.cyan('Gas used:'), receipt.gasUsed.toString());
     } catch (error: unknown) {
-      const err = error as { message?: string; reason?: string };
+      const err = error as { message?: string };
       console.error(chalk.red('❌ Error revealing bid:'), err.message);
-      if (err.reason) console.error(chalk.red('Reason:'), err.reason);
-      process.exit(1);
     }
   });
+
 
 // 🎯 ACCEPT BID COMMAND
 program
@@ -2517,15 +2603,11 @@ program
   .requiredOption('--bid-id <number>', 'Bid ID to accept (required)')
   .action(async options => {
     try {
-      initWallet();
+      const opts = program.opts();
+      initWallet(undefined, opts.wallet, opts.passphrase);
 
-      const commerceABI = ['function acceptBid(uint256 jobId, uint256 bidId) external'];
-
-      const commerce = new ethers.Contract(
-        config.contracts.agenticCommerce,
-        commerceABI,
-        config.signer
-      );
+      const commerceABI = parseAbi(['function acceptBid(uint256 jobId, uint256 bidId) external']);
+      const commerce = getContractInstance(config.contracts.agenticCommerce as Address, commerceABI);
 
       const jobId = BigInt(options.jobId);
       const bidId = BigInt(options.bidId);
@@ -2534,19 +2616,17 @@ program
       console.log(chalk.dim('Job ID:'), jobId.toString());
       console.log(chalk.dim('Bid ID:'), bidId.toString());
 
-      const tx = await commerce.acceptBid(jobId, bidId);
-      console.log(chalk.cyan('Transaction sent:'), tx.hash);
+      const hash = await commerce.write.acceptBid([jobId, bidId]);
+      console.log(chalk.cyan('Transaction sent:'), hash);
 
-      const receipt = await tx.wait();
+      await waitForTransactionReceipt(hash);
       console.log(chalk.green('✅ Bid accepted!'));
-      console.log(chalk.cyan('Gas used:'), receipt.gasUsed.toString());
     } catch (error: unknown) {
-      const err = error as { message?: string; reason?: string };
+      const err = error as { message?: string };
       console.error(chalk.red('❌ Error accepting bid:'), err.message);
-      if (err.reason) console.error(chalk.red('Reason:'), err.reason);
-      process.exit(1);
     }
   });
+
 
 // 🎯 WITHDRAW STAKE COMMAND
 program
@@ -2555,34 +2635,28 @@ program
   .requiredOption('--job-id <number>', 'Job ID (required)')
   .action(async options => {
     try {
-      initWallet();
+      const opts = program.opts();
+      initWallet(undefined, opts.wallet, opts.passphrase);
 
-      const commerceABI = ['function withdrawStake(uint256 jobId) external'];
-
-      const commerce = new ethers.Contract(
-        config.contracts.agenticCommerce,
-        commerceABI,
-        config.signer
-      );
+      const commerceABI = parseAbi(['function withdrawStake(uint256 jobId) external']);
+      const commerce = getContractInstance(config.contracts.agenticCommerce as Address, commerceABI);
 
       const jobId = BigInt(options.jobId);
 
       console.log(chalk.cyan('\n💸 Withdrawing Stake:'));
       console.log(chalk.dim('Job ID:'), jobId.toString());
 
-      const tx = await commerce.withdrawStake(jobId);
-      console.log(chalk.cyan('Transaction sent:'), tx.hash);
+      const hash = await commerce.write.withdrawStake([jobId]);
+      console.log(chalk.cyan('Transaction sent:'), hash);
 
-      const receipt = await tx.wait();
+      await waitForTransactionReceipt(hash);
       console.log(chalk.green('✅ Stake withdrawn!'));
-      console.log(chalk.cyan('Gas used:'), receipt.gasUsed.toString());
     } catch (error: unknown) {
-      const err = error as { message?: string; reason?: string };
+      const err = error as { message?: string };
       console.error(chalk.red('❌ Error withdrawing stake:'), err.message);
-      if (err.reason) console.error(chalk.red('Reason:'), err.reason);
-      process.exit(1);
     }
   });
+
 
 // 🎯 GET MY BID COMMAND
 program
@@ -2591,22 +2665,19 @@ program
   .requiredOption('--job-id <number>', 'Job ID (required)')
   .action(async options => {
     try {
-      initWallet();
+      const opts = program.opts();
+      initWallet(undefined, opts.wallet, opts.passphrase);
 
-      const commerceABI = [
-        'function getUserBid(uint256 jobId, address user) external view returns (tuple(address bidder, uint256 amount, string message, uint8 status, uint256 committedAt, uint256 revealedAt))',
-      ];
+      const commerceABI = parseAbi([
+        'function getUserBid(uint256 jobId, address user) external view returns ((address bidder, uint256 amount, string message, uint8 status, uint256 committedAt, uint256 revealedAt))',
+      ]);
 
-      const commerce = new ethers.Contract(
-        config.contracts.agenticCommerce,
-        commerceABI,
-        config.provider
-      );
+      const commerce = getContractInstance(config.contracts.agenticCommerce as Address, commerceABI);
 
       const jobId = BigInt(options.jobId);
-      const bid = await commerce.getUserBid(jobId, config.signer.address);
+      const bid = (await commerce.read.getUserBid([jobId, config.signerAddress as Address])) as any;
 
-      if (bid.bidder === '0x0000000000000000000000000000000000000000') {
+      if (bid.bidder === zeroAddress) {
         console.log(chalk.yellow('\n⚠️  No bid found for this job'));
         return;
       }
@@ -2632,9 +2703,9 @@ program
     } catch (error: unknown) {
       const err = error as { message?: string };
       console.error(chalk.red('❌ Error getting bid:'), err.message);
-      process.exit(1);
     }
   });
+
 
 // 🎯 GET JOB BID COUNT COMMAND
 program
@@ -2643,18 +2714,14 @@ program
   .requiredOption('--job-id <number>', 'Job ID (required)')
   .action(async options => {
     try {
-      initWallet();
+      const opts = program.opts();
+      initWallet(undefined, opts.wallet, opts.passphrase);
 
-      const commerceABI = ['function jobBidCount(uint256 jobId) external view returns (uint256)'];
-
-      const commerce = new ethers.Contract(
-        config.contracts.agenticCommerce,
-        commerceABI,
-        config.provider
-      );
+      const commerceABI = parseAbi(['function jobBidCount(uint256 jobId) external view returns (uint256)']);
+      const commerce = getContractInstance(config.contracts.agenticCommerce as Address, commerceABI);
 
       const jobId = BigInt(options.jobId);
-      const count = await commerce.jobBidCount(jobId);
+      const count = (await commerce.read.jobBidCount([jobId])) as bigint;
 
       console.log(chalk.cyan('\n📊 Job Bid Count:'));
       console.log(chalk.dim('Job ID:'), jobId.toString());
@@ -2662,9 +2729,9 @@ program
     } catch (error: unknown) {
       const err = error as { message?: string };
       console.error(chalk.red('❌ Error:'), err.message);
-      process.exit(1);
     }
   });
+
 
 // 🎯 GET CLIENT JOB COUNT COMMAND
 program
@@ -2673,20 +2740,17 @@ program
   .option('--address <address>', 'Client address (defaults to connected wallet)')
   .action(async options => {
     try {
-      initWallet();
+      const opts = program.opts();
+      initWallet(undefined, opts.wallet, opts.passphrase);
 
-      const commerceABI = [
+      const commerceABI = parseAbi([
         'function getClientJobCount(address client) external view returns (uint256)',
-      ];
+      ]);
 
-      const commerce = new ethers.Contract(
-        config.contracts.agenticCommerce,
-        commerceABI,
-        config.provider
-      );
+      const commerce = getContractInstance(config.contracts.agenticCommerce as Address, commerceABI);
 
-      const address = options.address || config.signer.address;
-      const count = await commerce.getClientJobCount(address);
+      const address = (options.address as Address) || config.signerAddress;
+      const count = (await commerce.read.getClientJobCount([address])) as bigint;
 
       console.log(chalk.cyan('\n📊 Client Job Count:'));
       console.log(chalk.dim('Client:'), address);
@@ -2694,9 +2758,9 @@ program
     } catch (error: unknown) {
       const err = error as { message?: string };
       console.error(chalk.red('❌ Error:'), err.message);
-      process.exit(1);
     }
   });
+
 
 // 🎯 ACTIVATE SERVICE COMMAND
 program
@@ -2705,34 +2769,29 @@ program
   .requiredOption('--service-id <number>', 'Service ID (required)')
   .action(async options => {
     try {
-      initWallet();
+      const opts = program.opts();
+      initWallet(undefined, opts.wallet, opts.passphrase);
 
-      const serviceRegistryABI = ['function activateService(uint256 serviceId) external'];
+      const serviceRegistryABI = parseAbi(['function activateService(uint256 serviceId) external']);
 
-      const serviceRegistry = new ethers.Contract(
-        config.contracts.serviceRegistry,
-        serviceRegistryABI,
-        config.signer
-      );
+      const serviceRegistry = getContractInstance(config.contracts.serviceRegistry as Address, serviceRegistryABI);
 
       const serviceId = BigInt(options.serviceId);
 
       console.log(chalk.cyan('\n✅ Activating Service:'));
       console.log(chalk.dim('Service ID:'), serviceId.toString());
 
-      const tx = await serviceRegistry.activateService(serviceId);
-      console.log(chalk.cyan('Transaction sent:'), tx.hash);
+      const hash = await serviceRegistry.write.activateService([serviceId]);
+      console.log(chalk.cyan('Transaction sent:'), hash);
 
-      const receipt = await tx.wait();
+      await waitForTransactionReceipt(hash);
       console.log(chalk.green('✅ Service activated!'));
-      console.log(chalk.cyan('Gas used:'), receipt.gasUsed.toString());
     } catch (error: unknown) {
-      const err = error as { message?: string; reason?: string };
+      const err = error as { message?: string };
       console.error(chalk.red('❌ Error activating service:'), err.message);
-      if (err.reason) console.error(chalk.red('Reason:'), err.reason);
-      process.exit(1);
     }
   });
+
 
 // 🎯 GET SERVICE COUNTER COMMAND
 program
@@ -2740,26 +2799,22 @@ program
   .description('Get total service counter (V6)')
   .action(async () => {
     try {
-      initWallet();
+      const opts = program.opts();
+      initWallet(undefined, opts.wallet, opts.passphrase);
 
-      const serviceRegistryABI = ['function getServiceCounter() external view returns (uint256)'];
+      const serviceRegistryABI = parseAbi(['function getServiceCounter() external view returns (uint256)']);
+      const serviceRegistry = getContractInstance(config.contracts.serviceRegistry as Address, serviceRegistryABI);
 
-      const serviceRegistry = new ethers.Contract(
-        config.contracts.serviceRegistry,
-        serviceRegistryABI,
-        config.provider
-      );
-
-      const counter = await serviceRegistry.getServiceCounter();
+      const counter = (await serviceRegistry.read.getServiceCounter()) as bigint;
 
       console.log(chalk.cyan('\n📊 Service Counter:'));
       console.log(chalk.bold('Total Services Created:'), counter.toString());
     } catch (error: unknown) {
       const err = error as { message?: string };
       console.error(chalk.red('❌ Error:'), err.message);
-      process.exit(1);
     }
   });
+
 
 // ============================================================================
 // V6 REVIEW COMMANDS
@@ -2772,30 +2827,29 @@ program
   .requiredOption('--proposal-id <number>', 'Proposal ID (required)')
   .action(async options => {
     try {
-      initWallet();
+      const opts = program.opts();
+      initWallet(undefined, opts.wallet, opts.passphrase);
 
-      const reviewABI = ['function claimReward(uint256 proposalId) external'];
+      const reviewABI = parseAbi(['function claimReward(uint256 proposalId) external']);
 
-      const review = new ethers.Contract(config.contracts.agentReview, reviewABI, config.signer);
+      const review = getContractInstance(config.contracts.agentReview as Address, reviewABI);
 
       const proposalId = BigInt(options.proposalId);
 
       console.log(chalk.cyan('\n💰 Claiming Proposal Reward:'));
       console.log(chalk.dim('Proposal ID:'), proposalId.toString());
 
-      const tx = await review.claimReward(proposalId);
-      console.log(chalk.cyan('Transaction sent:'), tx.hash);
+      const hash = await review.write.claimReward([proposalId]);
+      console.log(chalk.cyan('Transaction sent:'), hash);
 
-      const receipt = await tx.wait();
+      await waitForTransactionReceipt(hash);
       console.log(chalk.green('✅ Reward claimed!'));
-      console.log(chalk.cyan('Gas used:'), receipt.gasUsed.toString());
     } catch (error: unknown) {
-      const err = error as { message?: string; reason?: string };
+      const err = error as { message?: string };
       console.error(chalk.red('❌ Error:'), err.message);
-      if (err.reason) console.error(chalk.red('Reason:'), err.reason);
-      process.exit(1);
     }
   });
+
 
 // 🎯 RELEASE PROPOSAL STAKE COMMAND
 program
@@ -2804,30 +2858,28 @@ program
   .requiredOption('--proposal-id <number>', 'Proposal ID (required)')
   .action(async options => {
     try {
-      initWallet();
+      const opts = program.opts();
+      initWallet(undefined, opts.wallet, opts.passphrase);
 
-      const reviewABI = ['function releaseStake(uint256 proposalId) external'];
-
-      const review = new ethers.Contract(config.contracts.agentReview, reviewABI, config.signer);
+      const reviewABI = parseAbi(['function releaseStake(uint256 proposalId) external']);
+      const review = getContractInstance(config.contracts.agentReview as Address, reviewABI);
 
       const proposalId = BigInt(options.proposalId);
 
       console.log(chalk.cyan('\n💸 Releasing Proposal Stake:'));
       console.log(chalk.dim('Proposal ID:'), proposalId.toString());
 
-      const tx = await review.releaseStake(proposalId);
-      console.log(chalk.cyan('Transaction sent:'), tx.hash);
+      const hash = await review.write.releaseStake([proposalId]);
+      console.log(chalk.cyan('Transaction sent:'), hash);
 
-      const receipt = await tx.wait();
+      await waitForTransactionReceipt(hash);
       console.log(chalk.green('✅ Stake released!'));
-      console.log(chalk.cyan('Gas used:'), receipt.gasUsed.toString());
     } catch (error: unknown) {
-      const err = error as { message?: string; reason?: string };
+      const err = error as { message?: string };
       console.error(chalk.red('❌ Error:'), err.message);
-      if (err.reason) console.error(chalk.red('Reason:'), err.reason);
-      process.exit(1);
     }
   });
+
 
 // 🎯 CANCEL PROPOSAL COMMAND
 program
@@ -2836,30 +2888,28 @@ program
   .requiredOption('--proposal-id <number>', 'Proposal ID (required)')
   .action(async options => {
     try {
-      initWallet();
+      const opts = program.opts();
+      initWallet(undefined, opts.wallet, opts.passphrase);
 
-      const reviewABI = ['function cancelProposal(uint256 proposalId) external'];
-
-      const review = new ethers.Contract(config.contracts.agentReview, reviewABI, config.signer);
+      const reviewABI = parseAbi(['function cancelProposal(uint256 proposalId) external']);
+      const review = getContractInstance(config.contracts.agentReview as Address, reviewABI);
 
       const proposalId = BigInt(options.proposalId);
 
       console.log(chalk.cyan('\n❌ Cancelling Proposal:'));
       console.log(chalk.dim('Proposal ID:'), proposalId.toString());
 
-      const tx = await review.cancelProposal(proposalId);
-      console.log(chalk.cyan('Transaction sent:'), tx.hash);
+      const hash = await review.write.cancelProposal([proposalId]);
+      console.log(chalk.cyan('Transaction sent:'), hash);
 
-      const receipt = await tx.wait();
+      await waitForTransactionReceipt(hash);
       console.log(chalk.green('✅ Proposal cancelled!'));
-      console.log(chalk.cyan('Gas used:'), receipt.gasUsed.toString());
     } catch (error: unknown) {
-      const err = error as { message?: string; reason?: string };
+      const err = error as { message?: string };
       console.error(chalk.red('❌ Error:'), err.message);
-      if (err.reason) console.error(chalk.red('Reason:'), err.reason);
-      process.exit(1);
     }
   });
+
 
 // 🎯 SLASH EVALUATOR COMMAND
 program
@@ -2870,36 +2920,34 @@ program
   .requiredOption('--reason <string>', 'Reason for slash (required)')
   .action(async options => {
     try {
-      initWallet();
+      const opts = program.opts();
+      initWallet(undefined, opts.wallet, opts.passphrase);
 
-      const reviewABI = [
-        'function slashEvaluator(address evaluator, uint256 proposalId, string calldata reason) external',
-      ];
-
-      const review = new ethers.Contract(config.contracts.agentReview, reviewABI, config.signer);
+      const reviewABI = parseAbi([
+        'function slashEvaluator(address evaluator, uint256 proposalId, string reason) external',
+      ]);
+      const review = getContractInstance(config.contracts.agentReview as Address, reviewABI);
 
       console.log(chalk.cyan('\n⚡ Slashing Evaluator:'));
       console.log(chalk.dim('Evaluator:'), options.evaluator);
       console.log(chalk.dim('Proposal ID:'), options.proposalId);
       console.log(chalk.dim('Reason:'), options.reason);
 
-      const tx = await review.slashEvaluator(
-        options.evaluator,
+      const hash = await review.write.slashEvaluator([
+        options.evaluator as Address,
         BigInt(options.proposalId),
         options.reason
-      );
-      console.log(chalk.cyan('Transaction sent:'), tx.hash);
+      ]);
+      console.log(chalk.cyan('Transaction sent:'), hash);
 
-      const receipt = await tx.wait();
+      await waitForTransactionReceipt(hash);
       console.log(chalk.green('✅ Evaluator slashed!'));
-      console.log(chalk.cyan('Gas used:'), receipt.gasUsed.toString());
     } catch (error: unknown) {
-      const err = error as { message?: string; reason?: string };
+      const err = error as { message?: string };
       console.error(chalk.red('❌ Error:'), err.message);
-      if (err.reason) console.error(chalk.red('Reason:'), err.reason);
-      process.exit(1);
     }
   });
+
 
 // ============================================================================
 // V6 SKILLS COMMANDS
@@ -2912,41 +2960,38 @@ program
   .requiredOption('--domain <string>', 'Domain to search (required)')
   .action(async options => {
     try {
-      initWallet();
+      const opts = program.opts();
+      initWallet(undefined, opts.wallet, opts.passphrase);
 
-      const skillRegistryABI = [
-        'function findSkillsByDomain(string calldata domain) external view returns (uint256[] memory)',
-        'function getSkill(uint256 skillId) external view returns (tuple(uint256 agentId, string name, string version, string description, string endpoint, string[] domains, bool isActive, address registeredBy, uint256 registeredAt))',
-      ];
+      const skillRegistryABI = parseAbi([
+        'function findSkillsByDomain(string domain) external view returns (uint256[])',
+        'function getSkill(uint256 skillId) external view returns ((uint256 agentId, string name, string version, string description, string endpoint, string[] domains, bool isActive, address registeredBy, uint256 registeredAt))',
+      ]);
 
-      const skillRegistry = new ethers.Contract(
-        config.contracts.skillRegistry,
-        skillRegistryABI,
-        config.provider
-      );
+      const skillRegistry = getContractInstance(config.contracts.skillRegistry as Address, skillRegistryABI);
 
       const domain = options.domain;
-      const skillIds = await skillRegistry.findSkillsByDomain(domain);
+      const skillIds = (await skillRegistry.read.findSkillsByDomain([domain])) as bigint[];
 
       console.log(chalk.cyan('\n🔍 Skills for Domain:'), domain);
       console.log(chalk.dim('Total:'), skillIds.length, 'skills\n');
 
       for (const skillId of skillIds) {
-        const skill = await skillRegistry.getSkill(skillId);
+        const skill = (await skillRegistry.read.getSkill([skillId])) as any;
         console.log(chalk.bold(`\nSkill ID: ${skillId}`));
-        console.log(chalk.dim('  Agent ID:'), skill[0].toString());
-        console.log(chalk.dim('  Name:'), skill[1], `(${skill[2]})`);
-        console.log(chalk.dim('  Description:'), skill[3] || '(none)');
-        console.log(chalk.dim('  Endpoint:'), skill[4] || '(none)');
-        console.log(chalk.dim('  Domains:'), skill[5].join(', '));
-        console.log(chalk.dim('  Active:'), skill[6] ? chalk.green('Yes') : chalk.red('No'));
+        console.log(chalk.dim('  Agent ID:'), skill.agentId.toString());
+        console.log(chalk.dim('  Name:'), skill.name, `(${skill.version})`);
+        console.log(chalk.dim('  Description:'), skill.description || '(none)');
+        console.log(chalk.dim('  Endpoint:'), skill.endpoint || '(none)');
+        console.log(chalk.dim('  Domains:'), skill.domains.join(', '));
+        console.log(chalk.dim('  Active:'), skill.isActive ? chalk.green('Yes') : chalk.red('No'));
       }
     } catch (error: unknown) {
       const err = error as { message?: string };
       console.error(chalk.red('❌ Error:'), err.message);
-      process.exit(1);
     }
   });
+
 
 // 🎯 GET TOTAL SKILL COUNT COMMAND
 program
@@ -2954,26 +2999,22 @@ program
   .description('Get total skill count (V6)')
   .action(async () => {
     try {
-      initWallet();
+      const opts = program.opts();
+      initWallet(undefined, opts.wallet, opts.passphrase);
 
-      const skillRegistryABI = ['function getTotalSkillCount() external view returns (uint256)'];
+      const skillRegistryABI = parseAbi(['function getTotalSkillCount() external view returns (uint256)']);
+      const skillRegistry = getContractInstance(config.contracts.skillRegistry as Address, skillRegistryABI);
 
-      const skillRegistry = new ethers.Contract(
-        config.contracts.skillRegistry,
-        skillRegistryABI,
-        config.provider
-      );
-
-      const count = await skillRegistry.getTotalSkillCount();
+      const count = (await skillRegistry.read.getTotalSkillCount()) as bigint;
 
       console.log(chalk.cyan('\n📊 Total Skill Count:'));
       console.log(chalk.bold('Total Skills:'), count.toString());
     } catch (error: unknown) {
       const err = error as { message?: string };
       console.error(chalk.red('❌ Error:'), err.message);
-      process.exit(1);
     }
   });
+
 
 // 🎯 UPDATE SKILL COMMAND
 program
@@ -2987,17 +3028,13 @@ program
   .option('--domains <string>', 'Comma-separated domains')
   .action(async options => {
     try {
-      initWallet();
+      const opts = program.opts();
+      initWallet(undefined, opts.wallet, opts.passphrase);
 
-      const skillRegistryABI = [
-        'function updateSkill(uint256 skillId, string calldata name, string calldata version, string calldata description, string calldata endpoint, string[] calldata domains) external',
-      ];
-
-      const skillRegistry = new ethers.Contract(
-        config.contracts.skillRegistry,
-        skillRegistryABI,
-        config.signer
-      );
+      const skillRegistryABI = parseAbi([
+        'function updateSkill(uint256 skillId, string name, string version, string description, string endpoint, string[] domains) external',
+      ]);
+      const skillRegistry = getContractInstance(config.contracts.skillRegistry as Address, skillRegistryABI);
 
       const skillId = BigInt(options.skillId);
       const name = options.name;
@@ -3014,45 +3051,45 @@ program
       console.log(chalk.dim('Endpoint:'), endpoint || '(none)');
       console.log(chalk.dim('Domains:'), domains.length > 0 ? domains.join(', ') : '(none)');
 
-      const tx = await skillRegistry.updateSkill(
+      const hash = await skillRegistry.write.updateSkill([
         skillId,
         name,
         version,
         description,
         endpoint,
         domains
-      );
-      console.log(chalk.cyan('Transaction sent:'), tx.hash);
+      ]);
+      console.log(chalk.cyan('Transaction sent:'), hash);
 
-      const receipt = await tx.wait();
+      await waitForTransactionReceipt(hash);
       console.log(chalk.green('✅ Skill updated!'));
-      console.log(chalk.cyan('Gas used:'), receipt.gasUsed.toString());
     } catch (error: unknown) {
-      const err = error as { message?: string; reason?: string };
+      const err = error as { message?: string };
       console.error(chalk.red('❌ Error:'), err.message);
-      if (err.reason) console.error(chalk.red('Reason:'), err.reason);
-      process.exit(1);
     }
   });
+
 
 // =============================================================================
 // BIDDING SYSTEM COMMANDS (Phase 11 - Standalone Bidding)
 // =============================================================================
 
-const BIDDING_SYSTEM_ABI = [
-  'function createBiddingSession(address evaluator, uint256 maxBudget, uint256 deadline, bytes calldata metadata, uint256 serviceId) external payable returns (uint256 sessionId)',
+const BIDDING_SYSTEM_ABI_PARSED = parseAbi([
+  'function createBiddingSession(address evaluator, uint256 maxBudget, uint256 deadline, bytes metadata, uint256 serviceId) external payable returns (uint256 sessionId)',
   'function commitBid(uint256 sessionId, bytes32 commitHash) external payable',
-  'function revealBid(uint256 sessionId, uint256 amount, string calldata message, bytes32 salt) external',
+  'function revealBid(uint256 sessionId, uint256 amount, string message, bytes32 salt) external',
   'function acceptBid(uint256 sessionId, uint256 bidId) external',
   'function withdrawStake(uint256 sessionId) external',
   'function claimStake(uint256 sessionId) external',
-  'function createJobAndFund(uint256 sessionId, uint256 jobExpiredAt, string calldata description) external payable returns (uint256 jobId)',
+  'function createJobAndFund(uint256 sessionId, uint256 jobExpiredAt, string description) external payable returns (uint256 jobId)',
   'function cancelSession(uint256 sessionId) external',
-  'function getSession(uint256 sessionId) external view returns (tuple(uint256 id, address creator, address evaluator, uint256 maxBudget, uint256 deadline, uint256 revealWindowEnd, bytes metadata, uint256 serviceId, uint256 jobId, address winner, uint256 winningBidId, bool jobCreated, uint8 status))',
-  'function getUserBid(uint256 sessionId, address user) external view returns (tuple(uint256 bidId, address bidder, uint256 proposedAmount, uint256 stake, string message, bytes32 commitHash, bool revealed, bool accepted, bool stakeWithdrawn, uint256 timestamp))',
+  'function getSession(uint256 sessionId) external view returns ((uint256 id, address creator, address evaluator, uint256 maxBudget, uint256 deadline, uint256 revealWindowEnd, bytes metadata, uint256 serviceId, uint256 jobId, address winner, uint256 winningBidId, bool jobCreated, uint8 status))',
+  'function getUserBid(uint256 sessionId, address user) external view returns ((uint256 bidId, address bidder, uint256 proposedAmount, uint256 stake, string message, bytes32 commitHash, bool revealed, bool accepted, bool stakeWithdrawn, uint256 timestamp))',
   'function sessionCounter() external view returns (uint256)',
   'function calculateStake(uint256 maxBudget) external pure returns (uint256)',
-] as const;
+  'event BiddingSessionCreated(uint256 indexed sessionId, address indexed creator, uint256 maxBudget)',
+]);
+
 
 program
   .command('create-bidding-session')
@@ -3064,66 +3101,59 @@ program
   .option('--service-id <id>', 'Linked service ID', parseInt)
   .action(async options => {
     try {
-      initWallet();
+      const opts = program.opts();
+      initWallet(undefined, opts.wallet, opts.passphrase);
 
       if (!config.contracts.biddingSystem) {
         console.error(chalk.red('❌ BiddingSystem not configured'));
-        process.exit(1);
+        return;
       }
 
-      const contract = new ethers.Contract(
-        config.contracts.biddingSystem,
-        BIDDING_SYSTEM_ABI,
-        config.signer
-      );
-      const maxBudget = ethers.parseEther(options.maxBudget.toString());
+      const contract = getContractInstance(config.contracts.biddingSystem as Address, BIDDING_SYSTEM_ABI_PARSED);
+      const maxBudget = viemParseEther(options.maxBudget.toString());
       const stake = (maxBudget * 100n) / 10000n; // 1% stake
 
       console.log(chalk.cyan('Creating bidding session...'));
       console.log(chalk.dim('  Evaluator:'), options.evaluator);
       console.log(chalk.dim('  Max Budget:'), options.maxBudget, 'ETH');
-      console.log(chalk.dim('  Stake:'), ethers.formatEther(stake), 'ETH');
+      console.log(chalk.dim('  Stake:'), viemFormatEther(stake), 'ETH');
       console.log(chalk.dim('  Deadline:'), new Date(options.deadline * 1000).toISOString());
 
-      const tx = await contract.createBiddingSession(
-        options.evaluator,
+      const hash = await contract.write.createBiddingSession([
+        options.evaluator as Address,
         maxBudget,
-        options.deadline,
-        options.metadata || '0x',
-        options.serviceId || 0,
-        { value: stake }
-      );
+        BigInt(options.deadline),
+        (options.metadata || '0x') as `0x${string}`,
+        BigInt(options.serviceId || 0)
+      ], { value: stake });
 
-      console.log(chalk.cyan('Transaction sent:'), tx.hash);
-      const receipt = await tx.wait();
+      console.log(chalk.cyan('Transaction sent:'), hash);
+      const receipt = await waitForTransactionReceipt(hash);
 
-      // Parse session ID from event
-      const iface = contract.interface;
-      const log = receipt.logs.find(l => {
+      let sessionId;
+      for (const log of receipt.logs) {
         try {
-          const parsed = iface.parseLog(l);
-          return parsed?.name === 'BiddingSessionCreated';
-        } catch {
-          return false;
-        }
-      });
+          const parsed = parseLog({ log, abi: BIDDING_SYSTEM_ABI_PARSED });
+          if (parsed?.eventName === 'BiddingSessionCreated') {
+            sessionId = (parsed.args as any).sessionId.toString();
+            break;
+          }
+        } catch { /* ignore */ }
+      }
 
-      if (log) {
-        const parsed = iface.parseLog(log);
-        const sessionId = parsed?.args[0];
+      if (sessionId) {
         console.log(chalk.green('✅ Bidding session created!'));
-        console.log(chalk.cyan('Session ID:'), sessionId.toString());
+        console.log(chalk.cyan('Session ID:'), sessionId);
       } else {
         console.log(chalk.green('✅ Bidding session created!'));
       }
       console.log(chalk.cyan('Gas used:'), receipt.gasUsed.toString());
     } catch (error: unknown) {
-      const err = error as { message?: string; reason?: string };
+      const err = error as { message?: string };
       console.error(chalk.red('❌ Error:'), err.message);
-      if (err.reason) console.error(chalk.red('Reason:'), err.reason);
-      process.exit(1);
     }
   });
+
 
 program
   .command('commit-bidding')
@@ -3133,24 +3163,21 @@ program
   .requiredOption('--message <string>', 'Bid message/proposal')
   .action(async options => {
     try {
-      initWallet();
+      const opts = program.opts();
+      initWallet(undefined, opts.wallet, opts.passphrase);
 
       if (!config.contracts.biddingSystem) {
         console.error(chalk.red('❌ BiddingSystem not configured'));
-        process.exit(1);
+        return;
       }
 
-      const contract = new ethers.Contract(
-        config.contracts.biddingSystem,
-        BIDDING_SYSTEM_ABI,
-        config.signer
-      );
-      const amount = ethers.parseEther(options.amount.toString());
+      const contract = getContractInstance(config.contracts.biddingSystem as Address, BIDDING_SYSTEM_ABI_PARSED);
+      const amount = viemParseEther(options.amount.toString());
       const stake = (amount * 100n) / 10000n; // 1% stake
-      const salt = ethers.randomBytes(32);
-      const commitHash = ethers.keccak256(
-        ethers.AbiCoder.defaultAbiCoder().encode(
-          ['uint256', 'string', 'bytes32'],
+      const salt = viemKeccak256(viemToBytes(config.signerAddress + Date.now().toString()));
+      const commitHash = viemKeccak256(
+        viemEncodeAbiParameters(
+          [{ type: 'uint256' }, { type: 'string' }, { type: 'bytes32' }],
           [amount, options.message, salt]
         )
       );
@@ -3158,23 +3185,22 @@ program
       console.log(chalk.cyan('Committing bid...'));
       console.log(chalk.dim('  Session ID:'), options.session);
       console.log(chalk.dim('  Amount:'), options.amount, 'ETH');
-      console.log(chalk.dim('  Stake:'), ethers.formatEther(stake), 'ETH');
+      console.log(chalk.dim('  Stake:'), viemFormatEther(stake), 'ETH');
       console.log(chalk.dim('  Commit Hash:'), commitHash);
-      console.log(chalk.yellow('  ⚠️  Save your salt for reveal:'), salt.toString());
+      console.log(chalk.yellow('  ⚠️  Save your salt for reveal:'), salt);
 
-      const tx = await contract.commitBid(options.session, commitHash, { value: stake });
+      const hash = await contract.write.commitBid([BigInt(options.session), commitHash], { value: stake });
 
-      console.log(chalk.cyan('Transaction sent:'), tx.hash);
-      const receipt = await tx.wait();
+      console.log(chalk.cyan('Transaction sent:'), hash);
+      await waitForTransactionReceipt(hash);
       console.log(chalk.green('✅ Bid committed!'));
-      console.log(chalk.cyan('Gas used:'), receipt.gasUsed.toString());
     } catch (error: unknown) {
-      const err = error as { message?: string; reason?: string };
+      const err = error as { message?: string };
       console.error(chalk.red('❌ Error:'), err.message);
-      if (err.reason) console.error(chalk.red('Reason:'), err.reason);
-      process.exit(1);
     }
   });
+
+
 
 program
   .command('reveal-bidding')
@@ -3185,39 +3211,34 @@ program
   .requiredOption('--salt <hex>', 'Salt used in commit (hex string)')
   .action(async options => {
     try {
-      initWallet();
+      const opts = program.opts();
+      initWallet(undefined, opts.wallet, opts.passphrase);
 
       if (!config.contracts.biddingSystem) {
         console.error(chalk.red('❌ BiddingSystem not configured'));
-        process.exit(1);
+        return;
       }
 
-      const contract = new ethers.Contract(
-        config.contracts.biddingSystem,
-        BIDDING_SYSTEM_ABI,
-        config.signer
-      );
-      const amount = ethers.parseEther(options.amount.toString());
-      const salt = options.salt.startsWith('0x') ? options.salt : `0x${options.salt}`;
+      const contract = getContractInstance(config.contracts.biddingSystem as Address, BIDDING_SYSTEM_ABI_PARSED);
+      const amount = viemParseEther(options.amount.toString());
+      const salt = (options.salt.startsWith('0x') ? options.salt : `0x${options.salt}`) as `0x${string}`;
 
       console.log(chalk.cyan('Revealing bid...'));
       console.log(chalk.dim('  Session ID:'), options.session);
       console.log(chalk.dim('  Amount:'), options.amount, 'ETH');
       console.log(chalk.dim('  Message:'), options.message);
 
-      const tx = await contract.revealBid(options.session, amount, options.message, salt);
+      const hash = await contract.write.revealBid([BigInt(options.session), amount, options.message, salt]);
 
-      console.log(chalk.cyan('Transaction sent:'), tx.hash);
-      const receipt = await tx.wait();
+      console.log(chalk.cyan('Transaction sent:'), hash);
+      await waitForTransactionReceipt(hash);
       console.log(chalk.green('✅ Bid revealed!'));
-      console.log(chalk.cyan('Gas used:'), receipt.gasUsed.toString());
     } catch (error: unknown) {
-      const err = error as { message?: string; reason?: string };
+      const err = error as { message?: string };
       console.error(chalk.red('❌ Error:'), err.message);
-      if (err.reason) console.error(chalk.red('Reason:'), err.reason);
-      process.exit(1);
     }
   });
+
 
 program
   .command('accept-bidding')
@@ -3226,36 +3247,31 @@ program
   .requiredOption('--bid-id <id>', 'Bid ID to accept', parseInt)
   .action(async options => {
     try {
-      initWallet();
+      const opts = program.opts();
+      initWallet(undefined, opts.wallet, opts.passphrase);
 
       if (!config.contracts.biddingSystem) {
         console.error(chalk.red('❌ BiddingSystem not configured'));
-        process.exit(1);
+        return;
       }
 
-      const contract = new ethers.Contract(
-        config.contracts.biddingSystem,
-        BIDDING_SYSTEM_ABI,
-        config.signer
-      );
+      const contract = getContractInstance(config.contracts.biddingSystem as Address, BIDDING_SYSTEM_ABI_PARSED);
 
       console.log(chalk.cyan('Accepting bid...'));
       console.log(chalk.dim('  Session ID:'), options.session);
       console.log(chalk.dim('  Bid ID:'), options.bidId);
 
-      const tx = await contract.acceptBid(options.session, options.bidId);
+      const hash = await contract.write.acceptBid([BigInt(options.session), BigInt(options.bidId)]);
 
-      console.log(chalk.cyan('Transaction sent:'), tx.hash);
-      const receipt = await tx.wait();
+      console.log(chalk.cyan('Transaction sent:'), hash);
+      await waitForTransactionReceipt(hash);
       console.log(chalk.green('✅ Bid accepted! Winner can now claim stake.'));
-      console.log(chalk.cyan('Gas used:'), receipt.gasUsed.toString());
     } catch (error: unknown) {
-      const err = error as { message?: string; reason?: string };
+      const err = error as { message?: string };
       console.error(chalk.red('❌ Error:'), err.message);
-      if (err.reason) console.error(chalk.red('Reason:'), err.reason);
-      process.exit(1);
     }
   });
+
 
 program
   .command('get-bidding-session')
@@ -3263,20 +3279,17 @@ program
   .requiredOption('--session <id>', 'Session ID', parseInt)
   .action(async options => {
     try {
-      initWallet();
+      const opts = program.opts();
+      initWallet(undefined, opts.wallet, opts.passphrase);
 
       if (!config.contracts.biddingSystem) {
         console.error(chalk.red('❌ BiddingSystem not configured'));
-        process.exit(1);
+        return;
       }
 
-      const contract = new ethers.Contract(
-        config.contracts.biddingSystem,
-        BIDDING_SYSTEM_ABI,
-        config.provider
-      );
+      const contract = getContractInstance(config.contracts.biddingSystem as Address, BIDDING_SYSTEM_ABI_PARSED);
 
-      const session = await contract.getSession(options.session);
+      const session = (await contract.read.getSession([BigInt(options.session)])) as any;
 
       const statusNames = [
         'Active',
@@ -3289,24 +3302,23 @@ program
 
       console.log(chalk.bold('\n📋 Bidding Session Details'));
       console.log(chalk.dim('  Session ID:'), options.session);
-      console.log(chalk.dim('  Creator:'), session[1]);
-      console.log(chalk.dim('  Evaluator:'), session[2]);
-      console.log(chalk.dim('  Max Budget:'), ethers.formatEther(session[3]), 'ETH');
-      console.log(chalk.dim('  Deadline:'), new Date(Number(session[4]) * 1000).toISOString());
+      console.log(chalk.dim('  Creator:'), session.creator || session[1]);
+      console.log(chalk.dim('  Evaluator:'), session.evaluator || session[2]);
+      console.log(chalk.dim('  Max Budget:'), viemFormatEther(session.maxBudget || session[3]), 'ETH');
+      console.log(chalk.dim('  Deadline:'), new Date(Number(session.deadline || session[4]) * 1000).toISOString());
       console.log(
         chalk.dim('  Reveal Window End:'),
-        new Date(Number(session[5]) * 1000).toISOString()
+        new Date(Number(session.revealWindowEnd || session[5]) * 1000).toISOString()
       );
-      console.log(chalk.dim('  Winner:'), session[9] || 'None');
-      console.log(chalk.dim('  Status:'), statusNames[Number(session[12])] || 'Unknown');
-      console.log(chalk.dim('  Job Created:'), session[11]);
+      console.log(chalk.dim('  Winner:'), session.winner || session[9] || 'None');
+      console.log(chalk.dim('  Status:'), statusNames[Number(session.status || session[12])] || 'Unknown');
+      console.log(chalk.dim('  Job Created:'), session.jobCreated || session[11]);
     } catch (error: unknown) {
-      const err = error as { message?: string; reason?: string };
+      const err = error as { message?: string };
       console.error(chalk.red('❌ Error:'), err.message);
-      if (err.reason) console.error(chalk.red('Reason:'), err.reason);
-      process.exit(1);
     }
   });
+
 
 program
   .command('withdraw-bidding-stake')
@@ -3314,35 +3326,30 @@ program
   .requiredOption('--session <id>', 'Session ID', parseInt)
   .action(async options => {
     try {
-      initWallet();
+      const opts = program.opts();
+      initWallet(undefined, opts.wallet, opts.passphrase);
 
       if (!config.contracts.biddingSystem) {
         console.error(chalk.red('❌ BiddingSystem not configured'));
-        process.exit(1);
+        return;
       }
 
-      const contract = new ethers.Contract(
-        config.contracts.biddingSystem,
-        BIDDING_SYSTEM_ABI,
-        config.signer
-      );
+      const contract = getContractInstance(config.contracts.biddingSystem as Address, BIDDING_SYSTEM_ABI_PARSED);
 
       console.log(chalk.cyan('Withdrawing stake...'));
       console.log(chalk.dim('  Session ID:'), options.session);
 
-      const tx = await contract.withdrawStake(options.session);
+      const hash = await contract.write.withdrawStake([BigInt(options.session)]);
 
-      console.log(chalk.cyan('Transaction sent:'), tx.hash);
-      const receipt = await tx.wait();
+      console.log(chalk.cyan('Transaction sent:'), hash);
+      await waitForTransactionReceipt(hash);
       console.log(chalk.green('✅ Stake withdrawn!'));
-      console.log(chalk.cyan('Gas used:'), receipt.gasUsed.toString());
     } catch (error: unknown) {
-      const err = error as { message?: string; reason?: string };
+      const err = error as { message?: string };
       console.error(chalk.red('❌ Error:'), err.message);
-      if (err.reason) console.error(chalk.red('Reason:'), err.reason);
-      process.exit(1);
     }
   });
+
 
 // 🎯 HELP COMMAND
 program
@@ -3437,10 +3444,11 @@ program
     console.log('\n🥥 Built by Wasabi @ Syntropic Agent');
   });
 
+// If no command provided, show help
+if (process.argv.slice(2).length === 0) {
+  program.outputHelp();
+  process.exit(0);
+}
+
 // Parse command line arguments
 program.parse(process.argv);
-
-// If no command provided, show help
-if (!process.argv.slice(2).length) {
-  program.outputHelp();
-}

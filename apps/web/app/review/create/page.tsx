@@ -31,7 +31,7 @@ export default function CreateProposalPage() {
     hash: txHash,
   });
 
-  const { priceInUsd: ethPriceInUsd, isLoading: isPriceLoading } = useChainlinkEthUsdPrice();
+  const { priceInUsd: ethPriceInUsd } = useChainlinkEthUsdPrice();
 
   const handleSubmit = useCallback(
     async (e: React.FormEvent) => {

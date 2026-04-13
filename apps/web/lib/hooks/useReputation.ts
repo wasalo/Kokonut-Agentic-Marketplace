@@ -2,7 +2,7 @@
 
 import { useReadContract, useReadContracts } from 'wagmi';
 import { useKokonutAgents } from './useKokonutAgents';
-import { getContractAddress, debugLog } from '@/lib/contracts/config';
+import { getContractAddress } from '@/lib/contracts/config';
 import { ERC8004_REPUTATION_ABI } from '@/lib/contracts/abis';
 
 /* eslint-disable @typescript-eslint/no-explicit-any */
@@ -90,7 +90,7 @@ export function useGlobalReputation() {
   if (results) {
     for (const result of results) {
       if (result.status === 'success' && result.result) {
-        const [average, total, providers] = result.result as [bigint, bigint, bigint];
+        const [average, total, _providers] = result.result as [bigint, bigint, bigint];
         const count = Number(total);
         if (count > 0) {
           totalFeedbacks += count;

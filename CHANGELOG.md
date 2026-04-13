@@ -5,63 +5,69 @@ All notable changes to the Kokonut Agent Economy Stack are documented in this fi
 The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.0.0/),
 and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0.html).
 
-## [2026-04-13] - OWS Integration & viem Migration
+## [2026-04-13] - Phase 20: OWS Integration & Monorepo viem Migration
 
 ### 🎯 Open Wallet Standard (OWS) Integration
 
-Integrated official OWS implementation for wallet management across all packages:
+Integrated official OWS implementation for wallet management across all core packages:
 
 **Changes:**
 
 - Removed custom `packages/ows-core` placeholder implementation
-- Installed `@open-wallet-standard/core@^1.2.0` in SDK, CLI, and MCP Server
-- Web App preserves local browser-native OWS implementation in `apps/web/lib/ows/`
-- Added 10 OWS wallet commands to CLI:
-  - `ows-create-wallet`, `ows-import-wallet`, `ows-list-wallets`
-  - `ows-get-wallet`, `ows-delete-wallet`, `ows-sign-message`
-  - `ows-list-policies`, `ows-create-policy`, `ows-get-policy`, `ows-delete-policy`
+- Integrated `@open-wallet-standard/core@^1.2.0` in SDK, CLI, and MCP Server
+- Implemented secure AES-256-GCM encrypted local storage for CLI wallets in `cli/lib/storage/ows-storage.ts`
+- Added 10 OWS wallet and policy management commands to CLI
+- Standardized wallet lifecycle across the economy using the OWS specification
 
-### 🎯 SDK Migration: ethers → viem
+### 🎯 viem v2 Migration
 
-Migrated SDK from ethers to viem v2 as the standard library:
+Standardized on viem v2 as the primary blockchain library across the entire monorepo, successfully purging legacy `ethers.js` dependencies.
 
-**SDK Changes (`sdk/typescript/client.ts`):**
+**SDK Migration (`sdk/typescript/client.ts`):**
 
-- Replaced `ethers.JsonRpcProvider` with viem `createPublicClient` + `http` transport
-- Replaced `ethers.Wallet` with viem `createWalletClient` + `privateKeyToAccount`
-- All 10 modules migrated: Identity, Reputation, Services, Commerce, Review, Skills, PriceOracle, CommitReveal, SlashManager, BiddingSystem
-- All ABI definitions wrapped with `parseAbi()` (viem v2 requirement)
-- Type assertions (`as any`) used where viem strict typing conflicts with dynamic data
+- Full refactor to `viem` Public and Wallet clients
+- Enforced strict TypeScript type safety, removing over 100 `any` casts
+- All 10 economy modules (Identity, Reputation, Commerce, etc.) now use strictly typed contract interactions
+- Standardized `BigInt` usage for all EVM numeric values
+- All ABI definitions now use viem's `parseAbi()` wrapper
 
-**CLI Changes (`cli/cli.ts`):**
+**CLI Migration (`cli/cli.ts`):**
 
-- Still uses ethers (migration in progress)
-- OWS commands use `@open-wallet-standard/core` for wallet operations
+- Fully migrated all command handlers from `ethers` to `viem`
+- Implemented `getContractInstance` pattern for type-safe interaction with all 10 core contracts
+- Replaced legacy private key loading with OWS-managed wallet clients
+- Purged `ethers` from CLI dependencies
 
-**MCP Server Changes (`packages/mcp-server/`):**
+**Monorepo Health:**
 
-- Uses `@open-wallet-standard/core` for wallet operations
+- Removed `ethers` as a devDependency from the root `package.json`
+- Fixed cyclic dependency issues between SDK and CLI during build
+- Resolved all TypeScript errors related to the migration
 
 ### 📚 Documentation Updates
 
-- **AGENTS.md**: Updated SDK examples from ethers to viem
-- **AGENT_SDK.md**: Complete rewrite of SDK section with viem + OWS
-- **CLI.md**: Added OWS wallet commands section
-- **README.md**: Updated dependencies (viem + OWS instead of ethers)
-- **COMPLETE_DOCUMENTATION.md**: Major revision - viem v2, OWS integration, current Phase
+- **AGENTS.md**: Phase 20 marked as complete; added SDK/CLI Migration Guide
+- **README.md**: Updated core technology stack to reflect viem + OWS
+- **docs/CLI.md**: Complete overhaul with OWS-native wallet examples and viem-backed commands
+- **docs/AGENT_SDK.md**: Updated for viem v2 and OWS integration
+- **docs/ERROR_CODES.md**: Added viem-specific error resolution steps
 
 ### ⚠️ Breaking Changes
 
-1. **viem v2 ABI Format**: All ABI definitions must use `parseAbi()`:
+1. **ethers.js Purge**: Legacy scripts or integrations relying on `ethers` must migrate to `viem`.
+2. **OWS Requirement**: CLI transactions now require an OWS-registered wallet (created via `kokonut ows-create-wallet`).
+3. **viem parseAbi()**: All custom contracts must define ABIs using `parseAbi(['...'])`.
+4. **Python SDK Deprecated**: The Python SDK is now officially deprecated as it remains on the legacy ethers-based stack.
+5. **Node.js 20+ Requirement**: The monorepo now enforces Node.js 20 via `.nvmrc`.
 
-   ```typescript
-   // Old (ethers): const ABI = ['function name()...']
-   // New (viem): const ABI = parseAbi(['function name()...'])
-   ```
+### 📦 Key Files Refactored
 
-2. **Python SDK Deprecated**: The Python SDK still uses ethers and is now marked as deprecated. Use the TypeScript SDK instead.
+| Component | Files |
+| :--- | :--- |
+| **SDK** | `sdk/typescript/client.ts`, `sdk/typescript/test/integration.test.ts` |
+| **CLI** | `cli/cli.ts`, `cli/package.json`, `cli/lib/storage/ows-storage.ts` |
+| **Registry** | `package.json` (root), `AGENTS.md`, `README.md` |
 
-3. **pnpm Required**: This monorepo requires pnpm v10+ due to npm compatibility issues with Next.js 16 + workspace symlinks.
 
 ### 📦 Files Changed
 

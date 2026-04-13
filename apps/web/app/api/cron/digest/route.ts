@@ -5,7 +5,11 @@ import path from 'path';
 
 const DATA_DIR = path.join(process.cwd(), 'data');
 
-const resend = new Resend(process.env.RESEND_KEY);
+// Initialise Resend lazily to avoid build-time errors when the API key is missing
+const getResendClient = () => {
+  const key = process.env.RESEND_KEY;
+  return new Resend(key || 're_123456789'); // Placeholder for build-time safety
+};
 
 interface DigestStats {
   jobsCreated: number;
@@ -80,6 +84,7 @@ export async function GET(request: NextRequest) {
 
     const emailHtml = generateDigestEmail(stats);
 
+    const resend = getResendClient();
     const sendPromises = subscribers.map(sub =>
       resend.emails
         .send({

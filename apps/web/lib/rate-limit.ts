@@ -33,7 +33,7 @@ export function rateLimit(
 ): { success: boolean; remaining: number; resetTime: number } | null {
   const windowMs = config.windowMs ?? DEFAULT_WINDOW_MS;
   const maxRequests = config.maxRequests ?? DEFAULT_MAX_REQUESTS;
-  const message = config.message ?? 'Too many requests. Please try again later.';
+
 
   const ip = request.headers.get('x-forwarded-for')?.split(',')[0]?.trim()
     ?? request.headers.get('x-real-ip')

@@ -41,7 +41,7 @@ jobs:
       - name: Install Foundry
         uses: foundry-rs/foundry-toolchain@v1
         with:
-          version: nightly-2025-04-01
+          version: nightly-2026-03-22
 
       - name: Forge build
         run: forge build --sizes
@@ -81,7 +81,7 @@ jobs:
       - name: Install Foundry
         uses: foundry-rs/foundry-toolchain@v1
         with:
-          version: nightly-2025-04-01
+          version: nightly-2026-03-22
 
       - name: Run gas benchmarks
         run: forge test --match-contract GasBenchmark -vvv
@@ -123,7 +123,7 @@ jobs:
       - name: Install Foundry
         uses: foundry-rs/foundry-toolchain@v1
         with:
-          version: nightly-2025-04-01
+          version: nightly-2026-03-22
 
       - name: Run fuzz tests
         run: forge test --match-contract Fuzz -vvv --fuzz-runs 10000
@@ -142,7 +142,7 @@ jobs:
       - name: Install Foundry
         uses: foundry-rs/foundry-toolchain@v1
         with:
-          version: nightly-2025-04-01
+          version: nightly-2026-03-22
 
       - name: Run invariant tests
         run: forge test --match-contract Invariant -vvv
@@ -203,6 +203,9 @@ jobs:
 
       - name: TypeScript check
         run: pnpm run type-check
+
+      - name: TypeScript strict unused-code check
+        run: pnpm --filter @kokonut/web type-check:strict
 
       - name: ESLint
         run: pnpm run lint

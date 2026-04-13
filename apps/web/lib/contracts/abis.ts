@@ -1,1917 +1,249 @@
-export const AGENT_IDENTITY_REGISTRY_ABI = [
-  {
-    inputs: [],
-    name: 'register',
-    outputs: [{ name: 'agentId', type: 'uint256' }],
-    stateMutability: 'nonpayable',
-    type: 'function',
-  },
-  {
-    inputs: [{ name: 'agentURI', type: 'string' }],
-    name: 'register',
-    outputs: [{ name: 'agentId', type: 'uint256' }],
-    stateMutability: 'nonpayable',
-    type: 'function',
-  },
-  {
-    inputs: [
-      { name: 'agentURI', type: 'string' },
-      {
-        name: 'metadata',
-        type: 'tuple[]',
-        components: [
-          { name: 'metadataKey', type: 'string' },
-          { name: 'metadataValue', type: 'bytes' },
-        ],
-      },
-    ],
-    name: 'registerWithMetadata',
-    outputs: [{ name: 'agentId', type: 'uint256' }],
-    stateMutability: 'nonpayable',
-    type: 'function',
-  },
-  {
-    inputs: [{ name: 'agentId', type: 'uint256' }],
-    name: 'getAgent',
-    outputs: [
-      { name: 'owner', type: 'address' },
-      { name: 'agentURI', type: 'string' },
-      { name: 'agentWallet', type: 'address' },
-      { name: 'isActive', type: 'bool' },
-    ],
-    stateMutability: 'view',
-    type: 'function',
-  },
-  {
-    inputs: [{ name: 'agentAddress', type: 'address' }],
-    name: 'isAgent',
-    outputs: [{ name: '', type: 'bool' }],
-    stateMutability: 'view',
-    type: 'function',
-  },
-  {
-    inputs: [],
-    name: 'getCurrentAgentId',
-    outputs: [{ name: '', type: 'uint256' }],
-    stateMutability: 'view',
-    type: 'function',
-  },
-  {
-    inputs: [{ name: 'agentId', type: 'uint256' }],
-    name: 'resolveAgent',
-    outputs: [
-      { name: 'agentId', type: 'uint256' },
-      { name: 'agentURI', type: 'string' },
-    ],
-    stateMutability: 'view',
-    type: 'function',
-  },
-  {
-    inputs: [
-      { name: 'agentId', type: 'uint256' },
-      { name: 'newURI', type: 'string' },
-    ],
-    name: 'setAgentURI',
-    outputs: [],
-    stateMutability: 'nonpayable',
-    type: 'function',
-  },
-  {
-    inputs: [
-      { name: 'agentId', type: 'uint256' },
-      { name: 'metadataKey', type: 'string' },
-    ],
-    name: 'getMetadata',
-    outputs: [{ name: '', type: 'bytes' }],
-    stateMutability: 'view',
-    type: 'function',
-  },
-  {
-    inputs: [
-      { name: 'agentId', type: 'uint256' },
-      { name: 'metadataKey', type: 'string' },
-      { name: 'metadataValue', type: 'bytes' },
-    ],
-    name: 'setMetadata',
-    outputs: [],
-    stateMutability: 'nonpayable',
-    type: 'function',
-  },
-  {
-    inputs: [{ name: 'agentId', type: 'uint256' }],
-    name: 'getAgentWallet',
-    outputs: [{ name: '', type: 'address' }],
-    stateMutability: 'view',
-    type: 'function',
-  },
-  {
-    inputs: [
-      { name: 'agentId', type: 'uint256' },
-      { name: 'newWallet', type: 'address' },
-      { name: 'deadline', type: 'uint256' },
-      { name: 'signature', type: 'bytes' },
-    ],
-    name: 'setAgentWallet',
-    outputs: [],
-    stateMutability: 'nonpayable',
-    type: 'function',
-  },
-  {
-    inputs: [{ name: 'agentId', type: 'uint256' }],
-    name: 'unsetAgentWallet',
-    outputs: [],
-    stateMutability: 'nonpayable',
-    type: 'function',
-  },
-  {
-    inputs: [{ name: 'owner', type: 'address' }],
-    name: 'balanceOf',
-    outputs: [{ name: '', type: 'uint256' }],
-    stateMutability: 'view',
-    type: 'function',
-  },
-  {
-    inputs: [{ name: 'tokenId', type: 'uint256' }],
-    name: 'ownerOf',
-    outputs: [{ name: '', type: 'address' }],
-    stateMutability: 'view',
-    type: 'function',
-  },
-] as const;
+import { parseAbi } from "viem";
 
-export const SERVICE_REGISTRY_ABI = [
-  {
-    inputs: [
-      { name: 'agentId', type: 'uint256' },
-      { name: 'name', type: 'string' },
-      { name: 'description', type: 'string' },
-      { name: 'metadataURI', type: 'string' },
-      { name: 'price', type: 'uint256' },
-      { name: 'paymentToken', type: 'address' },
-    ],
-    name: 'createService',
-    outputs: [{ name: 'serviceId', type: 'uint256' }],
-    stateMutability: 'nonpayable',
-    type: 'function',
-  },
-  {
-    inputs: [
-      { name: 'serviceId', type: 'uint256' },
-      { name: 'name', type: 'string' },
-      { name: 'description', type: 'string' },
-      { name: 'metadataURI', type: 'string' },
-      { name: 'price', type: 'uint256' },
-    ],
-    name: 'updateService',
-    outputs: [],
-    stateMutability: 'nonpayable',
-    type: 'function',
-  },
-  {
-    inputs: [{ name: 'serviceId', type: 'uint256' }],
-    name: 'deactivateService',
-    outputs: [],
-    stateMutability: 'nonpayable',
-    type: 'function',
-  },
-  {
-    inputs: [{ name: 'serviceId', type: 'uint256' }],
-    name: 'activateService',
-    outputs: [],
-    stateMutability: 'nonpayable',
-    type: 'function',
-  },
-  {
-    inputs: [{ name: 'serviceId', type: 'uint256' }],
-    name: 'getService',
-    outputs: [
-      {
-        components: [
-          { name: 'id', type: 'uint256' },
-          { name: 'provider', type: 'address' },
-          { name: 'agentId', type: 'uint256' },
-          { name: 'name', type: 'string' },
-          { name: 'description', type: 'string' },
-          { name: 'metadataURI', type: 'string' },
-          { name: 'price', type: 'uint256' },
-          { name: 'paymentToken', type: 'address' },
-          { name: 'isActive', type: 'bool' },
-          { name: 'createdAt', type: 'uint256' },
-        ],
-        name: '',
-        type: 'tuple',
-      },
-    ],
-    stateMutability: 'view',
-    type: 'function',
-  },
-  {
-    inputs: [
-      { name: 'start', type: 'uint256' },
-      { name: 'count', type: 'uint256' },
-    ],
-    name: 'getServices',
-    outputs: [{ name: '', type: 'uint256[]' }],
-    stateMutability: 'view',
-    type: 'function',
-  },
-  {
-    inputs: [],
-    name: 'getActiveServiceCount',
-    outputs: [{ name: '', type: 'uint256' }],
-    stateMutability: 'view',
-    type: 'function',
-  },
-  {
-    inputs: [{ name: 'provider', type: 'address' }],
-    name: 'getProviderServices',
-    outputs: [{ name: '', type: 'uint256[]' }],
-    stateMutability: 'view',
-    type: 'function',
-  },
-  {
-    inputs: [{ name: 'agentId', type: 'uint256' }],
-    name: 'getServicesByAgent',
-    outputs: [{ name: '', type: 'uint256[]' }],
-    stateMutability: 'view',
-    type: 'function',
-  },
-  {
-    inputs: [],
-    name: 'getServiceCounter',
-    outputs: [{ name: '', type: 'uint256' }],
-    stateMutability: 'view',
-    type: 'function',
-  },
-] as const;
+export const AGENT_IDENTITY_REGISTRY_ABI = parseAbi([
+  'function register() external returns (uint256 agentId)',
+  'function register(string agentURI) external returns (uint256 agentId)',
+  'function registerWithMetadata(string agentURI, (string metadataKey, bytes metadataValue)[] metadata) external returns (uint256 agentId)',
+  'function getAgent(uint256 agentId) external view returns (address owner, string agentURI, address agentWallet, bool isActive)',
+  'function isAgent(address agentAddress) external view returns (bool)',
+  'function getCurrentAgentId() external view returns (uint256)',
+  'function resolveAgent(uint256 agentId) external view returns (uint256 agentId, string agentURI)',
+  'function setAgentURI(uint256 agentId, string newURI) external',
+  'function getMetadata(uint256 agentId, string metadataKey) external view returns (bytes)',
+  'function setMetadata(uint256 agentId, string metadataKey, bytes metadataValue) external',
+  'function getAgentWallet(uint256 agentId) external view returns (address)',
+  'function setAgentWallet(uint256 agentId, address newWallet, uint256 deadline, bytes signature) external',
+  'function unsetAgentWallet(uint256 agentId) external',
+  'function balanceOf(address owner) external view returns (uint256)',
+  'function ownerOf(uint256 tokenId) external view returns (address)',
+]);
 
-export const AGENTIC_COMMERCE_ABI = [
-  // === V6.1 Constants ===
-  {
-    inputs: [],
-    name: 'FEE_DENOMINATOR',
-    outputs: [{ name: '', type: 'uint256' }],
-    stateMutability: 'view',
-    type: 'function',
-  },
-  {
-    inputs: [],
-    name: 'EVALUATOR_FEE_BP',
-    outputs: [{ name: '', type: 'uint256' }],
-    stateMutability: 'view',
-    type: 'function',
-  },
-  {
-    inputs: [],
-    name: 'MIN_EXPIRY_DURATION',
-    outputs: [{ name: '', type: 'uint256' }],
-    stateMutability: 'view',
-    type: 'function',
-  },
-  {
-    inputs: [],
-    name: 'MAX_EXPIRY_DURATION',
-    outputs: [{ name: '', type: 'uint256' }],
-    stateMutability: 'view',
-    type: 'function',
-  },
-  {
-    inputs: [],
-    name: 'MAX_JOBS_PER_CLIENT',
-    outputs: [{ name: '', type: 'uint256' }],
-    stateMutability: 'view',
-    type: 'function',
-  },
-  {
-    inputs: [],
-    name: 'MAX_DESCRIPTION_LENGTH',
-    outputs: [{ name: '', type: 'uint256' }],
-    stateMutability: 'view',
-    type: 'function',
-  },
-  {
-    inputs: [],
-    name: 'MIN_BUDGET',
-    outputs: [{ name: '', type: 'uint256' }],
-    stateMutability: 'view',
-    type: 'function',
-  },
-  {
-    inputs: [],
-    name: 'MAX_BUDGET',
-    outputs: [{ name: '', type: 'uint256' }],
-    stateMutability: 'view',
-    type: 'function',
-  },
-  {
-    inputs: [],
-    name: 'MIN_ETH_PAYMENT',
-    outputs: [{ name: '', type: 'uint256' }],
-    stateMutability: 'view',
-    type: 'function',
-  },
-  {
-    inputs: [],
-    name: 'DEFAULT_DISPUTE_WINDOW',
-    outputs: [{ name: '', type: 'uint256' }],
-    stateMutability: 'view',
-    type: 'function',
-  },
-  {
-    inputs: [],
-    name: 'DEFAULT_NONRESPONSIVE_SLASH_BP',
-    outputs: [{ name: '', type: 'uint256' }],
-    stateMutability: 'view',
-    type: 'function',
-  },
 
-  // === Initialization ===
-  {
-    inputs: [{ name: 'treasury_', type: 'address' }],
-    name: 'initialize',
-    outputs: [],
-    stateMutability: 'nonpayable',
-    type: 'function',
-  },
+export const SERVICE_REGISTRY_ABI = parseAbi([
+  'function createService(uint256 agentId, string name, string description, string metadataURI, uint256 price, address paymentToken) external returns (uint256 serviceId)',
+  'function updateService(uint256 serviceId, string name, string description, string metadataURI, uint256 price) external',
+  'function deactivateService(uint256 serviceId) external',
+  'function activateService(uint256 serviceId) external',
+  'function getService(uint256 serviceId) external view returns ((uint256 id, address provider, uint256 agentId, string name, string description, string metadataURI, uint256 price, address paymentToken, bool isActive, uint256 createdAt))',
+  'function getServices(uint256 start, uint256 count) external view returns (uint256[] memory)',
+  'function getActiveServiceCount() external view returns (uint256)',
+  'function getProviderServices(address provider) external view returns (uint256[] memory)',
+  'function getServicesByAgent(uint256 agentId) external view returns (uint256[] memory)',
+  'function getServiceCounter() external view returns (uint256)',
+]);
 
-  // === V6.1 Job Creation ===
-  {
-    inputs: [
-      { name: 'provider', type: 'address' },
-      { name: 'evaluator', type: 'address' },
-      { name: 'expiredAt', type: 'uint256' },
-      { name: 'description', type: 'string' },
-      { name: 'hook', type: 'address' },
-      { name: 'evaluatorFee', type: 'bool' },
-    ],
-    name: 'createJob',
-    outputs: [{ name: 'jobId', type: 'uint256' }],
-    stateMutability: 'nonpayable',
-    type: 'function',
-  },
-  {
-    inputs: [
-      { name: 'serviceId', type: 'uint256' },
-      { name: 'evaluator', type: 'address' },
-      { name: 'expiredAt', type: 'uint256' },
-      { name: 'description', type: 'string' },
-      { name: 'hook', type: 'address' },
-      { name: 'evaluatorFee', type: 'bool' },
-    ],
-    name: 'createJobFromService',
-    outputs: [{ name: 'jobId', type: 'uint256' }],
-    stateMutability: 'nonpayable',
-    type: 'function',
-  },
-  {
-    inputs: [
-      { name: 'maxBudget', type: 'uint256' },
-      { name: 'evaluator', type: 'address' },
-      { name: 'expiredAt', type: 'uint256' },
-      { name: 'description', type: 'string' },
-      { name: 'paymentToken', type: 'address' },
-      { name: 'evaluatorFee', type: 'bool' },
-    ],
-    name: 'createOpenJob',
-    outputs: [{ name: 'jobId', type: 'uint256' }],
-    stateMutability: 'nonpayable',
-    type: 'function',
-  },
 
-  // === Job Updates ===
-  {
-    inputs: [
-      { name: 'jobId', type: 'uint256' },
-      { name: 'provider', type: 'address' },
-    ],
-    name: 'setProvider',
-    outputs: [],
-    stateMutability: 'nonpayable',
-    type: 'function',
-  },
-  {
-    inputs: [
-      { name: 'jobId', type: 'uint256' },
-      { name: 'amount', type: 'uint256' },
-    ],
-    name: 'setBudget',
-    outputs: [],
-    stateMutability: 'nonpayable',
-    type: 'function',
-  },
-  {
-    inputs: [
-      { name: 'jobId', type: 'uint256' },
-      { name: 'paymentToken', type: 'address' },
-    ],
-    name: 'setPaymentToken',
-    outputs: [],
-    stateMutability: 'nonpayable',
-    type: 'function',
-  },
+export const AGENTIC_COMMERCE_ABI = parseAbi([
+  'function FEE_DENOMINATOR() external view returns (uint256)',
+  'function EVALUATOR_FEE_BP() external view returns (uint256)',
+  'function MIN_EXPIRY_DURATION() external view returns (uint256)',
+  'function MAX_EXPIRY_DURATION() external view returns (uint256)',
+  'function MAX_JOBS_PER_CLIENT() external view returns (uint256)',
+  'function MAX_DESCRIPTION_LENGTH() external view returns (uint256)',
+  'function MIN_BUDGET() external view returns (uint256)',
+  'function MAX_BUDGET() external view returns (uint256)',
+  'function MIN_ETH_PAYMENT() external view returns (uint256)',
+  'function DEFAULT_DISPUTE_WINDOW() external view returns (uint256)',
+  'function DEFAULT_NONRESPONSIVE_SLASH_BP() external view returns (uint256)',
+  'function initialize(address treasury_) external',
+  'function createJob(address provider, address evaluator, uint256 expiredAt, string description, address hook, bool evaluatorFee) external returns (uint256 jobId)',
+  'function createJobFromService(uint256 serviceId, address evaluator, uint256 expiredAt, string description, address hook, bool evaluatorFee) external returns (uint256 jobId)',
+  'function createOpenJob(uint256 maxBudget, address evaluator, uint256 expiredAt, string description, address paymentToken, bool evaluatorFee) external returns (uint256 jobId)',
+  'function setProvider(uint256 jobId, address provider) external',
+  'function setBudget(uint256 jobId, uint256 amount) external',
+  'function setPaymentToken(uint256 jobId, address paymentToken) external',
+  'function setDisputeWindow(uint256 jobId, uint256 window) external',
+  'function setNonResponsiveSlashBP(uint256 jobId, uint256 slashBP) external',
+  'function fund(uint256 jobId) external payable',
+  'function submit(uint256 jobId, bytes32 deliverable) external',
+  'function complete(uint256 jobId, bytes32 reason) external',
+  'function completeAfterTimeout(uint256 jobId, bytes32 reason) external',
+  'function reject(uint256 jobId, bytes32 reason) external',
+  'function claimRefund(uint256 jobId) external',
+  'function getJob(uint256 jobId) external view returns ((uint256 id, address client, address provider, address evaluator, uint256 serviceId, address paymentToken, string description, uint256 budget, uint256 expiredAt, uint8 status, address hook, bytes32 deliverable))',
+  'function getClientJobCount(address client) external view returns (uint256)',
+  'function isEvaluatorFeeEnabled(uint256 jobId) external view returns (bool)',
+  'function jobs(uint256) external view returns ((uint256 id, address client, address provider, address evaluator, uint256 serviceId, address paymentToken, string description, uint256 budget, uint256 expiredAt, uint8 status, address hook, bytes32 deliverable))',
+  'function jobCounter() external view returns (uint256)',
+  'function platformTreasury() external view returns (address)',
+  'function owner() external view returns (address)',
+  'function setPlatformTreasury(address treasury) external',
+  'function renounceOwnership() external',
+  'function transferOwnership(address newOwner) external',
+  'function calculateStake(uint256 maxBudget) external pure returns (uint256)',
+  'function commitBid(uint256 jobId, bytes32 commitHash) external payable',
+  'function revealBid(uint256 jobId, uint256 amount, string message, bytes32 salt) external',
+  'function acceptBid(uint256 jobId, uint256 bidId) external',
+  'function withdrawStake(uint256 jobId) external',
+  'function getUserBid(uint256 jobId, address user) external view returns ((uint256 bidId, address bidder, uint256 proposedAmount, uint256 stake, string message, bytes32 commitHash, bool revealed, bool accepted, bool withdrawn, uint256 timestamp))',
+  'function jobBidCount(uint256 jobId) external view returns (uint256)',
+  'function jobBids(uint256 jobId, uint256 index) external view returns ((uint256 bidId, address bidder, uint256 proposedAmount, uint256 stake, string message, bytes32 commitHash, bool revealed, bool accepted, bool withdrawn, uint256 timestamp))',
+  'function totalStakesHeld(address) external view returns (uint256)',
+  'function REVEAL_WINDOW() external view returns (uint256)',
+  'function platformFeeBP() external view returns (uint256)',
+  'function setPlatformFee(uint256 feeBP, address treasury) external',
+  'function completeAfterTimeout(uint256 jobId) external',
+  'function refundExpired(uint256 jobId) external',
+  'function createJobWithRandomEvaluator(address provider, address evaluator, uint256 serviceId, uint256 budget, uint256 expiredAt, string description, address hook) external returns (uint256 jobId)',
+  'function registerAsEvaluator() external',
+  'function unregisterAsEvaluator() external',
+]);
 
-  // === V6.1 Dispute Management ===
-  {
-    inputs: [
-      { name: 'jobId', type: 'uint256' },
-      { name: 'window', type: 'uint256' },
-    ],
-    name: 'setDisputeWindow',
-    outputs: [],
-    stateMutability: 'nonpayable',
-    type: 'function',
-  },
-  {
-    inputs: [
-      { name: 'jobId', type: 'uint256' },
-      { name: 'slashBP', type: 'uint256' },
-    ],
-    name: 'setNonResponsiveSlashBP',
-    outputs: [],
-    stateMutability: 'nonpayable',
-    type: 'function',
-  },
-
-  // === Job Lifecycle (Payable for ETH) ===
-  {
-    inputs: [{ name: 'jobId', type: 'uint256' }],
-    name: 'fund',
-    outputs: [],
-    stateMutability: 'payable',
-    type: 'function',
-  },
-  {
-    inputs: [
-      { name: 'jobId', type: 'uint256' },
-      { name: 'deliverable', type: 'bytes32' },
-    ],
-    name: 'submit',
-    outputs: [],
-    stateMutability: 'nonpayable',
-    type: 'function',
-  },
-  {
-    inputs: [
-      { name: 'jobId', type: 'uint256' },
-      { name: 'reason', type: 'bytes32' },
-    ],
-    name: 'complete',
-    outputs: [],
-    stateMutability: 'nonpayable',
-    type: 'function',
-  },
-  {
-    inputs: [
-      { name: 'jobId', type: 'uint256' },
-      { name: 'reason', type: 'bytes32' },
-    ],
-    name: 'completeAfterTimeout',
-    outputs: [],
-    stateMutability: 'nonpayable',
-    type: 'function',
-  },
-  {
-    inputs: [
-      { name: 'jobId', type: 'uint256' },
-      { name: 'reason', type: 'bytes32' },
-    ],
-    name: 'reject',
-    outputs: [],
-    stateMutability: 'nonpayable',
-    type: 'function',
-  },
-  {
-    inputs: [{ name: 'jobId', type: 'uint256' }],
-    name: 'claimRefund',
-    outputs: [],
-    stateMutability: 'nonpayable',
-    type: 'function',
-  },
-
-  // === View Functions ===
-  {
-    inputs: [{ name: 'jobId', type: 'uint256' }],
-    name: 'getJob',
-    outputs: [
-      {
-        components: [
-          { name: 'id', type: 'uint256' },
-          { name: 'client', type: 'address' },
-          { name: 'provider', type: 'address' },
-          { name: 'evaluator', type: 'address' },
-          { name: 'serviceId', type: 'uint256' },
-          { name: 'paymentToken', type: 'address' },
-          { name: 'description', type: 'string' },
-          { name: 'budget', type: 'uint256' },
-          { name: 'expiredAt', type: 'uint256' },
-          { name: 'status', type: 'uint8' },
-          { name: 'hook', type: 'address' },
-          { name: 'deliverable', type: 'bytes32' },
-        ],
-        name: '',
-        type: 'tuple',
-      },
-    ],
-    stateMutability: 'view',
-    type: 'function',
-  },
-  {
-    inputs: [{ name: 'client', type: 'address' }],
-    name: 'getClientJobCount',
-    outputs: [{ name: '', type: 'uint256' }],
-    stateMutability: 'view',
-    type: 'function',
-  },
-  {
-    inputs: [{ name: 'jobId', type: 'uint256' }],
-    name: 'isEvaluatorFeeEnabled',
-    outputs: [{ name: '', type: 'bool' }],
-    stateMutability: 'view',
-    type: 'function',
-  },
-  {
-    inputs: [{ name: '', type: 'uint256' }],
-    name: 'jobs',
-    outputs: [
-      {
-        components: [
-          { name: 'id', type: 'uint256' },
-          { name: 'client', type: 'address' },
-          { name: 'provider', type: 'address' },
-          { name: 'evaluator', type: 'address' },
-          { name: 'serviceId', type: 'uint256' },
-          { name: 'paymentToken', type: 'address' },
-          { name: 'description', type: 'string' },
-          { name: 'budget', type: 'uint256' },
-          { name: 'expiredAt', type: 'uint256' },
-          { name: 'status', type: 'uint8' },
-          { name: 'hook', type: 'address' },
-          { name: 'deliverable', type: 'bytes32' },
-        ],
-        name: '',
-        type: 'tuple',
-      },
-    ],
-    stateMutability: 'view',
-    type: 'function',
-  },
-
-  // === Constants ===
-  {
-    inputs: [],
-    name: 'jobCounter',
-    outputs: [{ name: '', type: 'uint256' }],
-    stateMutability: 'view',
-    type: 'function',
-  },
-  {
-    inputs: [],
-    name: 'platformTreasury',
-    outputs: [{ name: '', type: 'address' }],
-    stateMutability: 'view',
-    type: 'function',
-  },
-  {
-    inputs: [],
-    name: 'owner',
-    outputs: [{ name: '', type: 'address' }],
-    stateMutability: 'view',
-    type: 'function',
-  },
-
-  // === Admin ===
-  {
-    inputs: [{ name: 'treasury', type: 'address' }],
-    name: 'setPlatformTreasury',
-    outputs: [],
-    stateMutability: 'nonpayable',
-    type: 'function',
-  },
-
-  // === Ownership ===
-  {
-    inputs: [],
-    name: 'renounceOwnership',
-    outputs: [],
-    stateMutability: 'nonpayable',
-    type: 'function',
-  },
-  {
-    inputs: [{ name: 'newOwner', type: 'address' }],
-    name: 'transferOwnership',
-    outputs: [],
-    stateMutability: 'nonpayable',
-    type: 'function',
-  },
-
-  // === Disabled Bidding Functions (Still exist in contract, revert when called) ===
-  // These are kept for backward compatibility - they revert with "Bidding disabled"
-  {
-    inputs: [{ name: 'maxBudget', type: 'uint256' }],
-    name: 'calculateStake',
-    outputs: [{ name: '', type: 'uint256' }],
-    stateMutability: 'pure',
-    type: 'function',
-  },
-  {
-    inputs: [
-      { name: 'jobId', type: 'uint256' },
-      { name: 'commitHash', type: 'bytes32' },
-    ],
-    name: 'commitBid',
-    outputs: [],
-    stateMutability: 'payable',
-    type: 'function',
-  },
-  {
-    inputs: [
-      { name: 'jobId', type: 'uint256' },
-      { name: 'amount', type: 'uint256' },
-      { name: 'message', type: 'string' },
-      { name: 'salt', type: 'bytes32' },
-    ],
-    name: 'revealBid',
-    outputs: [],
-    stateMutability: 'nonpayable',
-    type: 'function',
-  },
-  {
-    inputs: [
-      { name: 'jobId', type: 'uint256' },
-      { name: 'bidId', type: 'uint256' },
-    ],
-    name: 'acceptBid',
-    outputs: [],
-    stateMutability: 'nonpayable',
-    type: 'function',
-  },
-  {
-    inputs: [{ name: 'jobId', type: 'uint256' }],
-    name: 'withdrawStake',
-    outputs: [],
-    stateMutability: 'nonpayable',
-    type: 'function',
-  },
-  {
-    inputs: [
-      { name: 'jobId', type: 'uint256' },
-      { name: 'user', type: 'address' },
-    ],
-    name: 'getUserBid',
-    outputs: [
-      {
-        components: [
-          { name: 'bidId', type: 'uint256' },
-          { name: 'bidder', type: 'address' },
-          { name: 'proposedAmount', type: 'uint256' },
-          { name: 'stake', type: 'uint256' },
-          { name: 'message', type: 'string' },
-          { name: 'commitHash', type: 'bytes32' },
-          { name: 'revealed', type: 'bool' },
-          { name: 'accepted', type: 'bool' },
-          { name: 'withdrawn', type: 'bool' },
-          { name: 'timestamp', type: 'uint256' },
-        ],
-        name: '',
-        type: 'tuple',
-      },
-    ],
-    stateMutability: 'view',
-    type: 'function',
-  },
-  {
-    inputs: [{ name: 'jobId', type: 'uint256' }],
-    name: 'jobBidCount',
-    outputs: [{ name: '', type: 'uint256' }],
-    stateMutability: 'view',
-    type: 'function',
-  },
-  {
-    inputs: [
-      { name: 'jobId', type: 'uint256' },
-      { name: '', type: 'uint256' },
-    ],
-    name: 'jobBids',
-    outputs: [
-      {
-        components: [
-          { name: 'bidId', type: 'uint256' },
-          { name: 'bidder', type: 'address' },
-          { name: 'proposedAmount', type: 'uint256' },
-          { name: 'stake', type: 'uint256' },
-          { name: 'message', type: 'string' },
-          { name: 'commitHash', type: 'bytes32' },
-          { name: 'revealed', type: 'bool' },
-          { name: 'accepted', type: 'bool' },
-          { name: 'withdrawn', type: 'bool' },
-          { name: 'timestamp', type: 'uint256' },
-        ],
-        name: '',
-        type: 'tuple',
-      },
-    ],
-    stateMutability: 'view',
-    type: 'function',
-  },
-  {
-    inputs: [{ name: '', type: 'address' }],
-    name: 'totalStakesHeld',
-    outputs: [{ name: '', type: 'uint256' }],
-    stateMutability: 'view',
-    type: 'function',
-  },
-  {
-    inputs: [],
-    name: 'REVEAL_WINDOW',
-    outputs: [{ name: '', type: 'uint256' }],
-    stateMutability: 'view',
-    type: 'function',
-  },
-  {
-    inputs: [],
-    name: 'platformFeeBP',
-    outputs: [{ name: '', type: 'uint256' }],
-    stateMutability: 'view',
-    type: 'function',
-  },
-  {
-    inputs: [
-      { name: 'feeBP', type: 'uint256' },
-      { name: 'treasury', type: 'address' },
-    ],
-    name: 'setPlatformFee',
-    outputs: [],
-    stateMutability: 'nonpayable',
-    type: 'function',
-  },
-  // === V6.1 New Functions ===
-  {
-    inputs: [{ name: 'jobId', type: 'uint256' }],
-    name: 'completeAfterTimeout',
-    outputs: [],
-    stateMutability: 'nonpayable',
-    type: 'function',
-  },
-  {
-    inputs: [{ name: 'jobId', type: 'uint256' }],
-    name: 'refundExpired',
-    outputs: [],
-    stateMutability: 'nonpayable',
-    type: 'function',
-  },
-  {
-    inputs: [
-      { name: 'provider', type: 'address' },
-      { name: 'evaluator', type: 'address' },
-      { name: 'serviceId', type: 'uint256' },
-      { name: 'budget', type: 'uint256' },
-      { name: 'expiredAt', type: 'uint256' },
-      { name: 'description', type: 'string' },
-      { name: 'hook', type: 'address' },
-    ],
-    name: 'createJobWithRandomEvaluator',
-    outputs: [{ name: 'jobId', type: 'uint256' }],
-    stateMutability: 'nonpayable',
-    type: 'function',
-  },
-  {
-    inputs: [],
-    name: 'registerAsEvaluator',
-    outputs: [],
-    stateMutability: 'nonpayable',
-    type: 'function',
-  },
-  {
-    inputs: [],
-    name: 'unregisterAsEvaluator',
-    outputs: [],
-    stateMutability: 'nonpayable',
-    type: 'function',
-  },
-] as const;
 
 // === V5 Events (for useWatchContractEvents) ===
-export const AGENTIC_COMMERCE_EVENTS = [
-  // Core Job Events
-  {
-    anonymous: false,
-    inputs: [
-      { indexed: true, name: 'jobId', type: 'uint256' },
-      { indexed: true, name: 'client', type: 'address' },
-      { indexed: true, name: 'provider', type: 'address' },
-      { indexed: false, name: 'evaluator', type: 'address' },
-      { indexed: false, name: 'serviceId', type: 'uint256' },
-      { indexed: false, name: 'expiredAt', type: 'uint256' },
-    ],
-    name: 'JobCreated',
-    type: 'event',
-  },
-  {
-    anonymous: false,
-    inputs: [
-      { indexed: true, name: 'jobId', type: 'uint256' },
-      { indexed: true, name: 'client', type: 'address' },
-      { indexed: false, name: 'maxBudget', type: 'uint256' },
-      { indexed: false, name: 'evaluator', type: 'address' },
-      { indexed: false, name: 'expiredAt', type: 'uint256' },
-    ],
-    name: 'OpenJobCreated',
-    type: 'event',
-  },
-  {
-    anonymous: false,
-    inputs: [
-      { indexed: true, name: 'jobId', type: 'uint256' },
-      { indexed: true, name: 'provider', type: 'address' },
-    ],
-    name: 'ProviderSet',
-    type: 'event',
-  },
-  {
-    anonymous: false,
-    inputs: [
-      { indexed: true, name: 'jobId', type: 'uint256' },
-      { indexed: false, name: 'amount', type: 'uint256' },
-    ],
-    name: 'BudgetSet',
-    type: 'event',
-  },
-  {
-    anonymous: false,
-    inputs: [
-      { indexed: true, name: 'jobId', type: 'uint256' },
-      { indexed: true, name: 'client', type: 'address' },
-      { indexed: false, name: 'amount', type: 'uint256' },
-    ],
-    name: 'JobFunded',
-    type: 'event',
-  },
-  {
-    anonymous: false,
-    inputs: [
-      { indexed: true, name: 'jobId', type: 'uint256' },
-      { indexed: true, name: 'provider', type: 'address' },
-      { indexed: false, name: 'deliverable', type: 'bytes32' },
-    ],
-    name: 'JobSubmitted',
-    type: 'event',
-  },
-  {
-    anonymous: false,
-    inputs: [
-      { indexed: true, name: 'jobId', type: 'uint256' },
-      { indexed: true, name: 'evaluator', type: 'address' },
-      { indexed: false, name: 'reason', type: 'bytes32' },
-    ],
-    name: 'JobCompleted',
-    type: 'event',
-  },
-  {
-    anonymous: false,
-    inputs: [
-      { indexed: true, name: 'jobId', type: 'uint256' },
-      { indexed: true, name: 'rejector', type: 'address' },
-      { indexed: false, name: 'reason', type: 'bytes32' },
-    ],
-    name: 'JobRejected',
-    type: 'event',
-  },
-  {
-    anonymous: false,
-    inputs: [{ indexed: true, name: 'jobId', type: 'uint256' }],
-    name: 'JobExpired',
-    type: 'event',
-  },
-  {
-    anonymous: false,
-    inputs: [
-      { indexed: true, name: 'jobId', type: 'uint256' },
-      { indexed: true, name: 'provider', type: 'address' },
-      { indexed: false, name: 'amount', type: 'uint256' },
-    ],
-    name: 'PaymentReleased',
-    type: 'event',
-  },
-  {
-    anonymous: false,
-    inputs: [
-      { indexed: true, name: 'jobId', type: 'uint256' },
-      { indexed: true, name: 'client', type: 'address' },
-      { indexed: false, name: 'amount', type: 'uint256' },
-    ],
-    name: 'Refunded',
-    type: 'event',
-  },
+export const AGENTIC_COMMERCE_EVENTS = parseAbi([
+  'event JobCreated(uint256 indexed jobId, address indexed client, address indexed provider, address evaluator, uint256 serviceId, uint256 expiredAt)',
+  'event OpenJobCreated(uint256 indexed jobId, address indexed client, uint256 maxBudget, address evaluator, uint256 expiredAt)',
+  'event ProviderSet(uint256 indexed jobId, address indexed provider)',
+  'event BudgetSet(uint256 indexed jobId, uint256 amount)',
+  'event JobFunded(uint256 indexed jobId, address indexed client, uint256 amount)',
+  'event JobSubmitted(uint256 indexed jobId, address indexed provider, bytes32 deliverable)',
+  'event JobCompleted(uint256 indexed jobId, address indexed evaluator, bytes32 reason)',
+  'event JobRejected(uint256 indexed jobId, address indexed rejector, bytes32 reason)',
+  'event JobExpired(uint256 indexed jobId)',
+  'event PaymentReleased(uint256 indexed jobId, address indexed provider, uint256 amount)',
+  'event Refunded(uint256 indexed jobId, address indexed client, uint256 amount)',
+  'event JobStatusChanged(uint256 indexed jobId, uint8 indexed oldStatus, uint8 indexed newStatus, uint256 timestamp)',
+  'event JobUpdated(uint256 indexed jobId, bytes32 indexed updateType, uint256 timestamp)',
+  'event JobLimitExceeded(address indexed client, uint256 attemptedCount, uint256 maxAllowed)',
+  'event DisputeWindowSet(uint256 indexed jobId, uint256 window)',
+  'event NonResponsiveSlashSet(uint256 indexed jobId, uint256 slashBP)',
+  'event EvaluatorSlashedForInactivity(uint256 indexed jobId, address indexed evaluator, uint256 slashAmount)',
+  'event BidCommitted(uint256 indexed jobId, address indexed bidder, uint256 stakeAmount, bytes32 commitHash)',
+  'event BidRevealed(uint256 indexed jobId, address indexed bidder, uint256 proposedAmount, string message)',
+  'event BidAccepted(uint256 indexed jobId, address indexed bidder, uint256 bidId, uint256 acceptedAmount)',
+  'event StakesReturned(uint256 indexed jobId, address indexed recipient, uint256 amount)',
+]);
 
-  // Enhanced Events
-  {
-    anonymous: false,
-    inputs: [
-      { indexed: true, name: 'jobId', type: 'uint256' },
-      { indexed: true, name: 'oldStatus', type: 'uint8' },
-      { indexed: true, name: 'newStatus', type: 'uint8' },
-      { indexed: false, name: 'timestamp', type: 'uint256' },
-    ],
-    name: 'JobStatusChanged',
-    type: 'event',
-  },
-  {
-    anonymous: false,
-    inputs: [
-      { indexed: true, name: 'jobId', type: 'uint256' },
-      { indexed: true, name: 'updateType', type: 'bytes32' },
-      { indexed: false, name: 'timestamp', type: 'uint256' },
-    ],
-    name: 'JobUpdated',
-    type: 'event',
-  },
-  {
-    anonymous: false,
-    inputs: [
-      { indexed: true, name: 'client', type: 'address' },
-      { indexed: false, name: 'attemptedCount', type: 'uint256' },
-      { indexed: false, name: 'maxAllowed', type: 'uint256' },
-    ],
-    name: 'JobLimitExceeded',
-    type: 'event',
-  },
 
-  // V6.1 Dispute Events
-  {
-    anonymous: false,
-    inputs: [
-      { indexed: true, name: 'jobId', type: 'uint256' },
-      { indexed: false, name: 'window', type: 'uint256' },
-    ],
-    name: 'DisputeWindowSet',
-    type: 'event',
-  },
-  {
-    anonymous: false,
-    inputs: [
-      { indexed: true, name: 'jobId', type: 'uint256' },
-      { indexed: false, name: 'slashBP', type: 'uint256' },
-    ],
-    name: 'NonResponsiveSlashSet',
-    type: 'event',
-  },
-  {
-    anonymous: false,
-    inputs: [
-      { indexed: true, name: 'jobId', type: 'uint256' },
-      { indexed: true, name: 'evaluator', type: 'address' },
-      { indexed: false, name: 'slashAmount', type: 'uint256' },
-    ],
-    name: 'EvaluatorSlashedForInactivity',
-    type: 'event',
-  },
+export const AGENT_REVIEW_ABI = parseAbi([
+  'function createProposal(string title, string description, string criteriaURI, uint256 reward, uint256 decisionDeadline) external payable returns (uint256 proposalId)',
+  'function getProposal(uint256 proposalId) external view returns ((uint256 id, address proposer, string title, string description, string criteriaURI, uint256 reward, uint8 status, uint256 createdAt, uint256 decisionDeadline, address winningEvaluator))',
+  'function submitEvaluation(uint256 proposalId, int256 confidenceScore, string reasoningURI) external payable',
+  'function attestDecision(uint256 proposalId, address winningEvaluator) external',
+  'function getProposalEvaluations(uint256 proposalId) external view returns (address[] memory)',
+  'function getEvaluation(uint256 proposalId, address evaluator) external view returns ((uint256 proposalId, address evaluator, int256 confidenceScore, string reasoningURI, uint256 stakeAmount, bool isFinal, uint256 submittedAt))',
+  'function getProposalCount() external view returns (uint256)',
+  'function claimReward(uint256 proposalId) external',
+  'function releaseStake(uint256 proposalId) external',
+  'function cancelProposal(uint256 proposalId) external',
+  'function slashEvaluator(address evaluator, uint256 proposalId, string reason) external',
+  'function getEvaluatorCount(uint256 proposalId) external view returns (uint256)',
+  'function finalizeDecision(uint256 proposalId) external',
+  'function calculateMedianScore(uint256 proposalId) external view returns (int256)',
+  'function slashTreasury() external view returns (address)',
+]);
 
-  // Bidding Events
-  {
-    anonymous: false,
-    inputs: [
-      { indexed: true, name: 'jobId', type: 'uint256' },
-      { indexed: true, name: 'bidder', type: 'address' },
-      { indexed: false, name: 'stakeAmount', type: 'uint256' },
-      { indexed: false, name: 'commitHash', type: 'bytes32' },
-    ],
-    name: 'BidCommitted',
-    type: 'event',
-  },
-  {
-    anonymous: false,
-    inputs: [
-      { indexed: true, name: 'jobId', type: 'uint256' },
-      { indexed: true, name: 'bidder', type: 'address' },
-      { indexed: false, name: 'proposedAmount', type: 'uint256' },
-      { indexed: false, name: 'message', type: 'string' },
-    ],
-    name: 'BidRevealed',
-    type: 'event',
-  },
-  {
-    anonymous: false,
-    inputs: [
-      { indexed: true, name: 'jobId', type: 'uint256' },
-      { indexed: true, name: 'bidder', type: 'address' },
-      { indexed: false, name: 'bidId', type: 'uint256' },
-      { indexed: false, name: 'acceptedAmount', type: 'uint256' },
-    ],
-    name: 'BidAccepted',
-    type: 'event',
-  },
-  {
-    anonymous: false,
-    inputs: [
-      { indexed: true, name: 'jobId', type: 'uint256' },
-      { indexed: true, name: 'recipient', type: 'address' },
-      { indexed: false, name: 'amount', type: 'uint256' },
-    ],
-    name: 'StakesReturned',
-    type: 'event',
-  },
-] as const;
 
-export const AGENT_REVIEW_ABI = [
-  {
-    inputs: [
-      { name: 'title', type: 'string' },
-      { name: 'description', type: 'string' },
-      { name: 'criteriaURI', type: 'string' },
-      { name: 'reward', type: 'uint256' },
-      { name: 'decisionDeadline', type: 'uint256' },
-    ],
-    name: 'createProposal',
-    outputs: [{ name: 'proposalId', type: 'uint256' }],
-    stateMutability: 'payable',
-    type: 'function',
-  },
-  {
-    inputs: [{ name: 'proposalId', type: 'uint256' }],
-    name: 'getProposal',
-    outputs: [
-      {
-        components: [
-          { name: 'id', type: 'uint256' },
-          { name: 'proposer', type: 'address' },
-          { name: 'title', type: 'string' },
-          { name: 'description', type: 'string' },
-          { name: 'criteriaURI', type: 'string' },
-          { name: 'reward', type: 'uint256' },
-          { name: 'status', type: 'uint8' },
-          { name: 'createdAt', type: 'uint256' },
-          { name: 'decisionDeadline', type: 'uint256' },
-          { name: 'winningEvaluator', type: 'address' },
-        ],
-        name: '',
-        type: 'tuple',
-      },
-    ],
-    stateMutability: 'view',
-    type: 'function',
-  },
-  {
-    inputs: [
-      { name: 'proposalId', type: 'uint256' },
-      { name: 'confidenceScore', type: 'int256' },
-      { name: 'reasoningURI', type: 'string' },
-    ],
-    name: 'submitEvaluation',
-    outputs: [],
-    stateMutability: 'payable',
-    type: 'function',
-  },
-  {
-    inputs: [
-      { name: 'proposalId', type: 'uint256' },
-      { name: 'winningEvaluator', type: 'address' },
-    ],
-    name: 'attestDecision',
-    outputs: [],
-    stateMutability: 'nonpayable',
-    type: 'function',
-  },
-  {
-    inputs: [{ name: 'proposalId', type: 'uint256' }],
-    name: 'getProposalEvaluations',
-    outputs: [{ name: '', type: 'address[]' }],
-    stateMutability: 'view',
-    type: 'function',
-  },
-  {
-    inputs: [
-      { name: 'proposalId', type: 'uint256' },
-      { name: 'evaluator', type: 'address' },
-    ],
-    name: 'getEvaluation',
-    outputs: [
-      {
-        components: [
-          { name: 'proposalId', type: 'uint256' },
-          { name: 'evaluator', type: 'address' },
-          { name: 'confidenceScore', type: 'int256' },
-          { name: 'reasoningURI', type: 'string' },
-          { name: 'stakeAmount', type: 'uint256' },
-          { name: 'isFinal', type: 'bool' },
-          { name: 'submittedAt', type: 'uint256' },
-        ],
-        name: '',
-        type: 'tuple',
-      },
-    ],
-    stateMutability: 'view',
-    type: 'function',
-  },
-  {
-    inputs: [],
-    name: 'getProposalCount',
-    outputs: [{ name: '', type: 'uint256' }],
-    stateMutability: 'view',
-    type: 'function',
-  },
-  {
-    inputs: [{ name: 'proposalId', type: 'uint256' }],
-    name: 'claimReward',
-    outputs: [],
-    stateMutability: 'nonpayable',
-    type: 'function',
-  },
-  {
-    inputs: [{ name: 'proposalId', type: 'uint256' }],
-    name: 'releaseStake',
-    outputs: [],
-    stateMutability: 'nonpayable',
-    type: 'function',
-  },
-  // === Admin & Proposal Management ===
-  {
-    inputs: [{ name: 'proposalId', type: 'uint256' }],
-    name: 'cancelProposal',
-    outputs: [],
-    stateMutability: 'nonpayable',
-    type: 'function',
-  },
-  {
-    inputs: [
-      { name: 'evaluator', type: 'address' },
-      { name: 'proposalId', type: 'uint256' },
-      { name: 'reason', type: 'string' },
-    ],
-    name: 'slashEvaluator',
-    outputs: [],
-    stateMutability: 'nonpayable',
-    type: 'function',
-  },
-  {
-    inputs: [{ name: 'proposalId', type: 'uint256' }],
-    name: 'getEvaluatorCount',
-    outputs: [{ name: '', type: 'uint256' }],
-    stateMutability: 'view',
-    type: 'function',
-  },
-  // === V5 New Functions ===
-  {
-    inputs: [{ name: 'proposalId', type: 'uint256' }],
-    name: 'finalizeDecision',
-    outputs: [],
-    stateMutability: 'nonpayable',
-    type: 'function',
-  },
-  {
-    inputs: [{ name: 'proposalId', type: 'uint256' }],
-    name: 'calculateMedianScore',
-    outputs: [{ name: '', type: 'int256' }],
-    stateMutability: 'view',
-    type: 'function',
-  },
-  {
-    inputs: [],
-    name: 'slashTreasury',
-    outputs: [{ name: '', type: 'address' }],
-    stateMutability: 'view',
-    type: 'function',
-  },
-] as const;
+export const AGENT_SKILL_REGISTRY_ABI = parseAbi([
+  'function registerSkill(uint256 agentId, string name, string version, string description, string endpoint, string[] domains) external returns (uint256 skillId)',
+  'function getAgentSkills(uint256 agentId) external view returns (uint256[] memory)',
+  'function getSkill(uint256 skillId) external view returns ((uint256 agentId, string name, string version, string description, string endpoint, string[] domains, bool isActive, address registeredBy, uint256 registeredAt))',
+  'function getSkillData(uint256 skillId) external view returns ((uint256 agentId, string name, string version, string description, string endpoint, string[] domains, bool isActive, address registeredBy, uint256 registeredAt))',
+  'function updateSkill(uint256 skillId, string name, string version, string description, string endpoint, string[] domains) external',
+  'function deactivateSkill(uint256 skillId) external',
+  'function findSkillsByDomain(string domain) external view returns (uint256[] memory)',
+]);
 
-export const AGENT_SKILL_REGISTRY_ABI = [
-  {
-    inputs: [
-      { name: 'agentId', type: 'uint256' },
-      { name: 'name', type: 'string' },
-      { name: 'version', type: 'string' },
-      { name: 'description', type: 'string' },
-      { name: 'endpoint', type: 'string' },
-      { name: 'domains', type: 'string[]' },
-    ],
-    name: 'registerSkill',
-    outputs: [{ name: 'skillId', type: 'uint256' }],
-    stateMutability: 'nonpayable',
-    type: 'function',
-  },
-  {
-    inputs: [{ name: 'agentId', type: 'uint256' }],
-    name: 'getAgentSkills',
-    outputs: [{ name: '', type: 'uint256[]' }],
-    stateMutability: 'view',
-    type: 'function',
-  },
-  {
-    inputs: [{ name: 'skillId', type: 'uint256' }],
-    name: 'getSkill',
-    outputs: [
-      {
-        components: [
-          { name: 'agentId', type: 'uint256' },
-          { name: 'name', type: 'string' },
-          { name: 'version', type: 'string' },
-          { name: 'description', type: 'string' },
-          { name: 'endpoint', type: 'string' },
-          { name: 'domains', type: 'string[]' },
-          { name: 'isActive', type: 'bool' },
-          { name: 'registeredBy', type: 'address' },
-          { name: 'registeredAt', type: 'uint256' },
-        ],
-        name: '',
-        type: 'tuple',
-      },
-    ],
-    stateMutability: 'view',
-    type: 'function',
-  },
-  {
-    inputs: [{ name: 'skillId', type: 'uint256' }],
-    name: 'getSkillData',
-    outputs: [
-      {
-        components: [
-          { name: 'agentId', type: 'uint256' },
-          { name: 'name', type: 'string' },
-          { name: 'version', type: 'string' },
-          { name: 'description', type: 'string' },
-          { name: 'endpoint', type: 'string' },
-          { name: 'domains', type: 'string[]' },
-          { name: 'isActive', type: 'bool' },
-          { name: 'registeredBy', type: 'address' },
-          { name: 'registeredAt', type: 'uint256' },
-        ],
-        name: '',
-        type: 'tuple',
-      },
-    ],
-    stateMutability: 'view',
-    type: 'function',
-  },
-  {
-    inputs: [
-      { name: 'skillId', type: 'uint256' },
-      { name: 'name', type: 'string' },
-      { name: 'version', type: 'string' },
-      { name: 'description', type: 'string' },
-      { name: 'endpoint', type: 'string' },
-      { name: 'domains', type: 'string[]' },
-    ],
-    name: 'updateSkill',
-    outputs: [],
-    stateMutability: 'nonpayable',
-    type: 'function',
-  },
-  {
-    inputs: [{ name: 'skillId', type: 'uint256' }],
-    name: 'deactivateSkill',
-    outputs: [],
-    stateMutability: 'nonpayable',
-    type: 'function',
-  },
-  {
-    inputs: [{ name: 'domain', type: 'string' }],
-    name: 'findSkillsByDomain',
-    outputs: [{ name: '', type: 'uint256[]' }],
-    stateMutability: 'view',
-    type: 'function',
-  },
-] as const;
 
 // ERC-8004 Reputation Registry ABI
-export const ERC8004_REPUTATION_ABI = [
-  {
-    inputs: [{ name: 'agent', type: 'address' }],
-    name: 'getAgentReputation',
-    outputs: [
-      { name: 'average', type: 'int256' },
-      { name: 'total', type: 'uint256' },
-      { name: 'providers', type: 'uint256' },
-    ],
-    stateMutability: 'view',
-    type: 'function',
-  },
-  {
-    inputs: [{ name: 'agent', type: 'address' }],
-    name: 'getFeedbackCount',
-    outputs: [{ name: '', type: 'uint256' }],
-    stateMutability: 'view',
-    type: 'function',
-  },
-  {
-    inputs: [{ name: 'feedbackId', type: 'uint256' }],
-    name: 'getFeedbackDetails',
-    outputs: [
-      {
-        name: '',
-        type: 'tuple',
-        components: [
-          { name: 'agent', type: 'address' },
-          { name: 'taskId', type: 'uint256' },
-          { name: 'rating', type: 'int256' },
-          { name: 'metadataURI', type: 'string' },
-          { name: 'timestamp', type: 'uint256' },
-        ],
-      },
-    ],
-    stateMutability: 'view',
-    type: 'function',
-  },
-  {
-    inputs: [
-      { name: 'agent', type: 'address' },
-      { name: 'taskId', type: 'uint256' },
-      { name: 'rating', type: 'int256' },
-      { name: 'metadataURI', type: 'string' },
-    ],
-    name: 'submitFeedback',
-    outputs: [{ name: '', type: 'uint256' }],
-    stateMutability: 'nonpayable',
-    type: 'function',
-  },
-] as const;
+export const ERC8004_REPUTATION_ABI = parseAbi([
+  'function getAgentReputation(address agent) external view returns (int256 average, uint256 total, uint256 providers)',
+  'function getFeedbackCount(address agent) external view returns (uint256)',
+  'function getFeedbackDetails(uint256 feedbackId) external view returns ((address agent, uint256 taskId, int256 rating, string metadataURI, uint256 timestamp))',
+  'function submitFeedback(address agent, uint256 taskId, int256 rating, string metadataURI) external returns (uint256)',
+]);
+
 
 // Price Oracle ABI
-export const PRICE_ORACLE_ABI = [
-  {
-    inputs: [],
-    name: 'getUSDCPrice',
-    outputs: [{ name: '', type: 'int256' }],
-    stateMutability: 'view',
-    type: 'function',
-  },
-  {
-    inputs: [],
-    name: 'getETHRate',
-    outputs: [{ name: '', type: 'int256' }],
-    stateMutability: 'view',
-    type: 'function',
-  },
-  {
-    inputs: [],
-    name: 'isStale',
-    outputs: [{ name: '', type: 'bool' }],
-    stateMutability: 'view',
-    type: 'function',
-  },
-  {
-    inputs: [{ name: 'token', type: 'address' }],
-    name: 'getUsdPriceOfToken',
-    outputs: [{ name: '', type: 'int256' }],
-    stateMutability: 'view',
-    type: 'function',
-  },
-] as const;
+export const PRICE_ORACLE_ABI = parseAbi([
+  'function getUSDCPrice() external view returns (int256)',
+  'function getETHRate() external view returns (int256)',
+  'function isStale() external view returns (bool)',
+  'function getUsdPriceOfToken(address token) external view returns (int256)',
+]);
+
 
 // ERC20 Token ABI (for USDC)
-export const ERC20_ABI = [
-  {
-    inputs: [{ name: 'account', type: 'address' }],
-    name: 'balanceOf',
-    outputs: [{ name: '', type: 'uint256' }],
-    stateMutability: 'view',
-    type: 'function',
-  },
-  {
-    inputs: [
-      { name: 'owner', type: 'address' },
-      { name: 'spender', type: 'address' },
-    ],
-    name: 'allowance',
-    outputs: [{ name: '', type: 'uint256' }],
-    stateMutability: 'view',
-    type: 'function',
-  },
-  {
-    inputs: [
-      { name: 'spender', type: 'address' },
-      { name: 'amount', type: 'uint256' },
-    ],
-    name: 'approve',
-    outputs: [{ name: '', type: 'bool' }],
-    stateMutability: 'nonpayable',
-    type: 'function',
-  },
-  {
-    inputs: [],
-    name: 'decimals',
-    outputs: [{ name: '', type: 'uint8' }],
-    stateMutability: 'view',
-    type: 'function',
-  },
-  {
-    inputs: [],
-    name: 'symbol',
-    outputs: [{ name: '', type: 'string' }],
-    stateMutability: 'view',
-    type: 'function',
-  },
-  {
-    inputs: [],
-    name: 'name',
-    outputs: [{ name: '', type: 'string' }],
-    stateMutability: 'view',
-    type: 'function',
-  },
-] as const;
+export const ERC20_ABI = parseAbi([
+  'function balanceOf(address account) external view returns (uint256)',
+  'function allowance(address owner, address spender) external view returns (uint256)',
+  'function approve(address spender, uint256 amount) external returns (bool)',
+  'function decimals() external view returns (uint8)',
+  'function symbol() external view returns (string)',
+  'function name() external view returns (string)',
+]);
+
 
 // Commit Reveal ABI
-export const COMMIT_REVEAL_ABI = [
-  {
-    inputs: [{ name: 'commitmentHash', type: 'bytes32' }],
-    name: 'commit',
-    outputs: [],
-    stateMutability: 'nonpayable',
-    type: 'function',
-  },
-  {
-    inputs: [
-      { name: 'data', type: 'string' },
-      { name: 'nonce', type: 'uint256' },
-      { name: 'serviceId', type: 'uint256' },
-    ],
-    name: 'reveal',
-    outputs: [],
-    stateMutability: 'nonpayable',
-    type: 'function',
-  },
-  {
-    inputs: [{ name: 'commitmentHash', type: 'bytes32' }],
-    name: 'cancel',
-    outputs: [],
-    stateMutability: 'nonpayable',
-    type: 'function',
-  },
-  {
-    inputs: [
-      { name: 'user', type: 'address' },
-      { name: 'commitmentHash', type: 'bytes32' },
-    ],
-    name: 'getCommitment',
-    outputs: [
-      {
-        components: [
-          { name: 'blockNumber', type: 'uint256' },
-          { name: 'exists', type: 'bool' },
-        ],
-        name: '',
-        type: 'tuple',
-      },
-    ],
-    stateMutability: 'view',
-    type: 'function',
-  },
-  {
-    inputs: [{ name: 'commitmentHash', type: 'bytes32' }],
-    name: 'isCommitmentValid',
-    outputs: [{ name: '', type: 'bool' }],
-    stateMutability: 'view',
-    type: 'function',
-  },
-  {
-    inputs: [],
-    name: 'REVEAL_DELAY',
-    outputs: [{ name: '', type: 'uint256' }],
-    stateMutability: 'view',
-    type: 'function',
-  },
-] as const;
+export const COMMIT_REVEAL_ABI = parseAbi([
+  'function commit(bytes32 commitmentHash) external',
+  'function reveal(string data, uint256 nonce, uint256 serviceId) external',
+  'function cancel(bytes32 commitmentHash) external',
+  'function getCommitment(address user, bytes32 commitmentHash) external view returns ((uint256 blockNumber, bool exists))',
+  'function isCommitmentValid(bytes32 commitmentHash) external view returns (bool)',
+  'function REVEAL_DELAY() external view returns (uint256)',
+]);
+
 
 // Slash Manager ABI
-export const SLASH_MANAGER_ABI = [
-  {
-    inputs: [{ name: '', type: 'address' }],
-    name: 'isSigner',
-    outputs: [{ name: '', type: 'bool' }],
-    stateMutability: 'view',
-    type: 'function',
-  },
-  {
-    inputs: [],
-    name: 'getSigners',
-    outputs: [{ name: '', type: 'address[]' }],
-    stateMutability: 'view',
-    type: 'function',
-  },
-  {
-    inputs: [],
-    name: 'requiredConfirmations',
-    outputs: [{ name: '', type: 'uint256' }],
-    stateMutability: 'view',
-    type: 'function',
-  },
-  {
-    inputs: [{ name: '', type: 'bytes32' }],
-    name: 'getProposal',
-    outputs: [
-      {
-        components: [
-          { name: 'evaluator', type: 'address' },
-          { name: 'proposalId', type: 'uint256' },
-          { name: 'amount', type: 'uint256' },
-          { name: 'reason', type: 'string' },
-          { name: 'confirmations', type: 'uint256' },
-          { name: 'execAfter', type: 'uint256' },
-          { name: 'isExecuted', type: 'bool' },
-        ],
-        name: '',
-        type: 'tuple',
-      },
-    ],
-    stateMutability: 'view',
-    type: 'function',
-  },
-  {
-    inputs: [
-      { name: 'evaluator', type: 'address' },
-      { name: 'proposalId', type: 'uint256' },
-      { name: 'amount', type: 'uint256' },
-      { name: 'reason', type: 'string' },
-    ],
-    name: 'createProposal',
-    outputs: [{ name: '', type: 'bytes32' }],
-    stateMutability: 'nonpayable',
-    type: 'function',
-  },
-  {
-    inputs: [{ name: 'proposalId', type: 'bytes32' }],
-    name: 'confirmProposal',
-    outputs: [],
-    stateMutability: 'nonpayable',
-    type: 'function',
-  },
-  {
-    inputs: [{ name: 'proposalId', type: 'bytes32' }],
-    name: 'executeProposal',
-    outputs: [],
-    stateMutability: 'nonpayable',
-    type: 'function',
-  },
-  {
-    inputs: [{ name: 'proposalId', type: 'bytes32' }],
-    name: 'cancelProposal',
-    outputs: [],
-    stateMutability: 'nonpayable',
-    type: 'function',
-  },
-  {
-    inputs: [],
-    name: 'executionDelay',
-    outputs: [{ name: '', type: 'uint256' }],
-    stateMutability: 'view',
-    type: 'function',
-  },
-  {
-    inputs: [],
-    name: 'maxSlashAmount',
-    outputs: [{ name: '', type: 'uint256' }],
-    stateMutability: 'view',
-    type: 'function',
-  },
-  // Ownable2Step (Phase 14)
-  {
-    inputs: [],
-    name: 'owner',
-    outputs: [{ name: '', type: 'address' }],
-    stateMutability: 'view',
-    type: 'function',
-  },
-] as const;
+export const SLASH_MANAGER_ABI = parseAbi([
+  'function isSigner(address) external view returns (bool)',
+  'function getSigners() external view returns (address[] memory)',
+  'function requiredConfirmations() external view returns (uint256)',
+  'function getProposal(bytes32) external view returns ((address evaluator, uint256 proposalId, uint256 amount, string reason, uint256 confirmations, uint256 execAfter, bool isExecuted))',
+  'function createProposal(address evaluator, uint256 proposalId, uint256 amount, string reason) external returns (bytes32)',
+  'function confirmProposal(bytes32 proposalId) external',
+  'function executeProposal(bytes32 proposalId) external',
+  'function cancelProposal(bytes32 proposalId) external',
+  'function executionDelay() external view returns (uint256)',
+  'function maxSlashAmount() external view returns (uint256)',
+  'function owner() external view returns (address)',
+]);
+
 
 // Chainlink Aggregator ABI (for reading price feeds)
-export const CHAINLINK_AGGREGATOR_ABI = [
-  {
-    inputs: [],
-    name: 'latestRoundData',
-    outputs: [
-      { name: 'roundId', type: 'uint80' },
-      { name: 'answer', type: 'int256' },
-      { name: 'startedAt', type: 'uint256' },
-      { name: 'updatedAt', type: 'uint256' },
-      { name: 'answeredInRound', type: 'uint80' },
-    ],
-    stateMutability: 'view',
-    type: 'function',
-  },
-  {
-    inputs: [],
-    name: 'decimals',
-    outputs: [{ name: '', type: 'uint8' }],
-    stateMutability: 'view',
-    type: 'function',
-  },
-  {
-    inputs: [],
-    name: 'description',
-    outputs: [{ name: '', type: 'string' }],
-    stateMutability: 'view',
-    type: 'function',
-  },
-] as const;
+export const CHAINLINK_AGGREGATOR_ABI = parseAbi([
+  'function latestRoundData() external view returns (uint80 roundId, int256 answer, uint256 startedAt, uint256 updatedAt, uint80 answeredInRound)',
+  'function decimals() external view returns (uint8)',
+  'function description() external view returns (string)',
+]);
+
 
 // =============================================================================
 // BIDDING SYSTEM ABI (Phase 11)
 // Standalone commit-reveal bidding contract
 // =============================================================================
 
-export const BIDDING_SYSTEM_ABI = [
-  // Enums
-  {
-    inputs: [],
-    name: 'SessionStatus',
-    outputs: [
-      { name: 'Active', type: 'uint8' },
-      { name: 'BiddingClosed', type: 'uint8' },
-      { name: 'WinnerSelected', type: 'uint8' },
-      { name: 'JobCreated', type: 'uint8' },
-      { name: 'Completed', type: 'uint8' },
-      { name: 'Cancelled', type: 'uint8' },
-    ],
-    stateMutability: 'view',
-    type: 'function',
-  },
-  // Read functions
-  {
-    inputs: [],
-    name: 'owner',
-    outputs: [{ name: '', type: 'address' }],
-    stateMutability: 'view',
-    type: 'function',
-  },
-  {
-    inputs: [],
-    name: 'commerce',
-    outputs: [{ name: '', type: 'address' }],
-    stateMutability: 'view',
-    type: 'function',
-  },
-  {
-    inputs: [],
-    name: 'treasury',
-    outputs: [{ name: '', type: 'address' }],
-    stateMutability: 'view',
-    type: 'function',
-  },
-  {
-    inputs: [],
-    name: 'revealWindow',
-    outputs: [{ name: '', type: 'uint256' }],
-    stateMutability: 'view',
-    type: 'function',
-  },
-  {
-    inputs: [],
-    name: 'platformFeeBP',
-    outputs: [{ name: '', type: 'uint256' }],
-    stateMutability: 'view',
-    type: 'function',
-  },
-  {
-    inputs: [],
-    name: 'sessionCounter',
-    outputs: [{ name: '', type: 'uint256' }],
-    stateMutability: 'view',
-    type: 'function',
-  },
-  {
-    inputs: [{ name: 'sessionId', type: 'uint256' }],
-    name: 'getSession',
-    outputs: [
-      {
-        name: '',
-        type: 'tuple',
-        components: [
-          { name: 'id', type: 'uint256' },
-          { name: 'creator', type: 'address' },
-          { name: 'evaluator', type: 'address' },
-          { name: 'maxBudget', type: 'uint256' },
-          { name: 'deadline', type: 'uint256' },
-          { name: 'revealWindowEnd', type: 'uint256' },
-          { name: 'metadata', type: 'bytes' },
-          { name: 'serviceId', type: 'uint256' },
-          { name: 'jobId', type: 'uint256' },
-          { name: 'winner', type: 'address' },
-          { name: 'winningBidId', type: 'uint256' },
-          { name: 'jobCreated', type: 'bool' },
-          { name: 'status', type: 'uint8' },
-        ],
-      },
-    ],
-    stateMutability: 'view',
-    type: 'function',
-  },
-  {
-    inputs: [
-      { name: 'sessionId', type: 'uint256' },
-      { name: 'bidId', type: 'uint256' },
-    ],
-    name: 'getBid',
-    outputs: [
-      {
-        name: '',
-        type: 'tuple',
-        components: [
-          { name: 'bidId', type: 'uint256' },
-          { name: 'bidder', type: 'address' },
-          { name: 'proposedAmount', type: 'uint256' },
-          { name: 'stake', type: 'uint256' },
-          { name: 'message', type: 'string' },
-          { name: 'commitHash', type: 'bytes32' },
-          { name: 'revealed', type: 'bool' },
-          { name: 'accepted', type: 'bool' },
-          { name: 'stakeWithdrawn', type: 'bool' },
-          { name: 'timestamp', type: 'uint256' },
-        ],
-      },
-    ],
-    stateMutability: 'view',
-    type: 'function',
-  },
-  {
-    inputs: [
-      { name: 'sessionId', type: 'uint256' },
-      { name: 'user', type: 'address' },
-    ],
-    name: 'getUserBid',
-    outputs: [
-      {
-        name: '',
-        type: 'tuple',
-        components: [
-          { name: 'bidId', type: 'uint256' },
-          { name: 'bidder', type: 'address' },
-          { name: 'proposedAmount', type: 'uint256' },
-          { name: 'stake', type: 'uint256' },
-          { name: 'message', type: 'string' },
-          { name: 'commitHash', type: 'bytes32' },
-          { name: 'revealed', type: 'bool' },
-          { name: 'accepted', type: 'bool' },
-          { name: 'stakeWithdrawn', type: 'bool' },
-          { name: 'timestamp', type: 'uint256' },
-        ],
-      },
-    ],
-    stateMutability: 'view',
-    type: 'function',
-  },
-  {
-    inputs: [{ name: 'sessionId', type: 'uint256' }],
-    name: 'getSessionCount',
-    outputs: [{ name: '', type: 'uint256' }],
-    stateMutability: 'view',
-    type: 'function',
-  },
-  {
-    inputs: [{ name: 'maxBudget', type: 'uint256' }],
-    name: 'calculateStake',
-    outputs: [{ name: '', type: 'uint256' }],
-    stateMutability: 'pure',
-    type: 'function',
-  },
-  // Write functions
-  {
-    inputs: [
-      { name: 'evaluator', type: 'address' },
-      { name: 'maxBudget', type: 'uint256' },
-      { name: 'deadline', type: 'uint256' },
-      { name: 'metadata', type: 'bytes' },
-      { name: 'serviceId', type: 'uint256' },
-    ],
-    name: 'createBiddingSession',
-    outputs: [{ name: 'sessionId', type: 'uint256' }],
-    stateMutability: 'payable',
-    type: 'function',
-  },
-  {
-    inputs: [
-      { name: 'sessionId', type: 'uint256' },
-      { name: 'commitHash', type: 'bytes32' },
-    ],
-    name: 'commitBid',
-    outputs: [],
-    stateMutability: 'payable',
-    type: 'function',
-  },
-  {
-    inputs: [
-      { name: 'sessionId', type: 'uint256' },
-      { name: 'amount', type: 'uint256' },
-      { name: 'message', type: 'string' },
-      { name: 'salt', type: 'bytes32' },
-    ],
-    name: 'revealBid',
-    outputs: [],
-    stateMutability: 'nonpayable',
-    type: 'function',
-  },
-  {
-    inputs: [
-      { name: 'sessionId', type: 'uint256' },
-      { name: 'bidId', type: 'uint256' },
-    ],
-    name: 'acceptBid',
-    outputs: [],
-    stateMutability: 'nonpayable',
-    type: 'function',
-  },
-  {
-    inputs: [
-      { name: 'sessionId', type: 'uint256' },
-      { name: 'bidId', type: 'uint256' },
-      { name: 'reason', type: 'string' },
-    ],
-    name: 'rejectBid',
-    outputs: [],
-    stateMutability: 'nonpayable',
-    type: 'function',
-  },
-  {
-    inputs: [{ name: 'sessionId', type: 'uint256' }],
-    name: 'withdrawStake',
-    outputs: [],
-    stateMutability: 'nonpayable',
-    type: 'function',
-  },
-  {
-    inputs: [{ name: 'sessionId', type: 'uint256' }],
-    name: 'claimStake',
-    outputs: [],
-    stateMutability: 'nonpayable',
-    type: 'function',
-  },
-  {
-    inputs: [
-      { name: 'sessionId', type: 'uint256' },
-      { name: 'jobExpiredAt', type: 'uint256' },
-      { name: 'description', type: 'string' },
-    ],
-    name: 'createJobAndFund',
-    outputs: [{ name: 'jobId', type: 'uint256' }],
-    stateMutability: 'payable',
-    type: 'function',
-  },
-  {
-    inputs: [{ name: 'sessionId', type: 'uint256' }],
-    name: 'cancelSession',
-    outputs: [],
-    stateMutability: 'nonpayable',
-    type: 'function',
-  },
-  {
-    inputs: [
-      { name: 'sessionId', type: 'uint256' },
-      { name: 'additionalSeconds', type: 'uint256' },
-    ],
-    name: 'extendRevealWindow',
-    outputs: [],
-    stateMutability: 'nonpayable',
-    type: 'function',
-  },
-  // Admin functions
-  {
-    inputs: [{ name: 'commerce_', type: 'address' }],
-    name: 'setCommerce',
-    outputs: [],
-    stateMutability: 'nonpayable',
-    type: 'function',
-  },
-  {
-    inputs: [{ name: 'registry_', type: 'address' }],
-    name: 'setServiceRegistry',
-    outputs: [],
-    stateMutability: 'nonpayable',
-    type: 'function',
-  },
-  {
-    inputs: [{ name: 'window_', type: 'uint256' }],
-    name: 'setRevealWindow',
-    outputs: [],
-    stateMutability: 'nonpayable',
-    type: 'function',
-  },
-  {
-    inputs: [{ name: 'basisPoints_', type: 'uint256' }],
-    name: 'setMinStakeBP',
-    outputs: [],
-    stateMutability: 'nonpayable',
-    type: 'function',
-  },
-  {
-    inputs: [{ name: 'basisPoints_', type: 'uint256' }],
-    name: 'setPlatformFeeBP',
-    outputs: [],
-    stateMutability: 'nonpayable',
-    type: 'function',
-  },
-  {
-    inputs: [
-      { name: 'to', type: 'address' },
-      { name: 'amount', type: 'uint256' },
-    ],
-    name: 'withdrawPlatformFees',
-    outputs: [],
-    stateMutability: 'nonpayable',
-    type: 'function',
-  },
-  // UUPS
-  {
-    inputs: [{ name: 'newImplementation', type: 'address' }],
-    name: 'upgradeTo',
-    outputs: [],
-    stateMutability: 'nonpayable',
-    type: 'function',
-  },
-] as const;
+export const BIDDING_SYSTEM_ABI = parseAbi([
+  'function SessionStatus() external view returns (uint8 Active, uint8 BiddingClosed, uint8 WinnerSelected, uint8 JobCreated, uint8 Completed, uint8 Cancelled)',
+  'function owner() external view returns (address)',
+  'function commerce() external view returns (address)',
+  'function treasury() external view returns (address)',
+  'function revealWindow() external view returns (uint256)',
+  'function platformFeeBP() external view returns (uint256)',
+  'function sessionCounter() external view returns (uint256)',
+  'function getSession(uint256 sessionId) external view returns ((uint256 id, address creator, address evaluator, uint256 maxBudget, uint256 deadline, uint256 revealWindowEnd, bytes metadata, uint256 serviceId, uint256 jobId, address winner, uint256 winningBidId, bool jobCreated, uint8 status))',
+  'function getBid(uint256 sessionId, uint256 bidId) external view returns ((uint256 bidId, address bidder, uint256 proposedAmount, uint256 stake, string message, bytes32 commitHash, bool revealed, bool accepted, bool stakeWithdrawn, uint256 timestamp))',
+  'function getUserBid(uint256 sessionId, address user) external view returns ((uint256 bidId, address bidder, uint256 proposedAmount, uint256 stake, string message, bytes32 commitHash, bool revealed, bool accepted, bool stakeWithdrawn, uint256 timestamp))',
+  'function getSessionCount(uint256 sessionId) external view returns (uint256)',
+  'function calculateStake(uint256 maxBudget) external pure returns (uint256)',
+  'function createBiddingSession(address evaluator, uint256 maxBudget, uint256 deadline, bytes metadata, uint256 serviceId) external payable returns (uint256 sessionId)',
+  'function commitBid(uint256 sessionId, bytes32 commitHash) external payable',
+  'function revealBid(uint256 sessionId, uint256 amount, string message, bytes32 salt) external',
+  'function acceptBid(uint256 sessionId, uint256 bidId) external',
+  'function rejectBid(uint256 sessionId, uint256 bidId, string reason) external',
+  'function withdrawStake(uint256 sessionId) external',
+  'function claimStake(uint256 sessionId) external',
+  'function createJobAndFund(uint256 sessionId, uint256 jobExpiredAt, string description) external payable returns (uint256 jobId)',
+  'function cancelSession(uint256 sessionId) external',
+  'function extendRevealWindow(uint256 sessionId, uint256 additionalSeconds) external',
+  'function setCommerce(address commerce_) external',
+  'function setServiceRegistry(address registry_) external',
+  'function setRevealWindow(uint256 window_) external',
+  'function setMinStakeBP(uint256 basisPoints_) external',
+  'function setPlatformFeeBP(uint256 basisPoints_) external',
+  'function withdrawPlatformFees(address to, uint256 amount) external',
+  'function upgradeTo(address newImplementation) external',
+]);
+

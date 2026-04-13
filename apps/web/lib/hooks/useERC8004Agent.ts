@@ -2,7 +2,7 @@
 
 import { useReadContract } from 'wagmi';
 import { ERC8004_ABI } from '@/lib/8004contracts';
-import { decodeAgentMetadata, type AgentMetadata8004 } from '@/lib/metadata';
+import { type AgentMetadata8004 } from '@/lib/metadata';
 import { CONTRACT_ADDRESSES, getContractAddress } from '@/lib/contracts/config';
 
 const ERC8004_ADDRESS = getContractAddress(
@@ -18,18 +18,7 @@ export interface ImportedAgent {
   metadata: AgentMetadata8004 | null;
 }
 
-const RESOLVE_AGENT_ABI = [
-  {
-    inputs: [{ name: 'agentAddress', type: 'address' }],
-    name: 'resolveAgent',
-    outputs: [
-      { name: 'agentId', type: 'uint256' },
-      { name: 'agentURI', type: 'string' },
-    ],
-    stateMutability: 'view',
-    type: 'function',
-  },
-] as const;
+
 
 /** Check if a wallet is registered on the official ERC-8004 registry by checking balance */
 export function useERC8004Agent(address: `0x${string}` | undefined) {

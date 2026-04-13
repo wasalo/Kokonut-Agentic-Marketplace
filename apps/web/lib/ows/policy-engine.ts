@@ -2,8 +2,6 @@ import {
   OWSPolicy,
   OWSPolicyRule,
   OWSSignRequest,
-  OWSError,
-  OWSErrorCode,
   OWSChain,
   OWS_CHAIN_IDS,
 } from './types';

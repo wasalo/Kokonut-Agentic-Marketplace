@@ -11,18 +11,23 @@
  * - Ensure contracts are deployed on Sepolia
  */
 
-require('dotenv').config();
-const { ethers } = require('ethers');
-const { NETWORKS } = require('../types');
-const { KokonutClient } = require('../client');
+import { jest } from '@jest/globals';
+import { createPublicClient, http, formatEther, type Address } from 'viem';
+import { privateKeyToAccount } from 'viem/accounts';
+import { NETWORKS } from '../types';
+import { KokonutClient } from '../client';
+import * as dotenv from 'dotenv';
+
+dotenv.config();
 
 // Test configuration
 const SEPOLIA_RPC = process.env.SEPOLIA_RPC_URL || 'https://ethereum-sepolia.publicnode.com';
-const PRIVATE_KEY = process.env.PRIVATE_KEY;
+const PRIVATE_KEY = process.env.PRIVATE_KEY as `0x${string}`;
 
 describe.skip('SDK Integration Tests - Sepolia', () => {
-  let client: any;
-  let wallet: any;
+  let client: KokonutClient;
+  let account: any;
+  let publicClient: any;
 
   beforeAll(() => {
     if (!PRIVATE_KEY) {
@@ -30,12 +35,14 @@ describe.skip('SDK Integration Tests - Sepolia', () => {
       return;
     }
 
-    const provider = new ethers.JsonRpcProvider(SEPOLIA_RPC);
-    wallet = new ethers.Wallet(PRIVATE_KEY, provider);
+    account = privateKeyToAccount(PRIVATE_KEY);
+    publicClient = createPublicClient({
+      transport: http(SEPOLIA_RPC),
+    });
 
     try {
       client = new KokonutClient({
-        wallet,
+        wallet: PRIVATE_KEY,
         network: 'sepolia',
       });
     } catch (error) {
@@ -43,7 +50,6 @@ describe.skip('SDK Integration Tests - Sepolia', () => {
         '\n⚠️  Client initialization failed:',
         error instanceof Error ? error.message : error
       );
-      client = null;
     }
   });
 
@@ -81,7 +87,7 @@ describe.skip('SDK Integration Tests - Sepolia', () => {
 
   describe('PriceOracle Read Functions', () => {
     it('should get USDC price', async () => {
-      if (!client.priceOracle) {
+      if (!client?.priceOracle) {
         console.log('\n⚠️  PriceOracle not initialized - skipping');
         return;
       }
@@ -100,7 +106,7 @@ describe.skip('SDK Integration Tests - Sepolia', () => {
     });
 
     it('should check if price is stale', async () => {
-      if (!client.priceOracle) {
+      if (!client?.priceOracle) {
         console.log('\n⚠️  PriceOracle not initialized - skipping');
         return;
       }
@@ -120,7 +126,7 @@ describe.skip('SDK Integration Tests - Sepolia', () => {
 
   describe('ServiceRegistry Read Functions', () => {
     it('should get active service count', async () => {
-      if (!client.services) {
+      if (!client?.services) {
         console.log('\n⚠️  Services not initialized - skipping');
         return;
       }
@@ -135,7 +141,7 @@ describe.skip('SDK Integration Tests - Sepolia', () => {
     });
 
     it('should list services', async () => {
-      if (!client.services) {
+      if (!client?.services) {
         console.log('\n⚠️  Services not initialized - skipping');
         return;
       }
@@ -155,7 +161,7 @@ describe.skip('SDK Integration Tests - Sepolia', () => {
 
   describe('AgenticCommerce Read Functions', () => {
     it('should get job count', async () => {
-      if (!client.commerce) {
+      if (!client?.commerce) {
         console.log('\n⚠️  Commerce not initialized - skipping');
         return;
       }
@@ -170,7 +176,7 @@ describe.skip('SDK Integration Tests - Sepolia', () => {
     });
 
     it('should get proposal count', async () => {
-      if (!client.review) {
+      if (!client?.review) {
         console.log('\n⚠️  Review not initialized - skipping');
         return;
       }
@@ -187,7 +193,7 @@ describe.skip('SDK Integration Tests - Sepolia', () => {
 
   describe('SlashManager Read Functions', () => {
     it('should check if address is signer', async () => {
-      if (!client.slashManager) {
+      if (!client?.slashManager) {
         console.log('\n⚠️  SlashManager not initialized - skipping');
         return;
       }
@@ -195,7 +201,7 @@ describe.skip('SDK Integration Tests - Sepolia', () => {
       try {
         // Use a known non-signer address
         const isSigner = await client.slashManager.isSigner(
-          '0x0000000000000000000000000000000000000001' as any
+          '0x0000000000000000000000000000000000000001' as Address
         );
         expect(typeof isSigner).toBe('boolean');
         console.log('\n🔍 Is signer:', isSigner);
@@ -210,21 +216,21 @@ describe.skip('SDK Integration Tests - Sepolia', () => {
 
   describe('Wallet Connection', () => {
     it('should have wallet address configured', () => {
-      expect(wallet).toBeDefined();
-      expect(wallet.address).toMatch(/^0x[a-fA-F0-9]{40}$/);
-      console.log('\n👛 Test wallet:', wallet.address);
+      expect(account).toBeDefined();
+      expect(account.address).toMatch(/^0x[a-fA-F0-9]{40}$/);
+      console.log('\n👛 Test wallet:', account.address);
     });
 
     it('should have ETH balance on Sepolia', async () => {
-      if (!wallet) {
-        console.log('\n⚠️  No wallet - skipping');
+      if (!account) {
+        console.log('\n⚠️  No account - skipping');
         return;
       }
 
       try {
-        const balance = await wallet.provider.getBalance(wallet.address);
+        const balance = await publicClient.getBalance({ address: account.address });
         expect(balance).toBeDefined();
-        console.log('\n💰 ETH Balance:', ethers.formatEther(balance), 'ETH');
+        console.log('\n💰 ETH Balance:', formatEther(balance), 'ETH');
 
         if (balance === 0n) {
           console.log('\n⚠️  Wallet has no ETH - send Sepolia ETH to run write tests');
@@ -250,3 +256,4 @@ describe('CLI Integration Tests', () => {
     });
   });
 });
+

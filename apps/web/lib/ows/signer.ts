@@ -1,4 +1,4 @@
-import { OWSWallet, OWSSignRequest, OWSChain, OWS_RPC_URLS } from './types';
+import { OWSChain } from './types';
 import { policyEngine, PolicyCheckResult } from './policy-engine';
 import * as storage from './storage';
 import { getWalletBalances, estimateTransactionGas, getGasPrice } from './rpc-client';
@@ -55,7 +55,7 @@ export class OWSSigner {
     return { success: true, signature: '0xplaceholder', transactionHash: '0xplaceholder' };
   }
 
-  async signMessage(walletId: string, message: string): Promise<SignResult> {
+  async signMessage(walletId: string, _message: string): Promise<SignResult> {
     const wallet = storage.getWallet(walletId);
     if (!wallet) {
       return { success: false, error: 'Wallet not found' };
@@ -64,7 +64,7 @@ export class OWSSigner {
     return { success: true, signature: '0xplaceholder' };
   }
 
-  async signTypedData(walletId: string, domain: unknown, types: unknown, message: unknown): Promise<SignResult> {
+  async signTypedData(walletId: string, _domain: unknown, _types: unknown, _message: unknown): Promise<SignResult> {
     const wallet = storage.getWallet(walletId);
     if (!wallet) {
       return { success: false, error: 'Wallet not found' };

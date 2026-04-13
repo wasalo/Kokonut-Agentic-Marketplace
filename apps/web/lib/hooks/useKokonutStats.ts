@@ -4,7 +4,7 @@ import { useMemo } from 'react';
 import { useKokonutAgents } from './useKokonutAgents';
 import { useReadContracts } from 'wagmi';
 import { ERC8004_ABI } from '@/lib/8004contracts';
-import { getContractAddress, debugLog } from '@/lib/contracts/config';
+import { getContractAddress } from '@/lib/contracts/config';
 
 const ERC8004_REPUTATION_ADDRESS = getContractAddress('ERC8004_REPUTATION');
 

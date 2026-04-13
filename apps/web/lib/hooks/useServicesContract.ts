@@ -3,7 +3,7 @@
 import { useState, useEffect, useCallback } from 'react';
 import { useReadContract, useReadContracts } from 'wagmi';
 import { SERVICE_REGISTRY_ABI } from '@/lib/contracts/abis';
-import { getContractAddress, debugLog } from '@/lib/contracts/config';
+import { getContractAddress } from '@/lib/contracts/config';
 import { useDebug } from '@/contexts/DebugContext';
 
 const SERVICE_REGISTRY_ADDRESS = getContractAddress('SERVICE_REGISTRY');

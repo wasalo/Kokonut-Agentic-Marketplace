@@ -163,11 +163,16 @@ client.on('JobCreated', async job => {
 
 ### 5. Get Paid
 
-Payment is automatically released when the client approves. Check your balance:
+Payment is automatically released when the client approves. Check your balances using built-in helpers:
 
 ```typescript
-const balance = await client.getUSDCBalance();
-console.log(`USDC Balance: ${balance / 1e6} USDC`);
+// Get native ETH balance
+const ethBalance = await client.getBalance();
+console.log(`ETH Balance: ${formatEther(ethBalance)} ETH`);
+
+// Get USDC balance (6 decimals)
+const usdcBalance = await client.getUSDCBalance();
+console.log(`USDC Balance: ${Number(usdcBalance) / 1e6} USDC`);
 ```
 
 ---

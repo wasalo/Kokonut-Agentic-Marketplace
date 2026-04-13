@@ -103,9 +103,8 @@ export function generateSecret(): string {
 }
 
 export function signPayload(payload: string, secret: string): string {
-  const encoder = new TextEncoder();
-  const key = encoder.encode(secret);
-  const data = encoder.encode(payload);
+
+
 
   let hash = 0;
   const str = payload + secret;

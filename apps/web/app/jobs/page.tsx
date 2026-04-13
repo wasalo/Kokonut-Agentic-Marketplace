@@ -3,24 +3,18 @@
 import { useAccount } from 'wagmi';
 import { useSearchParams, useRouter } from 'next/navigation';
 import {
-  Briefcase,
   Clock,
   Plus,
-  ChevronLeft,
-  ChevronRight,
+  DollarSign,
   Search,
   SlidersHorizontal,
-  DollarSign,
-  ArrowUpDown,
   Bookmark,
 } from 'lucide-react';
-import { Card, Button } from '@heroui/react';
+import { Card } from '@heroui/react';
 import NextLink from 'next/link';
 import { formatUnits } from 'viem';
 import {
   useJobsFromEvents,
-  getJobStatusLabel,
-  getJobStatusColor,
   JobStatus,
 } from '@/lib/hooks/useJobsEvents';
 import { useJobEvents } from '@/lib/hooks/useJobEvents';
@@ -30,6 +24,8 @@ import { GridSkeleton } from '@/components/Skeletons';
 import { useState, useCallback, useEffect } from 'react';
 import { StatusBadge, getJobStatusBadgeType } from '@/components/StatusBadge';
 import { useDebounce } from '@/lib/hooks/useDebounce';
+import { EmptyStateJobs } from '@/components/ui/empty-state';
+import { Pagination } from '@/components/ui/pagination';
 
 function JobCard({ job, isConnected }: { job: any; isConnected: boolean }) {
   const { service } = useService(job.serviceId ?? BigInt(0));
@@ -379,24 +375,13 @@ export default function JobsPage(): JSX.Element {
       {isLoading ? (
         <GridSkeleton count={8} />
       ) : sortedJobs.length === 0 ? (
-        <div className="text-center py-16">
-          <div className="h-16 w-16 rounded-full bg-content2 flex items-center justify-center mx-auto mb-4">
-            <Briefcase className="h-8 w-8 text-default-400" />
-          </div>
-          <h3 className="text-lg font-semibold mb-2">No Jobs Found</h3>
-          <p className="text-default-500 max-w-md mx-auto mb-6">
-            {jobs.length === 0
+        <EmptyStateJobs
+          description={
+            jobs.length === 0
               ? 'No jobs have been posted yet. Be the first to create a job request!'
-              : 'No jobs match your current filters. Try adjusting your search criteria.'}
-          </p>
-          <NextLink
-            href="/jobs/create"
-            className="inline-flex items-center gap-2 px-5 py-2.5 bg-gradient-to-r from-[#009F4D] to-[#00c853] text-white rounded-lg font-medium hover:opacity-90 transition-opacity"
-          >
-            <Plus className="w-4 h-4" />
-            Post First Job
-          </NextLink>
-        </div>
+              : 'No jobs match your current filters. Try adjusting your search criteria.'
+          }
+        />
       ) : (
         <>
           <div className="space-y-3">
@@ -406,30 +391,13 @@ export default function JobsPage(): JSX.Element {
           </div>
 
           {totalPages > 1 && (
-            <div className="flex items-center justify-center gap-4 mt-8">
-              <Button
-                variant="ghost"
-                size="sm"
-                isDisabled={page === 0}
-                onPress={() => setPage(p => Math.max(0, p - 1))}
-              >
-                <ChevronLeft className="w-4 h-4 mr-1" />
-                Previous
-              </Button>
-
-              <span className="text-sm text-default-500">
-                Page {page + 1} of {totalPages}
-              </span>
-
-              <Button
-                variant="ghost"
-                size="sm"
-                isDisabled={page >= totalPages - 1}
-                onPress={() => setPage(p => Math.min(totalPages - 1, p + 1))}
-              >
-                Next
-                <ChevronRight className="w-4 h-4 ml-1" />
-              </Button>
+            <div className="mt-8">
+              <Pagination
+                currentPage={page}
+                totalItems={sortedJobs.length}
+                itemsPerPage={ITEMS_PER_PAGE}
+                onPageChange={setPage}
+              />
             </div>
           )}
         </>

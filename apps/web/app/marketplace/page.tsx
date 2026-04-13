@@ -4,13 +4,15 @@ import { useState, useCallback, useEffect } from 'react';
 import { useAccount } from 'wagmi';
 import { useSearchParams, useRouter } from 'next/navigation';
 import NextLink from 'next/link';
-import { Plus, Search, ShoppingBag, SlidersHorizontal, Loader2, Code } from 'lucide-react';
-import { Card } from '@heroui/react';
+import { Plus, Code } from 'lucide-react';
+// Card import was needed? Wait, wait: Card is not used anymore anywhere since we removed it from FilterSection AND EmptyState! Let me remove Card completely!
 import { ServiceList } from '@/components/heroui/service-list';
 import { useAllServices } from '@/lib/hooks/useServicesContract';
 import { useProviderServices, useTotalServiceCount } from '@/lib/hooks/useServices';
 import { useDebounce } from '@/lib/hooks/useDebounce';
 import { StatCard } from '@/components/ui/stat-card';
+import { FilterPanel, FilterPresets } from '@/components/ui/filter-panel';
+import { EmptyStateServices } from '@/components/ui/empty-state';
 
 // Popular skill domains for filtering
 const SKILL_DOMAINS = [
@@ -36,8 +38,6 @@ function FilterSection({
   setMaxPrice,
   skillDomain,
   setSkillDomain,
-  hasActiveFilters,
-  isSearching,
 }: {
   searchQuery: string;
   setSearchQuery: (v: string) => void;
@@ -49,46 +49,43 @@ function FilterSection({
   setMaxPrice: (v: string) => void;
   skillDomain: string;
   setSkillDomain: (v: string) => void;
-  hasActiveFilters: boolean;
-  isSearching: boolean;
 }) {
-  const [isExpanded, setIsExpanded] = useState(false);
-
   return (
-    <Card className="border border-divider p-4 mb-6">
-      <div className="flex items-center gap-4">
-        <div className="relative flex-1">
-          <Search className="absolute left-3 top-1/2 -translate-y-1/2 h-4 w-4 text-default-400" />
-          <input
-            type="text"
-            placeholder="Search services..."
-            className="w-full pl-10 pr-10 py-2 border border-divider rounded-lg bg-content2 focus:outline-none focus:ring-2 focus:ring-success text-foreground"
-            value={searchQuery}
-            onChange={e => setSearchQuery(e.target.value)}
-          />
-          {isSearching && (
-            <Loader2 className="absolute right-3 top-1/2 -translate-y-1/2 h-4 w-4 animate-spin text-default-400" />
-          )}
-        </div>
-        <button
-          onClick={() => setIsExpanded(!isExpanded)}
-          className={`flex items-center gap-2 px-4 py-2 border border-divider rounded-lg hover:bg-content2 transition-colors ${isExpanded ? 'bg-content2' : ''}`}
-        >
-          <SlidersHorizontal className="h-4 w-4" />
-          <span className="hidden sm:inline">Filters</span>
-          {hasActiveFilters && <span className="w-2 h-2 rounded-full bg-success" />}
-        </button>
-      </div>
-
+    <div className="mb-6">
+      <FilterPanel
+        searchPlaceholder="Search services..."
+        searchValue={searchQuery}
+        onSearchChange={setSearchQuery}
+        filters={FilterPresets.services()}
+        filterValues={{
+          status: showActiveOnly ? 'active' : '',
+          domain: skillDomain,
+          priceMin: minPrice,
+          priceMax: maxPrice,
+        }}
+        onFilterChange={(key, value) => {
+          if (key === 'status') setShowActiveOnly(value === 'active' || value === '');
+          if (key === 'domain') setSkillDomain(value as string);
+          if (key === 'priceMin') setMinPrice(value as string);
+          if (key === 'priceMax') setMaxPrice(value as string);
+        }}
+        onReset={() => {
+          setSearchQuery('');
+          setShowActiveOnly(true);
+          setMinPrice('');
+          setMaxPrice('');
+          setSkillDomain('');
+        }}
+      />
       {/* Quick skill filter - always visible */}
-      <div className="flex flex-wrap gap-2 mt-4">
+      <div className="flex flex-wrap gap-2 mt-4 px-1">
         {SKILL_DOMAINS.slice(1, 6).map(domain => (
           <button
             key={domain.value}
             onClick={() => setSkillDomain(skillDomain === domain.value ? '' : domain.value)}
-            className={`px-3 py-1.5 rounded-full text-sm transition-colors ${
+            className={`px-3 py-1.5 rounded-full text-sm transition-colors cursor-pointer ${
               skillDomain === domain.value
-                ? 'bg-success text-white'
+                ? 'bg-[#009F4D] text-white'
                 : 'bg-content2 text-default-600 hover:bg-content3'
             }`}
           >
@@ -97,114 +94,12 @@ function FilterSection({
         ))}
         <NextLink
           href="/marketplace/skills"
-          className="px-3 py-1.5 rounded-full text-sm text-primary hover:bg-content2 transition-colors flex items-center gap-1"
+          className="px-3 py-1.5 rounded-full text-sm text-[#009F4D] hover:bg-content2 transition-colors flex items-center gap-1 cursor-pointer"
         >
           <Code className="w-3.5 h-3.5" />
           Browse All Skills
         </NextLink>
       </div>
-
-      {isExpanded && (
-        <div className="mt-4 pt-4 border-t border-divider">
-          <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-4 mb-4">
-            <div>
-              <label className="text-sm font-medium text-default-500 mb-2 block">Status</label>
-              <label className="flex items-center gap-2 cursor-pointer">
-                <input
-                  type="checkbox"
-                  checked={showActiveOnly}
-                  onChange={e => setShowActiveOnly(e.target.checked)}
-                  className="w-4 h-4 rounded border-divider"
-                />
-                <span className="text-sm">Active only</span>
-              </label>
-            </div>
-
-            <div>
-              <label className="text-sm font-medium text-default-500 mb-2 block">
-                Skill Domain
-              </label>
-              <select
-                value={skillDomain}
-                onChange={e => setSkillDomain(e.target.value)}
-                className="w-full px-3 py-2 border border-divider rounded-lg bg-content2 focus:outline-none focus:ring-2 focus:ring-success text-sm"
-              >
-                {SKILL_DOMAINS.map(domain => (
-                  <option key={domain.value} value={domain.value}>
-                    {domain.label}
-                  </option>
-                ))}
-              </select>
-            </div>
-
-            <div>
-              <label className="text-sm font-medium text-default-500 mb-2 block">
-                Min Price (USDC)
-              </label>
-              <input
-                type="number"
-                placeholder="0"
-                value={minPrice}
-                onChange={e => setMinPrice(e.target.value)}
-                className="w-full px-3 py-2 border border-divider rounded-lg bg-content2 focus:outline-none focus:ring-2 focus:ring-success text-sm"
-              />
-            </div>
-
-            <div>
-              <label className="text-sm font-medium text-default-500 mb-2 block">
-                Max Price (USDC)
-              </label>
-              <input
-                type="number"
-                placeholder="Any"
-                value={maxPrice}
-                onChange={e => setMaxPrice(e.target.value)}
-                className="w-full px-3 py-2 border border-divider rounded-lg bg-content2 focus:outline-none focus:ring-2 focus:ring-success text-sm"
-              />
-            </div>
-          </div>
-
-          <div className="flex justify-end gap-3">
-            <button
-              onClick={() => {
-                setSearchQuery('');
-                setShowActiveOnly(true);
-                setMinPrice('');
-                setMaxPrice('');
-                setSkillDomain('');
-              }}
-              className="px-4 py-2 border border-divider rounded-lg hover:bg-content2 transition-colors text-sm"
-            >
-              Reset
-            </button>
-          </div>
-        </div>
-      )}
-    </Card>
-  );
-}
-
-function EmptyState({ isConnected, mounted }: { isConnected: boolean; mounted: boolean }) {
-  return (
-    <div className="text-center py-16">
-      <div className="h-16 w-16 rounded-full bg-content2 flex items-center justify-center mx-auto mb-4">
-        <ShoppingBag className="h-8 w-8 text-default-500" />
-      </div>
-      <h3 className="text-lg font-semibold mb-2">No Services Yet</h3>
-      <p className="text-default-500 max-w-md mx-auto mb-6">
-        Be the first to list a service in the marketplace. Agents can offer their capabilities and
-        get paid in USDC.
-      </p>
-      {mounted && isConnected ? (
-        <NextLink
-          href="/marketplace/create"
-          className="inline-flex items-center gap-2 px-6 py-3 bg-gradient-to-r from-[#009F4D] to-[#00c853] text-white rounded-lg font-medium hover:opacity-90 transition-opacity"
-        >
-          Create First Service
-        </NextLink>
-      ) : (
-        <p className="text-sm text-default-500">Connect your wallet to create a service</p>
-      )}
     </div>
   );
 }
@@ -245,16 +140,13 @@ export default function MarketplacePage(): JSX.Element {
   const [minPrice, setMinPrice] = useState('');
   const [maxPrice, setMaxPrice] = useState('');
   const [skillDomain, setSkillDomain] = useState('');
-  const [isSearching, setIsSearching] = useState(false);
 
   // Debounce search query
   const [debouncedSearch] = useDebounce((value: string) => {
     setDebouncedSearchQuery(value);
-    setIsSearching(false);
   }, 300);
 
   useEffect(() => {
-    setIsSearching(true);
     debouncedSearch(searchQuery);
   }, [searchQuery, debouncedSearch]);
 
@@ -272,13 +164,7 @@ export default function MarketplacePage(): JSX.Element {
     [searchParams, router]
   );
 
-  const hasActiveFilters =
-    searchQuery !== '' ||
-    !showActiveOnly ||
-    minPrice !== '' ||
-    maxPrice !== '' ||
-    skillDomain !== '' ||
-    !!providerParam;
+
 
   return (
     <div className="container mx-auto px-4 py-8">
@@ -341,42 +227,46 @@ export default function MarketplacePage(): JSX.Element {
         setMaxPrice={setMaxPrice}
         skillDomain={skillDomain}
         setSkillDomain={setSkillDomain}
-        hasActiveFilters={hasActiveFilters}
-        isSearching={isSearching}
       />
 
-      {/* Sort Controls */}
-      <div className="flex items-center justify-between mb-6">
-        <div className="flex items-center gap-3">
-          <span className="text-sm text-default-500">Sort by:</span>
-          <select
-            value={`${sortBy}-${sortOrder}`}
-            onChange={e => {
-              const [newSortBy, newSortOrder] = e.target.value.split('-');
-              handleSortChange(newSortBy, newSortOrder);
-            }}
-            className="px-3 py-2 border border-divider rounded-lg bg-content2 focus:outline-none focus:ring-2 focus:ring-success text-sm"
-          >
-            <option value="newest-desc">Newest First</option>
-            <option value="newest-asc">Oldest First</option>
-            <option value="price-asc">Price: Low to High</option>
-            <option value="price-desc">Price: High to Low</option>
-            <option value="name-asc">Name: A-Z</option>
-            <option value="name-desc">Name: Z-A</option>
-          </select>
-        </div>
-        <span className="text-sm text-default-500">{activeServicesCount} services</span>
-      </div>
+      {services.length === 0 ? (
+        <EmptyStateServices action={mounted && isConnected ? { label: 'List Your Service', href: '/marketplace/create' } : undefined} />
+      ) : (
+        <>
+          {/* Sort Controls */}
+          <div className="flex items-center justify-between mb-6">
+            <div className="flex items-center gap-3">
+              <span className="text-sm text-default-500">Sort by:</span>
+              <select
+                value={`${sortBy}-${sortOrder}`}
+                onChange={e => {
+                  const [newSortBy, newSortOrder] = e.target.value.split('-');
+                  handleSortChange(newSortBy, newSortOrder);
+                }}
+                className="px-3 py-2 border border-divider rounded-lg bg-content2 focus:outline-none focus:ring-2 focus:ring-success text-sm"
+              >
+                <option value="newest-desc">Newest First</option>
+                <option value="newest-asc">Oldest First</option>
+                <option value="price-asc">Price: Low to High</option>
+                <option value="price-desc">Price: High to Low</option>
+                <option value="name-asc">Name: A-Z</option>
+                <option value="name-desc">Name: Z-A</option>
+              </select>
+            </div>
+            <span className="text-sm text-default-500">{activeServicesCount} services</span>
+          </div>
 
-      <ServiceList
-        searchQuery={debouncedSearchQuery}
-        showActiveOnly={showActiveOnly}
-        minPrice={minPrice}
-        maxPrice={maxPrice}
-        skillDomain={skillDomain}
-        sortBy={sortBy}
-        sortOrder={sortOrder}
-      />
+          <ServiceList
+            searchQuery={debouncedSearchQuery}
+            showActiveOnly={showActiveOnly}
+            minPrice={minPrice}
+            maxPrice={maxPrice}
+            skillDomain={skillDomain}
+            sortBy={sortBy}
+            sortOrder={sortOrder}
+          />
+        </>
+      )}
     </div>
   );
 }

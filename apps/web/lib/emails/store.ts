@@ -2,7 +2,7 @@
 
 import { create } from 'zustand';
 import { persist, createJSONStorage, StateStorage } from 'zustand/middleware';
-import type { EmailPreferences, EmailDelivery, EmailTemplateType } from './types';
+import type { EmailPreferences, EmailDelivery } from './types';
 
 const noopStorage: StateStorage = {
   getItem: () => null,

@@ -89,7 +89,7 @@ function CreateJobContent() {
   const { isConnected, address } = useAccount();
 
   const serviceId = serviceIdParam ? BigInt(serviceIdParam) : undefined;
-  const { service, isLoading: isLoadingService } = useService(serviceId ?? BigInt(0));
+  const { service } = useService(serviceId ?? BigInt(0));
 
   const { formatUsdValue } = useTokenPriceConversion();
 
@@ -322,7 +322,6 @@ function CreateJobContent() {
           description || `Job for ${service.name}`
         );
       } else {
-        const _budgetUsdc = Math.floor(parseFloat(budget) * 1e6);
         createJob(
           provider as `0x${string}`,
           effectiveEvaluator as `0x${string}`,
@@ -357,7 +356,7 @@ function CreateJobContent() {
 
   const { handleSubmit, isSubmitting, timeUntilNextSubmit } = useFormSubmit(performSubmit, 2000);
 
-  const isLoading = isServicePending || isDirectPending || isOpenPending || isConfirming;
+  const isFormLoading = isServicePending || isDirectPending || isOpenPending || isConfirming;
   const error = serviceError || directError || openError;
 
   const isFormValid =
@@ -505,7 +504,7 @@ function CreateJobContent() {
                 <PaymentTokenSelector
                   selectedToken={paymentToken}
                   onSelect={setPaymentToken}
-                  disabled={isLoading}
+                  disabled={isFormLoading}
                 />
               </>
             )}
@@ -729,10 +728,10 @@ function CreateJobContent() {
             <div className="flex gap-4">
               <button
                 type="submit"
-                disabled={!isConnected || isLoading || !isFormValid || isSubmitting || isAtLimit}
+                disabled={!isConnected || isFormLoading || !isFormValid || isSubmitting || isAtLimit}
                 className="flex-1 inline-flex items-center justify-center gap-2 px-6 py-3 bg-gradient-to-r from-[#009F4D] to-[#00c853] text-white rounded-lg font-medium hover:opacity-90 transition-opacity disabled:opacity-50 disabled:cursor-not-allowed"
               >
-                {isLoading ? (
+                {isFormLoading ? (
                   <>
                     <Loader2 className="w-4 h-4 animate-spin" />
                     {isConfirming ? 'Confirming...' : 'Creating...'}

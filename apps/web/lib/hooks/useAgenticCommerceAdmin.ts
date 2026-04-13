@@ -1,9 +1,8 @@
 'use client';
 
 import { useReadContract, useWriteContract } from 'wagmi';
-import { parseEther } from 'viem';
+import { getContractAddress } from '@/lib/contracts/config';
 import { AGENTIC_COMMERCE_ABI } from '@/lib/contracts/abis';
-import { getContractAddress, debugLog } from '@/lib/contracts/config';
 
 const AGENTIC_COMMERCE_ADDRESS = getContractAddress('AGENTIC_COMMERCE');
 
