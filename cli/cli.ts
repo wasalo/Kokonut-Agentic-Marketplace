@@ -36,7 +36,14 @@ const __filename = fileURLToPath(import.meta.url);
 const __dirname = dirname(__filename);
 
 const require = createRequire(import.meta.url);
-const { NETWORKS } = require(join(__dirname, '../config/networks.js'));
+// Resolve config path relative to project root (works for both source and built CLI)
+// When built, __dirname = cli/dist/, so we need ../../config from root
+// When running via tsx, __dirname = cli/, so we need ../config from root
+const isBuilt = __dirname.includes('/dist') || __dirname.includes('\\dist');
+const configPath = isBuilt
+  ? join(__dirname, '../../config/networks.js')
+  : join(__dirname, '../config/networks.js');
+const { NETWORKS } = require(configPath);
 const ZeroAddress = zeroAddress;
 
 type NetworkName = 'sepolia' | 'mainnet';
@@ -72,8 +79,9 @@ const config: {
 
 // Initialize provider and signer
 function initWallet(customPrivateKey?: string, walletId?: string, passphrase?: string) {
-  let privateKey: `0x${string}` | undefined = (customPrivateKey || process.env.PRIVATE_KEY) as `0x${string}`;
-  
+  let privateKey: `0x${string}` | undefined = (customPrivateKey ||
+    process.env.PRIVATE_KEY) as `0x${string}`;
+
   // If walletId is provided, attempt to load from OWS storage
   if (walletId) {
     const wallet = ows.getWallet(walletId);
@@ -81,12 +89,12 @@ function initWallet(customPrivateKey?: string, walletId?: string, passphrase?: s
       console.error(chalk.red(`❌ OWS Wallet ${walletId} not found.`));
       process.exit(1);
     }
-    
+
     if (!passphrase) {
       console.error(chalk.red(`❌ Passphrase required for OWS wallet ${walletId}.`));
       process.exit(1);
     }
-    
+
     try {
       privateKey = ows.getPrivateKey(walletId, passphrase) as `0x${string}`;
     } catch (e) {
@@ -97,7 +105,9 @@ function initWallet(customPrivateKey?: string, walletId?: string, passphrase?: s
 
   if (!privateKey) {
     console.error(
-      chalk.red('❌ Private key not found. Please set PRIVATE_KEY, or use --wallet and --passphrase.')
+      chalk.red(
+        '❌ Private key not found. Please set PRIVATE_KEY, or use --wallet and --passphrase.'
+      )
     );
     process.exit(1);
   }
@@ -199,7 +209,7 @@ program
   .description('Interactive configuration wizard for first-time setup')
   .action(async () => {
     console.log(chalk.bold('\n🌴 Kokonut CLI Configuration Wizard\n'));
-    console.log(chalk.dim('Let\'s set up your environment...\n'));
+    console.log(chalk.dim("Let's set up your environment...\n"));
 
     const rl = createInterface();
 
@@ -214,7 +224,10 @@ program
 
       // Private key
       console.log(chalk.cyan('\n2. Private Key:'));
-      const privateKey = await promptQuestion(rl, 'Enter your wallet private key (starts with 0x): ');
+      const privateKey = await promptQuestion(
+        rl,
+        'Enter your wallet private key (starts with 0x): '
+      );
 
       if (!privateKey.startsWith('0x') || privateKey.length !== 66) {
         console.log(chalk.red('❌ Invalid private key format'));
@@ -225,7 +238,10 @@ program
       // Optional: Custom RPC
       console.log(chalk.cyan('\n3. RPC URL (optional):'));
       console.log('   Default: Use network default RPC');
-      const customRpc = await promptQuestion(rl, 'Enter custom RPC or press Enter to use default: ');
+      const customRpc = await promptQuestion(
+        rl,
+        'Enter custom RPC or press Enter to use default: '
+      );
 
       // Create .env file
       const envContent = `# Kokonut CLI Configuration
@@ -253,12 +269,13 @@ ${customRpc ? `RPC_URL=${customRpc}` : '# RPC_URL=custom_rpc_here'}
         const wallet = privateKeyToAccount(privateKey as `0x${string}`);
         console.log(chalk.green('\n✅ Wallet validated:'), wallet.address);
       } catch (e) {
-        console.log(chalk.yellow('\n⚠️  Warning: Could not validate wallet. Please check your private key.'));
+        console.log(
+          chalk.yellow('\n⚠️  Warning: Could not validate wallet. Please check your private key.')
+        );
       }
 
       console.log(chalk.bold('\n🎉 Setup complete! Try:'));
       console.log(chalk.cyan('  pnpm run cli -- help'));
-
     } catch (error) {
       console.error(chalk.red('❌ Error during setup:'), error);
     } finally {
@@ -278,7 +295,7 @@ async function promptPassphrase(rl: readline.Interface, question: string): Promi
     stdin.resume();
     stdin.setRawMode(true);
     let passphrase = '';
-    
+
     const onData = (char: string) => {
       char = char.toString();
       switch (char) {
@@ -300,7 +317,7 @@ async function promptPassphrase(rl: readline.Interface, question: string): Promi
           break;
       }
     };
-    
+
     stdin.on('data', onData);
   });
 }
@@ -312,7 +329,10 @@ program
   .action(async name => {
     const rl = createInterface();
     try {
-      const passphrase = await promptPassphrase(rl, 'Enter a master passphrase to encrypt this wallet: ');
+      const passphrase = await promptPassphrase(
+        rl,
+        'Enter a master passphrase to encrypt this wallet: '
+      );
       const confirm = await promptPassphrase(rl, 'Confirm master passphrase: ');
 
       if (passphrase !== confirm) {
@@ -322,12 +342,12 @@ program
 
       console.log(chalk.cyan('\n✨ Creating new wallet...'));
       const id = `wallet_${Date.now()}`;
-      
+
       // In a real OWS implementation, this would call @open-wallet-standard/core
       // For this implementation, we generate a new private key and store it encrypted
       const privateKey = `0x${randomBytes(32).toString('hex')}` as `0x${string}`;
       const tempAccount = privateKeyToAccount(privateKey);
-      
+
       ows.saveWallet(id, name, tempAccount.address, privateKey, passphrase);
 
       console.log(chalk.green('\n✅ Wallet created successfully!'));
@@ -372,10 +392,13 @@ program
         return;
       }
 
-      const passphrase = await promptPassphrase(rl, 'Enter a master passphrase to encrypt this wallet: ');
+      const passphrase = await promptPassphrase(
+        rl,
+        'Enter a master passphrase to encrypt this wallet: '
+      );
       const id = `wallet_${Date.now()}`;
       const tempAccount = privateKeyToAccount(pk as `0x${string}`);
-      
+
       ows.saveWallet(id, name, tempAccount.address, pk, passphrase);
 
       console.log(chalk.green('\n✅ Wallet imported successfully!'));
@@ -419,7 +442,9 @@ program
   .description('List all active OWS policies (Mock)')
   .action(() => {
     console.log(chalk.bold('\n🛡️  Active OWS Policies:'));
-    console.log(chalk.dim('No specific Kokonut policies pre-defined. Use policy-add to create one.'));
+    console.log(
+      chalk.dim('No specific Kokonut policies pre-defined. Use policy-add to create one.')
+    );
   });
 
 program
@@ -428,7 +453,9 @@ program
   .argument('<wallet-id>', 'Wallet ID')
   .argument('<limit>', 'Spend limit in USDC')
   .action((id, limit) => {
-    console.log(chalk.green(`✅ Policy added to wallet ${id}: Limit ${limit} USDC per transaction.`));
+    console.log(
+      chalk.green(`✅ Policy added to wallet ${id}: Limit ${limit} USDC per transaction.`)
+    );
   });
 
 program
@@ -449,7 +476,6 @@ program
     console.log(chalk.dim('Value: 100 USDC'));
   });
 
-
 // 🎯 REGISTER AGENT COMMAND
 program
   .command('register-agent')
@@ -468,10 +494,7 @@ program
       const opts = program.opts();
       initWallet(undefined, opts.wallet, opts.passphrase);
 
-      if (
-        !config.contracts.identityRegistry ||
-        config.contracts.identityRegistry === ZeroAddress
-      ) {
+      if (!config.contracts.identityRegistry || config.contracts.identityRegistry === ZeroAddress) {
         console.log(chalk.yellow('⚠️  Identity Registry not deployed yet.'));
         console.log(chalk.cyan('Deploy first:'));
         console.log(
@@ -612,10 +635,7 @@ program
       const opts = program.opts();
       initWallet(undefined, opts.wallet, opts.passphrase);
 
-      if (
-        !config.contracts.identityRegistry ||
-        config.contracts.identityRegistry === ZeroAddress
-      ) {
+      if (!config.contracts.identityRegistry || config.contracts.identityRegistry === ZeroAddress) {
         console.log(chalk.yellow('⚠️  Identity Registry not deployed yet.'));
         return;
       }
@@ -672,10 +692,7 @@ program
       const opts = program.opts();
       initWallet(undefined, opts.wallet, opts.passphrase);
 
-      if (
-        !config.contracts.identityRegistry ||
-        config.contracts.identityRegistry === ZeroAddress
-      ) {
+      if (!config.contracts.identityRegistry || config.contracts.identityRegistry === ZeroAddress) {
         console.log(chalk.yellow('⚠️  Identity Registry not deployed yet.'));
         return;
       }
@@ -786,7 +803,10 @@ program
         'event FeedbackSubmitted(uint256 indexed feedbackId, address indexed agent, address indexed provider, int256 rating)',
       ]);
 
-      const reputationRegistry = getContractInstance(config.contracts.reputationRegistry, reputationRegistryABI);
+      const reputationRegistry = getContractInstance(
+        config.contracts.reputationRegistry,
+        reputationRegistryABI
+      );
 
       const agentAddress = agentTarget as Address;
 
@@ -821,7 +841,12 @@ program
       const rating = BigInt(options.rating);
 
       console.log('\n' + chalk.cyan('📝 Submitting feedback...'));
-      const hash = await reputationRegistry.write.submitFeedback([agentAddress, taskId, rating, metadataCID]);
+      const hash = await reputationRegistry.write.submitFeedback([
+        agentAddress,
+        taskId,
+        rating,
+        metadataCID,
+      ]);
 
       console.log(chalk.cyan('Transaction sent:'), hash);
 
@@ -853,7 +878,6 @@ program
     }
   });
 
-
 // 🎯 GET REPUTATION COMMAND
 program
   .command('get-reputation')
@@ -876,7 +900,10 @@ program
         'function getAgentReputation(address agent) external view returns (int256 averageRating, uint256 totalFeedbacks, uint256 uniqueProviders)',
       ]);
 
-      const reputationRegistry = getContractInstance(config.contracts.reputationRegistry, reputationRegistryABI);
+      const reputationRegistry = getContractInstance(
+        config.contracts.reputationRegistry,
+        reputationRegistryABI
+      );
 
       const agentAddress = agentTarget as Address;
 
@@ -897,7 +924,6 @@ program
     }
   });
 
-
 // 🎯 VERIFY AGENT COMMAND (Verify agent registration)
 program
   .command('verify-agent')
@@ -908,10 +934,7 @@ program
       const opts = program.opts();
       initWallet(undefined, opts.wallet, opts.passphrase);
 
-      if (
-        !config.contracts.identityRegistry ||
-        config.contracts.identityRegistry === ZeroAddress
-      ) {
+      if (!config.contracts.identityRegistry || config.contracts.identityRegistry === ZeroAddress) {
         console.log(chalk.yellow('⚠️  Identity Registry not deployed yet.'));
         return;
       }
@@ -921,7 +944,10 @@ program
         'function getAgentCount() external view returns (uint256)',
       ]);
 
-      const identityRegistry = getContractInstance(config.contracts.identityRegistry, identityRegistryABI);
+      const identityRegistry = getContractInstance(
+        config.contracts.identityRegistry,
+        identityRegistryABI
+      );
 
       const isRegistered = await identityRegistry.read.isAgent([targetAddress as Address]);
       const agentCount = await identityRegistry.read.getAgentCount();
@@ -945,7 +971,6 @@ program
     }
   });
 
-
 // 🎯 CREATE SERVICE COMMAND
 program
   .command('create-service')
@@ -965,10 +990,7 @@ program
         return;
       }
 
-      if (
-        !config.contracts.serviceRegistry ||
-        config.contracts.serviceRegistry === ZeroAddress
-      ) {
+      if (!config.contracts.serviceRegistry || config.contracts.serviceRegistry === ZeroAddress) {
         console.log(chalk.yellow('⚠️  Service Registry not deployed yet.'));
         return;
       }
@@ -978,7 +1000,10 @@ program
         'event ServiceCreated(uint256 indexed serviceId, address indexed provider, uint256 agentId, string name, uint256 price)',
       ]);
 
-      const serviceRegistry = getContractInstance(config.contracts.serviceRegistry, serviceRegistryABI);
+      const serviceRegistry = getContractInstance(
+        config.contracts.serviceRegistry,
+        serviceRegistryABI
+      );
 
       const agentId = BigInt(options.agentId);
       const name = options.name || 'Agent Service';
@@ -1000,7 +1025,7 @@ program
         description,
         metadataURI,
         price,
-        paymentToken as Address
+        paymentToken as Address,
       ]);
 
       console.log(chalk.cyan('Transaction sent:'), hash);
@@ -1030,7 +1055,6 @@ program
     }
   });
 
-
 // 🎯 LIST SERVICES COMMAND
 program
   .command('list-services')
@@ -1043,10 +1067,7 @@ program
       const opts = program.opts();
       initWallet(undefined, opts.wallet, opts.passphrase);
 
-      if (
-        !config.contracts.serviceRegistry ||
-        config.contracts.serviceRegistry === ZeroAddress
-      ) {
+      if (!config.contracts.serviceRegistry || config.contracts.serviceRegistry === ZeroAddress) {
         console.log(chalk.yellow('⚠️  Service Registry not deployed yet.'));
         return;
       }
@@ -1056,7 +1077,10 @@ program
         'function getService(uint256 serviceId) external view returns ((uint256 id, address provider, uint256 agentId, string name, string description, string metadataURI, uint256 price, address paymentToken, bool isActive, uint256 createdAt))',
       ]);
 
-      const serviceRegistry = getContractInstance(config.contracts.serviceRegistry, serviceRegistryABI);
+      const serviceRegistry = getContractInstance(
+        config.contracts.serviceRegistry,
+        serviceRegistryABI
+      );
 
       const start = BigInt(options.start);
       const count = BigInt(options.count);
@@ -1100,7 +1124,6 @@ program
     }
   });
 
-
 // 🎯 BUY SERVICE COMMAND
 program
   .command('buy-service')
@@ -1113,10 +1136,7 @@ program
       const opts = program.opts();
       initWallet(undefined, opts.wallet, opts.passphrase);
 
-      if (
-        !config.contracts.agenticCommerce ||
-        config.contracts.agenticCommerce === ZeroAddress
-      ) {
+      if (!config.contracts.agenticCommerce || config.contracts.agenticCommerce === ZeroAddress) {
         console.log(chalk.yellow('⚠️  Agentic Commerce not deployed yet.'));
         return;
       }
@@ -1131,7 +1151,10 @@ program
         'event JobCreated(uint256 indexed jobId, address indexed client, address indexed provider, address evaluator, uint256 serviceId, uint256 expiredAt)',
       ]);
 
-      const serviceRegistry = getContractInstance(config.contracts.serviceRegistry, serviceRegistryABI);
+      const serviceRegistry = getContractInstance(
+        config.contracts.serviceRegistry,
+        serviceRegistryABI
+      );
       const commerce = getContractInstance(config.contracts.agenticCommerce, agenticCommerceABI);
 
       const sid = BigInt(serviceId);
@@ -1159,7 +1182,7 @@ program
         evaluator,
         expiredAt,
         `Purchase: ${service.name}`,
-        zeroAddress
+        zeroAddress,
       ]);
 
       console.log(chalk.cyan('Transaction sent:'), jobHash);
@@ -1193,7 +1216,6 @@ program
     }
   });
 
-
 // 🎯 FUND JOB COMMAND
 program
   .command('fund-job')
@@ -1204,10 +1226,7 @@ program
       const opts = program.opts();
       initWallet(undefined, opts.wallet, opts.passphrase);
 
-      if (
-        !config.contracts.agenticCommerce ||
-        config.contracts.agenticCommerce === ZeroAddress
-      ) {
+      if (!config.contracts.agenticCommerce || config.contracts.agenticCommerce === ZeroAddress) {
         console.log(chalk.yellow('⚠️  Agentic Commerce not deployed yet.'));
         return;
       }
@@ -1241,7 +1260,6 @@ program
     }
   });
 
-
 // 🎯 SUBMIT DELIVERABLE COMMAND
 program
   .command('submit-deliverable')
@@ -1253,10 +1271,7 @@ program
       const opts = program.opts();
       initWallet(undefined, opts.wallet, opts.passphrase);
 
-      if (
-        !config.contracts.agenticCommerce ||
-        config.contracts.agenticCommerce === ZeroAddress
-      ) {
+      if (!config.contracts.agenticCommerce || config.contracts.agenticCommerce === ZeroAddress) {
         console.log(chalk.yellow('⚠️  Agentic Commerce not deployed yet.'));
         return;
       }
@@ -1286,7 +1301,6 @@ program
     }
   });
 
-
 // 🎯 APPROVE DELIVERABLE COMMAND
 program
   .command('approve-deliverable')
@@ -1298,10 +1312,7 @@ program
       const opts = program.opts();
       initWallet(undefined, opts.wallet, opts.passphrase);
 
-      if (
-        !config.contracts.agenticCommerce ||
-        config.contracts.agenticCommerce === ZeroAddress
-      ) {
+      if (!config.contracts.agenticCommerce || config.contracts.agenticCommerce === ZeroAddress) {
         console.log(chalk.yellow('⚠️  Agentic Commerce not deployed yet.'));
         return;
       }
@@ -1331,7 +1342,6 @@ program
     }
   });
 
-
 // 🎯 REJECT DELIVERABLE COMMAND
 program
   .command('reject-deliverable')
@@ -1343,15 +1353,14 @@ program
       const opts = program.opts();
       initWallet(undefined, opts.wallet, opts.passphrase);
 
-      if (
-        !config.contracts.agenticCommerce ||
-        config.contracts.agenticCommerce === ZeroAddress
-      ) {
+      if (!config.contracts.agenticCommerce || config.contracts.agenticCommerce === ZeroAddress) {
         console.log(chalk.yellow('⚠️  Agentic Commerce not deployed yet.'));
         return;
       }
 
-      const agenticCommerceABI = parseAbi(['function reject(uint256 jobId, bytes32 reason) external']);
+      const agenticCommerceABI = parseAbi([
+        'function reject(uint256 jobId, bytes32 reason) external',
+      ]);
 
       const commerce = getContractInstance(config.contracts.agenticCommerce, agenticCommerceABI);
 
@@ -1372,7 +1381,6 @@ program
     }
   });
 
-
 // 🎯 GET JOB STATUS COMMAND
 program
   .command('job-status')
@@ -1383,10 +1391,7 @@ program
       const opts = program.opts();
       initWallet(undefined, opts.wallet, opts.passphrase);
 
-      if (
-        !config.contracts.agenticCommerce ||
-        config.contracts.agenticCommerce === ZeroAddress
-      ) {
+      if (!config.contracts.agenticCommerce || config.contracts.agenticCommerce === ZeroAddress) {
         console.log(chalk.yellow('⚠️  Agentic Commerce not deployed yet.'));
         return;
       }
@@ -1420,7 +1425,6 @@ program
       console.error(chalk.red('❌ Error getting job status:'), error.message);
     }
   });
-
 
 // 🎯 CREATE PROPOSAL COMMAND (PRD 3 - Review)
 program
@@ -1494,7 +1498,6 @@ program
     }
   });
 
-
 // 🎯 SUBMIT EVALUATION COMMAND (PRD 3)
 program
   .command('evaluate')
@@ -1529,7 +1532,10 @@ program
       console.log(chalk.dim('Reasoning:'), reasoning);
       console.log(chalk.dim('Stake:'), stake.toString(), 'wei');
 
-      const hash = await review.write.submitEvaluation([BigInt(proposalId), confidence, reasoning], { value: stake });
+      const hash = await review.write.submitEvaluation(
+        [BigInt(proposalId), confidence, reasoning],
+        { value: stake }
+      );
 
       console.log(chalk.cyan('Transaction sent:'), hash);
 
@@ -1539,7 +1545,6 @@ program
       console.error(chalk.red('❌ Error submitting evaluation:'), error.message);
     }
   });
-
 
 // 🎯 ATTEST DECISION COMMAND (PRD 3)
 program
@@ -1578,7 +1583,6 @@ program
       console.error(chalk.red('❌ Error attesting decision:'), error.message);
     }
   });
-
 
 // 🎯 GET PROPOSAL STATUS COMMAND (PRD 3)
 program
@@ -1670,7 +1674,6 @@ program
     }
   });
 
-
 // 🎯 LISTEN JOBS COMMAND (Agent mode - poll for new jobs)
 program
   .command('listen-jobs')
@@ -1682,10 +1685,7 @@ program
       const opts = program.opts();
       initWallet(undefined, opts.wallet, opts.passphrase);
 
-      if (
-        !config.contracts.agenticCommerce ||
-        config.contracts.agenticCommerce === ZeroAddress
-      ) {
+      if (!config.contracts.agenticCommerce || config.contracts.agenticCommerce === ZeroAddress) {
         console.log(chalk.yellow('⚠️  Agentic Commerce not deployed yet.'));
         return;
       }
@@ -1696,11 +1696,13 @@ program
         'function getProviderJobs(address provider) external view returns (uint256[])',
       ]);
 
-      const commerce = getContractInstance(config.contracts.agenticCommerce as Address, agenticCommerceABI);
+      const commerce = getContractInstance(
+        config.contracts.agenticCommerce as Address,
+        agenticCommerceABI
+      );
 
       const pollInterval = parseInt(options.pollInterval) * 1000;
       let lastJobId = Number((await commerce.read.getCurrentJobId()) as bigint);
-
 
       console.log(chalk.green('\n🔔 Listening for jobs...'));
       console.log(chalk.dim('Provider:'), config.signerAddress);
@@ -1715,7 +1717,6 @@ program
           for (let jobId = lastJobId + 1; jobId <= currentJobId; jobId++) {
             try {
               const job = (await commerce.read.getJob([BigInt(jobId)])) as any;
-
 
               if (job.provider.toLowerCase() === config.signerAddress.toLowerCase()) {
                 const statusNames = [
@@ -1793,7 +1794,10 @@ program
         'function getAgentReputation(address agent) external view returns (int256 averageRating, uint256 totalFeedbacks, uint256 uniqueProviders)',
       ]);
 
-      const reputationRegistry = getContractInstance(config.contracts.reputationRegistry, reputationRegistryABI);
+      const reputationRegistry = getContractInstance(
+        config.contracts.reputationRegistry,
+        reputationRegistryABI
+      );
 
       const pollInterval = parseInt(options.pollInterval) * 1000;
       let lastFeedbacks = 0n;
@@ -1835,7 +1839,6 @@ program
     }
   });
 
-
 // 🎯 GET AGENT INFO COMMAND (Quick lookup)
 program
   .command('agent-info')
@@ -1859,8 +1862,14 @@ program
         'function getAgentReputation(address agent) external view returns (int256 averageRating, uint256 totalFeedbacks, uint256 uniqueProviders)',
       ]);
 
-      const identityRegistry = getContractInstance(config.contracts.identityRegistry, identityRegistryABI);
-      const reputationRegistry = getContractInstance(config.contracts.reputationRegistry, reputationRegistryABI);
+      const identityRegistry = getContractInstance(
+        config.contracts.identityRegistry,
+        identityRegistryABI
+      );
+      const reputationRegistry = getContractInstance(
+        config.contracts.reputationRegistry,
+        reputationRegistryABI
+      );
 
       const isRegistered = await identityRegistry.read.isAgent([targetAddress]);
 
@@ -1875,7 +1884,12 @@ program
 
       // Use resolveAgent for O(1) lookup instead of iterating
       const [agentId, agentURI] = await identityRegistry.read.resolveAgent([targetAddress]);
-      const agentData = (await identityRegistry.read.getAgent([agentId])) as [Address, string, Address, boolean];
+      const agentData = (await identityRegistry.read.getAgent([agentId])) as [
+        Address,
+        string,
+        Address,
+        boolean,
+      ];
 
       const [averageRating, totalFeedbacks, uniqueProviders] =
         await reputationRegistry.read.getAgentReputation([targetAddress]);
@@ -1914,7 +1928,6 @@ program
     }
   });
 
-
 // 🎯 BALANCE COMMAND (Quick wallet balance check)
 program
   .command('balance')
@@ -1928,7 +1941,9 @@ program
 
       const targetAddress = (address as Address) || config.signerAddress;
 
-      const usdcABI = parseAbi(['function balanceOf(address account) external view returns (uint256)']);
+      const usdcABI = parseAbi([
+        'function balanceOf(address account) external view returns (uint256)',
+      ]);
 
       const usdc = getContractInstance(config.contracts.usdc as Address, usdcABI);
 
@@ -1954,7 +1969,6 @@ program
     }
   });
 
-
 // ============================================================================
 // SKILLS COMMANDS (AgentSkillRegistry)
 // ============================================================================
@@ -1979,7 +1993,10 @@ program
         'event SkillRegistered(uint256 indexed skillId, uint256 indexed agentId, string name, string version)',
       ]);
 
-      const skillRegistry = getContractInstance(config.contracts.skillRegistry as Address, skillRegistryABI);
+      const skillRegistry = getContractInstance(
+        config.contracts.skillRegistry as Address,
+        skillRegistryABI
+      );
 
       const agentId = BigInt(options.agentId);
       const name = options.name;
@@ -2002,7 +2019,7 @@ program
         version,
         description,
         endpoint,
-        domains
+        domains,
       ]);
       console.log(chalk.cyan('\n📤 Transaction sent:'), hash);
 
@@ -2032,7 +2049,6 @@ program
     }
   });
 
-
 // 🎯 LIST SKILLS COMMAND
 program
   .command('list-skills')
@@ -2048,7 +2064,10 @@ program
         'function getSkill(uint256 skillId) external view returns ((uint256 agentId, string name, string version, string description, string endpoint, string[] domains, bool isActive, address registeredBy, uint256 registeredAt))',
       ]);
 
-      const skillRegistry = getContractInstance(config.contracts.skillRegistry as Address, skillRegistryABI);
+      const skillRegistry = getContractInstance(
+        config.contracts.skillRegistry as Address,
+        skillRegistryABI
+      );
 
       const agentId = BigInt(options.agentId);
       const skillIds = (await skillRegistry.read.getAgentSkills([agentId])) as bigint[];
@@ -2077,7 +2096,6 @@ program
     }
   });
 
-
 // 🎯 DEACTIVATE SKILL COMMAND
 program
   .command('deactivate-skill')
@@ -2090,7 +2108,10 @@ program
 
       const skillRegistryABI = parseAbi(['function deactivateSkill(uint256 skillId) external']);
 
-      const skillRegistry = getContractInstance(config.contracts.skillRegistry as Address, skillRegistryABI);
+      const skillRegistry = getContractInstance(
+        config.contracts.skillRegistry as Address,
+        skillRegistryABI
+      );
 
       const skillId = BigInt(options.skillId);
 
@@ -2108,7 +2129,6 @@ program
       console.error(chalk.red('❌ Error deactivating skill:'), err.message);
     }
   });
-
 
 // ============================================================================
 // ORACLE COMMANDS (PriceOracle)
@@ -2128,7 +2148,10 @@ program
         'function isStale() external view returns (bool)',
       ]);
 
-      const priceOracle = getContractInstance(config.contracts.priceOracle as Address, priceOracleABI);
+      const priceOracle = getContractInstance(
+        config.contracts.priceOracle as Address,
+        priceOracleABI
+      );
 
       const price = (await priceOracle.read.getUSDCPrice()) as bigint;
       const stale = await priceOracle.read.isStale();
@@ -2142,7 +2165,6 @@ program
       console.error(chalk.red('❌ Error getting price:'), err.message);
     }
   });
-
 
 // ============================================================================
 // COMMIT-REVEAL COMMANDS
@@ -2160,7 +2182,10 @@ program
 
       const commitRevealABI = parseAbi(['function commit(bytes32 commitment) external']);
 
-      const commitReveal = getContractInstance(config.contracts.commitReveal as Address, commitRevealABI);
+      const commitReveal = getContractInstance(
+        config.contracts.commitReveal as Address,
+        commitRevealABI
+      );
 
       const commitment = options.hash as `0x${string}`;
 
@@ -2179,7 +2204,6 @@ program
     }
   });
 
-
 // 🎯 REVEAL COMMAND
 program
   .command('reveal')
@@ -2196,7 +2220,10 @@ program
         'function reveal(string data, uint256 nonce, uint256 serviceId) external',
       ]);
 
-      const commitReveal = getContractInstance(config.contracts.commitReveal as Address, commitRevealABI);
+      const commitReveal = getContractInstance(
+        config.contracts.commitReveal as Address,
+        commitRevealABI
+      );
 
       console.log(chalk.cyan('\n🔓 Revealing:'));
       console.log(chalk.dim('Data:'), options.data);
@@ -2206,7 +2233,7 @@ program
       const hash = await commitReveal.write.reveal([
         options.data,
         BigInt(options.nonce),
-        BigInt(options.serviceId)
+        BigInt(options.serviceId),
       ]);
       console.log(chalk.cyan('\n📤 Transaction sent:'), hash);
 
@@ -2218,7 +2245,6 @@ program
       console.error(chalk.red('❌ Error revealing:'), err.message);
     }
   });
-
 
 // ============================================================================
 // SLASH MANAGER COMMANDS
@@ -2242,7 +2268,10 @@ program
         'function isSigner(address account) external view returns (bool)',
       ]);
 
-      const slashManager = getContractInstance(config.contracts.slashManager as Address, slashManagerABI);
+      const slashManager = getContractInstance(
+        config.contracts.slashManager as Address,
+        slashManagerABI
+      );
 
       const isSigner = await slashManager.read.isSigner([config.signerAddress]);
       if (!isSigner) {
@@ -2261,7 +2290,7 @@ program
         options.evaluator as Address,
         BigInt(options.proposalId),
         BigInt(options.amount),
-        options.reason
+        options.reason,
       ]);
       console.log(chalk.cyan('\n📤 Transaction sent:'), hash);
 
@@ -2273,7 +2302,6 @@ program
       console.error(chalk.red('❌ Error creating slash proposal:'), err.message);
     }
   });
-
 
 // 🎯 CONFIRM SLASH PROPOSAL COMMAND
 program
@@ -2290,7 +2318,10 @@ program
         'function isSigner(address account) external view returns (bool)',
       ]);
 
-      const slashManager = getContractInstance(config.contracts.slashManager as Address, slashManagerABI);
+      const slashManager = getContractInstance(
+        config.contracts.slashManager as Address,
+        slashManagerABI
+      );
 
       const isSigner = await slashManager.read.isSigner([config.signerAddress]);
       if (!isSigner) {
@@ -2312,7 +2343,6 @@ program
     }
   });
 
-
 // 🎯 EXECUTE SLASH PROPOSAL COMMAND
 program
   .command('slash-execute')
@@ -2328,9 +2358,14 @@ program
         'function isSigner(address account) external view returns (bool)',
       ]);
 
-      const slashManager = getContractInstance(config.contracts.slashManager as Address, slashManagerABI);
+      const slashManager = getContractInstance(
+        config.contracts.slashManager as Address,
+        slashManagerABI
+      );
 
-      const isSigner = (await slashManager.read.isSigner([config.signerAddress as Address])) as boolean;
+      const isSigner = (await slashManager.read.isSigner([
+        config.signerAddress as Address,
+      ])) as boolean;
       if (!isSigner) {
         console.error(chalk.red('❌ Error: Only signers can execute slash proposals'));
         return;
@@ -2350,7 +2385,6 @@ program
     }
   });
 
-
 // 🎯 CHECK SIGNER COMMAND
 program
   .command('check-signer')
@@ -2361,8 +2395,13 @@ program
       const opts = program.opts();
       initWallet(undefined, opts.wallet, opts.passphrase);
 
-      const slashManagerABI = parseAbi(['function isSigner(address account) external view returns (bool)']);
-      const slashManager = getContractInstance(config.contracts.slashManager as Address, slashManagerABI);
+      const slashManagerABI = parseAbi([
+        'function isSigner(address account) external view returns (bool)',
+      ]);
+      const slashManager = getContractInstance(
+        config.contracts.slashManager as Address,
+        slashManagerABI
+      );
 
       const address = (options.address as Address) || config.signerAddress;
       const isSigner = (await slashManager.read.isSigner([address])) as boolean;
@@ -2375,7 +2414,6 @@ program
       console.error(chalk.red('❌ Error:'), err.message);
     }
   });
-
 
 // ============================================================================
 // CLAIM REFUND COMMAND
@@ -2395,7 +2433,10 @@ program
         'function getJob(uint256 jobId) external view returns ((uint256 id, address client, address provider, address evaluator, string description, uint256 budget, uint256 expiredAt, uint8 status, address hook, bytes32 deliverable))',
       ]);
 
-      const commerce = getContractInstance(config.contracts.agenticCommerce as Address, commerceABI);
+      const commerce = getContractInstance(
+        config.contracts.agenticCommerce as Address,
+        commerceABI
+      );
 
       const jobId = BigInt(options.jobId);
       const job = (await commerce.read.getJob([jobId])) as any;
@@ -2416,7 +2457,6 @@ program
     }
   });
 
-
 // ============================================================================
 // V6 BIDDING COMMANDS
 // ============================================================================
@@ -2436,10 +2476,7 @@ program
       const opts = program.opts();
       initWallet(undefined, opts.wallet, opts.passphrase);
 
-      if (
-        !config.contracts.agenticCommerce ||
-        config.contracts.agenticCommerce === ZeroAddress
-      ) {
+      if (!config.contracts.agenticCommerce || config.contracts.agenticCommerce === ZeroAddress) {
         console.log(chalk.yellow('⚠️  Agentic Commerce not deployed yet.'));
         return;
       }
@@ -2473,7 +2510,7 @@ program
         expiredAt,
         description,
         paymentToken,
-        evaluatorFee
+        evaluatorFee,
       ]);
       console.log(chalk.cyan('Transaction sent:'), hash);
 
@@ -2485,7 +2522,10 @@ program
       for (const log of receipt.logs) {
         try {
           const parsed = parseLog({ log, abi: agenticCommerceABI });
-          if (parsed && (parsed.eventName === 'OpenJobCreated' || parsed.eventName === 'JobCreated')) {
+          if (
+            parsed &&
+            (parsed.eventName === 'OpenJobCreated' || parsed.eventName === 'JobCreated')
+          ) {
             jobId = (parsed.args as any).jobId.toString();
             break;
           }
@@ -2529,10 +2569,7 @@ program
       // Note: In real app, we need a secure unique salt
       const salt = viemKeccak256(viemToBytes(config.signerAddress + Date.now().toString()));
       const commitHash = viemKeccak256(
-        viemEncodePacked(
-          ['uint256', 'string', 'bytes32'],
-          [amount, message, salt]
-        )
+        viemEncodePacked(['uint256', 'string', 'bytes32'], [amount, message, salt])
       );
 
       console.log(chalk.cyan('\n🔐 Committing Bid:'));
@@ -2552,7 +2589,6 @@ program
       console.error(chalk.red('❌ Error committing bid:'), err.message);
     }
   });
-
 
 // 🎯 REVEAL BID COMMAND
 program
@@ -2594,7 +2630,6 @@ program
     }
   });
 
-
 // 🎯 ACCEPT BID COMMAND
 program
   .command('accept-bid')
@@ -2607,7 +2642,10 @@ program
       initWallet(undefined, opts.wallet, opts.passphrase);
 
       const commerceABI = parseAbi(['function acceptBid(uint256 jobId, uint256 bidId) external']);
-      const commerce = getContractInstance(config.contracts.agenticCommerce as Address, commerceABI);
+      const commerce = getContractInstance(
+        config.contracts.agenticCommerce as Address,
+        commerceABI
+      );
 
       const jobId = BigInt(options.jobId);
       const bidId = BigInt(options.bidId);
@@ -2627,7 +2665,6 @@ program
     }
   });
 
-
 // 🎯 WITHDRAW STAKE COMMAND
 program
   .command('withdraw-stake')
@@ -2639,7 +2676,10 @@ program
       initWallet(undefined, opts.wallet, opts.passphrase);
 
       const commerceABI = parseAbi(['function withdrawStake(uint256 jobId) external']);
-      const commerce = getContractInstance(config.contracts.agenticCommerce as Address, commerceABI);
+      const commerce = getContractInstance(
+        config.contracts.agenticCommerce as Address,
+        commerceABI
+      );
 
       const jobId = BigInt(options.jobId);
 
@@ -2657,7 +2697,6 @@ program
     }
   });
 
-
 // 🎯 GET MY BID COMMAND
 program
   .command('get-my-bid')
@@ -2672,7 +2711,10 @@ program
         'function getUserBid(uint256 jobId, address user) external view returns ((address bidder, uint256 amount, string message, uint8 status, uint256 committedAt, uint256 revealedAt))',
       ]);
 
-      const commerce = getContractInstance(config.contracts.agenticCommerce as Address, commerceABI);
+      const commerce = getContractInstance(
+        config.contracts.agenticCommerce as Address,
+        commerceABI
+      );
 
       const jobId = BigInt(options.jobId);
       const bid = (await commerce.read.getUserBid([jobId, config.signerAddress as Address])) as any;
@@ -2706,7 +2748,6 @@ program
     }
   });
 
-
 // 🎯 GET JOB BID COUNT COMMAND
 program
   .command('get-job-bid-count')
@@ -2717,8 +2758,13 @@ program
       const opts = program.opts();
       initWallet(undefined, opts.wallet, opts.passphrase);
 
-      const commerceABI = parseAbi(['function jobBidCount(uint256 jobId) external view returns (uint256)']);
-      const commerce = getContractInstance(config.contracts.agenticCommerce as Address, commerceABI);
+      const commerceABI = parseAbi([
+        'function jobBidCount(uint256 jobId) external view returns (uint256)',
+      ]);
+      const commerce = getContractInstance(
+        config.contracts.agenticCommerce as Address,
+        commerceABI
+      );
 
       const jobId = BigInt(options.jobId);
       const count = (await commerce.read.jobBidCount([jobId])) as bigint;
@@ -2731,7 +2777,6 @@ program
       console.error(chalk.red('❌ Error:'), err.message);
     }
   });
-
 
 // 🎯 GET CLIENT JOB COUNT COMMAND
 program
@@ -2747,7 +2792,10 @@ program
         'function getClientJobCount(address client) external view returns (uint256)',
       ]);
 
-      const commerce = getContractInstance(config.contracts.agenticCommerce as Address, commerceABI);
+      const commerce = getContractInstance(
+        config.contracts.agenticCommerce as Address,
+        commerceABI
+      );
 
       const address = (options.address as Address) || config.signerAddress;
       const count = (await commerce.read.getClientJobCount([address])) as bigint;
@@ -2761,7 +2809,6 @@ program
     }
   });
 
-
 // 🎯 ACTIVATE SERVICE COMMAND
 program
   .command('activate-service')
@@ -2774,7 +2821,10 @@ program
 
       const serviceRegistryABI = parseAbi(['function activateService(uint256 serviceId) external']);
 
-      const serviceRegistry = getContractInstance(config.contracts.serviceRegistry as Address, serviceRegistryABI);
+      const serviceRegistry = getContractInstance(
+        config.contracts.serviceRegistry as Address,
+        serviceRegistryABI
+      );
 
       const serviceId = BigInt(options.serviceId);
 
@@ -2792,7 +2842,6 @@ program
     }
   });
 
-
 // 🎯 GET SERVICE COUNTER COMMAND
 program
   .command('get-service-counter')
@@ -2802,8 +2851,13 @@ program
       const opts = program.opts();
       initWallet(undefined, opts.wallet, opts.passphrase);
 
-      const serviceRegistryABI = parseAbi(['function getServiceCounter() external view returns (uint256)']);
-      const serviceRegistry = getContractInstance(config.contracts.serviceRegistry as Address, serviceRegistryABI);
+      const serviceRegistryABI = parseAbi([
+        'function getServiceCounter() external view returns (uint256)',
+      ]);
+      const serviceRegistry = getContractInstance(
+        config.contracts.serviceRegistry as Address,
+        serviceRegistryABI
+      );
 
       const counter = (await serviceRegistry.read.getServiceCounter()) as bigint;
 
@@ -2814,7 +2868,6 @@ program
       console.error(chalk.red('❌ Error:'), err.message);
     }
   });
-
 
 // ============================================================================
 // V6 REVIEW COMMANDS
@@ -2850,7 +2903,6 @@ program
     }
   });
 
-
 // 🎯 RELEASE PROPOSAL STAKE COMMAND
 program
   .command('release-proposal-stake')
@@ -2879,7 +2931,6 @@ program
       console.error(chalk.red('❌ Error:'), err.message);
     }
   });
-
 
 // 🎯 CANCEL PROPOSAL COMMAND
 program
@@ -2910,7 +2961,6 @@ program
     }
   });
 
-
 // 🎯 SLASH EVALUATOR COMMAND
 program
   .command('slash-evaluator')
@@ -2936,7 +2986,7 @@ program
       const hash = await review.write.slashEvaluator([
         options.evaluator as Address,
         BigInt(options.proposalId),
-        options.reason
+        options.reason,
       ]);
       console.log(chalk.cyan('Transaction sent:'), hash);
 
@@ -2947,7 +2997,6 @@ program
       console.error(chalk.red('❌ Error:'), err.message);
     }
   });
-
 
 // ============================================================================
 // V6 SKILLS COMMANDS
@@ -2968,7 +3017,10 @@ program
         'function getSkill(uint256 skillId) external view returns ((uint256 agentId, string name, string version, string description, string endpoint, string[] domains, bool isActive, address registeredBy, uint256 registeredAt))',
       ]);
 
-      const skillRegistry = getContractInstance(config.contracts.skillRegistry as Address, skillRegistryABI);
+      const skillRegistry = getContractInstance(
+        config.contracts.skillRegistry as Address,
+        skillRegistryABI
+      );
 
       const domain = options.domain;
       const skillIds = (await skillRegistry.read.findSkillsByDomain([domain])) as bigint[];
@@ -2992,7 +3044,6 @@ program
     }
   });
 
-
 // 🎯 GET TOTAL SKILL COUNT COMMAND
 program
   .command('get-total-skill-count')
@@ -3002,8 +3053,13 @@ program
       const opts = program.opts();
       initWallet(undefined, opts.wallet, opts.passphrase);
 
-      const skillRegistryABI = parseAbi(['function getTotalSkillCount() external view returns (uint256)']);
-      const skillRegistry = getContractInstance(config.contracts.skillRegistry as Address, skillRegistryABI);
+      const skillRegistryABI = parseAbi([
+        'function getTotalSkillCount() external view returns (uint256)',
+      ]);
+      const skillRegistry = getContractInstance(
+        config.contracts.skillRegistry as Address,
+        skillRegistryABI
+      );
 
       const count = (await skillRegistry.read.getTotalSkillCount()) as bigint;
 
@@ -3014,7 +3070,6 @@ program
       console.error(chalk.red('❌ Error:'), err.message);
     }
   });
-
 
 // 🎯 UPDATE SKILL COMMAND
 program
@@ -3034,7 +3089,10 @@ program
       const skillRegistryABI = parseAbi([
         'function updateSkill(uint256 skillId, string name, string version, string description, string endpoint, string[] domains) external',
       ]);
-      const skillRegistry = getContractInstance(config.contracts.skillRegistry as Address, skillRegistryABI);
+      const skillRegistry = getContractInstance(
+        config.contracts.skillRegistry as Address,
+        skillRegistryABI
+      );
 
       const skillId = BigInt(options.skillId);
       const name = options.name;
@@ -3057,7 +3115,7 @@ program
         version,
         description,
         endpoint,
-        domains
+        domains,
       ]);
       console.log(chalk.cyan('Transaction sent:'), hash);
 
@@ -3068,7 +3126,6 @@ program
       console.error(chalk.red('❌ Error:'), err.message);
     }
   });
-
 
 // =============================================================================
 // BIDDING SYSTEM COMMANDS (Phase 11 - Standalone Bidding)
@@ -3090,7 +3147,6 @@ const BIDDING_SYSTEM_ABI_PARSED = parseAbi([
   'event BiddingSessionCreated(uint256 indexed sessionId, address indexed creator, uint256 maxBudget)',
 ]);
 
-
 program
   .command('create-bidding-session')
   .description('Create a new bidding session')
@@ -3109,7 +3165,10 @@ program
         return;
       }
 
-      const contract = getContractInstance(config.contracts.biddingSystem as Address, BIDDING_SYSTEM_ABI_PARSED);
+      const contract = getContractInstance(
+        config.contracts.biddingSystem as Address,
+        BIDDING_SYSTEM_ABI_PARSED
+      );
       const maxBudget = viemParseEther(options.maxBudget.toString());
       const stake = (maxBudget * 100n) / 10000n; // 1% stake
 
@@ -3119,13 +3178,16 @@ program
       console.log(chalk.dim('  Stake:'), viemFormatEther(stake), 'ETH');
       console.log(chalk.dim('  Deadline:'), new Date(options.deadline * 1000).toISOString());
 
-      const hash = await contract.write.createBiddingSession([
-        options.evaluator as Address,
-        maxBudget,
-        BigInt(options.deadline),
-        (options.metadata || '0x') as `0x${string}`,
-        BigInt(options.serviceId || 0)
-      ], { value: stake });
+      const hash = await contract.write.createBiddingSession(
+        [
+          options.evaluator as Address,
+          maxBudget,
+          BigInt(options.deadline),
+          (options.metadata || '0x') as `0x${string}`,
+          BigInt(options.serviceId || 0),
+        ],
+        { value: stake }
+      );
 
       console.log(chalk.cyan('Transaction sent:'), hash);
       const receipt = await waitForTransactionReceipt(hash);
@@ -3138,7 +3200,9 @@ program
             sessionId = (parsed.args as any).sessionId.toString();
             break;
           }
-        } catch { /* ignore */ }
+        } catch {
+          /* ignore */
+        }
       }
 
       if (sessionId) {
@@ -3153,7 +3217,6 @@ program
       console.error(chalk.red('❌ Error:'), err.message);
     }
   });
-
 
 program
   .command('commit-bidding')
@@ -3171,7 +3234,10 @@ program
         return;
       }
 
-      const contract = getContractInstance(config.contracts.biddingSystem as Address, BIDDING_SYSTEM_ABI_PARSED);
+      const contract = getContractInstance(
+        config.contracts.biddingSystem as Address,
+        BIDDING_SYSTEM_ABI_PARSED
+      );
       const amount = viemParseEther(options.amount.toString());
       const stake = (amount * 100n) / 10000n; // 1% stake
       const salt = viemKeccak256(viemToBytes(config.signerAddress + Date.now().toString()));
@@ -3189,7 +3255,9 @@ program
       console.log(chalk.dim('  Commit Hash:'), commitHash);
       console.log(chalk.yellow('  ⚠️  Save your salt for reveal:'), salt);
 
-      const hash = await contract.write.commitBid([BigInt(options.session), commitHash], { value: stake });
+      const hash = await contract.write.commitBid([BigInt(options.session), commitHash], {
+        value: stake,
+      });
 
       console.log(chalk.cyan('Transaction sent:'), hash);
       await waitForTransactionReceipt(hash);
@@ -3199,8 +3267,6 @@ program
       console.error(chalk.red('❌ Error:'), err.message);
     }
   });
-
-
 
 program
   .command('reveal-bidding')
@@ -3219,16 +3285,26 @@ program
         return;
       }
 
-      const contract = getContractInstance(config.contracts.biddingSystem as Address, BIDDING_SYSTEM_ABI_PARSED);
+      const contract = getContractInstance(
+        config.contracts.biddingSystem as Address,
+        BIDDING_SYSTEM_ABI_PARSED
+      );
       const amount = viemParseEther(options.amount.toString());
-      const salt = (options.salt.startsWith('0x') ? options.salt : `0x${options.salt}`) as `0x${string}`;
+      const salt = (
+        options.salt.startsWith('0x') ? options.salt : `0x${options.salt}`
+      ) as `0x${string}`;
 
       console.log(chalk.cyan('Revealing bid...'));
       console.log(chalk.dim('  Session ID:'), options.session);
       console.log(chalk.dim('  Amount:'), options.amount, 'ETH');
       console.log(chalk.dim('  Message:'), options.message);
 
-      const hash = await contract.write.revealBid([BigInt(options.session), amount, options.message, salt]);
+      const hash = await contract.write.revealBid([
+        BigInt(options.session),
+        amount,
+        options.message,
+        salt,
+      ]);
 
       console.log(chalk.cyan('Transaction sent:'), hash);
       await waitForTransactionReceipt(hash);
@@ -3238,7 +3314,6 @@ program
       console.error(chalk.red('❌ Error:'), err.message);
     }
   });
-
 
 program
   .command('accept-bidding')
@@ -3255,7 +3330,10 @@ program
         return;
       }
 
-      const contract = getContractInstance(config.contracts.biddingSystem as Address, BIDDING_SYSTEM_ABI_PARSED);
+      const contract = getContractInstance(
+        config.contracts.biddingSystem as Address,
+        BIDDING_SYSTEM_ABI_PARSED
+      );
 
       console.log(chalk.cyan('Accepting bid...'));
       console.log(chalk.dim('  Session ID:'), options.session);
@@ -3272,7 +3350,6 @@ program
     }
   });
 
-
 program
   .command('get-bidding-session')
   .description('Get bidding session details')
@@ -3287,7 +3364,10 @@ program
         return;
       }
 
-      const contract = getContractInstance(config.contracts.biddingSystem as Address, BIDDING_SYSTEM_ABI_PARSED);
+      const contract = getContractInstance(
+        config.contracts.biddingSystem as Address,
+        BIDDING_SYSTEM_ABI_PARSED
+      );
 
       const session = (await contract.read.getSession([BigInt(options.session)])) as any;
 
@@ -3304,21 +3384,30 @@ program
       console.log(chalk.dim('  Session ID:'), options.session);
       console.log(chalk.dim('  Creator:'), session.creator || session[1]);
       console.log(chalk.dim('  Evaluator:'), session.evaluator || session[2]);
-      console.log(chalk.dim('  Max Budget:'), viemFormatEther(session.maxBudget || session[3]), 'ETH');
-      console.log(chalk.dim('  Deadline:'), new Date(Number(session.deadline || session[4]) * 1000).toISOString());
+      console.log(
+        chalk.dim('  Max Budget:'),
+        viemFormatEther(session.maxBudget || session[3]),
+        'ETH'
+      );
+      console.log(
+        chalk.dim('  Deadline:'),
+        new Date(Number(session.deadline || session[4]) * 1000).toISOString()
+      );
       console.log(
         chalk.dim('  Reveal Window End:'),
         new Date(Number(session.revealWindowEnd || session[5]) * 1000).toISOString()
       );
       console.log(chalk.dim('  Winner:'), session.winner || session[9] || 'None');
-      console.log(chalk.dim('  Status:'), statusNames[Number(session.status || session[12])] || 'Unknown');
+      console.log(
+        chalk.dim('  Status:'),
+        statusNames[Number(session.status || session[12])] || 'Unknown'
+      );
       console.log(chalk.dim('  Job Created:'), session.jobCreated || session[11]);
     } catch (error: unknown) {
       const err = error as { message?: string };
       console.error(chalk.red('❌ Error:'), err.message);
     }
   });
-
 
 program
   .command('withdraw-bidding-stake')
@@ -3334,7 +3423,10 @@ program
         return;
       }
 
-      const contract = getContractInstance(config.contracts.biddingSystem as Address, BIDDING_SYSTEM_ABI_PARSED);
+      const contract = getContractInstance(
+        config.contracts.biddingSystem as Address,
+        BIDDING_SYSTEM_ABI_PARSED
+      );
 
       console.log(chalk.cyan('Withdrawing stake...'));
       console.log(chalk.dim('  Session ID:'), options.session);
@@ -3349,7 +3441,6 @@ program
       console.error(chalk.red('❌ Error:'), err.message);
     }
   });
-
 
 // 🎯 HELP COMMAND
 program

@@ -57,6 +57,9 @@ broadcast/
 *.jar
 *.obsidian
 
+# CLI Wallets
+cli/.kokonut-wallets.json
+
 # Cache
 .eslintcache
 .stylelintcache

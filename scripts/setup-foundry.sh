@@ -29,7 +29,7 @@ fi
 
 # 2. Install the pinned nightly toolchain
 echo "📦 Installing Foundry toolchain ($PINNED_VERSION)..."
-foundryup --version "$PINNED_VERSION"
+foundryup --install "$PINNED_VERSION"
 
 # 3. Verify forge is available
 if ! command -v forge &>/dev/null; then
