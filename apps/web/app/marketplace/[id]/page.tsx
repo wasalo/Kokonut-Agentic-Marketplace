@@ -125,8 +125,7 @@ export default function ServiceDetailPage({
                 </div>
                 <div className="text-right">
                   <p className="text-2xl font-bold text-success">
-                    {tokenSymbol === 'USDC' && `$${formattedPrice}`}
-                    {tokenSymbol === 'ETH' && `${formattedPrice} ETH`}
+                    {formatUnits(service.price, tokenDecimals)}
                   </p>
                   <p className="text-xs text-default-400">{tokenSymbol}</p>
                   {isEth && ethToUsdcRate && (
@@ -259,7 +258,7 @@ export default function ServiceDetailPage({
                   editForm.name,
                   editForm.description,
                   service.metadataURI,
-                  BigInt(Math.floor(parseFloat(editForm.price) * 1e6))
+                  BigInt(Math.floor(parseFloat(editForm.price) * 10**tokenDecimals))
                 );
                 setIsEditing(false);
                 refetch();
@@ -287,10 +286,10 @@ export default function ServiceDetailPage({
                 />
               </div>
               <div>
-                <label className="text-sm font-medium">Price (USDC)</label>
+                <label className="text-sm font-medium">Price ({tokenSymbol})</label>
                 <input
                   type="number"
-                  step="0.01"
+                  step="0.000001"
                   value={editForm.price}
                   onChange={e => setEditForm({ ...editForm, price: e.target.value })}
                   required

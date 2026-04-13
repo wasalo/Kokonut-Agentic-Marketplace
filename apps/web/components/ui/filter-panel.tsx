@@ -1,8 +1,8 @@
 'use client';
 
 import React, { useState, useCallback } from 'react';
-import { Search, X, SlidersHorizontal } from 'lucide-react';
-import { Input, Button, Card } from '@heroui/react';
+import { Search } from 'lucide-react';
+import { Input, Card } from '@heroui/react';
 
 interface FilterConfig {
   type: 'search' | 'select' | 'range' | 'checkbox';

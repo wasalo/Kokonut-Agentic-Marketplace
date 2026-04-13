@@ -1,6 +1,7 @@
-import { useReadContract, useWriteContract, useWaitForTransactionReceipt } from 'wagmi';
-import { AGENTIC_COMMERCE_ABI, BIDDING_SYSTEM_ABI } from '@/lib/contracts/abis';
-import { getContractAddress, debugLog } from '@/lib/contracts/config';
+import { useMemo } from 'react';
+import { useReadContract, useReadContracts, useWriteContract, useWaitForTransactionReceipt } from 'wagmi';
+import { BIDDING_SYSTEM_ABI } from '@/lib/contracts/abis';
+import { getContractAddress } from '@/lib/contracts/config';
 import { parseEther } from 'viem';
 
 const BIDDING_SYSTEM_ADDRESS = getContractAddress('BIDDING_SYSTEM');
@@ -62,6 +63,52 @@ export function useBiddingSessionCount() {
     count: data ? Number(data) : 0,
     isLoading,
     error,
+  };
+}
+
+export function useBiddingSessions(start: number = 0, count?: number) {
+  const { count: totalCount, isLoading: isCountLoading, error: countError } = useBiddingSessionCount();
+
+  const sessionIds = useMemo(() => {
+    if (totalCount <= 0) return [];
+
+    const effectiveCount = count ?? totalCount;
+    const startIndex = Math.max(start, 0);
+    const endExclusive = Math.min(startIndex + effectiveCount, totalCount);
+
+    return Array.from({ length: Math.max(endExclusive - startIndex, 0) }, (_, index) =>
+      BigInt(totalCount - (startIndex + index))
+    ).filter(id => id > 0n);
+  }, [count, start, totalCount]);
+
+  const { data, isLoading, error, refetch } = useReadContracts({
+    contracts: sessionIds.map(sessionId => ({
+      address: BIDDING_SYSTEM_ADDRESS,
+      abi: BIDDING_SYSTEM_ABI,
+      functionName: 'getSession',
+      args: [sessionId],
+    })),
+    query: {
+      retry: 2,
+      staleTime: 10 * 1000,
+      enabled: sessionIds.length > 0,
+    },
+  });
+
+  const sessions = useMemo(
+    () =>
+      (data
+        ?.map(result => result.result as BiddingSession | undefined)
+        .filter((session): session is BiddingSession => session !== undefined) ?? []),
+    [data]
+  );
+
+  return {
+    sessions,
+    totalCount,
+    isLoading: isCountLoading || isLoading,
+    error: error || countError,
+    refetch,
   };
 }
 

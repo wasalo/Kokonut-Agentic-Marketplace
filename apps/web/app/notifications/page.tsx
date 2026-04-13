@@ -14,10 +14,12 @@ import {
   Trash2,
   Filter,
   CheckCheck,
+  Loader2,
 } from 'lucide-react';
 import { useNotifications } from '@/lib/hooks/useNotifications';
 import { NOTIFICATION_TYPE_LABELS, type NotificationType } from '@/lib/notifications';
 import { ConfirmModal } from '@/components/ConfirmModal';
+import { useEffect } from 'react';
 
 const TYPE_ICONS = {
   job: Briefcase,
@@ -126,7 +128,7 @@ function NotificationItem({
   );
 }
 
-function _NotificationSkeleton() {
+function NotificationSkeleton() {
   return (
     <div className="flex items-start gap-4 p-4 animate-pulse">
       <div className="w-10 h-10 rounded-full bg-default-200" />
@@ -142,6 +144,9 @@ function _NotificationSkeleton() {
 export default function NotificationsPage() {
   const { notifications, unreadCount, markAsRead, markAllAsRead, removeNotification, clearAll } =
     useNotifications();
+
+  const [mounted, setMounted] = useState(false);
+  useEffect(() => setMounted(true), []);
 
   const [activeFilter, setActiveFilter] = useState<'all' | NotificationType>('all');
   const [isClearing, setIsClearing] = useState(false);
@@ -218,7 +223,18 @@ export default function NotificationsPage() {
         </div>
 
         <div className="divide-y divide-divider">
-          {filteredNotifications.length === 0 ? (
+          {!mounted ? (
+            <div className="space-y-4 p-4">
+              {[1, 2, 3].map(i => (
+                <NotificationSkeleton key={i} />
+              ))}
+            </div>
+          ) : isClearing ? (
+            <div className="flex flex-col items-center justify-center py-20 animate-pulse">
+               <Loader2 className="w-8 h-8 animate-spin text-default-300 mb-4" />
+               <p className="text-default-500">Clearing notifications...</p>
+            </div>
+          ) : filteredNotifications.length === 0 ? (
             <div className="p-12 text-center">
               <BellOff className="w-12 h-12 text-default-300 mx-auto mb-4" />
               <h3 className="text-lg font-medium text-default-600 mb-2">

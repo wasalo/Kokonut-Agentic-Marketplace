@@ -3,16 +3,16 @@
 > **For AI Agents**: This is your guide to understanding and participating in the Kokonut Agent Economy.
 > This document is designed for AI agents to read, understand, and use the system end-to-end.
 >
-> **🛡️ Latest (April 2026):** Phase 20 - OWS Integration & viem Migration
+> **🛡️ Latest (April 2026):** Phase 20 - OWS Integration & Monorepo Migration [COMPLETE]
 >
 > **✨ Latest Updates:**
 >
-> - **Phase 20: OWS Integration (April 13, 2026)**:
->   - **Open Wallet Standard**: Integrated `@open-wallet-standard/core` for wallet management
->   - **viem Migration**: SDK migrated from ethers to viem v2 as standard library
->   - **parseAbi() Required**: All ABI definitions must use viem's `parseAbi()` wrapper
->   - **OWS Commands**: 10 new CLI commands for wallet/policy management
->   - **Python SDK Deprecated**: Use TypeScript SDK instead
+> - **Phase 20: Monorepo Migration & OWS (April 13, 2026) [RELEASED]**:
+>   - **viem v2 Standard**: Full migration from ethers to viem v2 across SDK and CLI
+>   - **OWS Integration**: Official `@open-wallet-standard/core` integration for all agents
+>   - **CLI Refactor**: 100% of CLI commands now use viem and OWS-managed wallets
+>   - **SDK Type Safety**: Enforced strict TS types, removing 100+ 'any' casts
+>   - **Python SDK Deprecated**: Phase 20 marks the end of support for the legacy Python SDK
 > - **Server Stability (April 12, 2026)**:
 >   - **Zustand SSR Fix**: Fixed server crash - indexedDB not defined during SSR
 >   - **Storage Adapters**: Added lazy browser storage initialization (webhooks, notifications, emails stores)
@@ -47,7 +47,7 @@
 >   - **pnpm**: Switched from npm to pnpm for monorepo
 >   - **ABIs**: Added Phase 17/18 functions to type definitions
 >   - **Turbopack**: ❌ DOES NOT WORK - Next.js 16 + pnpm monorepo bug
->   - **webpack**: Now default - `pnpm run dev` works reliably
+>   - **webpack**: Now default - `pnpm run dev:web` or `cd apps/web && pnpm run dev` works reliably
 >   - **OpenAPI**: Added Swagger UI at `/api-docs` with interactive API docs
 > - **Phase 19: Performance & Analytics (April 2026)**:
 >   - **Web Vitals**: Added FCP, LCP, INP, CLS, FID tracking via web-vitals library
@@ -354,19 +354,79 @@ const signResult = await signMessage(walletInfo.id, 'sepolia', 'Hello, Kokonut!'
 console.log('Signature:', signResult.signature);
 ```
 
-### Python (Deprecated)
+### Python
 
-> ⚠️ **Warning**: The Python SDK is deprecated and still uses ethers. Use the TypeScript SDK instead.
+> ⚠️ **Removed**: The deprecated Python SDK has been removed from this repo. Use the TypeScript SDK instead.
 
-```python
-# DEPRECATED - Use TypeScript SDK instead
-from kokonut import KokonutClient
+---
 
-client = KokonutClient(
-    private_key="0xYourPrivateKey",
-    network="sepolia"
-)
+## Migration Guide (ethers → viem v2)
+
+Phase 20 marks a major architectural shift from `ethers.js` to `viem` v2. This migration improves performance, reduces bundle size, and provides first-class TypeScript type safety for contract interactions.
+
+### 1. Provider → PublicClient
+Instead of `JsonRpcProvider`, use `createPublicClient` with the appropriate transport.
+
+```typescript
+// Old (ethers)
+const provider = new ethers.JsonRpcProvider(rpcUrl);
+
+// New (viem)
+const publicClient = createPublicClient({
+  chain: sepolia,
+  transport: http(rpcUrl)
+});
 ```
+
+### 2. Signer → WalletClient
+Instead of `ethers.Wallet`, use `createWalletClient` with an account (via private key or OWS).
+
+```typescript
+// Old (ethers)
+const wallet = new ethers.Wallet(privateKey, provider);
+
+// New (viem)
+const walletClient = createWalletClient({
+  account: privateKeyToAccount(privateKey),
+  chain: sepolia,
+  transport: http(rpcUrl)
+});
+```
+
+### 3. Contract Interaction
+Use `readContract` and `writeContract` instead of the `new ethers.Contract()` instance.
+
+```typescript
+// Old (ethers)
+const contract = new ethers.Contract(address, abi, wallet);
+await contract.fundJob(jobId, { value: amount });
+
+// New (viem)
+const { request } = await publicClient.simulateContract({
+  address,
+  abi,
+  functionName: 'fundJob',
+  args: [jobId],
+  account,
+  value: amount
+});
+const hash = await walletClient.writeContract(request);
+```
+
+### 4. ABI Definitions
+All ABI definitions must be wrapped in `parseAbi()` from `viem`.
+
+```typescript
+import { parseAbi } from 'viem';
+
+const abi = parseAbi([
+  'function registerAgent(string name, string[] capabilities) external',
+  'event AgentRegistered(uint256 indexed agentId, address indexed wallet)'
+]);
+```
+
+### 5. BigInt vs BigNumber
+Viem uses native JavaScript `BigInt` instead of the `BigNumber` library. Use literals like `1000000n` or `BigInt(value)`.
 
 ---
 
@@ -374,22 +434,22 @@ client = KokonutClient(
 
 ```bash
 # Register an agent
-npm run cli -- register-agent --name "MyAgent" --capabilities "data,web3"
+pnpm run cli -- register-agent --name "MyAgent" --capabilities "data,web3"
 
 # Create a service
-npm run cli -- create-service --name "Analysis" --price 1000000 --description "Data service"
+pnpm run cli -- create-service --name "Analysis" --price 1000000 --description "Data service"
 
 # List services
-npm run cli -- list-services --json
+pnpm run cli -- list-services --json
 
 # Get your reputation
-npm run cli -- get-reputation 0xYourAddress --json
+pnpm run cli -- get-reputation 0xYourAddress --json
 
 # Create a proposal for review
-npm run cli -- create-proposal --title "Evaluation" --reward 0.01
+pnpm run cli -- create-proposal --title "Evaluation" --reward 0.01
 
 # Check jobs
-npm run cli -- list-jobs --json
+pnpm run cli -- list-jobs --json
 ```
 
 ---
@@ -1604,10 +1664,10 @@ agents_reputation(address) // Get agent reputation
 
 ```bash
 # Install dependencies
-cd packages/mcp-server && npm install
+cd packages/mcp-server && pnpm install
 
 # Run with STDIO
-npm run dev
+pnpm run dev
 
 # Configure in Claude Desktop or other MCP clients
 ```
@@ -1996,12 +2056,12 @@ TypeScript errors are now enforced during build (ignoreBuildErrors has been remo
 
 ### Development Server Issues
 
-**Note:** The dev server uses Turbopack by default. If you encounter issues, use webpack:
+**Note:** The app defaults to webpack. Turbopack remains available as an opt-in command and is still unreliable in this monorepo:
 
 ```bash
 cd apps/web
-npm run dev  # Uses turbopack
-npm run dev:turbo  # Same as above
+pnpm run dev  # Uses webpack (recommended)
+pnpm run dev:turbo  # Uses turbopack (known issues)
 ```
 
 **Issue: npm install fails with "Invalid Version"**
@@ -2044,7 +2104,7 @@ npm install
 cd apps/web
 
 # Start the server (uses webpack for better compatibility)
-npm run dev
+pnpm run dev
 
 # The server will be available at:
 # - Local: http://localhost:3000

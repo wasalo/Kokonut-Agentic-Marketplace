@@ -6,7 +6,6 @@ import { Card } from '@heroui/react';
 import { OWSWalletSelector, OWSWalletInfo } from '@/components/ows/wallet-selector';
 import { useOWSWallet } from '@/lib/hooks/useOWSWallet';
 import { useSignTransaction } from '@/lib/hooks/useSignTransaction';
-import { OWSChain } from '@/lib/ows/types';
 import { formatUnits } from 'viem';
 import { CONTRACT_ADDRESSES } from '@/lib/contracts/config';
 
@@ -24,7 +23,7 @@ export function OWSFundJobButton({
   onSuccess,
 }: OWSFundJobButtonProps) {
   const { wallets, loadWallets, activeWallet } = useOWSWallet();
-  const { sign, isSigning, error: signError } = useSignTransaction();
+  const { sign, error: signError } = useSignTransaction();
 
   const [selectedWalletId, setSelectedWalletId] = useState<string | null>(null);
   const [isOWSMode, setIsOWSMode] = useState(false);

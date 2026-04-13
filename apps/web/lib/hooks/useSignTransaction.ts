@@ -1,5 +1,5 @@
 import { useState, useCallback } from 'react';
-import { owsSigner, SignOptions, SignResult } from '@/lib/ows/signer';
+import { owsSigner, SignResult } from '@/lib/ows/signer';
 import { useOWSWallet } from './useOWSWallet';
 import { OWSChain } from '@/lib/ows/types';
 

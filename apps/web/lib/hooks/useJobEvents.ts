@@ -1,7 +1,7 @@
-import { useEffect, useRef, useCallback } from 'react';
+
 import { useWatchContractEvent } from 'wagmi';
 import { useQueryClient } from '@tanstack/react-query';
-import { AGENTIC_COMMERCE_ABI, AGENTIC_COMMERCE_EVENTS } from '@/lib/contracts/abis';
+import { AGENTIC_COMMERCE_ABI } from '@/lib/contracts/abis';
 import { CONTRACT_ADDRESSES } from '@/lib/contracts/config';
 
 /* eslint-disable @typescript-eslint/no-explicit-any */
@@ -20,7 +20,7 @@ function invalidateJobQueries(queryClient: any, jobId: bigint) {
  * Hook to watch all job events for real-time updates
  * Watches 16 job lifecycle events including bids
  */
-export function useJobEvents(jobId?: bigint) {
+export function useJobEvents(_jobId?: bigint) {
   const queryClient = useQueryClient();
 
   // Watch JobCreated events
@@ -280,7 +280,7 @@ export function useWatchJob(jobId: bigint) {
 /**
  * Hook to watch job limit exceeded warnings
  */
-export function useJobLimitWarnings(userAddress?: string) {
+export function useJobLimitWarnings(_userAddress?: string) {
   useWatchContractEvent({
     address: AGENTIC_COMMERCE_ADDRESS,
     abi: AGENTIC_COMMERCE_ABI,

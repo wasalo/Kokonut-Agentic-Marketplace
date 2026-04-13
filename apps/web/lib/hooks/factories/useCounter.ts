@@ -2,7 +2,7 @@
 // Eliminates duplicate count hook patterns (useJobCount, useServiceCount, useProposalCount)
 
 import { useReadContract } from 'wagmi';
-import type { UseReadContractParameters } from 'wagmi';
+
 
 export interface CounterConfig {
   address: string;

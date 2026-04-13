@@ -15,7 +15,7 @@ import {
   Activity,
 } from 'lucide-react';
 import NextLink from 'next/link';
-import { useJobCount, useUserJobs, getJobStatusLabel } from '@/lib/hooks/useJobs';
+import { useUserJobs, getJobStatusLabel } from '@/lib/hooks/useJobs';
 import { useProposalCount, useProposals } from '@/lib/hooks/useProposals';
 import { useActivityFeed, ActivityType } from '@/lib/hooks/useActivityFeed';
 import { Address } from '@/components/Address';
@@ -32,8 +32,7 @@ function WalletConnectPrompt() {
 }
 
 function UserJobsList({ user }: { user: `0x${string}` }) {
-  useJobCount();
-  const { jobs, isLoading, error, refetch } = useUserJobs(user, 'all');
+  const { jobs, isLoading, error } = useUserJobs(user, 'all');
 
   if (isLoading) {
     return (

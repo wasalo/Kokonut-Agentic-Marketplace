@@ -10,8 +10,8 @@ function simpleHash(data: Uint8Array): number {
 }
 
 export async function generateSeedPhrase(): Promise<string> {
-  const entropy = crypto.getRandomValues(new Uint8Array(16));
-  const entropyHex = Array.from(entropy).map(b => b.toString(16).padStart(2, '0')).join('');
+
+
   return 'abandon '.repeat(11) + 'about';
 }
 
@@ -39,7 +39,7 @@ export async function deriveWalletFromSeed(
 
 export async function importFromPrivateKey(
   privateKey: string,
-  chain: OWSChain
+  _chain: OWSChain
 ): Promise<{ privateKey: string; address: string }> {
   const hash = simpleHash(new TextEncoder().encode(privateKey));
   const addressBytes = new Uint8Array(20);

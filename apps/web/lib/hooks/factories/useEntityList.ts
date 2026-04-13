@@ -3,7 +3,6 @@
 
 import { useReadContracts } from 'wagmi';
 import { useMemo } from 'react';
-import type { EntityConfig, EntityResult } from './useEntity';
 
 export interface EntityListConfig<T> {
   address: string;

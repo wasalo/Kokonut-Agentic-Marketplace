@@ -8,7 +8,6 @@ import {
   MessageSquare,
   Search,
   RefreshCw,
-  Loader2,
   ExternalLink,
 } from 'lucide-react';
 import { Card, Button } from '@heroui/react';

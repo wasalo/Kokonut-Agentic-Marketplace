@@ -2,18 +2,16 @@ import {
   OWSWallet,
   OWSVault,
   OWSPolicy,
-  OWSChain,
   OWSWalletCreateOptions,
   OWSWalletImportOptions,
   OWSSignRequest,
   OWSSignResult,
-  OWSImportData,
   OWSError,
   OWSErrorCode,
   OWS_POLICY_TEMPLATES,
   OWSCreateWalletResult,
 } from './types';
-import { encryptSeed, decryptSeed, validatePassphrase, generateVaultId } from './encryption';
+import { encryptSeed, validatePassphrase, generateVaultId } from './encryption';
 import { generateSeedPhrase, validateSeedPhrase, deriveWalletFromSeed, importFromPrivateKey, importFromJson } from './derivation';
 import * as storage from './storage';
 
@@ -40,7 +38,7 @@ export class OWSClient {
     }
 
     const seedPhrase = await generateSeedPhrase();
-    const { privateKey, address } = await deriveWalletFromSeed(seedPhrase, options.chain);
+    const { address } = await deriveWalletFromSeed(seedPhrase, options.chain);
 
     const { encryptedSeed, salt, iv } = await encryptSeed(seedPhrase, options.passphrase);
 
@@ -170,7 +168,7 @@ export class OWSClient {
     return { signature: '0xplaceholder', transactionHash: undefined };
   }
 
-  private enforcePolicy(policy: OWSPolicy, request: OWSSignRequest, wallet: OWSWallet): void {
+  private enforcePolicy(policy: OWSPolicy, request: OWSSignRequest, _wallet: OWSWallet): void {
     for (const rule of policy.rules) {
       switch (rule.type) {
         case 'chain-restriction':

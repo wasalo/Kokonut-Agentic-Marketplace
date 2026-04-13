@@ -1,9 +1,10 @@
 'use client';
 
-import { useState, useCallback, useEffect } from 'react';
+import { useState, useEffect } from 'react';
 import Link from 'next/link';
 import { useEnsName, useChainId } from 'wagmi';
-import { Copy, Check, ExternalLink } from 'lucide-react';
+import { ExternalLink } from 'lucide-react';
+import { CopyButton } from './ui/copy-button';
 
 interface AddressProps {
   address: `0x${string}` | string;
@@ -16,7 +17,12 @@ interface AddressProps {
   asSpan?: boolean;
 }
 
-const EXPLORER_BASE_URL = 'https://sepolia.etherscan.io/address/';
+const getExplorerBaseUrl = (chainId?: number) => {
+  if (chainId === 1) return 'https://etherscan.io/address/';
+  if (chainId === 137) return 'https://polygonscan.com/address/';
+  if (chainId === 8453) return 'https://basescan.org/address/';
+  return 'https://sepolia.etherscan.io/address/';
+};
 
 function truncateAddress(address: string, truncateChars?: { start: number; end: number }): string {
   if (!address || address.length < 14) return address;
@@ -34,7 +40,6 @@ export function Address({
   className = '',
   asSpan = false,
 }: AddressProps) {
-  const [copied, setCopied] = useState(false);
   const [mounted, setMounted] = useState(false);
   const chainId = useChainId();
 
@@ -59,22 +64,9 @@ export function Address({
   const fullAddress = address;
   const ensDisplay = ensName || displayAddress;
 
-  const handleCopy = useCallback(
-    async (e: React.MouseEvent) => {
-      e.preventDefault();
-      e.stopPropagation();
-      try {
-        await navigator.clipboard.writeText(fullAddress);
-        setCopied(true);
-        setTimeout(() => setCopied(false), 2000);
-      } catch (err) {
-        console.error('Failed to copy address:', err);
-      }
-    },
-    [fullAddress]
-  );
 
-  const explorerUrl = `${EXPLORER_BASE_URL}${fullAddress}`;
+
+  const explorerUrl = `${getExplorerBaseUrl(chainId)}${fullAddress}`;
 
   const content = (
     <span
@@ -83,17 +75,12 @@ export function Address({
     >
       <span>{ensDisplay}</span>
       {copyable && (
-        <button
-          onClick={handleCopy}
-          className="p-0.5 hover:bg-content2 rounded transition-colors"
-          title="Copy address"
-        >
-          {copied ? (
-            <Check className="w-3 h-3 text-success" />
-          ) : (
-            <Copy className="w-3 h-3 text-default-400 hover:text-default-600" />
-          )}
-        </button>
+        <CopyButton
+          text={fullAddress}
+          variant="ghost"
+          size="sm"
+          className="p-0.5 h-auto min-w-0"
+        />
       )}
       {explorerLink && (
         <a
@@ -115,7 +102,7 @@ export function Address({
   }
 
   return (
-    <span className="inline-flex items-center gap-1 cursor-pointer" onClick={handleCopy}>
+    <span className="inline-flex items-center gap-1">
       {content}
     </span>
   );
@@ -130,10 +117,8 @@ export function AddressLink({
   href,
   truncate = true,
   truncateChars,
-  copyable = true,
   showEns = true,
   className = '',
-  ...props
 }: AddressLinkProps) {
   const [mounted, setMounted] = useState(false);
 

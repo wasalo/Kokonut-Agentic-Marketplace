@@ -12,33 +12,20 @@ import {
   Search,
   SlidersHorizontal,
   DollarSign,
-  ArrowUpDown,
   Users,
 } from 'lucide-react';
 import { Card, Button } from '@heroui/react';
 import NextLink from 'next/link';
-import { formatUnits, formatEther } from 'viem';
+import { formatEther } from 'viem';
 import {
-  useBiddingSessionCount,
+  useBiddingSessions,
   SessionStatus,
   SessionStatusType,
-  BiddingSession,
 } from '@/lib/hooks/useBiddingSystem';
-import { useState, useCallback, useEffect } from 'react';
+import { useState, useCallback, useMemo } from 'react';
 import { StatusBadge } from '@/components/StatusBadge';
-import { useDebounce } from '@/lib/hooks/useDebounce';
-import { Address } from 'viem';
 
 const ITEMS_PER_PAGE = 10;
-
-const SESSION_STATUS_LABELS: Record<SessionStatusType, string> = {
-  [SessionStatus.Active]: 'Active',
-  [SessionStatus.BiddingClosed]: 'Bidding Closed',
-  [SessionStatus.WinnerSelected]: 'Winner Selected',
-  [SessionStatus.JobCreated]: 'Job Created',
-  [SessionStatus.Completed]: 'Completed',
-  [SessionStatus.Cancelled]: 'Cancelled',
-};
 
 const SESSION_STATUS_BADGE: Record<SessionStatusType, string> = {
   [SessionStatus.Active]: 'active',
@@ -107,7 +94,7 @@ function SessionCard({ session, isConnected }: { session: any; isConnected: bool
 
 export default function BiddingPage(): JSX.Element {
   const [page, setPage] = useState(0);
-  const { address, isConnected } = useAccount();
+  const { isConnected } = useAccount();
   const router = useRouter();
   const searchParams = useSearchParams();
 
@@ -127,34 +114,50 @@ export default function BiddingPage(): JSX.Element {
 
   // Filter states
   const [searchQuery, setSearchQuery] = useState('');
-  const [debouncedSearchQuery, setDebouncedSearchQuery] = useState('');
   const [statusFilter, setStatusFilter] = useState<string>('all');
   const [showFilters, setShowFilters] = useState(false);
 
-  // Debounce search query
-  const [debouncedSearch, isSearching] = useDebounce((value: string) => {
-    setDebouncedSearchQuery(value);
-    setPage(0);
-  }, 300);
+  const { sessions, totalCount, isLoading } = useBiddingSessions();
 
-  useEffect(() => {
-    const timeout = setTimeout(() => {
-      setDebouncedSearchQuery(searchQuery);
-    }, 300);
-    return () => clearTimeout(timeout);
-  }, [searchQuery]);
+  const filteredSessions = useMemo(() => {
+    const normalizedSearch = searchQuery.trim().toLowerCase();
 
-  // Get session count
-  const { count: totalCount, isLoading: isCountLoading } = useBiddingSessionCount();
+    const filtered = sessions.filter(session => {
+      if (statusFilter !== 'all' && session.status !== Number(statusFilter)) {
+        return false;
+      }
 
-  // Calculate pagination
-  const startIndex = page * ITEMS_PER_PAGE;
-  const endIndex = Math.min(startIndex + ITEMS_PER_PAGE, totalCount);
-  const totalPages = Math.ceil(totalCount / ITEMS_PER_PAGE);
+      if (!normalizedSearch) {
+        return true;
+      }
 
-  // Filter sessions (client-side for now - could use events for production)
-  const filteredSessions: BiddingSession[] = [];
-  const isLoading = isCountLoading;
+      return (
+        session.id.toString().includes(normalizedSearch) ||
+        session.creator.toLowerCase().includes(normalizedSearch) ||
+        session.evaluator.toLowerCase().includes(normalizedSearch)
+      );
+    });
+
+    filtered.sort((a, b) => {
+      const multiplier = sortOrder === 'asc' ? 1 : -1;
+
+      switch (sortBy) {
+        case 'budget':
+          return multiplier * Number(a.maxBudget - b.maxBudget);
+        case 'newest':
+        default:
+          return multiplier * Number(a.id - b.id);
+      }
+    });
+
+    return filtered;
+  }, [searchQuery, sessions, sortBy, sortOrder, statusFilter]);
+
+  const totalPages = Math.ceil(filteredSessions.length / ITEMS_PER_PAGE);
+  const paginatedSessions = filteredSessions.slice(
+    page * ITEMS_PER_PAGE,
+    (page + 1) * ITEMS_PER_PAGE
+  );
 
   // Handle pagination
   const handleNextPage = () => {
@@ -328,7 +331,7 @@ export default function BiddingPage(): JSX.Element {
         </div>
       ) : filteredSessions.length > 0 ? (
         <div className="space-y-4">
-          {filteredSessions.map(session => (
+          {paginatedSessions.map(session => (
             <SessionCard key={session.id.toString()} session={session} isConnected={isConnected} />
           ))}
         </div>

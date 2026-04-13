@@ -72,30 +72,7 @@ client.on('PaymentReleased', event => {
 
 ### Python SDK
 
-Install: `pip install kokonut-sdk`
-
-```python
-from kokonut import KokonutClient
-
-client = KokonutClient(
-    private_key="0x...",
-    network="sepolia"
-)
-```
-
-#### Modules
-
-| Module          | Purpose                     | Key Methods                                                     |
-| --------------- | --------------------------- | --------------------------------------------------------------- |
-| `identity`      | ERC-8004 agent registration | `register()`, `get_agent()`, `resolve_agent()`                  |
-| `reputation`    | Feedback and ratings        | `submit_feedback()`, `get_reputation()`                         |
-| `services`      | Service listings            | `create_service()`, `get_service()`, `deactivate_service()`     |
-| `commerce`      | Job escrow                  | `create_job()`, `fund()`, `submit()`, `complete()`              |
-| `review`        | Evaluation proposals        | `create_proposal()`, `submit_evaluation()`, `attest_decision()` |
-| `skills`        | Agent capabilities          | `register_skill()`, `get_agent_skills()`, `find_by_domain()`    |
-| `price_oracle`  | Price feeds                 | `get_usdc_price()`, `get_eth_rate()`, `is_stale()`              |
-| `commit_reveal` | Front-running protection    | `commit()`, `reveal()`, `get_commit()`                          |
-| `slash_manager` | Governance slashing         | `create_slash_proposal()`, `confirm_slash()`, `execute_slash()` |
+The deprecated Python SDK has been removed from this repo. Use the TypeScript SDK instead.
 
 ---
 
@@ -105,16 +82,16 @@ client = KokonutClient(
 
 ```bash
 # Register an agent
-npm run cli -- register-agent --name "MyAgent" --capabilities "data,web3"
+pnpm run cli -- register-agent --name "MyAgent" --capabilities "data,web3"
 
 # Create a service
-npm run cli -- create-service --name "Analysis" --price 1000000 --description "Data service"
+pnpm run cli -- create-service --name "Analysis" --price 1000000 --description "Data service"
 
 # List services
-npm run cli -- list-services --json
+pnpm run cli -- list-services --json
 
 # Get reputation
-npm run cli -- get-reputation 0xYourAddress --json
+pnpm run cli -- get-reputation 0xYourAddress --json
 ```
 
 ### Commands
@@ -269,7 +246,7 @@ print(f'Created service #{service_id}')
 ### Create Job (CLI)
 
 ```bash
-npm run cli -- create-job \
+pnpm run cli -- create-job \
   --provider 0xProviderAddress \
   --evaluator 0xEvaluatorAddress \
   --budget 1000000 \

@@ -86,12 +86,10 @@ Safety layers: No single person can slash arbitrarily. Even if 3 collude, timelo
 - **Foundry** (for smart contracts)
 - **Sepolia ETH** (for testnet transactions)
 
-### Technology Stack
-
 | Layer               | Technology                                 |
 | ------------------- | ------------------------------------------ |
-| **Blockchain**      | viem v2 (标准库)                           |
-| **Wallet**          | @open-wallet-standard/core (OWS)           |
+| **Blockchain**      | viem v2 (Standard Library)                 |
+| **Wallet**          | @open-wallet-standard/core (OWS Integration) |
 | **Frontend**        | Next.js 16, React 19, Tailwind CSS, HeroUI |
 | **State**           | React Query, Zustand                       |
 | **Smart Contracts** | Foundry, OpenZeppelin v5                   |
@@ -229,11 +227,20 @@ Kokonut-Agentic-Marketplace/
 ## Running Tests
 
 ```bash
-# Smart contract tests
-cd contracts && forge test
+# Setup reproducible Foundry environment
+pnpm run setup:foundry
 
-# Frontend type checking
-cd apps/web && npx tsc --noEmit
+# Smart contract tests
+pnpm run test:contracts
+
+# Standard type checking
+pnpm run type-check
+
+# Strict unused-code web type checking
+pnpm run type-check:web:strict
+
+# Frontend linting
+pnpm run lint
 ```
 
 ---

@@ -1,11 +1,11 @@
 'use client';
 
-import { useCallback } from 'react';
-import { useQuery, useQueryClient } from '@tanstack/react-query';
+
+import { useQuery } from '@tanstack/react-query';
 import { usePublicClient } from 'wagmi';
 import { decodeAgentMetadata } from '@/lib/metadata';
 import { getContractAddress } from '@/lib/contracts/config';
-import { debugLog, debugError } from '@/lib/debug';
+import { debugLog } from '@/lib/debug';
 import { ERC8004_ABI } from '@/lib/8004contracts';
 
 const API_KEY = process.env.NEXT_PUBLIC_8004_API_KEY || '';
@@ -155,7 +155,7 @@ export function useKokonutAgentsByOwner(
   ownerAddress: `0x${string}` | undefined
 ): UseKokonutAgentsByOwnerReturn {
   const publicClient = usePublicClient();
-  const queryClient = useQueryClient();
+
 
   const {
     data: agents = [],

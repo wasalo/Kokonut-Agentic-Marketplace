@@ -58,7 +58,7 @@ if (typeof window !== 'undefined') {
       deriveKey: async () => {
         throw new Error('crypto.subtle.deriveKey not available in non-secure context');
       },
-      digest: async (algorithm: string, data: BufferSource) => {
+      digest: async (_algorithm: string, data: BufferSource) => {
         // Simple hash fallback for non-critical use cases
         // This is NOT cryptographically secure!
         const hash = new Uint8Array(32);

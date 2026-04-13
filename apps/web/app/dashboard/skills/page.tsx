@@ -8,7 +8,7 @@ import {
   useWriteContract,
   useWaitForTransactionReceipt,
 } from 'wagmi';
-import { Card, Chip, Button } from '@heroui/react';
+import { Card, Chip } from '@heroui/react';
 import {
   Code,
   Plus,
@@ -90,7 +90,6 @@ function SkillForm({
   const [description, setDescription] = useState(initialData?.description || '');
   const [endpoint, setEndpoint] = useState(initialData?.endpoint || '');
   const [domains, setDomains] = useState(initialData?.domains?.join(', ') || '');
-  const [_formError, setFormError] = useState<string | null>(null);
 
   const isEditing = !!initialData;
 
@@ -102,15 +101,12 @@ function SkillForm({
   const handleSubmit = useCallback(
     (e: React.FormEvent) => {
       e.preventDefault();
-      setFormError(null);
 
       // Validation
       if (!name.trim()) {
-        setFormError('Skill name is required');
         return;
       }
       if (!version.trim()) {
-        setFormError('Version is required');
         return;
       }
 
@@ -273,7 +269,6 @@ function SkillForm({
 
 function SkillCard({
   skill,
-  skillId,
   onEdit,
   onDeactivate,
 }: {

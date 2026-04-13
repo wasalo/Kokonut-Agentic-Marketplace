@@ -3,7 +3,7 @@
 import { useState, useEffect } from 'react';
 import { Card } from '@heroui/react';
 import { Wallet, Check, AlertCircle, ExternalLink } from 'lucide-react';
-import { OWSWallet, OWSChain } from '@/lib/ows/types';
+import { OWSChain } from '@/lib/ows/types';
 import { useOWSWallet } from '@/lib/hooks/useOWSWallet';
 import { useOWSBalance } from '@/lib/hooks/useSignTransaction';
 

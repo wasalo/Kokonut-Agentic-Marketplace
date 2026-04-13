@@ -460,7 +460,7 @@ export function useCalculateStake() {
   });
 
   return {
-    calculateStake: (maxBudget: bigint) => data ?? BigInt(0),
+    calculateStake: (_maxBudget: bigint) => data ?? BigInt(0),
     stakeAmount: data ?? BigInt(0),
     isLoading,
     error,
@@ -505,7 +505,7 @@ export function useCreateOpenJob() {
  * This function will revert with "Bidding disabled"
  */
 export function useCommitBid() {
-  const { writeContract, data, isPending, error, reset } = useWriteContract();
+  const { data, isPending, error, reset } = useWriteContract();
 
   return {
     commitBid: (_jobId: bigint, _commitHash: `0x${string}`, _value?: bigint) => {
@@ -525,7 +525,7 @@ export function useCommitBid() {
  * This function will revert with "Bidding disabled"
  */
 export function useRevealBid() {
-  const { writeContract, data, isPending, error, reset } = useWriteContract();
+  const { data, isPending, error, reset } = useWriteContract();
 
   return {
     revealBid: (_jobId: bigint, _amount: bigint, _message: string, _salt: `0x${string}`) => {
@@ -545,7 +545,7 @@ export function useRevealBid() {
  * This function will revert with "Bidding disabled"
  */
 export function useAcceptBid() {
-  const { writeContract, data, isPending, error, reset } = useWriteContract();
+  const { data, isPending, error, reset } = useWriteContract();
 
   return {
     acceptBid: (_jobId: bigint, _bidId: bigint) => {

@@ -4,7 +4,6 @@ import { useState, useEffect, useCallback, useMemo } from 'react';
 import { usePublicClient } from 'wagmi';
 import { parseAbiItem, formatUnits } from 'viem';
 import { getContractAddress, debugLog, DEFAULT_FROM_BLOCK } from '@/lib/contracts/config';
-import { AGENTIC_COMMERCE_ABI, AGENT_REVIEW_ABI, SERVICE_REGISTRY_ABI } from '@/lib/contracts/abis';
 import { formatAddress } from '@/lib/utils';
 
 // Contract addresses

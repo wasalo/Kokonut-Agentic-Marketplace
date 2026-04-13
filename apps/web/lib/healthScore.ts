@@ -1,7 +1,5 @@
 'use client';
 
-import { getContractAddress, CONTRACT_ADDRESSES } from './contracts/config';
-
 export interface HealthFactors {
   rating: number;
   completionRate: number;

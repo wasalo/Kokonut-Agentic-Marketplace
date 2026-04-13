@@ -58,19 +58,19 @@ const IDENTITY_REGISTRY_ABI = parseAbi([
   'event AgentURIUpdated(uint256 indexed agentId, string newURI)',
   'event MetadataUpdated(uint256 indexed agentId, string key)',
   'event AgentWalletUpdated(uint256 indexed agentId, address indexed oldWallet, address indexed newWallet)',
-]);
+] as const);
 
 const LEGACY_REPUTATION_ABI = parseAbi([
   'function submitFeedback(address agent, uint256 taskId, int256 rating, string calldata metadataURI) external returns (uint256)',
   'function getAgentReputation(address agent) external view returns (int256 average, uint256 total, uint256 providers)',
-]);
+] as const);
 
 const SERVICE_REGISTRY_ABI = parseAbi([
   'function createService(uint256 agentId, string calldata name, string calldata description, string calldata metadataURI, uint256 price, address paymentToken) external returns (uint256 serviceId)',
   'function updateService(uint256 serviceId, string calldata name, string calldata description, string calldata metadataURI, uint256 price) external',
   'function deactivateService(uint256 serviceId) external',
   'function activateService(uint256 serviceId) external',
-  'function getService(uint256 serviceId) external view returns (tuple(uint256 id, address provider, uint256 agentId, string name, string description, string metadataURI, uint256 price, address paymentToken, bool isActive, uint256 createdAt))',
+  'function getService(uint256 serviceId) external view returns ((uint256 id, address provider, uint256 agentId, string name, string description, string metadataURI, uint256 price, address paymentToken, bool isActive, uint256 createdAt))',
   'function getServices(uint256 start, uint256 count) external view returns (uint256[] memory)',
   'function getActiveServiceCount() external view returns (uint256)',
   'function getProviderServices(address provider) external view returns (uint256[] memory)',
@@ -80,7 +80,7 @@ const SERVICE_REGISTRY_ABI = parseAbi([
   'event ServiceUpdated(uint256 indexed serviceId)',
   'event ServiceDeactivated(uint256 indexed serviceId)',
   'event ServiceActivated(uint256 indexed serviceId)',
-]);
+] as const);
 
 const AGENTIC_COMMERCE_ABI = parseAbi([
   // V6 Functions (using correct contract names)
@@ -104,7 +104,7 @@ const AGENTIC_COMMERCE_ABI = parseAbi([
   // 'function acceptBid(uint256 jobId, uint256 bidId) external', // DISABLED
   // 'function withdrawStake(uint256 jobId) external', // DISABLED
   // View Functions
-  'function getJob(uint256 jobId) external view returns (tuple(uint256 id, address client, address provider, address evaluator, uint256 serviceId, address paymentToken, string description, uint256 budget, uint256 expiredAt, uint8 status, address hook, bytes32 deliverable))',
+  'function getJob(uint256 jobId) external view returns ((uint256 id, address client, address provider, address evaluator, uint256 serviceId, address paymentToken, string description, uint256 budget, uint256 expiredAt, uint8 status, address hook, bytes32 deliverable))',
   'function jobCounter() external view returns (uint256)',
   'function getClientJobCount(address client) external view returns (uint256)',
   // NOTE: getUserBid, jobBidCount are DISABLED in V6.1 - use BiddingSystem instead
@@ -132,7 +132,7 @@ const AGENTIC_COMMERCE_ABI = parseAbi([
   'event BidRevealed(uint256 indexed jobId, address indexed bidder, uint256 proposedAmount, string message)',
   'event BidAccepted(uint256 indexed jobId, address indexed bidder, uint256 bidId, uint256 acceptedAmount)',
   'event BidWithdrawn(uint256 indexed jobId, address indexed bidder, uint256 stakeReturned)',
-]);
+] as const);
 
 const AGENT_REVIEW_ABI = parseAbi([
   // V5 Functions (correct contract function names)
@@ -143,8 +143,8 @@ const AGENT_REVIEW_ABI = parseAbi([
   'function claimReward(uint256 proposalId) external',
   'function releaseStake(uint256 proposalId) external',
   'function cancelProposal(uint256 proposalId) external',
-  'function getProposal(uint256 proposalId) external view returns (tuple(uint256 id, address proposer, string title, string description, string criteriaURI, uint256 reward, uint8 status, uint256 createdAt, uint256 decisionDeadline, address winningEvaluator))',
-  'function getEvaluation(uint256 proposalId, address evaluator) external view returns (tuple(uint256 proposalId, address evaluator, int256 confidenceScore, string reasoningURI, uint256 stakeAmount, bool isFinal, bool rewardClaimed, bool stakeReleased, uint256 submittedAt, uint256 rewardAmount))',
+  'function getProposal(uint256 proposalId) external view returns ((uint256 id, address proposer, string title, string description, string criteriaURI, uint256 reward, uint8 status, uint256 createdAt, uint256 decisionDeadline, address winningEvaluator))',
+  'function getEvaluation(uint256 proposalId, address evaluator) external view returns ((uint256 proposalId, address evaluator, int256 confidenceScore, string reasoningURI, uint256 stakeAmount, bool isFinal, bool rewardClaimed, bool stakeReleased, uint256 submittedAt, uint256 rewardAmount))',
   'function getProposalEvaluators(uint256 proposalId) external view returns (address[] memory)',
   // V5: Admin functions
   'function setSlashManager(address slashManager_) external',
@@ -162,50 +162,38 @@ const AGENT_REVIEW_ABI = parseAbi([
   'event EvaluationFinalized(uint256 indexed proposalId, address indexed evaluator, bool isWinner)',
   'event SlashManagerSet(address indexed slashManager)',
   'event ETHWithdrawn(address indexed to, uint256 amount)',
-]);
+] as const);
 
 const USDC_ABI = parseAbi([
   'function approve(address spender, uint256 amount) external returns (bool)',
   'function balanceOf(address account) external view returns (uint256)',
   'function allowance(address owner, address spender) external view returns (uint256)',
-]);
+] as const);
 
 // ============================================================================
 // KokonutClient
 // ============================================================================
 
 export class KokonutClient {
-  // eslint-disable-next-line @typescript-eslint/no-explicit-any
   private wallet: any;
-  // eslint-disable-next-line @typescript-eslint/no-explicit-any
   private publicClient: any;
-  // eslint-disable-next-line @typescript-eslint/no-explicit-any
-  private chain: any;
+  private chain: any; // Keep as any if dynamic, or refine
   private network: NetworkName;
   private contracts: ContractAddresses;
   private eventHandlers: Map<SDKEventName, Set<SDKEventHandler>> = new Map();
 
   // Contract instances
-  // eslint-disable-next-line @typescript-eslint/no-explicit-any
   public identity: IdentityModule;
-  // eslint-disable-next-line @typescript-eslint/no-explicit-any
   public reputation: ReputationModule;
-  // eslint-disable-next-line @typescript-eslint/no-explicit-any
   public services: ServicesModule;
-  // eslint-disable-next-line @typescript-eslint/no-explicit-any
   public commerce: CommerceModule;
-  // eslint-disable-next-line @typescript-eslint/no-explicit-any
   public review: ReviewModule;
-  // eslint-disable-next-line @typescript-eslint/no-explicit-any
   public skills: SkillsModule;
-  // eslint-disable-next-line @typescript-eslint/no-explicit-any
   public priceOracle: PriceOracleModule;
-  // eslint-disable-next-line @typescript-eslint/no-explicit-any
   public commitReveal: CommitRevealModule;
-  // eslint-disable-next-line @typescript-eslint/no-explicit-any
   public slashManager: SlashManagerModule;
-  // eslint-disable-next-line @typescript-eslint/no-explicit-any
   public bidding: BiddingSystemModule;
+
 
   constructor(config: SDKConfig) {
     this.network = config.network || 'sepolia';
@@ -218,34 +206,27 @@ export class KokonutClient {
 
     if (typeof config.wallet === 'string') {
       const account = privateKeyToAccount(config.wallet as `0x${string}`);
-      // eslint-disable-next-line @typescript-eslint/no-explicit-any
       this.wallet = createWalletClient({
         account,
-        // eslint-disable-next-line @typescript-eslint/no-explicit-any
-        chain: this.chain as any,
+        chain: networkConfig as any,
         transport: http(rpcUrl),
-      }) as any;
-      // eslint-disable-next-line @typescript-eslint/no-explicit-any
+      });
       this.publicClient = createPublicClient({
-        // eslint-disable-next-line @typescript-eslint/no-explicit-any
-        chain: this.chain as any,
+        chain: networkConfig as any,
         transport: http(rpcUrl),
-      }) as any;
+      });
     } else {
-      // eslint-disable-next-line @typescript-eslint/no-explicit-any
       this.wallet = createWalletClient({
         account: config.wallet,
-        // eslint-disable-next-line @typescript-eslint/no-explicit-any
-        chain: this.chain as any,
+        chain: networkConfig as any,
         transport: http(rpcUrl),
-      }) as any;
-      // eslint-disable-next-line @typescript-eslint/no-explicit-any
+      });
       this.publicClient = createPublicClient({
-        // eslint-disable-next-line @typescript-eslint/no-explicit-any
-        chain: this.chain as any,
+        chain: networkConfig as any,
         transport: http(rpcUrl),
-      }) as any;
+      });
     }
+
 
     this.identity = new IdentityModule(this.wallet, this.publicClient, this.contracts);
     this.reputation = new ReputationModule(this.wallet, this.publicClient, this.contracts);
@@ -259,6 +240,27 @@ export class KokonutClient {
     this.bidding = new BiddingSystemModule(this.wallet, this.publicClient, this.contracts);
 
     this.setupEventListeners();
+  }
+
+  get address(): Address {
+    return this.wallet.account.address;
+  }
+
+  async getBalance(): Promise<bigint> {
+    return this.publicClient.getBalance({ address: this.address });
+  }
+
+  async getUSDCBalance(): Promise<bigint> {
+    const usdcAddress = this.contracts.usdc as Address;
+    if (!usdcAddress) throw new Error('USDC contract address not found for this network');
+
+    const abi = parseAbi(['function balanceOf(address) view returns (uint256)']);
+    return (await this.publicClient.readContract({
+      address: usdcAddress,
+      abi,
+      functionName: 'balanceOf',
+      args: [this.address],
+    } as any)) as unknown as bigint;
   }
 
   private setupEventListeners() {
@@ -288,9 +290,6 @@ export class KokonutClient {
     this.eventHandlers.get(event)?.forEach(handler => handler(data as SDKEventMap[typeof event]));
   }
 
-  get address(): Address {
-    return this.wallet.account.address;
-  }
 
   get networkName(): NetworkName {
     return this.network;
@@ -300,19 +299,6 @@ export class KokonutClient {
     return NETWORKS[this.network].explorerUrl;
   }
 
-  async getBalance(): Promise<bigint> {
-    return this.publicClient.getBalance({ address: this.address });
-  }
-
-  async getUSDCBalance(): Promise<bigint> {
-    const result = await this.publicClient.readContract({
-      address: this.contracts.usdc,
-      abi: USDC_ABI,
-      functionName: 'balanceOf',
-      args: [this.address],
-    } as any);
-    return result as unknown as bigint;
-  }
 }
 
 // ============================================================================
@@ -346,11 +332,12 @@ class IdentityModule {
 
     const metadataURI = this.encodeMetadata(metadata);
     const hash = await this.wallet.writeContract({
-      address: this.contracts.erc8004Registry,
+      address: this.contracts.erc8004Registry as Address,
       abi: IDENTITY_REGISTRY_ABI,
       functionName: 'register',
       args: [metadataURI],
     } as any);
+
 
     return {
       hash,
@@ -365,11 +352,12 @@ class IdentityModule {
     isActive: boolean;
   }> {
     const agent = (await this.publicClient.readContract({
-      address: this.contracts.erc8004Registry,
+      address: this.contracts.erc8004Registry as Address,
       abi: IDENTITY_REGISTRY_ABI,
       functionName: 'getAgent',
-      args: [agentId],
-    } as any)) as unknown as [Address, string, Address, boolean];
+      args: [BigInt(agentId)],
+    } as any)) as [Address, string, Address, boolean];
+
     return {
       owner: agent[0],
       agentURI: agent[1],
@@ -534,11 +522,12 @@ class ReputationModule {
   async submitFeedback(params: FeedbackParams): Promise<TransactionResult> {
     const metadataURI = params.comment || '';
     const hash = await this.wallet.writeContract({
-      address: this.contracts.erc8004Reputation,
+      address: this.contracts.erc8004Reputation as Address,
       abi: LEGACY_REPUTATION_ABI,
       functionName: 'submitFeedback',
-      args: [params.agent, params.taskId || 0, params.rating, metadataURI],
+      args: [params.agent, BigInt(params.taskId || 0), params.rating, metadataURI],
     } as any);
+
 
     return {
       hash,
@@ -548,11 +537,11 @@ class ReputationModule {
 
   async getReputation(agent: Address): Promise<ReputationData> {
     const result = (await this.publicClient.readContract({
-      address: this.contracts.erc8004Reputation,
+      address: this.contracts.erc8004Reputation as Address,
       abi: LEGACY_REPUTATION_ABI,
       functionName: 'getAgentReputation',
       args: [agent],
-    } as any)) as unknown as [bigint, bigint, bigint];
+    } as any)) as [bigint, bigint, bigint];
     const avgNum = Number(result[0]);
     return {
       averageRating: avgNum,
@@ -597,18 +586,19 @@ class ServicesModule {
 
   async create(params: ServiceParams): Promise<TransactionResult> {
     const hash = await this.wallet.writeContract({
-      address: this.contracts.serviceRegistry,
+      address: this.contracts.serviceRegistry as Address,
       abi: SERVICE_REGISTRY_ABI,
       functionName: 'createService',
       args: [
-        params.agentId,
+        BigInt(params.agentId),
         params.name,
         params.description,
         params.metadataURI || '',
-        params.price,
-        params.paymentToken || this.contracts.usdc,
+        BigInt(params.price),
+        (params.paymentToken || this.contracts.usdc) as Address,
       ],
     } as any);
+
 
     return {
       hash,
@@ -618,11 +608,11 @@ class ServicesModule {
 
   async getService(serviceId: number | bigint): Promise<Service> {
     const service = (await this.publicClient.readContract({
-      address: this.contracts.serviceRegistry,
+      address: this.contracts.serviceRegistry as Address,
       abi: SERVICE_REGISTRY_ABI,
       functionName: 'getService',
-      args: [serviceId],
-    } as any)) as unknown as ServiceTuple;
+      args: [BigInt(serviceId)],
+    } as any)) as ServiceTuple;
     return {
       id: service.id,
       provider: service.provider,
@@ -639,7 +629,7 @@ class ServicesModule {
 
   async list(page = 0, pageSize = 20): Promise<Service[]> {
     const serviceIds = (await this.publicClient.readContract({
-      address: this.contracts.serviceRegistry,
+      address: this.contracts.serviceRegistry as Address,
       abi: SERVICE_REGISTRY_ABI,
       functionName: 'getServices',
       args: [BigInt(page * pageSize), BigInt(pageSize)],
@@ -801,18 +791,19 @@ class CommerceModule {
 
   async createJob(params: JobParams): Promise<TransactionResult> {
     const hash = await this.wallet.writeContract({
-      address: this.contracts.agenticCommerce,
+      address: this.contracts.agenticCommerce as Address,
       abi: AGENTIC_COMMERCE_ABI,
       functionName: 'createJob',
       args: [
-        params.provider,
-        params.evaluator || params.provider,
+        params.provider as Address,
+        (params.evaluator || params.provider) as Address,
         BigInt(params.expiredAt || Math.floor(Date.now() / 1000) + 7 * 24 * 60 * 60),
         params.description,
-        params.hook || '0x0000000000000000000000000000000000000000',
+        (params.hook || '0x0000000000000000000000000000000000000000') as Address,
         params.evaluatorFee || false,
       ],
     } as any);
+
 
     return {
       hash,
@@ -822,18 +813,19 @@ class CommerceModule {
 
   async createOpenJob(params: OpenJobParams): Promise<TransactionResult> {
     const hash = await this.wallet.writeContract({
-      address: this.contracts.agenticCommerce,
+      address: this.contracts.agenticCommerce as Address,
       abi: AGENTIC_COMMERCE_ABI,
       functionName: 'createOpenJob',
       args: [
-        params.maxBudget,
-        params.evaluator || '0x0000000000000000000000000000000000000000',
+        BigInt(params.maxBudget),
+        (params.evaluator || '0x0000000000000000000000000000000000000000') as Address,
         BigInt(params.expiredAt || Math.floor(Date.now() / 1000) + 7 * 24 * 60 * 60),
         params.description,
-        params.paymentToken || this.contracts.usdc,
+        (params.paymentToken || this.contracts.usdc) as Address,
         params.evaluatorFee || false,
       ],
     } as any);
+
 
     return {
       hash,
@@ -901,20 +893,21 @@ class CommerceModule {
 
       if (allowance < amount) {
         await this.wallet.writeContract({
-          address: this.contracts.usdc,
+          address: this.contracts.usdc as Address,
           abi: USDC_ABI,
           functionName: 'approve',
-          args: [this.contracts.agenticCommerce, BigInt(2 ** 256 - 1)],
+          args: [this.contracts.agenticCommerce as Address, BigInt(2 ** 256 - 1)],
         } as any);
       }
     }
 
     const hash = await this.wallet.writeContract({
-      address: this.contracts.agenticCommerce,
+      address: this.contracts.agenticCommerce as Address,
       abi: AGENTIC_COMMERCE_ABI,
       functionName: 'fund',
-      args: [jobId],
+      args: [BigInt(jobId)],
     } as any);
+
 
     return {
       hash,
@@ -981,11 +974,12 @@ class CommerceModule {
 
   async getJob(jobId: number | bigint): Promise<Job> {
     const job = (await this.publicClient.readContract({
-      address: this.contracts.agenticCommerce,
+      address: this.contracts.agenticCommerce as Address,
       abi: AGENTIC_COMMERCE_ABI,
       functionName: 'getJob',
-      args: [jobId],
-    } as any)) as unknown as JobTuple;
+      args: [BigInt(jobId)],
+    } as any)) as JobTuple;
+
     return {
       id: job.id,
       client: job.client,
@@ -1240,17 +1234,18 @@ class ReviewModule {
 
   async createProposal(params: ProposalParams): Promise<TransactionResult> {
     const hash = await this.wallet.writeContract({
-      address: this.contracts.agentReview,
+      address: this.contracts.agentReview as Address,
       abi: AGENT_REVIEW_ABI,
       functionName: 'createProposal',
       args: [
         params.title,
         params.description,
         params.criteriaURI || '',
-        params.reward,
+        BigInt(params.reward),
         BigInt(params.decisionDeadline),
       ],
     } as any);
+
 
     return {
       hash,
@@ -1261,12 +1256,13 @@ class ReviewModule {
   async submitEvaluation(params: EvaluationParams): Promise<TransactionResult> {
     const minStake = 1000000000000000n; // 0.001 ETH
     const hash = await this.wallet.writeContract({
-      address: this.contracts.agentReview,
+      address: this.contracts.agentReview as Address,
       abi: AGENT_REVIEW_ABI,
       functionName: 'submitEvaluation',
-      args: [params.proposalId, BigInt(params.confidenceScore), params.reasoningURI || ''],
+      args: [BigInt(params.proposalId), BigInt(params.confidenceScore), params.reasoningURI || ''],
       value: minStake,
     } as any);
+
 
     return {
       hash,
@@ -1276,11 +1272,12 @@ class ReviewModule {
 
   async attestDecision(proposalId: number | bigint, winner: Address): Promise<TransactionResult> {
     const hash = await this.wallet.writeContract({
-      address: this.contracts.agentReview,
+      address: this.contracts.agentReview as Address,
       abi: AGENT_REVIEW_ABI,
       functionName: 'attestDecision',
-      args: [proposalId, winner],
+      args: [BigInt(proposalId), winner],
     } as any);
+
 
     return {
       hash,
@@ -1290,11 +1287,12 @@ class ReviewModule {
 
   async getProposal(proposalId: number | bigint): Promise<Proposal> {
     const proposal = (await this.publicClient.readContract({
-      address: this.contracts.agentReview,
+      address: this.contracts.agentReview as Address,
       abi: AGENT_REVIEW_ABI,
       functionName: 'getProposal',
-      args: [proposalId],
-    } as any)) as unknown as ProposalTuple;
+      args: [BigInt(proposalId)],
+    } as any)) as ProposalTuple;
+
     return {
       id: proposal.id,
       proposer: proposal.proposer,
@@ -1311,11 +1309,12 @@ class ReviewModule {
 
   async getEvaluation(proposalId: number | bigint, evaluator: Address): Promise<Evaluation> {
     const eval_ = (await this.publicClient.readContract({
-      address: this.contracts.agentReview,
+      address: this.contracts.agentReview as Address,
       abi: AGENT_REVIEW_ABI,
       functionName: 'getEvaluation',
-      args: [proposalId, evaluator],
-    } as any)) as unknown as EvaluationTuple;
+      args: [BigInt(proposalId), evaluator],
+    } as any)) as EvaluationTuple;
+
     return {
       proposalId: eval_.proposalId,
       evaluator: eval_.evaluator,
@@ -1404,10 +1403,10 @@ class ReviewModule {
 
   async cancelProposal(proposalId: number | bigint): Promise<TransactionResult> {
     const hash = await this.wallet.writeContract({
-      address: this.contracts.agentReview,
+      address: this.contracts.agentReview as Address,
       abi: AGENT_REVIEW_ABI,
       functionName: 'cancelProposal',
-      args: [proposalId],
+      args: [BigInt(proposalId)],
     } as any);
 
     return {
@@ -1416,9 +1415,10 @@ class ReviewModule {
     };
   }
 
+
   async withdrawETH(to: Address, amount: bigint): Promise<TransactionResult> {
     const hash = await this.wallet.writeContract({
-      address: this.contracts.agentReview,
+      address: this.contracts.agentReview as Address,
       abi: AGENT_REVIEW_ABI,
       functionName: 'withdrawETH',
       args: [to, amount],
@@ -1429,6 +1429,7 @@ class ReviewModule {
       wait: () => this.publicClient.waitForTransactionReceipt({ hash }),
     };
   }
+
 
   on<K extends 'ProposalCreated' | 'EvaluationSubmitted' | 'DecisionAttested'>(
     event: K,
@@ -1460,8 +1461,8 @@ const AGENT_SKILL_REGISTRY_ABI = parseAbi([
   'function registerSkill(uint256 agentId, string calldata name, string calldata version, string calldata description, string calldata endpoint, string[] calldata domains) external returns (uint256 skillId)',
   'function updateSkill(uint256 skillId, string calldata name, string calldata version, string calldata description, string calldata endpoint, string[] calldata domains) external',
   'function getAgentSkills(uint256 agentId) external view returns (uint256[] memory)',
-  'function getSkill(uint256 skillId) external view returns (tuple(uint256 agentId, string name, string version, string description, string endpoint, string[] domains, bool isActive, address registeredBy, uint256 registeredAt))',
-  'function getSkillData(uint256 skillId) external view returns (tuple(uint256 id, uint256 agentId, string name, string version, string description, string endpoint, string[] domains, bool isActive, address registeredBy, uint256 registeredAt))',
+  'function getSkill(uint256 skillId) external view returns ((uint256 agentId, string name, string version, string description, string endpoint, string[] domains, bool isActive, address registeredBy, uint256 registeredAt))',
+  'function getSkillData(uint256 skillId) external view returns ((uint256 id, uint256 agentId, string name, string version, string description, string endpoint, string[] domains, bool isActive, address registeredBy, uint256 registeredAt))',
   'function deactivateSkill(uint256 skillId) external',
   'function getTotalSkillCount() external view returns (uint256)',
   'function getAgentSkillCount(uint256 agentId) external view returns (uint256)',
@@ -1495,11 +1496,12 @@ class SkillsModule {
     domains: string[]
   ): Promise<TransactionResult> {
     const hash = await this.wallet.writeContract({
-      address: this.contracts.skillRegistry,
+      address: this.contracts.skillRegistry as Address,
       abi: AGENT_SKILL_REGISTRY_ABI,
       functionName: 'registerSkill',
-      args: [agentId, name, version, description, endpoint, domains],
+      args: [BigInt(agentId), name, version, description, endpoint, domains],
     } as any);
+
 
     return {
       hash,
@@ -1509,21 +1511,22 @@ class SkillsModule {
 
   async getAgentSkills(agentId: bigint): Promise<bigint[]> {
     const result = await this.publicClient.readContract({
-      address: this.contracts.skillRegistry,
+      address: this.contracts.skillRegistry as Address,
       abi: AGENT_SKILL_REGISTRY_ABI,
       functionName: 'getAgentSkills',
-      args: [agentId],
+      args: [BigInt(agentId)],
     } as any);
-    return result as unknown as bigint[];
+    return result as bigint[];
   }
+
 
   async getSkill(skillId: bigint): Promise<Skill> {
     const skill = (await this.publicClient.readContract({
-      address: this.contracts.skillRegistry,
+      address: this.contracts.skillRegistry as Address,
       abi: AGENT_SKILL_REGISTRY_ABI,
       functionName: 'getSkill',
-      args: [skillId],
-    } as any)) as unknown as [
+      args: [BigInt(skillId)],
+    } as any)) as [
       bigint,
       string,
       string,
@@ -1534,6 +1537,7 @@ class SkillsModule {
       Address,
       bigint,
     ];
+
     return {
       id: skillId,
       agentId: skill[0],
@@ -1600,20 +1604,21 @@ class SkillsModule {
 
   async findSkillsByDomain(domain: string): Promise<bigint[]> {
     const result = await this.publicClient.readContract({
-      address: this.contracts.skillRegistry,
+      address: this.contracts.skillRegistry as Address,
       abi: AGENT_SKILL_REGISTRY_ABI,
       functionName: 'findSkillsByDomain',
       args: [domain],
     } as any);
-    return result as unknown as bigint[];
+    return result as bigint[];
   }
+
 
   async deactivateSkill(skillId: bigint): Promise<TransactionResult> {
     const hash = await this.wallet.writeContract({
-      address: this.contracts.skillRegistry,
+      address: this.contracts.skillRegistry as Address,
       abi: AGENT_SKILL_REGISTRY_ABI,
       functionName: 'deactivateSkill',
-      args: [skillId],
+      args: [BigInt(skillId)],
     } as any);
 
     return {
@@ -1621,6 +1626,7 @@ class SkillsModule {
       wait: () => this.publicClient.waitForTransactionReceipt({ hash }),
     };
   }
+
 }
 
 // ============================================================================
@@ -1644,30 +1650,33 @@ class PriceOracleModule {
 
   async getUSDCPrice(): Promise<bigint> {
     const result = await this.publicClient.readContract({
-      address: this.contracts.priceOracle,
+      address: this.contracts.priceOracle as Address,
       abi: PRICE_ORACLE_ABI,
       functionName: 'getUSDCPrice',
     } as any);
-    return result as unknown as bigint;
+    return BigInt(result as string);
   }
+
 
   async getETHRate(): Promise<bigint> {
     const result = await this.publicClient.readContract({
-      address: this.contracts.priceOracle,
+      address: this.contracts.priceOracle as Address,
       abi: PRICE_ORACLE_ABI,
       functionName: 'getETHRate',
     } as any);
-    return result as unknown as bigint;
+    return BigInt(result as string);
   }
+
 
   async isStale(): Promise<boolean> {
     const result = await this.publicClient.readContract({
-      address: this.contracts.priceOracle,
+      address: this.contracts.priceOracle as Address,
       abi: PRICE_ORACLE_ABI,
       functionName: 'isStale',
     } as any);
-    return result as unknown as boolean;
+    return result as boolean;
   }
+
 }
 
 // ============================================================================
@@ -1725,13 +1734,14 @@ class CommitRevealModule {
 
   async getCommitment(user: Address, nonce: bigint): Promise<string> {
     const result = await this.publicClient.readContract({
-      address: this.contracts.commitReveal,
+      address: this.contracts.commitReveal as Address,
       abi: COMMIT_REVEAL_ABI,
       functionName: 'getCommitment',
-      args: [user, nonce],
+      args: [user, BigInt(nonce)],
     } as any);
-    return result as unknown as string;
+    return result as string;
   }
+
 }
 
 // ============================================================================
@@ -1851,14 +1861,15 @@ class SlashManagerModule {
 
   async isSigner(account: Address): Promise<boolean> {
     const result = await this.publicClient.readContract({
-      address: this.contracts.slashManager,
+      address: this.contracts.slashManager as Address,
       abi: SLASH_MANAGER_ABI,
       functionName: 'isSigner',
       args: [account],
     } as any);
-    return result as unknown as boolean;
+    return result as boolean;
   }
 }
+
 
 // ============================================================================
 // BiddingSystem Module (Phase 11)
@@ -1904,8 +1915,8 @@ const BIDDING_SYSTEM_ABI = parseAbi([
   'function createJobAndFund(uint256 sessionId, uint256 jobExpiredAt, string calldata description) external payable returns (uint256 jobId)',
   'function cancelSession(uint256 sessionId) external',
   'function extendRevealWindow(uint256 sessionId, uint256 additionalSeconds) external',
-  'function getSession(uint256 sessionId) external view returns (tuple(uint256 id, address creator, address evaluator, uint256 maxBudget, uint256 deadline, uint256 revealWindowEnd, bytes metadata, uint256 serviceId, uint256 jobId, address winner, uint256 winningBidId, bool jobCreated, uint8 status))',
-  'function getUserBid(uint256 sessionId, address user) external view returns (tuple(uint256 bidId, address bidder, uint256 proposedAmount, uint256 stake, string message, bytes32 commitHash, bool revealed, bool accepted, bool stakeWithdrawn, uint256 timestamp))',
+  'function getSession(uint256 sessionId) external view returns ((uint256 id, address creator, address evaluator, uint256 maxBudget, uint256 deadline, uint256 revealWindowEnd, bytes metadata, uint256 serviceId, uint256 jobId, address winner, uint256 winningBidId, bool jobCreated, uint8 status))',
+  'function getUserBid(uint256 sessionId, address user) external view returns ((uint256 bidId, address bidder, uint256 proposedAmount, uint256 stake, string message, bytes32 commitHash, bool revealed, bool accepted, bool stakeWithdrawn, uint256 timestamp))',
   'function sessionCounter() external view returns (uint256)',
   'function calculateStake(uint256 maxBudget) external pure returns (uint256)',
   'function commerce() external view returns (address)',
@@ -1919,7 +1930,7 @@ const BIDDING_SYSTEM_ABI = parseAbi([
   'event StakeClaimed(uint256 indexed sessionId, address indexed winner, uint256 amount)',
   'event JobCreatedFromSession(uint256 indexed sessionId, uint256 indexed jobId, address indexed winner, uint256 amount)',
   'event SessionCancelled(uint256 indexed sessionId, address indexed canceller)',
-]);
+] as const);
 
 class BiddingSystemModule {
   private wallet: ReturnType<typeof createWalletClient>;
@@ -1945,18 +1956,19 @@ class BiddingSystemModule {
   }): Promise<TransactionResult & { sessionId: bigint }> {
     const stake = (params.maxBudget * 100n) / 10000n;
     const hash = await this.wallet.writeContract({
-      address: this.contracts.biddingSystem!,
+      address: this.contracts.biddingSystem! as Address,
       abi: BIDDING_SYSTEM_ABI,
       functionName: 'createBiddingSession',
       args: [
-        params.evaluator,
+        params.evaluator as Address,
         params.maxBudget,
         params.deadline,
-        params.metadata || '0x',
+        (params.metadata || '0x') as `0x${string}`,
         params.serviceId || 0n,
       ],
       value: stake,
     } as any);
+
     const receipt = await this.publicClient.waitForTransactionReceipt({ hash });
 
     let sessionId = 0n;
@@ -1999,12 +2011,13 @@ class BiddingSystemModule {
     const stake = (params.amount * 100n) / 10000n;
 
     const hash = await this.wallet.writeContract({
-      address: this.contracts.biddingSystem!,
+      address: this.contracts.biddingSystem! as Address,
       abi: BIDDING_SYSTEM_ABI,
       functionName: 'commitBid',
       args: [params.sessionId, commitHash as `0x${string}`],
       value: stake,
     } as any);
+
 
     return {
       hash,
@@ -2019,11 +2032,12 @@ class BiddingSystemModule {
     salt: string;
   }): Promise<TransactionResult> {
     const hash = await this.wallet.writeContract({
-      address: this.contracts.biddingSystem!,
+      address: this.contracts.biddingSystem! as Address,
       abi: BIDDING_SYSTEM_ABI,
       functionName: 'revealBid',
       args: [params.sessionId, params.amount, params.message, params.salt as `0x${string}`],
     } as any);
+
 
     return {
       hash,
@@ -2104,12 +2118,13 @@ class BiddingSystemModule {
     const totalPayment = params.bidAmount + platformFee;
 
     const hash = await this.wallet.writeContract({
-      address: this.contracts.biddingSystem!,
+      address: this.contracts.biddingSystem! as Address,
       abi: BIDDING_SYSTEM_ABI,
       functionName: 'createJobAndFund',
       args: [params.sessionId, params.jobExpiredAt, params.description],
       value: totalPayment,
     } as any);
+
     const receipt = await this.publicClient.waitForTransactionReceipt({ hash });
 
     let jobId = 0n;
@@ -2171,11 +2186,12 @@ class BiddingSystemModule {
   async getSession(sessionId: bigint): Promise<BiddingSession | null> {
     try {
       const session = (await this.publicClient.readContract({
-        address: this.contracts.biddingSystem!,
+        address: this.contracts.biddingSystem! as Address,
         abi: BIDDING_SYSTEM_ABI,
         functionName: 'getSession',
-        args: [sessionId],
-      } as any)) as unknown as [
+        args: [BigInt(sessionId)],
+      } as any)) as [
+
         bigint,
         Address,
         Address,
@@ -2213,11 +2229,12 @@ class BiddingSystemModule {
   async getUserBid(sessionId: bigint, user: Address): Promise<BidInfo | null> {
     try {
       const bid = (await this.publicClient.readContract({
-        address: this.contracts.biddingSystem!,
+        address: this.contracts.biddingSystem! as Address,
         abi: BIDDING_SYSTEM_ABI,
         functionName: 'getUserBid',
-        args: [sessionId, user],
-      } as any)) as unknown as [
+        args: [BigInt(sessionId), user],
+      } as any)) as [
+
         bigint,
         Address,
         bigint,
@@ -2248,12 +2265,13 @@ class BiddingSystemModule {
 
   async getSessionCount(): Promise<number> {
     const result = await this.publicClient.readContract({
-      address: this.contracts.biddingSystem!,
+      address: this.contracts.biddingSystem! as Address,
       abi: BIDDING_SYSTEM_ABI,
       functionName: 'sessionCounter',
     } as any);
-    return Number(result as unknown as bigint);
+    return Number(result as bigint);
   }
+
 
   calculateStake(maxBudget: bigint): bigint {
     return (maxBudget * 100n) / 10000n;

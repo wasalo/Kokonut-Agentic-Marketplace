@@ -128,7 +128,7 @@ rm -rf apps/web/.next
 rm -rf apps/web/node_modules/.cache
 
 # Rebuild
-cd apps/web && npm run build
+cd apps/web && pnpm run build
 ```
 
 ---
@@ -160,7 +160,7 @@ data.forEach(item => ...);
 export PRIVATE_KEY=0x...
 
 # Or use the init wizard
-npm run cli -- init
+pnpm run cli -- init
 ```
 
 ---
@@ -171,7 +171,7 @@ npm run cli -- init
 
 ```bash
 # Rebuild SDK
-npm run build:sdk
+pnpm run build:sdk
 
 # Check TypeScript
 npx tsc --noEmit -p sdk/typescript/tsconfig.json
@@ -181,15 +181,7 @@ npx tsc --noEmit -p sdk/typescript/tsconfig.json
 
 ### Issue: Python SDK import errors
 
-**Solution:**
-
-```bash
-# Reinstall SDK
-pip install --upgrade kokonut-sdk
-
-# Verify installation
-python -c "from kokonut import KokonutClient; print('OK')"
-```
+**Solution:** The deprecated Python SDK has been removed from this repo. Migrate to the TypeScript SDK and use `pnpm run build:sdk` plus the generated TypeScript package instead.
 
 ---
 

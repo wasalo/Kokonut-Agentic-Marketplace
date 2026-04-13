@@ -169,7 +169,7 @@ export function useKokonutAgents(
   }, [skipCache]);
 
   // Use React Query for caching and retry logic
-  const { refetch: queryRefetch } = useQuery({
+  useQuery({
     queryKey: ['kokonut-agents-scan'],
     queryFn: async () => {
       if (!publicClient) return null;

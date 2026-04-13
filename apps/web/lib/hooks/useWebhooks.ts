@@ -12,13 +12,9 @@ import {
 export function useWebhooks() {
   const { address } = useAccount();
   const {
-    webhooks,
     getWebhook,
     getWebhooksByOwner,
     getActiveWebhooksForEvent,
-    registerWebhook,
-    updateWebhook,
-    deleteWebhook,
   } = useWebhookStore();
 
   const createWebhook = useCallback(
@@ -112,7 +108,7 @@ export function useWebhooks() {
     return data.webhooks || [];
   }, [address]);
 
-  const triggerTestEvent = useCallback(async (webhookId: string) => {
+  const triggerTestEvent = useCallback(async (_webhookId: string) => {
     const response = await fetch('/api/webhooks/trigger', {
       method: 'POST',
       headers: {

@@ -165,13 +165,11 @@ export default function JobDetailPage({
   // Phase 14/15 - New hooks for permissionless operations
   const {
     completeAfterTimeout,
-    hash: completeAfterTimeoutHash,
     isPending: isCompleteAfterTimeoutPending,
     error: completeAfterTimeoutError,
   } = useCompleteAfterTimeout();
   const {
     refundExpired,
-    hash: refundExpiredHash,
     isPending: isRefundExpiredPending,
     error: refundExpiredError,
   } = useRefundExpired();
@@ -273,7 +271,7 @@ export default function JobDetailPage({
 
   // USDC approval check - includes optimistic state
   const hasAllowance = (allowance && job && allowance >= job.budget) || optimisticApprovalSent;
-  const _needsApproval = !hasAllowance && job?.status === JobStatus.Open && isClient;
+  const needsApproval = !hasAllowance && job?.status === JobStatus.Open && isClient;
   const isExpired = job && Date.now() / 1000 > Number(job.expiredAt);
 
   // Phase 14: Calculate dispute window - 7 days after expiration for auto-complete
@@ -578,6 +576,9 @@ export default function JobDetailPage({
                 )}
 
                 {/* Fund Button - Works for both USDC (after approval) and ETH (native) */}
+                {needsApproval && selectedPaymentToken.symbol === 'USDC' && (
+                  <p className="text-xs text-warning px-4">⚠ You need to approve USDC before funding</p>
+                )}
                 <button
                   onClick={() => {
                     // Check if payment token is set for direct jobs

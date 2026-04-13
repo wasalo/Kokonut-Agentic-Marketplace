@@ -538,7 +538,7 @@ Kokonut-Agentic-Marketplace/
    ```bash
    # Add/update page in apps/web/app/
    # Add hook in apps/web/lib/hooks/
-   # Test: cd apps/web && npm run dev
+   # Test: cd apps/web && pnpm run dev
    ```
 
 3. **Documentation**:
@@ -583,19 +583,19 @@ The [Open Wallet Standard](https://github.com/open-wallet-standard/core) is a Ru
 
 ```bash
 # Create a new wallet
-npm run cli -- ows-create-wallet --name "MyAgent" --passphrase "pass" --words "word1 word2..."
+pnpm run cli -- ows-create-wallet --name "MyAgent" --passphrase "pass" --words "word1 word2..."
 
 # List all wallets
-npm run cli -- ows-list-wallets
+pnpm run cli -- ows-list-wallets
 
 # Get wallet info
-npm run cli -- ows-get-wallet --name "MyAgent"
+pnpm run cli -- ows-get-wallet --name "MyAgent"
 
 # Sign a message
-npm run cli -- ows-sign-message --wallet "MyAgent" --chain "sepolia" --message "Hello!"
+pnpm run cli -- ows-sign-message --wallet "MyAgent" --chain "sepolia" --message "Hello!"
 
 # Create a security policy
-npm run cli -- ows-create-policy --wallet "MyAgent" --policy-name "MyPolicy" --max-value 1000000000000000000
+pnpm run cli -- ows-create-policy --wallet "MyAgent" --policy-name "MyPolicy" --max-value 1000000000000000000
 ```
 
 ### Web App OWS
@@ -842,7 +842,7 @@ const DEBUG = {
 - **Agent Guide**: Read `AGENTS.md`
 - **Architecture**: Check `docs/tech/contract-architecture.md`
 - **Hooks**: Reference `docs/HOOKS.md`
-- **CLI**: Run `npm run cli -- --help`
+- **CLI**: Run `pnpm run cli -- --help`
 
 ---
 

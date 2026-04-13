@@ -1,0 +1,16 @@
+{
+  "wallet_1776047693198": {
+    "version": 1,
+    "id": "wallet_1776047693198",
+    "metadata": {
+      "id": "wallet_1776047693198",
+      "name": "Test",
+      "address": "0xf9c73D9a9ef0f9A143B6F4D23dC82DfE4Eae7e23",
+      "createdAt": "2026-04-13T02:34:53.308Z",
+      "updatedAt": "2026-04-13T02:34:53.318Z"
+    },
+    "ciphertext": "decc43bba4f7a06dd7ee8bd700a20af66fef4b3ea3648f015b73e5caedc078acd68271becd447fca93576e8bc3a2569e7607ad5a3e89a5e44a6f3ffa9cae9c79bbcedea86f9e5e8755fcb5fb6fc0377a35fc",
+    "iv": "e048c027aaac35fffce6e953",
+    "salt": "b86b7a78a6130ba95f562dd8136dbe52"
+  }
+}

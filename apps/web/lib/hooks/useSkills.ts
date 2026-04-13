@@ -1,6 +1,6 @@
 import { useReadContract, useWriteContract } from 'wagmi';
 import { AGENT_SKILL_REGISTRY_ABI } from '@/lib/contracts/abis';
-import { getContractAddress, debugLog } from '@/lib/contracts/config';
+import { getContractAddress } from '@/lib/contracts/config';
 
 /* eslint-disable @typescript-eslint/no-explicit-any */
 
@@ -193,13 +193,13 @@ export function useAgentIdsBySkillDomain(domain: string | undefined) {
   // Get unique agent IDs from matching skills
   const agentIds =
     skillIds
-      ?.map((_, idx) => {
+      ?.map((_val, _idx) => {
         if (skillDataList && typeof skillDataList === 'object' && 'agentId' in skillDataList) {
           return (skillDataList as Skill).agentId;
         }
         return BigInt(0);
       })
-      .filter((id, idx, arr) => arr.indexOf(id) === idx) || [];
+      .filter((id, _idx, arr) => arr.indexOf(id) === _idx) || [];
 
   return {
     agentIds,

@@ -44,7 +44,7 @@ export function CommitBidForm({ job, onSuccess }: CommitBidFormProps) {
 
   const [bidAmount, setBidAmount] = useState('');
   const [bidMessage, setBidMessage] = useState('');
-  const [salt, setSalt] = useState<`0x${string}`>(() => {
+  const [salt] = useState<`0x${string}`>(() => {
     const array = new Uint8Array(32);
     crypto.getRandomValues(array);
     return ('0x' +
@@ -389,6 +389,9 @@ export function AcceptBidForm({ job, bids, onSuccess }: AcceptBidFormProps) {
                   <div>
                     <p className="font-medium">
                       ${(Number(bid.proposedAmount) / 1e6).toFixed(2)} USDC
+                    </p>
+                    <p className="text-xs text-default-400 mt-0.5">
+                      ≈ {formatUsdValue(bid.proposedAmount, USDC_TOKEN)} USD
                     </p>
                     <p className="text-xs text-default-500 mt-1">
                       Bidder: <Address address={bid.bidder as `0x${string}`} truncate />

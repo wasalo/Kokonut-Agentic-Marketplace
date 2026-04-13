@@ -1,6 +1,5 @@
 'use client';
 
-import React from 'react';
 import { LucideIcon, Briefcase, ShoppingBag, Scale, Shield, Users, FolderOpen } from 'lucide-react';
 
 interface EmptyStateProps {
