@@ -5,6 +5,68 @@ All notable changes to the Kokonut Agent Economy Stack are documented in this fi
 The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.0.0/),
 and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0.html).
 
+## [2026-04-14] - Phase 22: Multi-Chain Infrastructure
+
+### 🎯 CAIP-2 Chain Identifier Standard
+
+Implemented CAIP-2 (Chain Agnostic Improvement Proposals) standard for universal chain identification across the platform.
+
+**Changes:**
+
+1. **CAIP Utilities (`lib/caip.ts`)**
+   - `chainIdToCAIP(11155111)` → `'eip155:11155111'`
+   - `caipToChainId('eip155:8453')` → `8453`
+   - `isValidCAIP('eip155:1')` → `true`
+   - `EVM_CHAINS` constant with all supported chain IDs
+
+2. **Chain Config Updates (`lib/chains.ts`)**
+   - Added `caip` field to each chain in `SUPPORTED_CHAINS`
+   - Added `getChainByCAIP(caip)` helper function
+   - Added `getNetworkSlug(chainId)` helper function
+
+3. **Multi-Chain Contract Map (`lib/contracts/config.ts`)**
+   - New `CONTRACTS_BY_CHAIN` keyed by CAIP (e.g., `'eip155:11155111'`)
+   - Only Sepolia has deployed contracts currently
+   - All other chains (21 total) have empty placeholders ready for deployment
+
+4. **RPC Configurations (`lib/wagmi.ts`)**
+   - Added `CHAIN_RPC_CONFIG` for multiple chains
+   - `getChainRPCs(chainId)` helper function
+
+### 🎯 Network Selector UI
+
+**Files Created:**
+
+- `components/ui/network-selector.tsx` - Network dropdown with deployed/coming soon sections
+
+### 🎯 Network State Hook
+
+**Files Created:**
+
+- `lib/hooks/useNetworkParam.ts` - Network state from URL query params
+
+### 📦 Files Created
+
+| File                                 | Purpose                        |
+| ------------------------------------ | ------------------------------ |
+| `lib/caip.ts`                        | CAIP-2 utilities and constants |
+| `lib/hooks/useNetworkParam.ts`       | Network state from URL         |
+| `components/ui/network-selector.tsx` | Network dropdown UI            |
+
+### 📦 Files Modified
+
+| File                      | Changes                     |
+| ------------------------- | --------------------------- |
+| `lib/chains.ts`           | Added `caip` field, helpers |
+| `lib/contracts/config.ts` | Added `CONTRACTS_BY_CHAIN`  |
+| `lib/wagmi.ts`            | Added `CHAIN_RPC_CONFIG`    |
+
+### ⚠️ Breaking Changes
+
+1. **URL Query Params**: Network now in query params (`?chainId=`)
+
+---
+
 ## [2026-04-14] - Phase 21: XMTP Integration & Messaging
 
 ### 🎯 XMTP P2P Messaging

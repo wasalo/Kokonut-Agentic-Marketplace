@@ -1,10 +1,136 @@
 // Contract addresses with fallbacks for Sepolia testnet
 // Phase 18: AgenticCommerceV6 + AgentReviewV5 - Event Enhancements, Median Evaluator (Deployed 2026-04-08)
 
+// CAIP-2 based contract addresses for multi-chain support
+// Format: eip155:<chainId> - matching CAIP-2 standard
+import { chainIdToCAIP } from '@/lib/caip';
+import { isValidCAIP, CAIP_NAMESPACE } from '@/lib/caip';
+
+const SEPOLIA_CAIP = chainIdToCAIP(11155111);
+
 // Common address constants
 export const ZERO_ADDRESS = '0x0000000000000000000000000000000000000000' as const;
 export const MAX_UINT256 = '0xffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffff' as const;
 
+// Contracts deployed on Sepolia (currently only chain with deployments)
+const sepoliaContracts = {
+  // Official ERC-8004 Registries
+  erc8004Registry: '0x8004A818BFB912233c491871b3d84c89A494BD9e',
+  erc8004Reputation: '0x8004B663056A597Dffe9eCcC1965A193B7388713',
+
+  // SkillRegistry V2 - Uses ownerOf() instead of getAgent()
+  skillRegistry: '0xA84684261558f342d6871DD2CFef90A2117Aa20A',
+  skillRegistryImpl: '0x3Eec6BAF9FAc410B9C580d3Eb8c971a14298BC87',
+  serviceRegistry: '0x62E1eeEa1A2Ab987004F35bDA430457Ed6077201',
+  serviceRegistryImpl: '0x218340e07bEd7fD15058414388F2C82E0f3B04f9',
+  // Phase 18: V6 - Event Enhancements, Permissionless Refund, CompleteAfterTimeout
+  agenticCommerce: '0x948d97EA7F0c49796fB576ADff375C900627568E',
+  agenticCommerceImpl: '0xEecC615310f6A6144eeA0F235E83b7BD391EC251',
+  // Phase 11: BiddingSystem - Standalone commit-reveal bidding
+  biddingSystem: '0x32c9d069a248a619d3EAc4D1FC76F2639AaBeF04',
+  biddingSystemImpl: '0x0A09e4Ff6DAa0eeA49526560e2c946Ea32a293Bb',
+  agentReview: '0x5CDb592Fd37749bF87448FBf5725D1Cd986dd1Cb', // AgentReviewV5
+  agentReviewImpl: '0xFf4D6df8dDca340e2ff59615Dd00C325706019f7', // Phase 18
+  priceOracle: '0x5C4AC3dAF76708DCd51911BA3B33027eAB1B4047',
+  commitReveal: '0x85F193670fCb7B0c97D55E70Bf2a950b1065Fb3a',
+  commitRevealImpl: '0xd9efa18c45357CC3d218E1FEC86E0C851270d33D',
+  slashManager: '0x1B8373cDF4f2eD740c3478e0129f0B8494CE4Fa3',
+  slashManagerImpl: '0x240eeC04F12d11eE6e4d03B00FB2148bFD4887F9',
+
+  // Tokens
+  usdc: '0x1c7D4B196Cb0C7B01d743Fbc6116a902379C7238',
+};
+
+// Empty placeholders for future chains (ready for deployment)
+const emptyChainContracts = {
+  erc8004Registry: undefined,
+  erc8004Reputation: undefined,
+  skillRegistry: undefined,
+  skillRegistryImpl: undefined,
+  serviceRegistry: undefined,
+  serviceRegistryImpl: undefined,
+  agenticCommerce: undefined,
+  agenticCommerceImpl: undefined,
+  biddingSystem: undefined,
+  biddingSystemImpl: undefined,
+  agentReview: undefined,
+  agentReviewImpl: undefined,
+  priceOracle: undefined,
+  commitReveal: undefined,
+  commitRevealImpl: undefined,
+  slashManager: undefined,
+  slashManagerImpl: undefined,
+  usdc: undefined,
+};
+
+export interface ChainContracts {
+  erc8004Registry?: `0x${string}`;
+  erc8004Reputation?: `0x${string}`;
+  skillRegistry?: `0x${string}`;
+  skillRegistryImpl?: `0x${string}`;
+  serviceRegistry?: `0x${string}`;
+  serviceRegistryImpl?: `0x${string}`;
+  agenticCommerce?: `0x${string}`;
+  agenticCommerceImpl?: `0x${string}`;
+  biddingSystem?: `0x${string}`;
+  biddingSystemImpl?: `0x${string}`;
+  agentReview?: `0x${string}`;
+  agentReviewImpl?: `0x${string}`;
+  priceOracle?: `0x${string}`;
+  commitReveal?: `0x${string}`;
+  commitRevealImpl?: `0x${string}`;
+  slashManager?: `0x${string}`;
+  slashManagerImpl?: `0x${string}`;
+  usdc?: `0x${string}`;
+}
+
+// CAIP-keyed contract map for multi-chain support
+export const CONTRACTS_BY_CHAIN: Record<string, ChainContracts | undefined> = {
+  [SEPOLIA_CAIP]: sepoliaContracts as ChainContracts,
+  // Future chains - ready for deployment
+  'eip155:1': emptyChainContracts as ChainContracts,
+  'eip155:8453': emptyChainContracts as ChainContracts,
+  'eip155:42161': emptyChainContracts as ChainContracts,
+  'eip155:10': emptyChainContracts as ChainContracts,
+  'eip155:42220': emptyChainContracts as ChainContracts,
+  'eip155:137': emptyChainContracts as ChainContracts,
+  'eip155:56': emptyChainContracts as ChainContracts,
+  'eip155:534352': emptyChainContracts as ChainContracts,
+  'eip155:59144': emptyChainContracts as ChainContracts,
+  'eip155:100': emptyChainContracts as ChainContracts,
+  'eip155:143': emptyChainContracts as ChainContracts,
+  'eip155:4326': emptyChainContracts as ChainContracts,
+  'eip155:2741': emptyChainContracts as ChainContracts,
+  'eip155:2345': emptyChainContracts as ChainContracts,
+  'eip155:167000': emptyChainContracts as ChainContracts,
+  'eip155:1868': emptyChainContracts as ChainContracts,
+  'eip155:196': emptyChainContracts as ChainContracts,
+  'eip155:5000': emptyChainContracts as ChainContracts,
+  'eip155:360': emptyChainContracts as ChainContracts,
+  'eip155:1088': emptyChainContracts as ChainContracts,
+  'eip155:1187947933': emptyChainContracts as ChainContracts,
+};
+
+// Helper to get contracts for a chain
+export function getContractsByCAIP(caip: string): ChainContracts | undefined {
+  return CONTRACTS_BY_CHAIN[caip];
+}
+
+export function getContractsByChainId(chainId: number): ChainContracts | undefined {
+  return CONTRACTS_BY_CHAIN[chainIdToCAIP(chainId)];
+}
+
+// Check if a chain has deployments
+export function isChainDeployed(chainId: number): boolean {
+  const caip = chainIdToCAIP(chainId);
+  const contracts = CONTRACTS_BY_CHAIN[caip];
+  return contracts?.agenticCommerce !== undefined;
+}
+
+// Get default CAIP (Sepolia)
+export const DEFAULT_CAIP = SEPOLIA_CAIP;
+
+// Legacy CONTRACT_ADDRESSES (backward compatibility)
 export const CONTRACT_ADDRESSES = {
   sepolia: {
     // Official ERC-8004 Registries

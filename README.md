@@ -196,32 +196,38 @@ The wildcard format (e.g., `10.108.1.*`) allows any IP in that subnet. Add expli
 
 ## Network Configuration
 
-| Network           | Chain ID | RPC URL                         | Explorer             |
-| ----------------- | -------- | ------------------------------- | -------------------- |
-| Sepolia (testnet) | 11155111 | ethereum-sepolia.publicnode.com | sepolia.etherscan.io |
-| Ethereum Mainnet  | 1        | eth.llamarpc.com                | etherscan.io         |
+| Network           | Chain ID | CAIP-2 ID       | RPC URL                         | Explorer             |
+| ----------------- | -------- | --------------- | ------------------------------- | -------------------- |
+| Sepolia (testnet) | 11155111 | eip155:11155111 | ethereum-sepolia.publicnode.com | sepolia.etherscan.io |
+| Ethereum Mainnet  | 1        | eip155:1        | eth.llamarpc.com                | etherscan.io         |
 
 ---
 
-## Project Structure
+## Multi-Chain Support
 
+The platform uses **CAIP-2** (Chain Agnostic Improvement Proposals) standard for universal chain identification.
+
+### Network Selector
+
+Switch between networks using the dropdown in the navbar:
+
+- **URL Format**: `?chainId=11155111` or `?network=sepolia`
+- **Default**: Sepolia (testnet)
+
+### Adding a New Chain
+
+When deploying contracts to a new chain:
+
+```typescript
+// lib/contracts/config.ts
+CONTRACTS_BY_CHAIN['eip155:8453'] = {
+  agenticCommerce: '0x...', // Your deployed address
+  serviceRegistry: '0x...',
+  // ...
+};
 ```
-Kokonut-Agentic-Marketplace/
-├── contracts/              # Smart contracts (Foundry)
-│   ├── shared/           # Core contracts
-│   ├── script/            # Deployment scripts
-│   └── test/              # Contract tests
-├── apps/web/              # Next.js 16 frontend
-│   ├── app/              # App router pages
-│   ├── components/        # UI components
-│   └── lib/               # Hooks, ABIs, utils, OWS (browser-native)
-├── cli/                   # CLI tooling (viem + OWS)
-├── sdk/typescript/        # TypeScript SDK (viem + OWS)
-├── packages/
-│   ├── mcp-server/       # MCP server (AI agents, OWS)
-│   └── a2a-protocol/     # Agent-to-Agent protocol
-└── docs/                  # Technical documentation
-```
+
+The NetworkSelector automatically shows deployed chains with a ✅ checkmark.
 
 ---
 

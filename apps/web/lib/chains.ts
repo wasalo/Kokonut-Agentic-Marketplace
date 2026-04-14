@@ -1,7 +1,10 @@
 'use client';
 
+import { chainIdToCAIP } from './caip';
+
 export interface ChainConfig {
   id: number;
+  caip: string;
   name: string;
   shortName: string;
   color: string;
@@ -17,6 +20,7 @@ export interface ChainConfig {
 export const SUPPORTED_CHAINS: ChainConfig[] = [
   {
     id: 11155111,
+    caip: chainIdToCAIP(11155111),
     name: 'Sepolia',
     shortName: 'Sepolia',
     color: '#627EEA',
@@ -28,6 +32,7 @@ export const SUPPORTED_CHAINS: ChainConfig[] = [
   },
   {
     id: 8453,
+    caip: chainIdToCAIP(8453),
     name: 'Base',
     shortName: 'Base',
     color: '#0052FF',
@@ -37,6 +42,7 @@ export const SUPPORTED_CHAINS: ChainConfig[] = [
   },
   {
     id: 42161,
+    caip: chainIdToCAIP(42161),
     name: 'Arbitrum One',
     shortName: 'Arbitrum',
     color: '#28AAE2',
@@ -46,6 +52,7 @@ export const SUPPORTED_CHAINS: ChainConfig[] = [
   },
   {
     id: 10,
+    caip: chainIdToCAIP(10),
     name: 'Optimism',
     shortName: 'OP',
     color: '#FF0420',
@@ -55,6 +62,7 @@ export const SUPPORTED_CHAINS: ChainConfig[] = [
   },
   {
     id: 42220,
+    caip: chainIdToCAIP(42220),
     name: 'Celo',
     shortName: 'Celo',
     color: '#35D07F',
@@ -64,6 +72,7 @@ export const SUPPORTED_CHAINS: ChainConfig[] = [
   },
   {
     id: 137,
+    caip: chainIdToCAIP(137),
     name: 'Polygon',
     shortName: 'Polygon',
     color: '#8247E5',
@@ -73,6 +82,7 @@ export const SUPPORTED_CHAINS: ChainConfig[] = [
   },
   {
     id: 56,
+    caip: chainIdToCAIP(56),
     name: 'BNB Smart Chain',
     shortName: 'BNB',
     color: '#F3BA2F',
@@ -82,6 +92,7 @@ export const SUPPORTED_CHAINS: ChainConfig[] = [
   },
   {
     id: 534352,
+    caip: chainIdToCAIP(534352),
     name: 'Scroll',
     shortName: 'Scroll',
     color: '#E8B9FF',
@@ -91,6 +102,7 @@ export const SUPPORTED_CHAINS: ChainConfig[] = [
   },
   {
     id: 59144,
+    caip: chainIdToCAIP(59144),
     name: 'Linea',
     shortName: 'Linea',
     color: '#121212',
@@ -99,16 +111,8 @@ export const SUPPORTED_CHAINS: ChainConfig[] = [
     reputationRegistry: '0x8004B663056A597Dffe9eCcC1965A193B7388713',
   },
   {
-    id: 43114,
-    name: 'Avalanche',
-    shortName: 'Avalanche',
-    color: '#E84142',
-    explorerUrl: 'https://snowtrace.io',
-    identityRegistry: '0x8004A818BFB912233c491871b3d84c89A494BD9e',
-    reputationRegistry: '0x8004B663056A597Dffe9eCcC1965A193B7388713',
-  },
-  {
     id: 100,
+    caip: chainIdToCAIP(100),
     name: 'Gnosis',
     shortName: 'Gnosis',
     color: '#04795B',
@@ -118,6 +122,7 @@ export const SUPPORTED_CHAINS: ChainConfig[] = [
   },
   {
     id: 143,
+    caip: chainIdToCAIP(143),
     name: 'Monad',
     shortName: 'Monad',
     color: '#00D779',
@@ -127,6 +132,7 @@ export const SUPPORTED_CHAINS: ChainConfig[] = [
   },
   {
     id: 4326,
+    caip: chainIdToCAIP(4326),
     name: 'MegaETH',
     shortName: 'MegaETH',
     color: '#00F4FF',
@@ -136,6 +142,7 @@ export const SUPPORTED_CHAINS: ChainConfig[] = [
   },
   {
     id: 2741,
+    caip: chainIdToCAIP(2741),
     name: 'Abstract',
     shortName: 'Abstract',
     color: '#00D4FF',
@@ -145,6 +152,7 @@ export const SUPPORTED_CHAINS: ChainConfig[] = [
   },
   {
     id: 2345,
+    caip: chainIdToCAIP(2345),
     name: 'GOAT Network',
     shortName: 'GOAT',
     color: '#8B5CF6',
@@ -154,15 +162,17 @@ export const SUPPORTED_CHAINS: ChainConfig[] = [
   },
   {
     id: 167000,
+    caip: chainIdToCAIP(167000),
     name: 'Taiko',
     shortName: 'Taiko',
-    color: '#FF叹号',
+    color: '#FF0420',
     explorerUrl: 'https://taikoscan.io',
     identityRegistry: '0x8004A818BFB912233c491871b3d84c89A494BD9e',
     reputationRegistry: '0x8004B663056A597Dffe9eCcC1965A193B7388713',
   },
   {
     id: 1868,
+    caip: chainIdToCAIP(1868),
     name: 'Soneium',
     shortName: 'Soneium',
     color: '#FF6B6B',
@@ -172,6 +182,7 @@ export const SUPPORTED_CHAINS: ChainConfig[] = [
   },
   {
     id: 196,
+    caip: chainIdToCAIP(196),
     name: 'X Layer',
     shortName: 'X Layer',
     color: '#00A3FF',
@@ -181,6 +192,7 @@ export const SUPPORTED_CHAINS: ChainConfig[] = [
   },
   {
     id: 5000,
+    caip: chainIdToCAIP(5000),
     name: 'Mantle',
     shortName: 'Mantle',
     color: '#00ACd7',
@@ -190,6 +202,7 @@ export const SUPPORTED_CHAINS: ChainConfig[] = [
   },
   {
     id: 360,
+    caip: chainIdToCAIP(360),
     name: 'Shape',
     shortName: 'Shape',
     color: '#7B61FF',
@@ -199,6 +212,7 @@ export const SUPPORTED_CHAINS: ChainConfig[] = [
   },
   {
     id: 1088,
+    caip: chainIdToCAIP(1088),
     name: 'Metis',
     shortName: 'Metis',
     color: '#00D4D4',
@@ -208,6 +222,7 @@ export const SUPPORTED_CHAINS: ChainConfig[] = [
   },
   {
     id: 1187947933,
+    caip: chainIdToCAIP(1187947933),
     name: 'SKALE Base',
     shortName: 'SKALE',
     color: '#4A21C8',
@@ -221,6 +236,10 @@ export function getChainById(chainId: number): ChainConfig | undefined {
   return SUPPORTED_CHAINS.find(c => c.id === chainId);
 }
 
+export function getChainByCAIP(caip: string): ChainConfig | undefined {
+  return SUPPORTED_CHAINS.find(c => c.caip === caip);
+}
+
 export function getChainColor(chainId: number): string {
   return getChainById(chainId)?.color || '#627EEA';
 }
@@ -231,4 +250,8 @@ export function getDefaultChain(): ChainConfig {
 
 export function isTestnet(chainId: number): boolean {
   return getChainById(chainId)?.isTestnet ?? false;
+}
+
+export function getNetworkSlug(chainId: number): string {
+  return getChainById(chainId)?.shortName?.toLowerCase() || String(chainId);
 }
