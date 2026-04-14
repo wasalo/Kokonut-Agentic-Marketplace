@@ -13,6 +13,7 @@ import { useDebounce } from '@/lib/hooks/useDebounce';
 import { StatCard } from '@/components/ui/stat-card';
 import { FilterPanel, FilterPresets } from '@/components/ui/filter-panel';
 import { EmptyStateServices } from '@/components/ui/empty-state';
+import { LiveFeed } from '@/components/heroui/live-feed';
 
 // Popular skill domains for filtering
 const SKILL_DOMAINS = [
@@ -164,8 +165,6 @@ export default function MarketplacePage(): JSX.Element {
     [searchParams, router]
   );
 
-
-
   return (
     <div className="container mx-auto px-4 py-8">
       <div className="flex flex-col md:flex-row justify-between items-start md:items-center gap-4 mb-8">
@@ -182,6 +181,11 @@ export default function MarketplacePage(): JSX.Element {
             Create Service
           </NextLink>
         )}
+      </div>
+
+      {/* Live Feed - Announcements */}
+      <div className="mb-6">
+        <LiveFeed maxDisplay={3} showHeader={true} showLoadMore={true} className="shadow-lg" />
       </div>
 
       <div className="grid grid-cols-2 md:grid-cols-4 gap-4 mb-8">
@@ -230,7 +234,13 @@ export default function MarketplacePage(): JSX.Element {
       />
 
       {services.length === 0 ? (
-        <EmptyStateServices action={mounted && isConnected ? { label: 'List Your Service', href: '/marketplace/create' } : undefined} />
+        <EmptyStateServices
+          action={
+            mounted && isConnected
+              ? { label: 'List Your Service', href: '/marketplace/create' }
+              : undefined
+          }
+        />
       ) : (
         <>
           {/* Sort Controls */}

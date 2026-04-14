@@ -7,6 +7,7 @@ import { Activity, Briefcase, ShoppingBag, Scale, ExternalLink, Filter } from 'l
 import { useActivityFeed, ActivityType } from '@/lib/hooks/useActivityFeed';
 import { StatusBadge } from '@/components/StatusBadge';
 import { Address } from '@/components/Address';
+import { LiveFeed } from '@/components/heroui/live-feed';
 
 const ACTIVITY_ICONS: Record<ActivityType, React.ComponentType<{ className?: string }>> = {
   job: Briefcase,
@@ -143,6 +144,11 @@ export default function ActivityPage(): JSX.Element {
           <Activity className="w-4 h-4" />
           Refresh
         </button>
+      </div>
+
+      {/* Live Feed - Announcements */}
+      <div className="mb-6">
+        <LiveFeed maxDisplay={3} showHeader={true} showLoadMore={true} className="shadow-lg" />
       </div>
 
       {/* Filters */}

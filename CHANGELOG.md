@@ -5,6 +5,72 @@ All notable changes to the Kokonut Agent Economy Stack are documented in this fi
 The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.0.0/),
 and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0.html).
 
+## [2026-04-14] - Phase 21: XMTP Integration & Messaging
+
+### 🎯 XMTP P2P Messaging
+
+Integrated XMTP (Extensible Message Transport Protocol) for encrypted peer-to-peer messaging between agents and users.
+
+**Problem:**
+
+- No direct communication channel between platform users
+- Existing XMTP agent bot had SDK compatibility issues (@xmtp/node-sdk signer validation failed)
+
+**Solution:**
+
+1. **Browser SDK Integration**
+   - Added `@xmtp/browser-sdk` to web app dependencies
+   - Users sign directly with their wallet for identity
+   - No server-side bot required
+
+2. **Frontend Hook (`lib/hooks/useXMTP.ts`)**
+   - React hook for XMTP client management
+   - Conversation listing and message loading
+   - Send and receive encrypted messages
+
+3. **Messages Page Update**
+   - Updated `/messages` page to use real XMTP
+   - Conversation list with recent messages
+   - Real-time message display
+
+**Files Created:**
+
+- `lib/hooks/useXMTP.ts` - XMTP React hook using browser-sdk
+
+**Files Updated:**
+
+- `package.json` - Added @xmtp/browser-sdk
+- `app/messages/page.tsx` - Real XMTP integration
+
+**Removed:**
+
+- `packages/xmtp-agent/` - Broken agent bot (SDK compatibility)
+- `app/api/xmtp/conversations/` - Broken API routes
+- `app/api/xmtp/messages/` - Broken API routes
+
+### 🔧 TypeScript Fixes
+
+**Zustand v5 Storage Bug:**
+
+- Fixed TypeScript errors in `lib/stores/wallet-store.ts`
+- `createJSONStorage` returning wrong type on v5
+- Fixed with inline storage adapter + proper async methods
+
+### 📦 Files Deleted
+
+| Directory/File                | Reason                             |
+| ----------------------------- | ---------------------------------- |
+| `packages/xmtp-agent/`        | SDK signer validation incompatible |
+| `app/api/xmtp/conversations/` | Bot removal                        |
+| `app/api/xmtp/messages/`      | Bot removal                        |
+
+### ⚠️ Breaking Changes
+
+1. **Messaging Architecture**: Server-side bot removed, client-side P2P only
+2. **Environment Variables**: Removed XMTP_BOT_WALLET, XMTP_ADMIN_ADDRESSES, XMTP_BOT_KEY
+
+---
+
 ## [2026-04-13] - Phase 20: OWS Integration & Monorepo viem Migration
 
 ### 🎯 Open Wallet Standard (OWS) Integration

@@ -1,7 +1,7 @@
 'use client';
 
 import { create } from 'zustand';
-import { persist, createJSONStorage, StateStorage } from 'zustand/middleware';
+import { persist, StateStorage } from 'zustand/middleware';
 import { OWSWallet, OWSPolicy } from '@/lib/ows/types';
 import { owsClient } from '@/lib/ows/client';
 
@@ -15,22 +15,39 @@ const stubStorage: StateStorage = {
   removeItem: async () => {},
 };
 
-const getStorage = (): StateStorage => {
+const getStorage = () => {
   // Always use stub during SSR OR if no browser
   if (!isBrowser) return stubStorage;
   
   // Only create actual storage adapter in browser
-  return createJSONStorage(() => {
-    try {
-      return {
-        getItem: (name: string) => localStorage.getItem(name),
-        setItem: (name: string, value: string) => localStorage.setItem(name, value),
-        removeItem: (name: string) => localStorage.removeItem(name),
-      };
-    } catch {
-      return stubStorage;
-    }
-  });
+  try {
+    // For Zustand v5, use the storage object directly, not createJSONStorage
+    return {
+      getItem: async (name: string): Promise<string | null> => {
+        try {
+          return localStorage.getItem(name);
+        } catch {
+          return null;
+        }
+      },
+      setItem: async (name: string, value: string): Promise<void> => {
+        try {
+          localStorage.setItem(name, value);
+        } catch {
+          // Silently fail
+        }
+      },
+      removeItem: async (name: string): Promise<void> => {
+        try {
+          localStorage.removeItem(name);
+        } catch {
+          // Silently fail
+        }
+      },
+    };
+  } catch {
+    return stubStorage;
+  }
 };
 
 interface WalletState {
@@ -153,7 +170,8 @@ export const useWalletStore = create<WalletState>()(
     }),
     {
       name: 'kokonut_wallet_store',
-      storage: getStorage(),
+      // @ts-ignore - Zustand v5 storage type compatibility
+      storage: getStorage() as any,
       partialize: () => ({}),
     }
   )

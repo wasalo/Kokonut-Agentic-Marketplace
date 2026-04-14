@@ -32,6 +32,7 @@ const primaryNavLinks = [
 ];
 
 const moreLinks = [
+  { name: 'Messages', href: '/messages', description: 'P2P chat' },
   { name: 'Activity', href: '/activity', description: 'Recent events' },
   { name: 'Analytics', href: '/analytics', description: 'Platform metrics' },
   { name: 'Wallets', href: '/dashboard/wallets', description: 'OWS agent wallets' },
