@@ -24,7 +24,19 @@ export function WalletCard({
 
   const handleCopy = (e: React.MouseEvent) => {
     e.stopPropagation();
-    navigator.clipboard.writeText(wallet.address);
+    if (navigator.clipboard?.writeText) {
+      navigator.clipboard.writeText(wallet.address);
+    } else {
+      // Fallback
+      const textarea = document.createElement('textarea');
+      textarea.value = wallet.address;
+      textarea.style.position = 'fixed';
+      textarea.style.opacity = '0';
+      document.body.appendChild(textarea);
+      textarea.select();
+      document.execCommand('copy');
+      document.body.removeChild(textarea);
+    }
     setCopied(true);
     setTimeout(() => setCopied(false), 2000);
   };

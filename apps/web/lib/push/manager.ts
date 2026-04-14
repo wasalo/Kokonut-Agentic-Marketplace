@@ -21,7 +21,14 @@ export interface PushPreferences {
 const VAPID_PUBLIC_KEY_STORAGE_KEY = 'kokonut_vapid_public_key';
 const PUSH_PREFERENCES_KEY = 'kokonut_push_preferences';
 
+function isBrowser(): boolean {
+  return typeof window !== 'undefined' && typeof localStorage !== 'undefined';
+}
+
 export function generateVapidKeys(): VapidKeys {
+  if (typeof window === 'undefined') {
+    return { publicKey: '', privateKey: '' };
+  }
   const array = new Uint8Array(65);
   crypto.getRandomValues(array);
 
@@ -41,14 +48,17 @@ export function generateVapidKeys(): VapidKeys {
 }
 
 export function getPublicKey(): string | null {
+  if (!isBrowser()) return null;
   return localStorage.getItem(VAPID_PUBLIC_KEY_STORAGE_KEY);
 }
 
 export function setPublicKey(publicKey: string): void {
+  if (!isBrowser()) return;
   localStorage.setItem(VAPID_PUBLIC_KEY_STORAGE_KEY, publicKey);
 }
 
 export function getPushPreferences(): PushPreferences {
+  if (!isBrowser()) return getDefaultPreferences();
   const stored = localStorage.getItem(PUSH_PREFERENCES_KEY);
   if (stored) {
     try {
@@ -69,10 +79,14 @@ function getDefaultPreferences(): PushPreferences {
 }
 
 export function setPushPreferences(preferences: PushPreferences): void {
+  if (!isBrowser()) return;
   localStorage.setItem(PUSH_PREFERENCES_KEY, JSON.stringify(preferences));
 }
 
 export function urlBase64ToUint8Array(base64String: string): Uint8Array {
+  if (typeof window === 'undefined') {
+    return new Uint8Array(0);
+  }
   const padding = '='.repeat((4 - (base64String.length % 4)) % 4);
   const base64 = (base64String + padding).replace(/-/g, '+').replace(/_/g, '/');
 
@@ -86,7 +100,7 @@ export function urlBase64ToUint8Array(base64String: string): Uint8Array {
 }
 
 export async function subscribeToPush(): Promise<PushSubscription | null> {
-  if (!('serviceWorker' in navigator) || !('PushManager' in window)) {
+  if (typeof window === 'undefined' || !('serviceWorker' in navigator) || !('PushManager' in window)) {
     console.error('Push notifications not supported');
     return null;
   }
@@ -139,7 +153,7 @@ export async function subscribeToPush(): Promise<PushSubscription | null> {
 }
 
 export async function unsubscribeFromPush(endpoint: string): Promise<boolean> {
-  if (!('serviceWorker' in navigator) || !('PushManager' in window)) {
+  if (typeof window === 'undefined' || !('serviceWorker' in navigator) || !('PushManager' in window)) {
     return false;
   }
 
