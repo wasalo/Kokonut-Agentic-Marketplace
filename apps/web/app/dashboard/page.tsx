@@ -19,7 +19,6 @@ import { useUserJobs, getJobStatusLabel } from '@/lib/hooks/useJobs';
 import { useProposalCount, useProposals } from '@/lib/hooks/useProposals';
 import { useActivityFeed, ActivityType } from '@/lib/hooks/useActivityFeed';
 import { Address } from '@/components/Address';
-import { OWSReadinessWidget } from '@/components/ows/readiness-widget';
 
 function WalletConnectPrompt() {
   return (
@@ -196,13 +195,6 @@ function QuickActions() {
       href: '/review/create',
       color: '#FFCD00',
     },
-    {
-      label: 'Agent Wallets',
-      description: 'Create OWS wallets for agents',
-      icon: Wallet,
-      href: '/dashboard/wallets',
-      color: '#009F4D',
-    },
   ];
 
   return (
@@ -341,10 +333,6 @@ export default function DashboardPage(): JSX.Element {
           </p>
         </Card>
       )}
-
-      <div className="mb-6">
-        <OWSReadinessWidget compact />
-      </div>
 
       <QuickActions />
       <PlatformActivityWidget />
