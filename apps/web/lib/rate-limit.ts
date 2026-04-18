@@ -1,4 +1,5 @@
 import { NextRequest, NextResponse } from 'next/server';
+import { checkApiKeyRateLimit, incrementApiKeyUsage, getTierConfig, type ApiKeyTier } from './api-keys';
 
 interface RateLimitEntry {
   count: number;
@@ -30,7 +31,25 @@ setInterval(cleanExpiredEntries, 60 * 1000);
 export function rateLimit(
   request: NextRequest,
   config: RateLimitConfig = {}
-): { success: boolean; remaining: number; resetTime: number } | null {
+): { success: boolean; remaining: number; resetTime: number; tier?: ApiKeyTier } | null {
+  const apiKey = request.headers.get('x-api-key');
+  
+  if (apiKey) {
+    const result = checkApiKeyRateLimit(apiKey);
+    
+    if (!result.allowed) {
+      return { success: false, remaining: 0, resetTime: result.resetTime, tier: result.tier };
+    }
+    
+    incrementApiKeyUsage(apiKey);
+    return { 
+      success: true, 
+      remaining: result.remaining,
+      resetTime: result.resetTime,
+      tier: result.tier,
+    };
+  }
+  
   const windowMs = config.windowMs ?? DEFAULT_WINDOW_MS;
   const maxRequests = config.maxRequests ?? DEFAULT_MAX_REQUESTS;
 

@@ -64,6 +64,23 @@ Client (buyer)          Contract (locked box)         Provider (seller)
 | If provider disappears, client gets refund | Deliverable recorded **on-chain**          |
 | Evaluator (not provider) decides release   | Work permanently recorded even if rejected |
 
+### Webhook System
+
+The platform includes a comprehensive webhook system for real-time event notifications:
+
+| Feature | Implementation |
+| ---------- | --------------- |
+| **Rate Limiting** | API key tiers (Free/Basic/Pro/Enterprise) |
+| **Retry Backoff** | 5 attempts with exponential backoff (immediate, 1m, 5m, 30m, 2h) |
+| **Chain Filtering** | Filter webhooks by chain ID (Sepolia, Mainnet, etc.) |
+| **Security** | HMAC-SHA256 signature verification |
+
+**Supported Events:**
+- Job events: created, funded, submitted, completed, rejected, expired
+- Service events: created, updated, deactivated, activated
+- Proposal events: created, evaluation_submitted, decided
+- New: validation.requested, validation.completed, feedback.received, feedback.revoked, star.received, star.removed
+
 ### Slashing System (Keeping Evaluators Honest)
 
 Evaluators stake ETH to submit evaluations. If found dishonest:

@@ -5,6 +5,61 @@ All notable changes to the Kokonut Agent Economy Stack are documented in this fi
 The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.0.0/),
 and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0.html).
 
+## [2026-04-18] - Webhook System Enhancements
+
+### 🎯 API Key Authentication with Rate Limit Tiers
+
+**New `lib/api-keys.ts`:**
+- API key format: `kokonut_live_xxxxx` (production) or `kokonut_test_xxxxx` (test)
+- Tier-based rate limits:
+  - Anonymous: 30 requests/minute
+  - Free: 30 requests/minute
+  - Basic: 100 requests/minute
+  - Pro: 500 requests/minute
+  - Enterprise: unlimited
+- Usage tracking with automatic cleanup
+
+**Updated `lib/rate-limit.ts`:**
+- Supports `X-API-Key` header for tier-based rate limiting
+- Response headers: `X-RateLimit-Limit`, `X-RateLimit-Remaining`, `X-RateLimit-Reset`, `X-RateLimit-Tier`
+
+### 🎯 New Webhook Event Types
+
+**Added 6 new event types:**
+- `validation.requested` - Validation request submitted
+- `validation.completed` - Validator submits attestation
+- `feedback.received` - New feedback submitted
+- `feedback.revoked` - Feedback revoked
+- `star.received` - Agent receives star rating
+- `star.removed` - Star rating removed
+
+### 🎯 Chain Filtering
+
+**Webhook registration now supports:**
+- `chains: number[]` field (e.g., `[11155111, 1]` for Sepolia + Mainnet)
+- Empty chains = all chains
+- Maximum 10 chains per webhook
+- Chain filtering when triggering webhooks
+
+### 📦 Files Created
+
+| File | Purpose |
+| ---- | -------- |
+| `lib/api-keys.ts` | API key tiers, generation, rate limit tracking |
+
+### 📦 Files Modified
+
+| File | Changes |
+| ---- | --------- |
+| `lib/rate-limit.ts` | Added API key support, X-API-Key header |
+| `lib/webhooks/types.ts` | Added 6 new event types, chains[] field |
+| `lib/webhooks/trigger.ts` | Added event mappings |
+| `lib/db/webhooks.ts` | Added chains to Webhook interface |
+| `app/api/webhooks/route.ts` | Accepts chains in registration |
+| `app/api/webhooks/trigger/route.ts` | Chain filtering on delivery |
+
+---
+
 ## [2026-04-18] - Code Quality & Performance Improvements
 
 ### 🎯 React Query Migration

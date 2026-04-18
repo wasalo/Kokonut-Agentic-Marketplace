@@ -11,6 +11,7 @@ export interface Webhook {
   owner: string;
   url: string;
   events: string[];
+  chains?: number[];
   secret: string;
   isActive: boolean;
   createdAt: string;
@@ -83,6 +84,7 @@ export async function createWebhook(params: {
   owner: string;
   url: string;
   events: string[];
+  chains?: number[];
   metadata?: string;
 }): Promise<Webhook> {
   const webhooks = readWebhooks();
@@ -92,6 +94,7 @@ export async function createWebhook(params: {
     owner: params.owner.toLowerCase(),
     url: params.url,
     events: params.events,
+    chains: params.chains,
     secret: generateSecret(),
     isActive: true,
     createdAt: new Date().toISOString(),
@@ -148,9 +151,13 @@ export async function deleteWebhook(id: string): Promise<boolean> {
   return true;
 }
 
-export async function getWebhooksForEvent(event: string): Promise<Webhook[]> {
+export async function getWebhooksForEvent(event: string, chainId?: number): Promise<Webhook[]> {
   const webhooks = readWebhooks();
-  return webhooks.filter(w => w.isActive && w.events.includes(event));
+  return webhooks.filter(w => {
+    if (!w.isActive || !w.events.includes(event)) return false;
+    if (!w.chains || w.chains.length === 0) return true;
+    return chainId ? w.chains.includes(chainId) : false;
+  });
 }
 
 export async function recordDelivery(

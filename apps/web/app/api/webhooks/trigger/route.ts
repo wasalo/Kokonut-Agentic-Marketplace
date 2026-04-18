@@ -45,7 +45,7 @@ export async function POST(request: NextRequest) {
       return NextResponse.json({ error: 'Event type required' }, { status: 400 });
     }
 
-    const webhooks = await getWebhooksForEvent(event);
+    const webhooks = await getWebhooksForEvent(event, chainId);
 
     if (webhooks.length === 0) {
       return NextResponse.json({ message: 'No webhooks registered for this event' });

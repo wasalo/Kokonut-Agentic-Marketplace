@@ -101,14 +101,25 @@ const VALID_EVENTS = [
   'job.completed',
   'job.rejected',
   'job.expired',
+  'job.status_changed',
+  'job.limit_exceeded',
   'service.created',
   'service.updated',
   'service.deactivated',
+  'service.activated',
   'proposal.created',
   'proposal.evaluation_submitted',
   'proposal.decided',
+  'proposal.status_changed',
+  'evaluator.slashed',
   'payment.received',
   'payment.sent',
+  'validation.requested',
+  'validation.completed',
+  'feedback.received',
+  'feedback.revoked',
+  'star.received',
+  'star.removed',
 ];
 
 export async function POST(request: NextRequest) {
@@ -127,7 +138,7 @@ export async function POST(request: NextRequest) {
     }
 
     const body = await request.json();
-    const { url, events, metadata } = body;
+    const { url, events, chains, metadata } = body;
 
     if (!url || !url.startsWith('https://')) {
       return NextResponse.json({ error: 'Webhook URL must use HTTPS' }, { status: 400 });
@@ -135,6 +146,15 @@ export async function POST(request: NextRequest) {
 
     if (!events || !Array.isArray(events) || events.length === 0) {
       return NextResponse.json({ error: 'At least one event is required' }, { status: 400 });
+    }
+
+    if (chains && !Array.isArray(chains)) {
+      return NextResponse.json({ error: 'chains must be an array of chain IDs' }, { status: 400 });
+    }
+
+    const validChains = chains?.filter((c: number) => typeof c === 'number' && c > 0);
+    if (validChains?.length > 10) {
+      return NextResponse.json({ error: 'Maximum 10 chains per webhook' }, { status: 400 });
     }
 
     const invalidEvents = events.filter((e: string) => !VALID_EVENTS.includes(e));
@@ -154,6 +174,7 @@ export async function POST(request: NextRequest) {
       owner,
       url,
       events,
+      chains: validChains,
       metadata: metadata ? JSON.stringify(metadata) : undefined,
     });
 
@@ -163,6 +184,7 @@ export async function POST(request: NextRequest) {
         id: webhook.id,
         url: webhook.url,
         events: webhook.events,
+        chains: webhook.chains,
         secret: webhook.secret,
         isActive: webhook.isActive,
         createdAt: webhook.createdAt,

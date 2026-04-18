@@ -17,7 +17,13 @@ export type WebhookEventType =
   | 'proposal.status_changed'
   | 'evaluator.slashed'
   | 'payment.received'
-  | 'payment.sent';
+  | 'payment.sent'
+  | 'validation.requested'
+  | 'validation.completed'
+  | 'feedback.received'
+  | 'feedback.revoked'
+  | 'star.received'
+  | 'star.removed';
 
 export interface WebhookPayload {
   id: string;
@@ -44,6 +50,7 @@ export interface Webhook {
   owner: string;
   url: string;
   events: WebhookEventType[];
+  chains?: number[];
   secret: string;
   isActive: boolean;
   createdAt: number;
@@ -54,12 +61,14 @@ export interface Webhook {
 export interface WebhookRegistration {
   url: string;
   events: WebhookEventType[];
+  chains?: number[];
   metadata?: Record<string, unknown>;
 }
 
 export interface WebhookUpdate {
   url?: string;
   events?: WebhookEventType[];
+  chains?: number[];
   isActive?: boolean;
   metadata?: Record<string, unknown>;
 }
@@ -84,6 +93,12 @@ export const WEBHOOK_EVENT_LABELS: Record<WebhookEventType, string> = {
   'evaluator.slashed': 'Evaluator Slashed',
   'payment.received': 'Payment Received',
   'payment.sent': 'Payment Sent',
+  'validation.requested': 'Validation Requested',
+  'validation.completed': 'Validation Completed',
+  'feedback.received': 'Feedback Received',
+  'feedback.revoked': 'Feedback Revoked',
+  'star.received': 'Star Received',
+  'star.removed': 'Star Removed',
 };
 
 export const MAX_WEBHOOKS_PER_AGENT = 10;
