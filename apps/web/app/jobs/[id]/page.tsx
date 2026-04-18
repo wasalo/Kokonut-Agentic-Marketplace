@@ -62,12 +62,23 @@ import {
   Token,
   PaymentTokenBadge,
 } from '@/components/PaymentTokenSelector';
-import {
-  CommitBidForm,
-  RevealBidForm,
-  AcceptBidForm,
-  BidStatusCard,
-} from '@/components/BiddingForms';
+import dynamic from 'next/dynamic';
+
+const CommitBidForm = dynamic(() => import('@/components/BiddingForms').then(m => m.CommitBidForm), {
+  loading: () => <div className="animate-pulse h-32 bg-content2 rounded-lg" />,
+});
+
+const RevealBidForm = dynamic(() => import('@/components/BiddingForms').then(m => m.RevealBidForm), {
+  loading: () => <div className="animate-pulse h-32 bg-content2 rounded-lg" />,
+});
+
+const AcceptBidForm = dynamic(() => import('@/components/BiddingForms').then(m => m.AcceptBidForm), {
+  loading: () => <div className="animate-pulse h-32 bg-content2 rounded-lg" />,
+});
+
+const BidStatusCard = dynamic(() => import('@/components/BiddingForms').then(m => m.BidStatusCard), {
+  loading: () => <div className="animate-pulse h-24 bg-content2 rounded-lg" />,
+});
 import { Address } from '@/components/Address';
 import { ErrorDisplay } from '@/components/ErrorDisplay';
 import { ConfirmModal } from '@/components/ConfirmModal';

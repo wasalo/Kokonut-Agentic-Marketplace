@@ -5,6 +5,64 @@ All notable changes to the Kokonut Agent Economy Stack are documented in this fi
 The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.0.0/),
 and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0.html).
 
+## [2026-04-18] - Code Quality & Performance Improvements
+
+### 🎯 React Query Migration
+
+**Fixed `useProviderServices` hook:**
+- Migrated from manual useEffect+useState to React Query
+- Uses wagmi's `useReadContracts` for multicall batching
+- Proper error handling and loading states
+
+**Files Modified:**
+- `lib/hooks/useServices.ts` - React Query implementation
+
+### 🎯 TypeScript Fixes
+
+**Fixed type errors:**
+- `dashboard/services/page.tsx` - refetch handler needs function wrapper
+- `useJobEvents.ts` - debugLog signature fixed
+- `useJobs.ts` - debugLog category parameter added
+- `useProposals.ts` - debugError category parameter added
+
+### 🎯 Code Splitting
+
+**Added dynamic imports for large components:**
+- `jobs/[id]/page.tsx` - BiddingForms lazy loaded (~506 lines)
+- Components load on-demand when viewing job detail page
+
+### 🎯 Console Logging Reduction
+
+Replaced console.log/error with debugLog/debugError for production:
+
+**Files Updated:**
+- `lib/hooks/useJobEvents.ts` - 23 console.log → debugLog (only in debug mode)
+- `lib/hooks/useJobs.ts` - 5 console.warn → debugLog (deprecated warnings)
+- `lib/hooks/useProposals.ts` - 3 console.error → debugError
+
+**Results:**
+- Started with 90 console statements in hooks
+- Reduced to 65 remaining (~28% reduction)
+- Debug output now only visible when NEXT_PUBLIC_DEBUG_MODE=true
+
+### ✅ Files Created
+
+- `app/marketplace/loading.tsx`
+- `app/jobs/loading.tsx`
+- `app/identity/loading.tsx`
+- `app/jobs/[id]/loading.tsx`
+- `app/marketplace/[id]/loading.tsx`
+- `app/review/loading.tsx`
+- `app/leaderboard/loading.tsx`
+- `app/dashboard/loading.tsx`
+
+### 📊 Build Status
+
+- TypeScript: 0 errors
+- Dev server: Running on localhost:3000
+
+---
+
 ## [2026-04-14] - Phase 22: Multi-Chain Infrastructure
 
 ### 🎯 CAIP-2 Chain Identifier Standard

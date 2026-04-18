@@ -3,6 +3,7 @@ import { useWatchContractEvent } from 'wagmi';
 import { useQueryClient } from '@tanstack/react-query';
 import { AGENTIC_COMMERCE_ABI } from '@/lib/contracts/abis';
 import { CONTRACT_ADDRESSES } from '@/lib/contracts/config';
+import { debugLog, debugError } from '@/lib/debug';
 
 /* eslint-disable @typescript-eslint/no-explicit-any */
 
@@ -31,7 +32,7 @@ export function useJobEvents(_jobId?: bigint) {
     onLogs: logs => {
       logs.forEach((log: any) => {
         const jobId = log.args?.jobId;
-        console.log('[Events] Job created:', jobId?.toString());
+        debugLog('hooks', 'Job created:', jobId?.toString());
         invalidateJobQueries(queryClient, jobId);
       });
     },
@@ -45,7 +46,7 @@ export function useJobEvents(_jobId?: bigint) {
     onLogs: logs => {
       logs.forEach((log: any) => {
         const jobId = log.args?.jobId;
-        console.log('[Events] Open job created:', jobId?.toString());
+        debugLog('hooks', 'Open job created:', jobId?.toString());
         invalidateJobQueries(queryClient, jobId);
       });
     },
@@ -62,7 +63,7 @@ export function useJobEvents(_jobId?: bigint) {
         const oldStatus = log.args?.oldStatus;
         const newStatus = log.args?.newStatus;
 
-        console.log('[Events] Job status changed:', {
+        debugLog('hooks', 'Job status changed:', {
           jobId: jobId?.toString(),
           oldStatus,
           newStatus,
@@ -81,7 +82,7 @@ export function useJobEvents(_jobId?: bigint) {
     onLogs: logs => {
       logs.forEach((log: any) => {
         const jobId = log.args?.jobId;
-        console.log('[Events] Job funded:', jobId?.toString());
+        debugLog('[Events] Job funded:', jobId?.toString());
         invalidateJobQueries(queryClient, jobId);
       });
     },
@@ -95,7 +96,7 @@ export function useJobEvents(_jobId?: bigint) {
     onLogs: logs => {
       logs.forEach((log: any) => {
         const jobId = log.args?.jobId;
-        console.log('[Events] Job submitted:', jobId?.toString());
+        debugLog('[Events] Job submitted:', jobId?.toString());
         invalidateJobQueries(queryClient, jobId);
       });
     },
@@ -109,7 +110,7 @@ export function useJobEvents(_jobId?: bigint) {
     onLogs: logs => {
       logs.forEach((log: any) => {
         const jobId = log.args?.jobId;
-        console.log('[Events] Job completed:', jobId?.toString());
+        debugLog('[Events] Job completed:', jobId?.toString());
         invalidateJobQueries(queryClient, jobId);
       });
     },
@@ -123,7 +124,7 @@ export function useJobEvents(_jobId?: bigint) {
     onLogs: logs => {
       logs.forEach((log: any) => {
         const jobId = log.args?.jobId;
-        console.log('[Events] Job rejected:', jobId?.toString());
+        debugLog('[Events] Job rejected:', jobId?.toString());
         invalidateJobQueries(queryClient, jobId);
       });
     },
@@ -137,7 +138,7 @@ export function useJobEvents(_jobId?: bigint) {
     onLogs: logs => {
       logs.forEach((log: any) => {
         const jobId = log.args?.jobId;
-        console.log('[Events] Job expired:', jobId?.toString());
+        debugLog('[Events] Job expired:', jobId?.toString());
         invalidateJobQueries(queryClient, jobId);
       });
     },
@@ -151,7 +152,7 @@ export function useJobEvents(_jobId?: bigint) {
     onLogs: logs => {
       logs.forEach((log: any) => {
         const jobId = log.args?.jobId;
-        console.log('[Events] Payment released:', jobId?.toString());
+        debugLog('[Events] Payment released:', jobId?.toString());
         invalidateJobQueries(queryClient, jobId);
       });
     },
@@ -165,7 +166,7 @@ export function useJobEvents(_jobId?: bigint) {
     onLogs: logs => {
       logs.forEach((log: any) => {
         const jobId = log.args?.jobId;
-        console.log('[Events] Job refunded:', jobId?.toString());
+        debugLog('[Events] Job refunded:', jobId?.toString());
         invalidateJobQueries(queryClient, jobId);
       });
     },
@@ -179,7 +180,7 @@ export function useJobEvents(_jobId?: bigint) {
     onLogs: logs => {
       logs.forEach((log: any) => {
         const jobId = log.args?.jobId;
-        console.log('[Events] Provider set:', jobId?.toString());
+        debugLog('[Events] Provider set:', jobId?.toString());
         invalidateJobQueries(queryClient, jobId);
       });
     },
@@ -193,7 +194,7 @@ export function useJobEvents(_jobId?: bigint) {
     onLogs: logs => {
       logs.forEach((log: any) => {
         const jobId = log.args?.jobId;
-        console.log('[Events] Budget set:', jobId?.toString());
+        debugLog('[Events] Budget set:', jobId?.toString());
         invalidateJobQueries(queryClient, jobId);
       });
     },
@@ -207,7 +208,7 @@ export function useJobEvents(_jobId?: bigint) {
     onLogs: logs => {
       logs.forEach((log: any) => {
         const jobId = log.args?.jobId;
-        console.log('[Events] Bid committed:', jobId?.toString());
+        debugLog('[Events] Bid committed:', jobId?.toString());
         invalidateJobQueries(queryClient, jobId);
       });
     },
@@ -221,7 +222,7 @@ export function useJobEvents(_jobId?: bigint) {
     onLogs: logs => {
       logs.forEach((log: any) => {
         const jobId = log.args?.jobId;
-        console.log('[Events] Bid revealed:', jobId?.toString());
+        debugLog('[Events] Bid revealed:', jobId?.toString());
         invalidateJobQueries(queryClient, jobId);
       });
     },
@@ -235,7 +236,7 @@ export function useJobEvents(_jobId?: bigint) {
     onLogs: logs => {
       logs.forEach((log: any) => {
         const jobId = log.args?.jobId;
-        console.log('[Events] Bid accepted:', jobId?.toString());
+        debugLog('[Events] Bid accepted:', jobId?.toString());
         invalidateJobQueries(queryClient, jobId);
       });
     },
@@ -249,7 +250,7 @@ export function useJobEvents(_jobId?: bigint) {
     onLogs: logs => {
       logs.forEach((log: any) => {
         const jobId = log.args?.jobId;
-        console.log('[Events] Stakes returned:', jobId?.toString());
+        debugLog('[Events] Stakes returned:', jobId?.toString());
         invalidateJobQueries(queryClient, jobId);
       });
     },
@@ -291,7 +292,7 @@ export function useJobLimitWarnings(_userAddress?: string) {
         const attemptedCount = log.args?.attemptedCount;
         const maxAllowed = log.args?.maxAllowed;
 
-        console.warn('[Events] Job limit exceeded:', {
+        debugLog('hooks', 'Job limit exceeded:', {
           client,
           attemptedCount: attemptedCount?.toString(),
           maxAllowed: maxAllowed?.toString(),

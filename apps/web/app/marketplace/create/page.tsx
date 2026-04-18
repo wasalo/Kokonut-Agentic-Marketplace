@@ -321,16 +321,16 @@ export default function CreateServicePage() {
       // For ETH, we also store the USD equivalent for display (8 decimals for Chainlink)
       // The contract stores the raw token amount, and we convert for display in UI
 
-      createService(
-        BigInt(agent.id),
-        formData.name,
-        formData.description,
-        formData.metadataURI || '',
-        priceInToken,
-        formData.paymentToken.address === ZERO_ADDRESS
+      createService({
+        agentId: BigInt(agent.id),
+        name: formData.name,
+        description: formData.description,
+        metadataURI: formData.metadataURI || '',
+        price: priceInToken,
+        paymentToken: formData.paymentToken.address === ZERO_ADDRESS
           ? ZERO_ADDRESS
           : formData.paymentToken.address
-      );
+      });
     },
     [
       isConnected,

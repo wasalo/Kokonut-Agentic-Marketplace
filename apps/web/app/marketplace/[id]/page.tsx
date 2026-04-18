@@ -253,13 +253,13 @@ export default function ServiceDetailPage({
             <form
               onSubmit={async e => {
                 e.preventDefault();
-                await updateService(
+                await updateService({
                   serviceId,
-                  editForm.name,
-                  editForm.description,
-                  service.metadataURI,
-                  BigInt(Math.floor(parseFloat(editForm.price) * 10**tokenDecimals))
-                );
+                  name: editForm.name,
+                  description: editForm.description,
+                  metadataURI: service.metadataURI,
+                  price: BigInt(Math.floor(parseFloat(editForm.price) * 10**tokenDecimals))
+                });
                 setIsEditing(false);
                 refetch();
               }}

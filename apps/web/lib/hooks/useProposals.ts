@@ -79,7 +79,7 @@ export function getProposalStatusColor(status: number): string {
 
 function mapProposalData(id: bigint, data: unknown): Proposal | null {
   if (!data) {
-    console.error('[mapProposalData] Error: data is null/undefined');
+    debugError('hooks', 'mapProposalData: data is null/undefined');
     return null;
   }
 
@@ -102,7 +102,7 @@ function mapProposalData(id: bigint, data: unknown): Proposal | null {
       };
     }
 
-    console.error('[mapProposalData] Error: Object format missing expected properties', obj);
+    debugError('hooks', 'mapProposalData: Object format missing expected properties', obj);
     return null;
   }
 
@@ -135,7 +135,7 @@ function mapProposalData(id: bigint, data: unknown): Proposal | null {
     };
   }
 
-  console.error('[mapProposalData] Error: Unknown data format', data);
+  debugError('hooks', 'mapProposalData: Unknown data format', data);
   return null;
 }
 

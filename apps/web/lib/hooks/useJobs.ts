@@ -194,7 +194,8 @@ export function useCreateJobFromService() {
       hook: `0x${string}` = '0x0000000000000000000000000000000000000000',
       evaluatorFee: boolean = false
     ) => {
-      console.warn(
+      debugLog(
+        'hooks',
         'useCreateJobFromService is deprecated - createJobFromService disabled in V6.1. Use createJob + setProvider + setBudget instead.'
       );
       writeContract({
@@ -483,7 +484,8 @@ export function useCreateOpenJob() {
       _paymentToken: `0x${string}`,
       _evaluatorFee: boolean = false
     ) => {
-      console.warn(
+      debugLog(
+        'hooks',
         'useCreateOpenJob is deprecated - bidding disabled in V6.1. Use BiddingSystem instead.'
       );
       writeContract({
@@ -509,7 +511,8 @@ export function useCommitBid() {
 
   return {
     commitBid: (_jobId: bigint, _commitHash: `0x${string}`, _value?: bigint) => {
-      console.warn(
+      debugLog(
+        'hooks',
         'useCommitBid is deprecated - bidding disabled in V6.1. Use useBiddingCommitBid from useBiddingSystem.ts instead.'
       );
     },
@@ -529,7 +532,8 @@ export function useRevealBid() {
 
   return {
     revealBid: (_jobId: bigint, _amount: bigint, _message: string, _salt: `0x${string}`) => {
-      console.warn(
+      debugLog(
+        'hooks',
         'useRevealBid is deprecated - bidding disabled in V6.1. Use useBiddingRevealBid from useBiddingSystem.ts instead.'
       );
     },
@@ -549,7 +553,8 @@ export function useAcceptBid() {
 
   return {
     acceptBid: (_jobId: bigint, _bidId: bigint) => {
-      console.warn(
+      debugLog(
+        'hooks',
         'useAcceptBid is deprecated - bidding disabled in V6.1. Use useBiddingAcceptBid from useBiddingSystem.ts instead.'
       );
     },

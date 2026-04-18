@@ -125,7 +125,7 @@ export default function DashboardServicesPage() {
           </div>
           <div className="flex gap-2">
             <button
-              onClick={refetch}
+              onClick={() => refetch()}
               disabled={isLoading}
               className="inline-flex items-center gap-2 px-4 py-2.5 border border-divider rounded-lg font-medium hover:bg-content2 transition-colors disabled:opacity-50"
             >
@@ -150,7 +150,7 @@ export default function DashboardServicesPage() {
               <p className="text-danger font-medium">Error loading services</p>
               <p className="text-danger-600 text-sm mt-1">{error.message}</p>
               <button
-                onClick={refetch}
+                onClick={() => refetch()}
                 className="mt-3 px-4 py-2 bg-danger text-white rounded-lg text-sm font-medium hover:bg-danger-600 transition-colors"
               >
                 Try Again
