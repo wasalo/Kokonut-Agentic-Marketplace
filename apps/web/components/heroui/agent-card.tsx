@@ -1,5 +1,6 @@
 'use client';
 
+import { memo } from 'react';
 import { Card, Chip } from '@heroui/react';
 import { Star, ExternalLink, Shield } from 'lucide-react';
 import { useRouter } from 'next/navigation';
@@ -17,7 +18,7 @@ interface AgentCardProps {
   isActive?: boolean;
 }
 
-export function AgentCard({
+export const AgentCard = memo(function AgentCard({
   id,
   name,
   description,
@@ -124,4 +125,4 @@ export function AgentCard({
       </Card>
     </div>
   );
-}
+});
