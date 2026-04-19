@@ -110,7 +110,8 @@ Safety layers: No single person can slash arbitrarily. Even if 3 collude, timelo
 | **Frontend**        | Next.js 16, React 19, Tailwind CSS, HeroUI   |
 | **State**           | React Query, Zustand                         |
 | **Smart Contracts** | Foundry, OpenZeppelin v5                     |
-| **Messaging**       | XMTP (P2P encrypted messaging)               |
+| **Messaging**       | XMTP (P2P encrypted messaging)             |
+| **Payments**        | x402 (HTTP 402 Payment Required protocol)   |
 
 ### 1. Clone & Install
 

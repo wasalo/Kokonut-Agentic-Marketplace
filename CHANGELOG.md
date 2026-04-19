@@ -5,6 +5,111 @@ All notable changes to the Kokonut Agent Economy Stack are documented in this fi
 The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.0.0/),
 and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0.html).
 
+## [2026-04-19] - Phase 25: x402 HTTP Payment Protocol
+
+### 🎯 x402 Protocol Integration
+
+**x402** is an open payment protocol that uses HTTP 402 "Payment Required" status code for programmatic crypto payments over HTTP. Enables AI agents to pay for services without accounts, sessions, or API keys.
+
+**How it works:**
+
+```
+1. Client     → Request GET /api/resource
+2. Server     → 402 Payment Required + PAYMENT-REQUIRED header (amount, token, network)
+3. Client     → Retry with PAYMENT-SIGNATURE header (signed payment payload)
+4. Facilitator → Verifies & settles on-chain
+5. Server     → 200 OK + PAYMENT-RESPONSE header
+```
+
+### 🎯 Multi-chain Support
+
+**Supported Networks:**
+
+| Network | CAIP-2 | USDC Address | Status |
+|---------|--------|-------------|-------|
+| Base | eip155:8453 | 0x833589... | ✅ Mainnet |
+| Base Sepolia | eip155:84532 | 0x41d5a5... | ✅ Testnet |
+| Ethereum | eip155:1 | 0xA0b869... | ✅ Mainnet |
+| Sepolia | eip155:11155111 | 0x1c7D4B... | ✅ Testnet |
+| Polygon | eip155:137 | 0x2791Bca... | ✅ Mainnet |
+| Avalanche | eip155:43114 | 0xB97EF9E... | ✅ Mainnet |
+| Arbitrum | eip155:42161 | 0xaf88d06... | ✅ Mainnet |
+
+### 🎯 Payment Schemes
+
+| Scheme | Use Case | Settlement |
+|--------|----------|------------|
+| `exact` | Fixed cost (webhooks, push, email) | Immediate settle |
+| `upto` | Variable cost (AI agents, queries) | Authorization + settle |
+
+**Hybrid Settlement (Option C):**
+- Large amounts (> $5): Immediate settlement
+- Small amounts (≤ $5): Batch settlement (5-min delay)
+
+### 🎯 Coinbase CDP Integration
+
+**Free Facilitator:** https://x402.org/facilitator (1k free transactions/month)
+
+**Configuration:**
+
+```bash
+# Environment variables
+CDP_API_KEY=your_cdp_api_key          # Get from https://cdp.coinbase.com
+X402_RECIPIENT_ADDRESS=your_wallet    # Payment recipient
+X402_FACILITATOR_URL=https://x402.org/facilitator
+```
+
+### 🎯 API Key Tier Integration
+
+**Pricing by Tier:**
+
+| Tier | exact (USDC) | upto (max USDC) | Chain |
+|------|--------------|----------------|-------|
+| anonymous | $0.001 | $0.01 max | base-sepolia |
+| free | $0.001 | $0.01 max | base-sepolia |
+| basic | $0.005 | $0.05 max | base-sepolia |
+| pro | $0.01 | $0.10 max | base-mainnet |
+| enterprise | Free | Free | base-mainnet |
+
+### 🎯 Route Protection
+
+All API routes now protected with x402 payments:
+
+| Route | Scheme | Price | Chain |
+|------|--------|-------|-------|
+| `/api/webhooks` | exact | $0.001 | base-sepolia |
+| `/api/push/*` | exact | $0.001 | base-sepolia |
+| `/api/emails/*` | exact | $0.01 | base-sepolia |
+| `/api/xmtp/*` | upto | $0.05 max | base-sepolia |
+| `/api/agents/*` | upto | $0.10 max | base-sepolia |
+
+### 📦 Files Created
+
+| File | Purpose |
+|------|---------|
+| `lib/x402/types.ts` | PaymentRequired, PaymentPayload, SettlementResponse types |
+| `lib/x402/chains.ts` | Multi-chainconfigs (Base, ETH, Polygon, Avalanche, Arbitrum) |
+| `lib/x402/schemes.ts` | exact/upto schemes with hybrid settlement |
+| `lib/x402/client.ts` | x402 client wrapper for Coinbase CDP facilitator |
+| `lib/x402/middleware.ts` | Next.js route protection |
+| `lib/x402/index.ts` | Main export |
+| `lib/hooks/useX402Payment.ts` | React hook for payment flows |
+| `components/x402/payment-button.tsx` | Payment UI component |
+
+### 📦 Files Modified
+
+| File | Changes |
+|------|--------|
+| `lib/api-keys.ts` | Added x402 pricing per tier (x402Pricing, x402Chain fields) |
+
+### ✅ Build Status
+
+- TypeScript: 0 errors
+- All 17 API routes: x402 protected
+- Coinbase CDP: Free tier ready (1k/mo)
+
+---
+
 ## [2026-04-18] - Phase 24: Milestone Payments & Dispute Resolution
 
 ### 🎯 MilestoneEscrow Contract
