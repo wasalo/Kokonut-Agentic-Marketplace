@@ -11,6 +11,7 @@ import { sendNotificationEmail } from '@/lib/emails/notification-bridge';
 const AGENTIC_COMMERCE_ADDRESS = getContractAddress('AGENTIC_COMMERCE');
 const SERVICE_REGISTRY_ADDRESS = getContractAddress('SERVICE_REGISTRY');
 const AGENT_REVIEW_ADDRESS = getContractAddress('AGENT_REVIEW');
+const MILESTONE_ESCROW_ADDRESS = getContractAddress('MILESTONE_ESCROW');
 
 const STORAGE_KEY = 'kokonut_last_notification_block';
 
@@ -102,6 +103,36 @@ const EVENT_ABI_ITEMS = {
   ),
   proposalCancelledByProposer: parseAbiItem(
     'event ProposalCancelledByProposer(uint256 indexed proposalId, address indexed proposer)'
+  ),
+  // MilestoneEscrow events
+  milestoneEnabled: parseAbiItem('event MilestoneEnabled(uint256 indexed jobId)'),
+  milestoneAdded: parseAbiItem(
+    'event MilestoneAdded(uint256 indexed jobId, uint256 indexed milestoneIndex, string description, uint256 amount)'
+  ),
+  milestoneCompleted: parseAbiItem(
+    'event MilestoneCompleted(uint256 indexed jobId, uint256 indexed milestoneIndex, bytes32 proofHash)'
+  ),
+  milestoneReleased: parseAbiItem(
+    'event MilestoneReleased(uint256 indexed jobId, uint256 indexed milestoneIndex, uint256 amount)'
+  ),
+  milestoneAutoReleased: parseAbiItem(
+    'event MilestoneAutoReleased(uint256 indexed jobId, uint256 indexed milestoneIndex, uint256 amount)'
+  ),
+  arbiterRegistered: parseAbiItem('event ArbiterRegistered(address indexed arbiter, uint256 stake)'),
+  arbiterUnregistered: parseAbiItem(
+    'event ArbiterUnregistered(address indexed arbiter, uint256 refundedStake)'
+  ),
+  disputeFlagged: parseAbiItem(
+    'event DisputeFlagged(uint256 indexed jobId, address indexed flaggler, uint256 fee)'
+  ),
+  evidenceSubmitted: parseAbiItem(
+    'event EvidenceSubmitted(uint256 indexed jobId, address indexed submitter, bytes32 evidenceHash)'
+  ),
+  disputeResolved: parseAbiItem(
+    'event DisputeResolved(uint256 indexed jobId, bool releasedToProvider, address indexed arbiter, uint256 arbiterFee)'
+  ),
+  arbiterSlashed: parseAbiItem(
+    'event ArbiterSlashed(address indexed arbiter, uint256 slashedAmount, string reason)'
   ),
 } as const;
 
@@ -544,6 +575,182 @@ export function useNotificationEvents() {
     [publicClient, address, addNotification, notifyAndEmail]
   );
 
+  const processMilestoneEscrowEvents = useCallback(
+    async (fromBlock: bigint, toBlock: bigint) => {
+      if (!publicClient) return toBlock;
+
+      try {
+        const logs = await publicClient.getLogs({
+          address: MILESTONE_ESCROW_ADDRESS,
+          events: [
+            EVENT_ABI_ITEMS.milestoneEnabled,
+            EVENT_ABI_ITEMS.milestoneAdded,
+            EVENT_ABI_ITEMS.milestoneCompleted,
+            EVENT_ABI_ITEMS.milestoneReleased,
+            EVENT_ABI_ITEMS.milestoneAutoReleased,
+            EVENT_ABI_ITEMS.arbiterRegistered,
+            EVENT_ABI_ITEMS.arbiterUnregistered,
+            EVENT_ABI_ITEMS.disputeFlagged,
+            EVENT_ABI_ITEMS.evidenceSubmitted,
+            EVENT_ABI_ITEMS.disputeResolved,
+            EVENT_ABI_ITEMS.arbiterSlashed,
+          ],
+          fromBlock,
+          toBlock,
+        });
+
+        for (const log of logs) {
+          const event = log.eventName;
+
+          if (event === 'MilestoneEnabled' && log.args.jobId) {
+            const jobId = log.args.jobId;
+            triggerWebhooks({
+              event: 'milestone.enabled',
+              data: { jobId: jobId.toString() },
+            });
+          }
+
+          if (event === 'MilestoneAdded' && log.args.jobId && log.args.milestoneIndex) {
+            const amount = Number(log.args.amount || 0) / 1e6;
+            triggerWebhooks({
+              event: 'milestone.added',
+              data: {
+                jobId: log.args.jobId.toString(),
+                milestoneIndex: log.args.milestoneIndex.toString(),
+                description: log.args.description,
+                amount: amount.toString(),
+              },
+            });
+          }
+
+          if (event === 'MilestoneCompleted' && log.args.jobId && log.args.milestoneIndex) {
+            triggerWebhooks({
+              event: 'milestone.completed',
+              data: {
+                jobId: log.args.jobId.toString(),
+                milestoneIndex: log.args.milestoneIndex.toString(),
+              },
+            });
+          }
+
+          if (event === 'MilestoneReleased' && log.args.jobId && log.args.milestoneIndex) {
+            const amount = Number(log.args.amount || 0) / 1e6;
+            triggerWebhooks({
+              event: 'milestone.released',
+              data: {
+                jobId: log.args.jobId.toString(),
+                milestoneIndex: log.args.milestoneIndex.toString(),
+                amount: amount.toString(),
+              },
+            });
+          }
+
+          if (event === 'MilestoneAutoReleased' && log.args.jobId && log.args.milestoneIndex) {
+            const amount = Number(log.args.amount || 0) / 1e6;
+            triggerWebhooks({
+              event: 'milestone.auto_released',
+              data: {
+                jobId: log.args.jobId.toString(),
+                milestoneIndex: log.args.milestoneIndex.toString(),
+                amount: amount.toString(),
+              },
+            });
+          }
+
+          if (event === 'ArbiterRegistered' && log.args.arbiter) {
+            const stake = Number(log.args.stake || 0) / 1e18;
+            if (address && log.args.arbiter.toLowerCase() === address.toLowerCase()) {
+              await notifyAndEmail({
+                type: 'system',
+                action: 'arbiter.registered',
+                title: 'Registered as Arbiter',
+                message: `You are now registered as an arbiter (${stake.toFixed(2)} ETH stake)`,
+                link: '/dashboard',
+              });
+            }
+            triggerWebhooks({
+              event: 'arbiter.registered',
+              data: { arbiter: log.args.arbiter, stake: stake.toString() },
+            });
+          }
+
+          if (event === 'ArbiterUnregistered' && log.args.arbiter) {
+            const refunded = Number(log.args.refundedStake || 0) / 1e18;
+            if (address && log.args.arbiter.toLowerCase() === address.toLowerCase()) {
+              await notifyAndEmail({
+                type: 'system',
+                action: 'arbiter.unregistered',
+                title: 'Unregistered as Arbiter',
+                message: `You have unregistered as an arbiter (${refunded.toFixed(2)} ETH refunded)`,
+                link: '/dashboard',
+              });
+            }
+            triggerWebhooks({
+              event: 'arbiter.unregistered',
+              data: { arbiter: log.args.arbiter, refundedStake: refunded.toString() },
+            });
+          }
+
+          if (event === 'DisputeFlagged' && log.args.jobId && log.args.flaggler) {
+            const fee = Number(log.args.fee || 0) / 1e18;
+            triggerWebhooks({
+              event: 'dispute.flagged',
+              data: {
+                jobId: log.args.jobId.toString(),
+                flaggler: log.args.flaggler,
+                fee: fee.toString(),
+              },
+            });
+          }
+
+          if (event === 'EvidenceSubmitted' && log.args.jobId && log.args.submitter) {
+            triggerWebhooks({
+              event: 'dispute.evidence_submitted',
+              data: {
+                jobId: log.args.jobId.toString(),
+                submitter: log.args.submitter,
+              },
+            });
+          }
+
+          if (event === 'DisputeResolved' && log.args.jobId) {
+            triggerWebhooks({
+              event: 'dispute.resolved',
+              data: {
+                jobId: log.args.jobId.toString(),
+                releasedToProvider: log.args.releasedToProvider,
+                arbiter: log.args.arbiter,
+                arbiterFee: log.args.arbiterFee?.toString(),
+              },
+            });
+          }
+
+          if (event === 'ArbiterSlashed' && log.args.arbiter) {
+            const slashed = Number(log.args.slashedAmount || 0) / 1e18;
+            if (address && log.args.arbiter.toLowerCase() === address.toLowerCase()) {
+              await notifyAndEmail({
+                type: 'system',
+                action: 'dispute.resolved',
+                title: 'Arbiter Slashed',
+                message: `You have been slashed ${slashed.toFixed(4)} ETH for ${log.args.reason}`,
+                link: '/dashboard',
+              });
+            }
+            triggerWebhooks({
+              event: 'dispute.arbiter_slashed',
+              data: { arbiter: log.args.arbiter, slashedAmount: slashed.toString(), reason: log.args.reason },
+            });
+          }
+        }
+      } catch (error) {
+        debugLog('errors', `Error processing MilestoneEscrow events: ${error}`);
+      }
+
+      return toBlock;
+    },
+    [publicClient, address, addNotification, notifyAndEmail]
+  );
+
   const processAgentReviewEvents = useCallback(
     async (fromBlock: bigint, toBlock: bigint) => {
       if (!publicClient) return toBlock;
@@ -700,6 +907,7 @@ export function useNotificationEvents() {
           processAgenticCommerceEvents(safeFromBlock, toBlock),
           processServiceRegistryEvents(safeFromBlock, toBlock),
           processAgentReviewEvents(safeFromBlock, toBlock),
+          processMilestoneEscrowEvents(safeFromBlock, toBlock),
         ]);
 
         lastBlockRef.current = blocks[0];
@@ -720,6 +928,7 @@ export function useNotificationEvents() {
     processAgenticCommerceEvents,
     processServiceRegistryEvents,
     processAgentReviewEvents,
+    processMilestoneEscrowEvents,
   ]);
 }
 

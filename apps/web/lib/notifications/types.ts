@@ -29,7 +29,16 @@ export type NotificationAction =
   | 'bidding.stake_claimed'
   | 'bidding.stake_withdrawn'
   | 'bidding.job_created'
-  | 'bidding.session_cancelled';
+  | 'bidding.session_cancelled'
+  | 'milestone.enabled'
+  | 'milestone.added'
+  | 'milestone.completed'
+  | 'milestone.released'
+  | 'milestone.auto_released'
+  | 'arbiter.registered'
+  | 'arbiter.unregistered'
+  | 'dispute.flagged'
+  | 'dispute.resolved';
 
 export interface Notification {
   id: string;
@@ -95,6 +104,15 @@ export const NOTIFICATION_ACTION_LABELS: Record<NotificationAction, string> = {
   'bidding.stake_withdrawn': 'Stake Withdrawn',
   'bidding.job_created': 'Job Created from Bid',
   'bidding.session_cancelled': 'Session Cancelled',
+  'milestone.enabled': 'Milestones Enabled',
+  'milestone.added': 'Milestone Added',
+  'milestone.completed': 'Milestone Completed',
+  'milestone.released': 'Milestone Released',
+  'milestone.auto_released': 'Milestone Auto-Released',
+  'arbiter.registered': 'Arbiter Registered',
+  'arbiter.unregistered': 'Arbiter Unregistered',
+  'dispute.flagged': 'Dispute Flagged',
+  'dispute.resolved': 'Dispute Resolved',
 };
 
 export const NOTIFICATION_ICONS: Record<NotificationType, string> = {

@@ -21,12 +21,6 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 - **Dispute system**: Flag disputes with 0.001 ETH fee, arbiter resolves
 - **7-day auto-release timeout**: Payments auto-release after 7 days if client doesn't release manually
 
-**Constants:**
-- `ARBITER_STAKE = 0.01 ETH`
-- `ARBITER_FEE = 0.001 ETH`
-- `MAX_MILESTONES_PER_JOB = 10`
-- `ARBITER_RESPONSE_WINDOW = 7 days`
-
 ### 🎯 UI Updates
 
 **Dashboard Arbiter Section:**
@@ -65,8 +59,23 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 - `get-milestones -j <job>` - List job milestones
 - `flag-dispute -j <job>` - Flag dispute (0.001 ETH fee)
 
-**Config Updates:**
-- `config/networks.js` - Added `milestoneEscrow: '0xf24eDD2d8e99c80d40e959b1F37636b6C04FF9A9'`
+### 🎯 Webhook & Notification Parity
+
+**MilestoneEscrow Webhooks (12 new event types):**
+- `milestone.enabled`, `milestone.added`, `milestone.completed`, `milestone.released`, `milestone.auto_released`
+- `arbiter.registered`, `arbiter.unregistered`
+- `dispute.flagged`, `dispute.evidence_submitted`, `dispute.resolved`, `dispute.arbiter_slashed`
+
+**MilestoneEscrow Notifications (9 new actions):**
+- `milestone.enabled`, `milestone.added`, `milestone.completed`, `milestone.released`, `milestone.auto_released`
+- `arbiter.registered`, `arbiter.unregistered`
+- `dispute.flagged`, `dispute.resolved`
+
+### 🎯 Missing Hooks Added
+
+**AgenticCommerceV6 hooks:**
+- `useEvaluatorPoolSize()` - Get evaluator pool count
+- `useEvaluatorStatus(address)` - Check if address is registered evaluator
 
 ### 📦 Files Created
 
@@ -88,6 +97,11 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 | `apps/web/app/dashboard/page.tsx` | Added ArbiterSection |
 | `apps/web/app/jobs/[id]/page.tsx` | Integrated MilestoneSection |
 | `apps/web/lib/caip.ts` | Removed 'use client' for SSR compatibility |
+| `apps/web/lib/webhooks/types.ts` | Added 12 milestone webhook types |
+| `apps/web/lib/webhooks/trigger.ts` | Added milestone event mappings |
+| `apps/web/lib/notifications/types.ts` | Added 9 milestone notification actions |
+| `apps/web/lib/hooks/useNotificationEvents.ts` | Added MilestoneEscrow event processing |
+| `apps/web/lib/hooks/useJobs.ts` | Added useEvaluatorPoolSize, useEvaluatorStatus |
 | `sdk/typescript/types.ts` | Added milestoneEscrow to ContractAddresses |
 | `sdk/typescript/client.ts` | Added MilestoneModule |
 | `cli/cli.ts` | Added 12 milestone/arbiter commands |

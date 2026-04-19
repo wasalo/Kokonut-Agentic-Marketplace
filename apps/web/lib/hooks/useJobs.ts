@@ -12,6 +12,8 @@ const AGENTIC_COMMERCE_ABI_WITH_NEW = AGENTIC_COMMERCE_ABI as typeof AGENTIC_COM
   | { name: 'createJobWithRandomEvaluator' }
   | { name: 'registerAsEvaluator' }
   | { name: 'unregisterAsEvaluator' }
+  | { name: 'getEvaluatorPoolSize' }
+  | { name: 'isEvaluator' }
 )[];
 
 const AGENTIC_COMMERCE_ADDRESS = getContractAddress('AGENTIC_COMMERCE');
@@ -846,6 +848,54 @@ export function useUnregisterAsEvaluator() {
     isPending,
     error,
     reset,
+  };
+}
+
+/**
+ * Get the size of the evaluator pool (number of registered evaluators).
+ */
+export function useEvaluatorPoolSize() {
+  const { data, isLoading, error, refetch } = useReadContract({
+    address: AGENTIC_COMMERCE_ADDRESS,
+    // eslint-disable-next-line @typescript-eslint/no-explicit-any
+    abi: AGENTIC_COMMERCE_ABI as any,
+    functionName: 'getEvaluatorPoolSize',
+    query: {
+      retry: 2,
+      staleTime: 60 * 1000,
+    },
+  });
+
+  return {
+    count: data ? Number(data) : 0,
+    isLoading,
+    error,
+    refetch,
+  };
+}
+
+/**
+ * Check if an address is a registered evaluator.
+ */
+export function useEvaluatorStatus(address: `0x${string}` | undefined) {
+  const { data, isLoading, error, refetch } = useReadContract({
+    address: AGENTIC_COMMERCE_ADDRESS,
+    // eslint-disable-next-line @typescript-eslint/no-explicit-any
+    abi: AGENTIC_COMMERCE_ABI as any,
+    functionName: 'isEvaluator',
+    args: address ? [address] : undefined,
+    query: {
+      retry: 2,
+      staleTime: 60 * 1000,
+      enabled: !!address,
+    },
+  });
+
+  return {
+    isEvaluator: data || false,
+    isLoading,
+    error,
+    refetch,
   };
 }
 

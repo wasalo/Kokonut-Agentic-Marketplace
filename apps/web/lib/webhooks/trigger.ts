@@ -70,6 +70,17 @@ export const NOTIFICATION_TO_WEBHOOK_MAP: Record<string, WebhookEventType> = {
   'feedback.revoked': 'feedback.revoked',
   'star.received': 'star.received',
   'star.removed': 'star.removed',
+  'milestone.enabled': 'milestone.enabled',
+  'milestone.added': 'milestone.added',
+  'milestone.completed': 'milestone.completed',
+  'milestone.released': 'milestone.released',
+  'milestone.auto_released': 'milestone.auto_released',
+  'arbiter.registered': 'arbiter.registered',
+  'arbiter.unregistered': 'arbiter.unregistered',
+  'dispute.flagged': 'dispute.flagged',
+  'dispute.evidence_submitted': 'dispute.evidence_submitted',
+  'dispute.resolved': 'dispute.resolved',
+  'dispute.arbiter_slashed': 'dispute.arbiter_slashed',
 };
 
 export function getWebhookEventFromNotification(

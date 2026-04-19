@@ -23,7 +23,18 @@ export type WebhookEventType =
   | 'feedback.received'
   | 'feedback.revoked'
   | 'star.received'
-  | 'star.removed';
+  | 'star.removed'
+  | 'milestone.enabled'
+  | 'milestone.added'
+  | 'milestone.completed'
+  | 'milestone.released'
+  | 'milestone.auto_released'
+  | 'arbiter.registered'
+  | 'arbiter.unregistered'
+  | 'dispute.flagged'
+  | 'dispute.evidence_submitted'
+  | 'dispute.resolved'
+  | 'dispute.arbiter_slashed';
 
 export interface WebhookPayload {
   id: string;
@@ -99,6 +110,17 @@ export const WEBHOOK_EVENT_LABELS: Record<WebhookEventType, string> = {
   'feedback.revoked': 'Feedback Revoked',
   'star.received': 'Star Received',
   'star.removed': 'Star Removed',
+  'milestone.enabled': 'Milestone Enabled',
+  'milestone.added': 'Milestone Added',
+  'milestone.completed': 'Milestone Completed',
+  'milestone.released': 'Milestone Released',
+  'milestone.auto_released': 'Milestone Auto-Released',
+  'arbiter.registered': 'Arbiter Registered',
+  'arbiter.unregistered': 'Arbiter Unregistered',
+  'dispute.flagged': 'Dispute Flagged',
+  'dispute.evidence_submitted': 'Dispute Evidence Submitted',
+  'dispute.resolved': 'Dispute Resolved',
+  'dispute.arbiter_slashed': 'Arbiter Slashed',
 };
 
 export const MAX_WEBHOOKS_PER_AGENT = 10;
