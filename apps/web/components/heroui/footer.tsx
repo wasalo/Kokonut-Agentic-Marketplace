@@ -36,7 +36,6 @@ const footerLinks = {
     { name: 'Admin', href: '/admin', icon: Shield },
   ],
   resources: [
-    { name: 'Documentation', href: 'https://docs.kokonut.network', icon: FileText },
     { name: 'GitHub', href: 'https://github.com/wasalo/Kokonut-Agentic-Marketplace', icon: Code2 },
     { name: 'Smart Contracts', href: '/contracts', icon: Code2 },
   ],
