@@ -186,13 +186,15 @@ The wildcard format (e.g., `10.108.1.*`) allows any IP in that subnet. Add expli
 | Contract                 | Address                                      | Purpose                    |
 | ------------------------ | -------------------------------------------- | -------------------------- |
 | **MilestoneEscrow**      | `0xf24eDD2d8e99c80d40e959b1F37636b6C04FF9A9` | Milestone payments (UUPS)  |
-| **MilestoneEscrow Impl** | `0xc163d6a68c0ed0cd897456E55B1e47103279e883` | Phase 24: Milestone system |
+| **MilestoneEscrow Impl** | `0x891498858f6f88dcf91f5ea5afb6434956a43400` | Phase 26: Pausable added |
 | **AgentSkillRegistryV2** | `0xA84684261558f342d6871DD2CFef90A2117Aa20A` | Skills/capabilities (UUPS) |
 | **ServiceRegistryV2**    | `0x62E1eeEa1A2Ab987004F35bDA430457Ed6077201` | Service listings (UUPS)    |
+| **ServiceRegistryV2 Impl** | `0x374d6bc33c1c04d37653d79966c6f057c40f0d5b` | Phase 26: Pausable + paymentAddress |
 | **AgenticCommerce**      | `0x948d97EA7F0c49796fB576ADff375C900627568E` | Job escrow (USDC, fund(expectedBudget))          |
 | **AgenticCommerce Impl** | `0xB8d0a16843d76622710b940eE67490525f57F083` | Front-running protection (April 18, 2026)        |
 | **AgentReviewV5**        | `0x5CDb592Fd37749bF87448FBf5725D1Cd986dd1Cb` | A/B evaluation             |
 | **BiddingSystem**        | `0x32c9d069a248a619d3EAc4dFC76F2639AaBeF04`  | Commit-reveal bidding      |
+| **BiddingSystem Impl**    | `0xabb714ea5b9e98e503a94dbebd0d2740f20f2e79` | Phase 26: Pausable added |
 | **ERC-8004 Identity**    | `0x8004A818BFB912233c491871b3d84c89A494BD9e` | Agent identities           |
 | **ERC-8004 Reputation**  | `0x8004B663056A597Dffe9eCcC1965A193B7388713` | Agent reputation           |
 

@@ -4,6 +4,7 @@ pragma solidity ^0.8.20;
 import "@openzeppelin/contracts-upgradeable/proxy/utils/UUPSUpgradeable.sol";
 import "@openzeppelin/contracts-upgradeable/proxy/utils/Initializable.sol";
 import "@openzeppelin/contracts-upgradeable/access/OwnableUpgradeable.sol";
+import "@openzeppelin/contracts-upgradeable/utils/PausableUpgradeable.sol";
 import "@openzeppelin/contracts/utils/ReentrancyGuard.sol";
 import "@openzeppelin/contracts/token/ERC20/IERC20.sol";
 import {IAgenticCommerceV6} from "../interfaces/IAgenticCommerceV6.sol";
@@ -27,11 +28,12 @@ import {IBiddingSystem} from "../interfaces/IBiddingSystem.sol";
  * - Access control via modifiers
  * - Input validation on all public functions
  */
-contract BiddingSystem is 
+contract BiddingSystem is
     Initializable,
     UUPSUpgradeable,
     OwnableUpgradeable,
     ReentrancyGuard,
+    PausableUpgradeable,
     IBiddingSystem
 {
     /***********************************/
@@ -116,9 +118,10 @@ contract BiddingSystem is
         require(owner_ != address(0), "Zero owner");
         require(commerce_ != address(0), "Zero commerce");
         require(treasury_ != address(0), "Zero treasury");
-        
+
         __Ownable_init(owner_);
-        
+        __Pausable_init();
+
         commerce = commerce_;
         treasury = treasury_;
         sessionCounter = 0;
@@ -131,18 +134,26 @@ contract BiddingSystem is
     /***********************************/
     
     function _authorizeUpgrade(address) internal override onlyOwner {}
-    
+
+    function pause() external onlyOwner {
+        _pause();
+    }
+
+    function unpause() external onlyOwner {
+        _unpause();
+    }
+
     /***********************************/
     /* Core Bidding Functions */
     /***********************************/
-    
+
     function createBiddingSession(
         address evaluator,
         uint256 maxBudget,
         uint256 deadline,
         bytes calldata metadata,
         uint256 serviceId
-    ) external payable nonReentrant returns (uint256 sessionId) {
+    ) external payable whenNotPaused nonReentrant returns (uint256 sessionId) {
         require(evaluator != address(0), "Zero evaluator");
         require(maxBudget > 0, "Zero budget");
         require(
@@ -195,11 +206,11 @@ contract BiddingSystem is
         );
     }
     
-    function commitBid(uint256 sessionId, bytes32 commitHash) 
-        external 
-        payable 
-        nonReentrant 
-        onlySessionActive(sessionId) 
+function commitBid(uint256 sessionId, bytes32 commitHash)
+        external
+        payable
+        whenNotPaused
+        nonReentrant
     {
         require(commitHash != bytes32(0), "Zero commitment");
         
@@ -247,7 +258,7 @@ contract BiddingSystem is
         uint256 amount,
         string calldata message,
         bytes32 salt
-    ) external nonReentrant onlyAfterDeadline(sessionId) {
+    ) external whenNotPaused nonReentrant onlyAfterDeadline(sessionId) {
         Session storage session = sessions[sessionId];
         
         // Check reveal window
@@ -276,10 +287,10 @@ contract BiddingSystem is
         emit BidRevealed(sessionId, msg.sender, amount, message);
     }
     
-    function acceptBid(uint256 sessionId, uint256 bidId) 
-        external 
-        nonReentrant 
-        onlySessionCreator(sessionId) 
+function acceptBid(uint256 sessionId, uint256 bidId)
+        external
+        whenNotPaused
+        nonReentrant
     {
         Session storage session = sessions[sessionId];
         

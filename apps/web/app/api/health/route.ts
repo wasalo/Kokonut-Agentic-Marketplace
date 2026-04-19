@@ -1,9 +1,16 @@
 import { NextResponse } from 'next/server';
 
 export async function GET() {
-  const checks = {
+  const checks: {
+    walletConnect: boolean;
+    rpc: boolean;
+    rpcLatency: number | undefined;
+    contracts: boolean;
+    environment: boolean;
+  } = {
     walletConnect: false,
     rpc: false,
+    rpcLatency: undefined,
     contracts: false,
     environment: false,
   };
@@ -14,25 +21,46 @@ export async function GET() {
     checks.walletConnect =
       !!projectId && projectId !== 'demo' && projectId !== 'your_walletconnect_project_id_here';
 
-    // Check RPC endpoint
-    try {
-      const rpcUrl =
-        process.env.NEXT_PUBLIC_SEPOLIA_RPC_URL || 'https://ethereum-sepolia.publicnode.com';
-      const response = await fetch(rpcUrl, {
-        method: 'POST',
-        headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify({
-          jsonrpc: '2.0',
-          method: 'eth_blockNumber',
-          params: [],
-          id: 1,
-        }),
-        signal: AbortSignal.timeout(5000),
-      });
-      checks.rpc = response.ok;
-    } catch {
-      checks.rpc = false;
+    // Check RPC endpoint with latency
+    const rpcUrls = [
+      process.env.NEXT_PUBLIC_SEPOLIA_RPC_URL || 'https://ethereum-sepolia.publicnode.com',
+      'https://eth-sepolia-public.unifra.io',
+      'https://sepolia.gateway.tenderly.co',
+    ];
+
+    let fastestLatency = null;
+    let primaryRpcOk = false;
+
+    for (const rpcUrl of rpcUrls) {
+      try {
+        const start = Date.now();
+        const response = await fetch(rpcUrl, {
+          method: 'POST',
+          headers: { 'Content-Type': 'application/json' },
+          body: JSON.stringify({
+            jsonrpc: '2.0',
+            method: 'eth_blockNumber',
+            params: [],
+            id: 1,
+          }),
+          signal: AbortSignal.timeout(5000),
+        });
+        const latency = Date.now() - start;
+
+        if (!primaryRpcOk && response.ok) {
+          primaryRpcOk = true;
+          checks.rpc = true;
+        }
+
+        if (fastestLatency === null || latency < fastestLatency) {
+          fastestLatency = latency;
+        }
+      } catch {
+        // Continue to next RPC
+      }
     }
+
+    checks.rpcLatency = fastestLatency ?? undefined;
 
     // Check contract addresses are configured
     const requiredContracts = [

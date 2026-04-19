@@ -50,7 +50,8 @@ contract ServiceRegistryV2Test is TestFixtures {
             "Test description",
             "metadata",
             price,
-            address(usdc)
+            address(usdc),
+            provider
         );
         
         assertEq(serviceId, 0);
@@ -68,14 +69,14 @@ contract ServiceRegistryV2Test is TestFixtures {
         vm.prank(provider);
         vm.expectEmit(true, true, true, true);
         emit ServiceCreated(0, provider, 1, "Test Service", 100_000_000);
-        serviceRegistry.createService{value: 0.01 ether}(1, "Test Service", "Test description", "metadata", 100_000_000, address(usdc));
+        serviceRegistry.createService{value: 0.01 ether}(1, "Test Service", "Test description", "metadata", 100_000_000, address(usdc), address(0));
     }
     
     function test_CreateService_UpdatesActiveCount() public {
         uint256 countBefore = serviceRegistry.getActiveServiceCount();
         
         vm.prank(provider);
-        serviceRegistry.createService{value: 0.01 ether}(1, "Service 1", "Desc", "", 100, address(usdc));
+        serviceRegistry.createService{value: 0.01 ether}(1, "Service 1", "Desc", "", 100, address(usdc), address(0));
         
         assertEq(serviceRegistry.getActiveServiceCount(), countBefore + 1);
     }
@@ -83,25 +84,25 @@ contract ServiceRegistryV2Test is TestFixtures {
     function test_CreateService_NotAgentOwner_Reverts() public {
         vm.prank(client); // client doesn't own agent 1
         vm.expectRevert("Not agent owner");
-        serviceRegistry.createService{value: 0.01 ether}(1, "Service", "Desc", "", 100, address(usdc));
+        serviceRegistry.createService{value: 0.01 ether}(1, "Service", "Desc", "", 100, address(usdc), address(0));
     }
     
     function test_CreateService_EmptyName_Reverts() public {
         vm.prank(provider);
         vm.expectRevert("Name required");
-        serviceRegistry.createService{value: 0.01 ether}(1, "", "Desc", "", 100, address(usdc));
+        serviceRegistry.createService{value: 0.01 ether}(1, "", "Desc", "", 100, address(usdc), address(0));
     }
 
     function test_CreateService_ZeroPrice_Reverts() public {
         vm.prank(provider);
         vm.expectRevert("Price must be greater than 0");
-        serviceRegistry.createService{value: 0.01 ether}(1, "Service", "Desc", "", 0, address(usdc));
+        serviceRegistry.createService{value: 0.01 ether}(1, "Service", "Desc", "", 0, address(usdc), address(0));
     }
 
     function test_CreateService_ZeroPaymentToken_Reverts() public {
         vm.prank(provider);
         vm.expectRevert("Invalid payment token");
-        serviceRegistry.createService{value: 0.01 ether}(1, "Service", "Desc", "", 100, address(0));
+        serviceRegistry.createService{value: 0.01 ether}(1, "Service", "Desc", "", 100, address(0), address(0));
     }
     
     // =====================================================
@@ -110,7 +111,7 @@ contract ServiceRegistryV2Test is TestFixtures {
     
     function test_UpdateService_Success() public {
         vm.prank(provider);
-        uint256 serviceId = serviceRegistry.createService{value: 0.01 ether}(1, "Original", "Desc", "", 100, address(usdc));
+        uint256 serviceId = serviceRegistry.createService{value: 0.01 ether}(1, "Original", "Desc", "", 100, address(usdc), address(0));
         
         vm.prank(provider);
         serviceRegistry.updateService(serviceId, "Updated", "New desc", "new metadata", 200);
@@ -124,7 +125,7 @@ contract ServiceRegistryV2Test is TestFixtures {
     
     function test_UpdateService_EmitsEvent() public {
         vm.prank(provider);
-        uint256 serviceId = serviceRegistry.createService{value: 0.01 ether}(1, "Original", "Desc", "", 100, address(usdc));
+        uint256 serviceId = serviceRegistry.createService{value: 0.01 ether}(1, "Original", "Desc", "", 100, address(usdc), address(0));
         
         vm.prank(provider);
         vm.expectEmit(true, false, false, false);
@@ -134,7 +135,7 @@ contract ServiceRegistryV2Test is TestFixtures {
     
     function test_UpdateService_NotProvider_Reverts() public {
         vm.prank(provider);
-        uint256 serviceId = serviceRegistry.createService{value: 0.01 ether}(1, "Service", "Desc", "", 100, address(usdc));
+        uint256 serviceId = serviceRegistry.createService{value: 0.01 ether}(1, "Service", "Desc", "", 100, address(usdc), address(0));
 
         vm.prank(client);
         vm.expectRevert("Not owner");
@@ -143,7 +144,7 @@ contract ServiceRegistryV2Test is TestFixtures {
 
     function test_UpdateService_NotActive_Reverts() public {
         vm.prank(provider);
-        uint256 serviceId = serviceRegistry.createService{value: 0.01 ether}(1, "Service", "Desc", "", 100, address(usdc));
+        uint256 serviceId = serviceRegistry.createService{value: 0.01 ether}(1, "Service", "Desc", "", 100, address(usdc), address(0));
 
         vm.prank(provider);
         serviceRegistry.deactivateService(serviceId);
@@ -155,7 +156,7 @@ contract ServiceRegistryV2Test is TestFixtures {
 
     function test_UpdateService_EmptyName_Reverts() public {
         vm.prank(provider);
-        uint256 serviceId = serviceRegistry.createService{value: 0.01 ether}(1, "Service", "Desc", "", 100, address(usdc));
+        uint256 serviceId = serviceRegistry.createService{value: 0.01 ether}(1, "Service", "Desc", "", 100, address(usdc), address(0));
 
         vm.prank(provider);
         vm.expectRevert("Name required");
@@ -164,7 +165,7 @@ contract ServiceRegistryV2Test is TestFixtures {
 
     function test_UpdateService_ZeroPrice_Reverts() public {
         vm.prank(provider);
-        uint256 serviceId = serviceRegistry.createService{value: 0.01 ether}(1, "Service", "Desc", "", 100, address(usdc));
+        uint256 serviceId = serviceRegistry.createService{value: 0.01 ether}(1, "Service", "Desc", "", 100, address(usdc), address(0));
 
         vm.prank(provider);
         vm.expectRevert("Price required");
@@ -177,7 +178,7 @@ contract ServiceRegistryV2Test is TestFixtures {
     
     function test_DeactivateService_Success() public {
         vm.prank(provider);
-        uint256 serviceId = serviceRegistry.createService{value: 0.01 ether}(1, "Service", "Desc", "", 100, address(usdc));
+        uint256 serviceId = serviceRegistry.createService{value: 0.01 ether}(1, "Service", "Desc", "", 100, address(usdc), address(0));
         
         uint256 countBefore = serviceRegistry.getActiveServiceCount();
         
@@ -191,7 +192,7 @@ contract ServiceRegistryV2Test is TestFixtures {
     
     function test_DeactivateService_EmitsEvent() public {
         vm.prank(provider);
-        uint256 serviceId = serviceRegistry.createService{value: 0.01 ether}(1, "Service", "Desc", "", 100, address(usdc));
+        uint256 serviceId = serviceRegistry.createService{value: 0.01 ether}(1, "Service", "Desc", "", 100, address(usdc), address(0));
         
         vm.prank(provider);
         vm.expectEmit(true, false, false, false);
@@ -201,7 +202,7 @@ contract ServiceRegistryV2Test is TestFixtures {
     
     function test_DeactivateService_NotProvider_Reverts() public {
         vm.prank(provider);
-        uint256 serviceId = serviceRegistry.createService{value: 0.01 ether}(1, "Service", "Desc", "", 100, address(usdc));
+        uint256 serviceId = serviceRegistry.createService{value: 0.01 ether}(1, "Service", "Desc", "", 100, address(usdc), address(0));
 
         vm.prank(client);
         vm.expectRevert("Not owner");
@@ -210,7 +211,7 @@ contract ServiceRegistryV2Test is TestFixtures {
     
     function test_DeactivateService_AlreadyInactive_Reverts() public {
         vm.prank(provider);
-        uint256 serviceId = serviceRegistry.createService{value: 0.01 ether}(1, "Service", "Desc", "", 100, address(usdc));
+        uint256 serviceId = serviceRegistry.createService{value: 0.01 ether}(1, "Service", "Desc", "", 100, address(usdc), address(0));
         
         vm.prank(provider);
         serviceRegistry.deactivateService(serviceId);
@@ -226,7 +227,7 @@ contract ServiceRegistryV2Test is TestFixtures {
     
     function test_ActivateService_Success() public {
         vm.prank(provider);
-        uint256 serviceId = serviceRegistry.createService{value: 0.01 ether}(1, "Service", "Desc", "", 100, address(usdc));
+        uint256 serviceId = serviceRegistry.createService{value: 0.01 ether}(1, "Service", "Desc", "", 100, address(usdc), address(0));
         
         // Deactivate first
         vm.prank(provider);
@@ -247,7 +248,7 @@ contract ServiceRegistryV2Test is TestFixtures {
     
     function test_ActivateService_UpdatesActiveCount() public {
         vm.prank(provider);
-        uint256 serviceId = serviceRegistry.createService{value: 0.01 ether}(1, "Service", "Desc", "", 100, address(usdc));
+        uint256 serviceId = serviceRegistry.createService{value: 0.01 ether}(1, "Service", "Desc", "", 100, address(usdc), address(0));
         
         assertEq(serviceRegistry.getActiveServiceCount(), 1);
         
@@ -264,7 +265,7 @@ contract ServiceRegistryV2Test is TestFixtures {
     
     function test_ActivateService_EmitsEvent() public {
         vm.prank(provider);
-        uint256 serviceId = serviceRegistry.createService{value: 0.01 ether}(1, "Service", "Desc", "", 100, address(usdc));
+        uint256 serviceId = serviceRegistry.createService{value: 0.01 ether}(1, "Service", "Desc", "", 100, address(usdc), address(0));
         
         vm.prank(provider);
         serviceRegistry.deactivateService(serviceId);
@@ -277,7 +278,7 @@ contract ServiceRegistryV2Test is TestFixtures {
     
     function test_ActivateService_NotProvider_Reverts() public {
         vm.prank(provider);
-        uint256 serviceId = serviceRegistry.createService{value: 0.01 ether}(1, "Service", "Desc", "", 100, address(usdc));
+        uint256 serviceId = serviceRegistry.createService{value: 0.01 ether}(1, "Service", "Desc", "", 100, address(usdc), address(0));
         
         vm.prank(provider);
         serviceRegistry.deactivateService(serviceId);
@@ -289,7 +290,7 @@ contract ServiceRegistryV2Test is TestFixtures {
     
     function test_ActivateService_AlreadyActive_Reverts() public {
         vm.prank(provider);
-        uint256 serviceId = serviceRegistry.createService{value: 0.01 ether}(1, "Service", "Desc", "", 100, address(usdc));
+        uint256 serviceId = serviceRegistry.createService{value: 0.01 ether}(1, "Service", "Desc", "", 100, address(usdc), address(0));
         
         vm.prank(provider);
         vm.expectRevert("Already active");
@@ -308,7 +309,7 @@ contract ServiceRegistryV2Test is TestFixtures {
     
     function test_GetService_Success() public {
         vm.prank(provider);
-        uint256 serviceId = serviceRegistry.createService{value: 0.01 ether}(1, "Service", "Desc", "metadata", 100, address(usdc));
+        uint256 serviceId = serviceRegistry.createService{value: 0.01 ether}(1, "Service", "Desc", "metadata", 100, address(usdc), address(0));
         
         ServiceRegistryV2.Service memory service = serviceRegistry.getService(serviceId);
         assertEq(service.id, serviceId);
@@ -324,8 +325,8 @@ contract ServiceRegistryV2Test is TestFixtures {
     
     function test_GetProviderServices_Success() public {
         vm.startPrank(provider);
-        uint256 s1 = serviceRegistry.createService{value: 0.01 ether}(1, "Service 1", "Desc", "", 100, address(usdc));
-        uint256 s2 = serviceRegistry.createService{value: 0.01 ether}(1, "Service 2", "Desc", "", 200, address(usdc));
+        uint256 s1 = serviceRegistry.createService{value: 0.01 ether}(1, "Service 1", "Desc", "", 100, address(usdc), address(0));
+        uint256 s2 = serviceRegistry.createService{value: 0.01 ether}(1, "Service 2", "Desc", "", 200, address(usdc), address(0));
         vm.stopPrank();
         
         uint256[] memory services = serviceRegistry.getProviderServices(provider);
@@ -339,8 +340,8 @@ contract ServiceRegistryV2Test is TestFixtures {
         mockAgentRegistry.mint(provider, 2);
         
         vm.startPrank(provider);
-        uint256 s1 = serviceRegistry.createService{value: 0.01 ether}(1, "Agent 1 Service", "Desc", "", 100, address(usdc));
-        uint256 s2 = serviceRegistry.createService{value: 0.01 ether}(2, "Agent 2 Service", "Desc", "", 200, address(usdc));
+        uint256 s1 = serviceRegistry.createService{value: 0.01 ether}(1, "Agent 1 Service", "Desc", "", 100, address(usdc), address(0));
+        uint256 s2 = serviceRegistry.createService{value: 0.01 ether}(2, "Agent 2 Service", "Desc", "", 200, address(usdc), address(0));
         vm.stopPrank();
         
         uint256[] memory agent1Services = serviceRegistry.getServicesByAgent(1);
@@ -359,7 +360,7 @@ contract ServiceRegistryV2Test is TestFixtures {
             mockAgentRegistry.mint(p, i + 2);
             vm.deal(p, 1 ether);
             vm.prank(p);
-            serviceRegistry.createService{value: 0.01 ether}(i + 2, string.concat("Service ", vm.toString(i)), "Desc", "", 100, address(usdc));
+            serviceRegistry.createService{value: 0.01 ether}(i + 2, string.concat("Service ", vm.toString(i)), "Desc", "", 100, address(usdc), address(0));
         }
         
         // Should be O(1) regardless of service count
@@ -378,7 +379,7 @@ contract ServiceRegistryV2Test is TestFixtures {
             mockAgentRegistry.mint(p, i + 2);
             vm.deal(p, 1 ether);
             vm.prank(p);
-            serviceRegistry.createService{value: 0.01 ether}(i + 2, string.concat("S", vm.toString(i)), "Desc", "", 100, address(usdc));
+            serviceRegistry.createService{value: 0.01 ether}(i + 2, string.concat("S", vm.toString(i)), "Desc", "", 100, address(usdc), address(0));
         }
         
         uint256[] memory services = serviceRegistry.getServices(0, 3);
@@ -440,7 +441,7 @@ contract ServiceRegistryV2Test is TestFixtures {
         // Verify still works
         mockAgentRegistry.mint(client, 99);
         vm.prank(client);
-        uint256 serviceId = serviceRegistry.createService{value: 0.01 ether}(99, "Test", "Desc", "", 100, address(usdc));
+        uint256 serviceId = serviceRegistry.createService{value: 0.01 ether}(99, "Test", "Desc", "", 100, address(usdc), address(0));
         assertEq(serviceId, 0);
     }
     
@@ -463,7 +464,7 @@ contract ServiceRegistryV2Test is TestFixtures {
             mockAgentRegistry.mint(p, i + 2);
             vm.deal(p, 2 ether);
             vm.prank(p);
-            serviceRegistry.createService{value: 0.01 ether}(i + 2, string.concat("S", vm.toString(i)), "Desc", "", 100, address(usdc));
+            serviceRegistry.createService{value: 0.01 ether}(i + 2, string.concat("S", vm.toString(i)), "Desc", "", 100, address(usdc), address(0));
         }
         
         // Deactivate 50 services

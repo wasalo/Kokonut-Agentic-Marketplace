@@ -127,7 +127,8 @@ contract TestFixtures is Test {
             "Test service description",
             "",
             price,
-            address(usdc)
+            address(usdc),
+            serviceProvider // paymentAddress (defaults to provider)
         );
     }
     

@@ -3,6 +3,7 @@ pragma solidity ^0.8.20;
 
 import "@openzeppelin/contracts-upgradeable/access/OwnableUpgradeable.sol";
 import "@openzeppelin/contracts-upgradeable/proxy/utils/UUPSUpgradeable.sol";
+import "@openzeppelin/contracts-upgradeable/utils/PausableUpgradeable.sol";
 import {ERC1967Utils} from "@openzeppelin/contracts/proxy/ERC1967/ERC1967Utils.sol";
 import {IIdentityRegistry} from "../interfaces/IIdentityRegistry.sol";
 
@@ -14,6 +15,7 @@ interface IServiceRegistryV2 {
     struct Service {
         uint256 id;
         address provider;
+        address paymentAddress;
         uint256 agentId;
         string name;
         string description;
@@ -23,14 +25,15 @@ interface IServiceRegistryV2 {
         bool isActive;
         uint256 createdAt;
     }
-    
+
     function createService(
         uint256 agentId,
         string calldata name,
         string calldata description,
         string calldata metadataURI,
         uint256 price,
-        address paymentToken
+        address paymentToken,
+        address paymentAddress
     ) external payable returns (uint256 serviceId);
     
     function updateService(
@@ -43,6 +46,7 @@ interface IServiceRegistryV2 {
     
     function deactivateService(uint256 serviceId) external;
     function activateService(uint256 serviceId) external;
+    function setPaymentAddress(uint256 serviceId, address paymentAddress) external;
     function getService(uint256 serviceId) external view returns (Service memory);
     function getProviderServices(address provider) external view returns (uint256[] memory);
     function getServicesByAgent(uint256 agentId) external view returns (uint256[] memory);
@@ -76,14 +80,16 @@ interface IServiceRegistryV2 {
  * - L7: Uses OZ _getImplementation() instead of inline assembly
  * - M2: Uses IIdentityRegistry.getAgent() to check isActive status (Phase 13)
  */
-contract ServiceRegistryV2 is 
-    IServiceRegistryV2, 
-    OwnableUpgradeable, 
-    UUPSUpgradeable
+contract ServiceRegistryV2 is
+    IServiceRegistryV2,
+    OwnableUpgradeable,
+    UUPSUpgradeable,
+    PausableUpgradeable
 {
     
     struct ServiceData {
         address provider;
+        address paymentAddress;
         uint256 agentId;
         string name;
         string description;
@@ -138,9 +144,10 @@ contract ServiceRegistryV2 is
      */
     function initialize(address _identityRegistry, address initialOwner) public initializer {
         require(_identityRegistry != address(0), "Invalid identity registry");
-        
+
         __Ownable_init(initialOwner);
-        
+        __Pausable_init();
+
         identityRegistry = IIdentityRegistry(_identityRegistry);
         _serviceCounter = 0;
         _activeServiceCount = 0;
@@ -151,7 +158,15 @@ contract ServiceRegistryV2 is
      * @dev Authorize upgrades (only owner can upgrade)
      */
     function _authorizeUpgrade(address newImplementation) internal override onlyOwner {}
-    
+
+    function pause() external onlyOwner {
+        _pause();
+    }
+
+    function unpause() external onlyOwner {
+        _unpause();
+    }
+
     /**
      * @dev Verify agent ownership and active status using IIdentityRegistry.getAgent()
      * M2 Fix: Now checks isActive status - deactivated agents cannot create services
@@ -173,21 +188,28 @@ contract ServiceRegistryV2 is
         string calldata description,
         string calldata metadataURI,
         uint256 price,
-        address paymentToken
-    ) external payable returns (uint256 serviceId) {
+        address paymentToken,
+        address paymentAddress
+    ) external payable whenNotPaused returns (uint256 serviceId) {
         require(bytes(name).length > 0, "Name required");
         require(bytes(description).length > 0, "Description required");
         require(price > 0, "Price must be greater than 0");
         require(paymentToken != address(0), "Invalid payment token");
         require(msg.value >= SERVICE_BOND_AMOUNT, "Bond required"); // M3 Fix
-        
+
         address agentOwner = _verifyAgentOwnership(agentId);
         require(agentOwner == msg.sender, "Not agent owner");
-        
+
+        // paymentAddress defaults to provider if not set
+        if (paymentAddress == address(0)) {
+            paymentAddress = msg.sender;
+        }
+
         serviceId = _serviceCounter++;
-        
+
         _services[serviceId] = ServiceData({
             provider: msg.sender,
+            paymentAddress: paymentAddress,
             agentId: agentId,
             name: name,
             description: description,
@@ -220,7 +242,7 @@ contract ServiceRegistryV2 is
         string calldata description,
         string calldata metadataURI,
         uint256 price
-    ) external {
+    ) external whenNotPaused {
         require(serviceId < _serviceCounter, "Invalid serviceId");
         require(_services[serviceId].provider == msg.sender, "Not owner");
         require(_services[serviceId].isActive, "Service inactive");
@@ -238,7 +260,7 @@ contract ServiceRegistryV2 is
     /**
      * @dev Deactivate service (soft delete)
      */
-    function deactivateService(uint256 serviceId) external {
+    function deactivateService(uint256 serviceId) external whenNotPaused {
         require(serviceId < _serviceCounter, "Invalid serviceId");
         require(_services[serviceId].provider == msg.sender, "Not owner");
         require(_services[serviceId].isActive, "Already inactive");
@@ -254,7 +276,7 @@ contract ServiceRegistryV2 is
     /**
      * @dev Activate a previously deactivated service
      */
-    function activateService(uint256 serviceId) external {
+    function activateService(uint256 serviceId) external whenNotPaused {
         require(serviceId < _serviceCounter, "Invalid serviceId");
         require(_services[serviceId].provider == msg.sender, "Not owner");
         require(!_services[serviceId].isActive, "Already active");
@@ -266,7 +288,22 @@ contract ServiceRegistryV2 is
 
         emit ServiceActivated(serviceId);
     }
-    
+
+    /**
+     * @dev Set payment address for a service
+     * @param serviceId The service ID
+     * @param paymentAddress The address to receive payments
+     */
+    function setPaymentAddress(uint256 serviceId, address paymentAddress) external whenNotPaused {
+        require(serviceId < _serviceCounter, "Invalid serviceId");
+        require(_services[serviceId].provider == msg.sender, "Not owner");
+        require(paymentAddress != address(0), "Invalid payment address");
+
+        _services[serviceId].paymentAddress = paymentAddress;
+
+        emit ServiceUpdated(serviceId);
+    }
+
     /**
      * @dev Deactivate all services when agent is deactivated (callback from IdentityRegistry)
      * M2 Fix: Called when agent's identity is deactivated
@@ -324,6 +361,7 @@ contract ServiceRegistryV2 is
         return Service({
             id: serviceId,
             provider: data.provider,
+            paymentAddress: data.paymentAddress,
             agentId: data.agentId,
             name: data.name,
             description: data.description,

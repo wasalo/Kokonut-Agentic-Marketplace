@@ -4,6 +4,7 @@ pragma solidity ^0.8.20;
 import "@openzeppelin/contracts-upgradeable/access/OwnableUpgradeable.sol";
 import "@openzeppelin/contracts-upgradeable/proxy/utils/UUPSUpgradeable.sol";
 import "@openzeppelin/contracts-upgradeable/utils/ContextUpgradeable.sol";
+import "@openzeppelin/contracts-upgradeable/utils/PausableUpgradeable.sol";
 import "@openzeppelin/contracts/token/ERC20/IERC20.sol";
 import "@openzeppelin/contracts/token/ERC20/utils/SafeERC20.sol";
 import "@openzeppelin/contracts/utils/ReentrancyGuard.sol";
@@ -22,7 +23,8 @@ contract MilestoneEscrow is
     ContextUpgradeable,
     OwnableUpgradeable, 
     UUPSUpgradeable, 
-    ReentrancyGuard
+    ReentrancyGuard,
+    PausableUpgradeable
 {
     using SafeERC20 for IERC20;
 
@@ -141,9 +143,10 @@ contract MilestoneEscrow is
         __Context_init();
         __Ownable_init(initialOwner);
         __UUPSUpgradeable_init();
-        
+        __Pausable_init();
+
         agenticCommerce = _agenticCommerce;
-        
+
         emit AgenticCommerceSet(address(0), _agenticCommerce);
     }
 
@@ -156,10 +159,18 @@ contract MilestoneEscrow is
     /***********************************/
     /* Admin Functions */
     /***********************************/
-    
+
     function setAgenticCommerce(address _agenticCommerce) external onlyOwner {
         emit AgenticCommerceSet(agenticCommerce, _agenticCommerce);
         agenticCommerce = _agenticCommerce;
+    }
+
+    function pause() external onlyOwner {
+        _pause();
+    }
+
+    function unpause() external onlyOwner {
+        _unpause();
     }
 
     /***********************************/
@@ -180,7 +191,7 @@ contract MilestoneEscrow is
         address provider,
         address paymentToken,
         uint256 totalBudget
-    ) external {
+    ) external whenNotPaused {
         if (_msgSender() != agenticCommerce) revert Unauthorized();
         
         jobMilestones[jobId].client = client;
@@ -204,7 +215,7 @@ contract MilestoneEscrow is
         string calldata description,
         uint256 amount,
         uint256 dueDate
-    ) external {
+    ) external whenNotPaused {
         JobMilestones storage jm = jobMilestones[jobId];
         if (jm.client == address(0)) revert InvalidJob();
         if (_msgSender() != jm.client) revert Unauthorized();
@@ -241,7 +252,7 @@ contract MilestoneEscrow is
         uint256 jobId,
         uint256 milestoneIndex,
         bytes32 proofHash
-    ) external {
+    ) external whenNotPaused {
         JobMilestones storage jm = jobMilestones[jobId];
         if (jm.provider == address(0)) revert InvalidJob();
         if (_msgSender() != jm.provider) revert Unauthorized();
@@ -264,9 +275,10 @@ contract MilestoneEscrow is
      * @param jobId The job ID
      * @param milestoneIndex The milestone index
      */
-    function releaseMilestone(uint256 jobId, uint256 milestoneIndex) 
-        external 
-        nonReentrant 
+    function releaseMilestone(uint256 jobId, uint256 milestoneIndex)
+        external
+        whenNotPaused
+        nonReentrant
     {
         JobMilestones storage jm = jobMilestones[jobId];
         if (jm.provider == address(0)) revert InvalidJob();
@@ -431,7 +443,7 @@ contract MilestoneEscrow is
      * @param jobId The job ID
      * @param evidenceHash Hash of evidence
      */
-    function submitEvidence(uint256 jobId, bytes32 evidenceHash) external {
+    function submitEvidence(uint256 jobId, bytes32 evidenceHash) external whenNotPaused {
         Dispute storage dispute = disputes[jobId];
         if (dispute.flaggedAt == 0) revert DisputeNotActive();
         if (dispute.resolved) revert DisputeAlreadyResolved();
@@ -447,9 +459,10 @@ contract MilestoneEscrow is
      * @param jobId The job ID
      * @param releaseToProvider True to release, false to refund
      */
-    function resolveDispute(uint256 jobId, bool releaseToProvider) 
-        external 
-        nonReentrant 
+    function resolveDispute(uint256 jobId, bool releaseToProvider)
+        external
+        whenNotPaused
+        nonReentrant
     {
         Dispute storage dispute = disputes[jobId];
         if (dispute.arbiter != _msgSender()) revert OnlyArbiterOrParty();

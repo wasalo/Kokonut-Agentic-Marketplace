@@ -5,6 +5,89 @@ All notable changes to the Kokonut Agent Economy Stack are documented in this fi
 The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.0.0/),
 and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0.html).
 
+## [2026-04-19] - Phase 26: Circuit Breaker & User Onboarding
+
+### 🎯 Pausable Upgrade (Circuit Breaker)
+
+Added `PausableUpgradeable` to 3 contracts for emergency circuit breaker functionality:
+
+| Contract | Proxy | New Implementation |
+|----------|-------|-------------------|
+| ServiceRegistryV2 | `0x62E1...` | `0x374d6bc33c1c04d37653d79966c6f057c40f0d5b` |
+| MilestoneEscrow | `0xf24e...` | `0x891498858f6f88dcf91f5ea5afb6434956a43400` |
+| BiddingSystem | `0x32c9...` | `0xabb714ea5b9e98e503a94dbebd0d2740f20f2e79` |
+
+**Functions added:**
+- `pause()` - Owner can pause contract (emergency stop)
+- `unpause()` - Owner can unpause contract (resume operations)
+- `paused()` - View function to check pause status
+- `whenNotPaused` - Modifier blocking operations when paused
+
+**Functions protected:**
+- ServiceRegistryV2: createService, updateService, activateService, deactivateService
+- MilestoneEscrow: enableMilestones, addMilestone, completeMilestone, releaseMilestone, submitEvidence, resolveDispute
+- BiddingSystem: createBiddingSession, commitBid, revealBid, acceptBid
+
+### 🎯 Payment Address for Sellers
+
+Added `paymentAddress` field to Service struct for sellers to receive payments at different address than their wallet:
+
+**Contract changes:**
+- Added `paymentAddress` field to `ServiceData` struct
+- Added `paymentAddress` parameter to `createService()` function
+- Added `setPaymentAddress(serviceId, newAddress)` function
+- Updated `getService()` return to include paymentAddress
+
+### 🎯 User Onboarding Pages
+
+Created new pages to improve user onboarding:
+
+**`/onboarding` page:**
+- 3-step guided flow (Connect → Register → Create Service)
+- Progress bar showing completion status
+- Skip options for experienced users
+
+**`/contact` page:**
+- Feedback form with category selection
+- Native HTML form elements (heroui v3 compatibility)
+- Direct email for urgent issues
+
+### 🎯 Health API Enhancement
+
+Enhanced `/api/health` with RPC fallback testing:
+
+- Primary and fallback RPC latency measurement
+- Response includes RPC performance metrics
+- Connection status for each configured RPC
+
+### 📦 Files Created
+
+| File | Purpose |
+|------|---------|
+| `app/onboarding/page.tsx` | New onboarding page |
+| `app/contact/page.tsx` | New contact/feedback page |
+| `contracts/script/UpgradeServiceRegistryV2.s.sol` | Upgrade script |
+| `contracts/script/UpgradeMilestoneEscrow.s.sol` | Upgrade script |
+| `contracts/script/UpgradeBiddingSystem.s.sol` | Upgrade script |
+
+### 📦 Files Modified
+
+| File | Changes |
+|------|--------|
+| `contracts/shared/ServiceRegistryV2.sol` | Added Pausable + paymentAddress |
+| `contracts/shared/MilestoneEscrow.sol` | Added Pausable |
+| `contracts/shared/BiddingSystem.sol` | Added Pausable |
+| `contracts/interfaces/IServiceRegistryV2.sol` | Added paymentAddress to interface |
+| `app/api/health/route.ts` | Added RPC fallback testing |
+
+### ✅ Build Status
+
+- TypeScript: 0 errors
+- Forge Tests: 35 ServiceRegistryV2 tests pass
+- All 3 contracts: pause/unpause tested on Sepolia
+
+---
+
 ## [2026-04-19] - Phase 25: x402 HTTP Payment Protocol
 
 ### 🎯 x402 Protocol Integration
