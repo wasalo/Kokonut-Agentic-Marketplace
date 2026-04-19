@@ -58,8 +58,10 @@ export default function ContactPage() {
       <Card className="p-6">
         <form onSubmit={handleSubmit} className="space-y-4">
           <div className="space-y-1">
-            <label className="text-sm font-medium">Name</label>
+            <label htmlFor="name" className="text-sm font-medium">Name</label>
             <input
+              id="name"
+              name="name"
               type="text"
               className="w-full p-2 rounded-lg border border-divider bg-default"
               placeholder="Your name"
@@ -69,8 +71,10 @@ export default function ContactPage() {
           </div>
 
           <div className="space-y-1">
-            <label className="text-sm font-medium">Email *</label>
+            <label htmlFor="email" className="text-sm font-medium">Email *</label>
             <input
+              id="email"
+              name="email"
               type="email"
               className="w-full p-2 rounded-lg border border-divider bg-default"
               placeholder="your@email.com"
@@ -81,8 +85,10 @@ export default function ContactPage() {
           </div>
 
           <div className="space-y-1">
-            <label className="text-sm font-medium">Category</label>
+            <label htmlFor="category" className="text-sm font-medium">Category</label>
             <select
+              id="category"
+              name="category"
               className="w-full p-2 rounded-lg border border-divider bg-default"
               value={formData.category}
               onChange={(e) => setFormData({ ...formData, category: e.target.value })}
@@ -96,8 +102,10 @@ export default function ContactPage() {
           </div>
 
           <div className="space-y-1">
-            <label className="text-sm font-medium">Message *</label>
+            <label htmlFor="message" className="text-sm font-medium">Message *</label>
             <textarea
+              id="message"
+              name="message"
               className="w-full p-2 rounded-lg border border-divider bg-default min-h-[120px]"
               placeholder="Tell us what's on your mind..."
               value={formData.message}

@@ -60,15 +60,33 @@ Enhanced `/api/health` with RPC fallback testing:
 - Response includes RPC performance metrics
 - Connection status for each configured RPC
 
+### 🎯 Legal Pages Expansion
+
+Expanded legal documentation pages for better user transparency:
+
+**`/terms` page expanded (257 lines):**
+- Definitions, Eligibility, Platform Use sections
+- Escrow & Payments, Intellectual Property
+- Dispute Resolution, Termination
+- Disclaimers, Limitation of Liability
+
+**`/privacy` page expanded (170 lines):**
+- Data Retention, Your Rights, Security
+- Third-Party Services, Cookies
+- Changes to Policy, Contact info
+
+**Documentation created:**
+- `docs/TERMS.md` - Full terms document
+- `docs/PRIVACY.md` - Full privacy policy
+
 ### 📦 Files Created
 
 | File | Purpose |
 |------|---------|
 | `app/onboarding/page.tsx` | New onboarding page |
 | `app/contact/page.tsx` | New contact/feedback page |
-| `contracts/script/UpgradeServiceRegistryV2.s.sol` | Upgrade script |
-| `contracts/script/UpgradeMilestoneEscrow.s.sol` | Upgrade script |
-| `contracts/script/UpgradeBiddingSystem.s.sol` | Upgrade script |
+| `docs/TERMS.md` | Full terms document |
+| `docs/PRIVACY.md` | Full privacy policy |
 
 ### 📦 Files Modified
 
