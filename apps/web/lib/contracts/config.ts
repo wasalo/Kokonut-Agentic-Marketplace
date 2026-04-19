@@ -1,5 +1,5 @@
 // Contract addresses with fallbacks for Sepolia testnet
-// Phase 18: AgenticCommerceV6 + AgentReviewV5 - Event Enhancements, Median Evaluator (Deployed 2026-04-08)
+// Phase 24: MilestoneEscrow deployed (Deployed 2026-04-18)
 
 // CAIP-2 based contract addresses for multi-chain support
 // Format: eip155:<chainId> - matching CAIP-2 standard
@@ -37,11 +37,14 @@ const sepoliaContracts = {
   slashManager: '0x1B8373cDF4f2eD740c3478e0129f0B8494CE4Fa3',
   slashManagerImpl: '0x240eeC04F12d11eE6e4d03B00FB2148bFD4887F9',
 
+  // Phase 24: MilestoneEscrow - Milestone payments and dispute resolution
+  milestoneEscrow: '0xf24eDD2d8e99c80d40e959b1F37636b6C04FF9A9',
+  milestoneEscrowImpl: '0xc163d6a68c0ed0cd897456E55B1e47103279e883',
+
   // Tokens
   usdc: '0x1c7D4B196Cb0C7B01d743Fbc6116a902379C7238',
 };
 
-// Empty placeholders for future chains (ready for deployment)
 const emptyChainContracts = {
   erc8004Registry: undefined,
   erc8004Reputation: undefined,
@@ -60,6 +63,8 @@ const emptyChainContracts = {
   commitRevealImpl: undefined,
   slashManager: undefined,
   slashManagerImpl: undefined,
+  milestoneEscrow: undefined,
+  milestoneEscrowImpl: undefined,
   usdc: undefined,
 };
 
@@ -81,6 +86,8 @@ export interface ChainContracts {
   commitRevealImpl?: `0x${string}`;
   slashManager?: `0x${string}`;
   slashManagerImpl?: `0x${string}`;
+  milestoneEscrow?: `0x${string}`;
+  milestoneEscrowImpl?: `0x${string}`;
   usdc?: `0x${string}`;
 }
 
@@ -143,9 +150,8 @@ export const CONTRACT_ADDRESSES = {
     serviceRegistry: '0x62E1eeEa1A2Ab987004F35bDA430457Ed6077201',
     serviceRegistryImpl: '0x218340e07bEd7fD15058414388F2C82E0f3B04f9',
     // Phase 18: V6 - Event Enhancements, Permissionless Refund, CompleteAfterTimeout
-agenticCommerce: '0x948d97EA7F0c49796fB576ADff375C900627568E', // AgenticCommerceV6 (UUPS Proxy) - upgraded with fund(expectedBudget)
-  agenticCommerceImpl: '0xB8d0a16843d76622710b940eE67490525f57F083', // New implementation
-    agenticCommerceImpl: '0xEecC615310f6A6144eeA0F235E83b7BD391EC251',
+    agenticCommerce: '0x948d97EA7F0c49796fB576ADff375C900627568E', // AgenticCommerceV6 (UUPS Proxy) - upgraded with fund(expectedBudget)
+    agenticCommerceImpl: '0xB8d0a16843d76622710b940eE67490525f57F083', // Phase 23: Front-running Protection
     // Phase 11: BiddingSystem - Standalone commit-reveal bidding
     biddingSystem: '0x32c9d069a248a619d3EAc4D1FC76F2639AaBeF04',
     biddingSystemImpl: '0x0A09e4Ff6DAa0eeA49526560e2c946Ea32a293Bb',
@@ -156,6 +162,10 @@ agenticCommerce: '0x948d97EA7F0c49796fB576ADff375C900627568E', // AgenticCommerc
     commitRevealImpl: '0xd9efa18c45357CC3d218E1FEC86E0C851270d33D',
     slashManager: '0x1B8373cDF4f2eD740c3478e0129f0B8494CE4Fa3',
     slashManagerImpl: '0x240eeC04F12d11eE6e4d03B00FB2148bFD4887F9',
+
+    // Phase 24: MilestoneEscrow - Milestone payments and dispute resolution
+    milestoneEscrow: '0xf24eDD2d8e99c80d40e959b1F37636b6C04FF9A9',
+    milestoneEscrowImpl: '0xc163d6a68c0ed0cd897456E55B1e47103279e883',
 
     // Tokens
     usdc: '0x1c7D4B196Cb0C7B01d743Fbc6116a902379C7238',
@@ -181,6 +191,7 @@ export const CONTRACT_ENV_VARS = {
   PRICE_ORACLE: 'NEXT_PUBLIC_PRICE_ORACLE_ADDRESS',
   COMMIT_REVEAL: 'NEXT_PUBLIC_COMMIT_REVEAL_ADDRESS',
   SLASH_MANAGER: 'NEXT_PUBLIC_SLASH_MANAGER_ADDRESS',
+  MILESTONE_ESCROW: 'NEXT_PUBLIC_MILESTONE_ESCROW_ADDRESS',
   USDC: 'NEXT_PUBLIC_USDC_ADDRESS',
 } as const;
 
@@ -196,6 +207,7 @@ const ENV_TO_FALLBACK: Record<keyof typeof CONTRACT_ENV_VARS, string> = {
   PRICE_ORACLE: CONTRACT_ADDRESSES.sepolia.priceOracle,
   COMMIT_REVEAL: CONTRACT_ADDRESSES.sepolia.commitReveal,
   SLASH_MANAGER: CONTRACT_ADDRESSES.sepolia.slashManager,
+  MILESTONE_ESCROW: '0xf24eDD2d8e99c80d40e959b1F37636b6C04FF9A9',
   USDC: CONTRACT_ADDRESSES.sepolia.usdc,
 };
 

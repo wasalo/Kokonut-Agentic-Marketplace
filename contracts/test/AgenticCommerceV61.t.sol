@@ -241,7 +241,7 @@ contract AgenticCommerceV61SecurityTest is Test {
         
         // Fund job
         vm.prank(client);
-        commerce.fund{value: JOB_BUDGET}(jobId);
+        commerce.fund{value: JOB_BUDGET}(jobId, JOB_BUDGET);
         
         // Try to change budget when job is already funded - should fail with WrongStatus
         vm.prank(client);
@@ -263,7 +263,7 @@ contract AgenticCommerceV61SecurityTest is Test {
         
         // Fund job - the hook will try to change the budget
         vm.prank(client);
-        commerce.fund{value: JOB_BUDGET}(jobId);
+        commerce.fund{value: JOB_BUDGET}(jobId, JOB_BUDGET);
         
         // Verify the job was funded with the ORIGINAL budget (cached)
         AgenticCommerceV6.Job memory job = commerce.getJob(jobId);
@@ -284,7 +284,7 @@ contract AgenticCommerceV61SecurityTest is Test {
         
         // Fund job with exact amount
         vm.prank(client);
-        commerce.fund{value: JOB_BUDGET}(jobId);
+        commerce.fund{value: JOB_BUDGET}(jobId, JOB_BUDGET);
         
         // Verify the job was funded correctly
         AgenticCommerceV6.Job memory job = commerce.getJob(jobId);

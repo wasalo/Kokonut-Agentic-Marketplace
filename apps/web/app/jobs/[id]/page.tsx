@@ -82,6 +82,7 @@ const BidStatusCard = dynamic(() => import('@/components/BiddingForms').then(m =
 import { Address } from '@/components/Address';
 import { ErrorDisplay } from '@/components/ErrorDisplay';
 import { ConfirmModal } from '@/components/ConfirmModal';
+import { MilestoneSection } from '@/components/MilestoneSection';
 
 export default function JobDetailPage({
   params,
@@ -276,9 +277,9 @@ export default function JobDetailPage({
     fn();
   }, []);
 
-  const isClient = job && address && job.client.toLowerCase() === address.toLowerCase();
-  const isProvider = job && address && job.provider.toLowerCase() === address.toLowerCase();
-  const isEvaluator = job && address && job.evaluator.toLowerCase() === address.toLowerCase();
+  const isClient = !!(job && address && job.client.toLowerCase() === address.toLowerCase());
+  const isProvider = !!(job && address && job.provider.toLowerCase() === address.toLowerCase());
+  const isEvaluator = !!(job && address && job.evaluator.toLowerCase() === address.toLowerCase());
 
   // USDC approval check - includes optimistic state
   const hasAllowance = (allowance && job && allowance >= job.budget) || optimisticApprovalSent;
@@ -982,11 +983,21 @@ export default function JobDetailPage({
           </div>
         )}
       </div>
-    </div>
-  );
-}
 
-function FeedbackCard({ agentId, jobId }: { agentId: bigint; jobId: bigint }) {
+        {/* Milestone Section */}
+        <MilestoneSection
+          jobId={jobId}
+          provider={job.provider}
+          isClient={isClient}
+          isProvider={isProvider}
+          onRefetch={refetch}
+        />
+
+      </div>
+    );
+  }
+
+  function FeedbackCard({ agentId, jobId }: { agentId: bigint; jobId: bigint }) {
   const [rating, setRating] = useState('850');
   const [comment, setComment] = useState('');
   const [submitted, setSubmitted] = useState(false);

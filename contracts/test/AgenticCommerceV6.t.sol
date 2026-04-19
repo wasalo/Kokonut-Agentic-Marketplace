@@ -124,7 +124,7 @@ contract AgenticCommerceV6Test is Test {
         agentic.setBudget(jobId, jobBudget);
         
         vm.prank(client);
-        agentic.fund{value: jobBudget}(jobId);
+        agentic.fund{value: jobBudget}(jobId, jobBudget);
         
         vm.prank(provider);
         agentic.submit(jobId, keccak256("deliverable"));
@@ -163,7 +163,7 @@ contract AgenticCommerceV6Test is Test {
         agentic.setBudget(jobId, jobBudget);
         
         vm.prank(client);
-        agentic.fund{value: jobBudget}(jobId);
+        agentic.fund{value: jobBudget}(jobId, jobBudget);
         
         vm.prank(provider);
         agentic.submit(jobId, keccak256("deliverable"));
@@ -215,7 +215,7 @@ contract AgenticCommerceV6Test is Test {
         agentic.setBudget(jobId, jobBudget);
         
         vm.prank(client);
-        agentic.fund{value: jobBudget}(jobId);
+        agentic.fund{value: jobBudget}(jobId, jobBudget);
         
         vm.prank(provider);
         agentic.submit(jobId, keccak256("deliverable"));

@@ -121,6 +121,7 @@ function CreateJobContent() {
   const [budget, setBudget] = useState('');
   const [paymentToken, setPaymentToken] = useState<Token>(USDC_TOKEN);
   const [isOpenJob, setIsOpenJob] = useState(false);
+  const [useMilestones, setUseMilestones] = useState(false);
   const [maxBudget, setMaxBudget] = useState('');
 
   useEffect(() => {
@@ -501,6 +502,32 @@ function CreateJobContent() {
                   </button>
                 </div>
 
+                {/* Milestone Toggle */}
+                <div className="flex items-start gap-4 p-4 bg-[#009F4D]/5 border border-[#009F4D]/20 rounded-lg">
+                  <div className="flex-1">
+                    <div className="flex items-center gap-2">
+                      <Coins className="w-5 h-5 text-[#009F4D]" />
+                      <span className="font-medium">Milestone-Based Payment</span>
+                    </div>
+                    <p className="text-sm text-default-500 mt-1">
+                      Release funds in phases. Client funds full budget upfront, you receive payments as each milestone is completed.
+                    </p>
+                  </div>
+                  <button
+                    type="button"
+                    onClick={() => setUseMilestones(!useMilestones)}
+                    className={`relative inline-flex h-6 w-11 items-center rounded-full transition-colors ${
+                      useMilestones ? 'bg-[#009F4D]' : 'bg-default-300'
+                    }`}
+                  >
+                    <span
+                      className={`inline-block h-4 w-4 transform rounded-full bg-white shadow-lg transition-transform ${
+                        useMilestones ? 'translate-x-6' : 'translate-x-1'
+                      }`}
+                    />
+                  </button>
+                </div>
+
                 <PaymentTokenSelector
                   selectedToken={paymentToken}
                   onSelect={setPaymentToken}
@@ -586,6 +613,11 @@ function CreateJobContent() {
                 ) : (
                   <p className="text-xs text-default-400">
                     Minimum ${MIN_BUDGET_USDC} USD equivalent
+                  </p>
+                )}
+                {useMilestones && (
+                  <p className="text-xs text-[#009F4D] bg-[#009F4D]/10 p-2 rounded">
+                    💰 Funds will be held in escrow and released per milestone upon completion verification
                   </p>
                 )}
               </div>

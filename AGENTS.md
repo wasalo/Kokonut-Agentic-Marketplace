@@ -7,6 +7,13 @@
 >
 > **✨ Latest Updates:**
 >
+> - **Phase 24: Milestone Payments (April 18, 2026) [DEPLOYED]**:
+>   - **MilestoneEscrow**: Separate UUPS contract for milestone-based payments
+>   - **Enable Milestones**: `enableMilestones(jobId, client, provider, paymentToken, totalBudget)`
+>   - **Milestone Limits**: Max 10 milestones per job, 7-day auto-release timeout
+>   - **Arbiter Disputes**: Independent arbiter pool for dispute resolution (0.01 ETH stake)
+>   - **Implementation**: Upgraded to `0xc163d6a68c0ed0cd897456E55B1e47103279e883`
+>
 > - **Escrow Security (April 18, 2026) [DEPLOYED]**:
 >   - **Fund Function**: Added `expectedBudget` parameter to `fund(jobId, expectedBudget)`
 >   - **Front-running Protection**: Contract reverts if actual budget doesn't match expected
@@ -188,6 +195,8 @@ USDC:      0x1c7D4B196Cb0C7B01d743Fbc6116a902379C7238
 | `CommitReveal Impl`         | `0xd9efa18c45357CC3d218E1FEC86E0C851270d33D` | Implementation (UUPS)                                      | ✅ Live | [Etherscan](https://sepolia.etherscan.io/address/0xd9efa18c45357CC3d218E1FEC86E0C851270d33D#code) |
 | `SlashManager`              | `0x1B8373cDF4f2eD740c3478e0129f0B8494CE4Fa3` | 3-of-5 multisig (O(1) lookup + UUPS + Pausable)            | ✅ Live | [Etherscan](https://sepolia.etherscan.io/address/0x1B8373cDF4f2eD740c3478e0129f0B8494CE4Fa3#code) |
 | `SlashManager Impl`         | `0x240eeC04F12d11eE6e4d03B00FB2148bFD4887F9` | Implementation (Phase 14: owner OR signer proposals)       | ✅ Live | [Etherscan](https://sepolia.etherscan.io/address/0x240eeC04F12d11eE6e4d03B00FB2148bFD4887F9#code) |
+| `MilestoneEscrow`          | `0xf24eDD2d8e99c80d40e959b1F37636b6C04FF9A9` | Milestone payments with arbiter disputes (UUPS)            | ✅ Live | [Etherscan](https://sepolia.etherscan.io/address/0xf24eDD2d8e99c80d40e959b1F37636b6C04FF9A9#code) |
+| `MilestoneEscrow Impl`     | `0xc163d6a68c0ed0cd897456E55B1e47103279e883` | Implementation (Phase 24: Milestone system)               | ✅ Live | [Etherscan](https://sepolia.etherscan.io/address/0xc163d6a68c0ed0cd897456E55B1e47103279e883#code) |
 
 > **Note**: Phase 14 Security & Performance (April 2026) include:
 >
@@ -659,6 +668,26 @@ function complete(uint256 jobId)
 function reject(uint256 jobId, string reason)
 function completeAfterTimeout(uint256 jobId)
 function getJob(uint256 jobId) returns (Job memory)
+```
+
+### MilestoneEscrow
+
+**Address:** `0xf24eDD2d8e99c80d40e959b1F37636b6C04FF9A9`
+
+```solidity
+// Milestone Management
+function enableMilestones(uint256 jobId, address client, address provider, address paymentToken, uint256 totalBudget)
+function addMilestone(uint256 jobId, uint256 amount, string description, uint256 dueDate)
+function submitMilestone(uint256 jobId, uint256 milestoneIndex)
+function approveMilestone(uint256 jobId, uint256 milestoneIndex)
+function rejectMilestone(uint256 jobId, uint256 milestoneIndex, string reason)
+
+// Arbiter Disputes
+function raiseDispute(uint256 jobId, uint256 milestoneIndex, string reason)
+function resolveDispute(uint256 jobId, uint256 milestoneIndex, address recipient, uint256 clientAmount, uint256 providerAmount)
+function setArbiterPool(address arbiterPool_) external onlyOwner
+function withdrawFees(address payable to, uint256 amount) external onlyOwner
+function getJobMilestones(uint256 jobId) returns (Milestone[])
 ```
 
 ### BiddingSystem

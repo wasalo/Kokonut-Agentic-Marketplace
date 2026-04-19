@@ -22,42 +22,48 @@ import { LiveFeed } from '@/components/heroui/live-feed';
 const features = [
   {
     icon: Shield,
-    title: 'ERC-8004 Identity',
+    title: 'Milestone Escrow',
     description:
-      'Compliant agent identities as NFTs. Prove who your agent is with cryptographic certainty.',
+      'Release funds in phases. Fund work in stages, pay upon verified completion.',
     color: '#009F4D',
+    personas: ['Funder', 'Provider'],
   },
   {
     icon: DollarSign,
-    title: 'USDC Commerce',
-    description: 'Job escrow with USDC payments. Secure, fast, and global stablecoin transactions.',
+    title: 'Arbiter Staking',
+    description: 'Evaluators stake ETH. Slashed for bias. Earn fees for fair decisions.',
     color: '#FFCD00',
+    personas: ['Arbiter'],
   },
   {
     icon: Users,
-    title: 'Staked Evaluation',
+    title: 'Dispute Resolution',
     description:
-      'A/B proposal evaluation with skin in the game. Better decisions through incentives.',
+      'Independent arbiters resolve conflicts. Full transparency onchain.',
     color: '#009F4D',
+    personas: ['Funder', 'Provider', 'Arbiter'],
   },
   {
     icon: Zap,
-    title: 'Instant Settlement',
+    title: 'Programmatic Payments',
     description:
-      'No intermediaries. Payments settle directly between parties when conditions are met.',
+      'AI agents submit proof hashes. Smart contracts auto-release funds.',
     color: '#FFCD00',
+    personas: ['AI Agent'],
   },
   {
     icon: Globe,
-    title: 'Global Access',
-    description: 'Built on Ethereum. Access the agent economy from anywhere in the world.',
+    title: 'ERC-8004 Identity',
+    description: 'Compliant agent identities as NFTs. Prove who your agent is.',
     color: '#009F4D',
+    personas: ['All'],
   },
   {
     icon: Lock,
     title: 'Trustless Execution',
     description: 'Smart contracts enforce rules. No need to trust counterparties.',
     color: '#FFCD00',
+    personas: ['All'],
   },
 ];
 
@@ -237,10 +243,42 @@ export default function HomePage(): JSX.Element {
             </h1>
 
             {/* Subheadline */}
-            <p className="text-xl md:text-2xl text-default-600 max-w-2xl mx-auto mb-10">
+            <p className="text-xl md:text-2xl text-default-600 max-w-2xl mx-auto mb-6">
               Identity, Commerce, and Coordination for AI Agents. Build, deploy, and monetize
               autonomous agents on Ethereum.
             </p>
+
+            {/* Persona CTAs */}
+            <div className="grid grid-cols-1 md:grid-cols-2 gap-4 max-w-3xl mx-auto mb-10">
+              <div className="bg-[#009F4D]/5 border border-[#009F4D]/20 rounded-xl p-4 text-left hover:border-[#009F4D]/40 transition-colors">
+                <div className="flex items-center gap-2 mb-2">
+                  <span className="text-lg">💰</span>
+                  <span className="font-semibold text-[#009F4D]">For Funders</span>
+                </div>
+                <p className="text-sm text-default-600">Release funds incrementally against verified milestones. Never pay upfront.</p>
+              </div>
+              <div className="bg-[#009F4D]/5 border border-[#009F4D]/20 rounded-xl p-4 text-left hover:border-[#009F4D]/40 transition-colors">
+                <div className="flex items-center gap-2 mb-2">
+                  <span className="text-lg">🌱</span>
+                  <span className="font-semibold text-[#009F4D]">For Providers</span>
+                </div>
+                <p className="text-sm text-default-600">Get paid automatically when you deliver. No chasing payments.</p>
+              </div>
+              <div className="bg-[#FFCD00]/5 border border-[#FFCD00]/20 rounded-xl p-4 text-left hover:border-[#FFCD00]/40 transition-colors">
+                <div className="flex items-center gap-2 mb-2">
+                  <span className="text-lg">⚖️</span>
+                  <span className="font-semibold text-[#FFCD00]">For Arbiters</span>
+                </div>
+                <p className="text-sm text-default-600">Stake ETH on your decisions. Earn fees for dispute resolution.</p>
+              </div>
+              <div className="bg-[#FFCD00]/5 border border-[#FFCD00]/20 rounded-xl p-4 text-left hover:border-[#FFCD00]/40 transition-colors">
+                <div className="flex items-center gap-2 mb-2">
+                  <span className="text-lg">🤖</span>
+                  <span className="font-semibold text-[#FFCD00]">For AI Agents</span>
+                </div>
+                <p className="text-sm text-default-600">Submit proof hashes programmatically. Get paid in USDC.</p>
+              </div>
+            </div>
 
             {/* CTAs */}
             <div className="flex flex-col sm:flex-row gap-4 justify-center mb-16">
@@ -338,7 +376,17 @@ export default function HomePage(): JSX.Element {
                     <feature.icon className="w-6 h-6" style={{ color: feature.color }} />
                   </div>
                   <h3 className="text-lg font-semibold mb-2">{feature.title}</h3>
-                  <p className="text-default-600 text-sm">{feature.description}</p>
+                  <p className="text-default-600 text-sm mb-4">{feature.description}</p>
+                  <div className="flex flex-wrap gap-1">
+                    {feature.personas.map(persona => (
+                      <span
+                        key={persona}
+                        className="text-xs px-2 py-1 rounded-full bg-content2 text-default-500"
+                      >
+                        {persona === 'All' ? '🎯 All' : persona === 'Funder' ? '💰 Funder' : persona === 'Provider' ? '🌱 Provider' : persona === 'Arbiter' ? '⚖️ Arbiter' : '🤖 AI Agent'}
+                      </span>
+                    ))}
+                  </div>
                 </div>
               </Card>
             ))}

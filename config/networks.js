@@ -24,6 +24,7 @@ exports.NETWORKS = {
             priceOracle: '0x5C4AC3dAF76708DCd51911BA3B33027eAB1B4047',
             commitReveal: '0x6CEd1574A3dF7ec646e43DD8408300117c453Aa3',
             slashManager: '0x7Cf955900FD7a12680E90D834eAf19346f5DBcf9',
+            milestoneEscrow: '0xf24eDD2d8e99c80d40e959b1F37636b6C04FF9A9', // Phase 24
             usdc: '0x1c7D4B196Cb0C7B01d743Fbc6116a902379C7238',
         },
     },

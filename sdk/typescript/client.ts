@@ -170,6 +170,47 @@ const USDC_ABI = parseAbi([
   'function allowance(address owner, address spender) external view returns (uint256)',
 ] as const);
 
+const MILESTONE_ESCROW_ABI = parseAbi([
+  // Initialization
+  'function initialize(address initialOwner, address _agenticCommerce) external',
+  // Configuration
+  'function setAgenticCommerce(address _agenticCommerce) external',
+  'function agenticCommerce() external view returns (address)',
+  // Constants
+  'function ARBITER_STAKE() external view returns (uint256)',
+  'function ARBITER_FEE() external view returns (uint256)',
+  // Milestone Management
+  'function enableMilestones(uint256 jobId, address provider, address paymentToken, uint256 totalBudget) external',
+  'function addMilestone(uint256 jobId, string calldata description, uint256 amount, uint256 dueDate) external',
+  'function completeMilestone(uint256 jobId, uint256 milestoneIndex, bytes32 proofHash) external',
+  'function releaseMilestone(uint256 jobId, uint256 milestoneIndex) external',
+  'function getJobMilestones(uint256 jobId) external view returns ((string description, uint256 amount, uint256 dueDate, bool completed, bool released, bytes32 proofHash)[] memory)',
+  'function getMilestoneCount(uint256 jobId) external view returns (uint256)',
+  'function jobMilestones(uint256) external view returns (address client, address provider, address paymentToken, uint256 totalBudget, bool usesMilestones)',
+  // Arbiter System
+  'function registerAsArbiter() external payable',
+  'function unregisterAsArbiter() external',
+  'function getArbiterStake(address arbiter) external view returns (uint256)',
+  'function isArbiter(address account) external view returns (bool)',
+  'function getArbiterCount() external view returns (uint256)',
+  // Dispute System
+  'function flagDispute(uint256 jobId) external payable',
+  'function submitEvidence(uint256 jobId, bytes32 evidenceHash) external',
+  'function resolveDispute(uint256 jobId, bool releaseToProvider) external',
+  'function getDispute(uint256 jobId) external view returns (uint256 jobId, address flaggler, address arbiter, uint256 flaggedAt, bool resolved, bool releaseToProvider)',
+  'function getActiveDisputes() external view returns (uint256[] memory)',
+  // Events
+  'event MilestoneEnabled(uint256 indexed jobId)',
+  'event MilestoneAdded(uint256 indexed jobId, uint256 indexed milestoneIndex, string description, uint256 amount)',
+  'event MilestoneCompleted(uint256 indexed jobId, uint256 indexed milestoneIndex, bytes32 proofHash)',
+  'event MilestoneReleased(uint256 indexed jobId, uint256 indexed milestoneIndex, uint256 amount)',
+  'event ArbiterRegistered(address indexed arbiter, uint256 stake)',
+  'event ArbiterUnregistered(address indexed arbiter, uint256 refundedStake)',
+  'event DisputeFlagged(uint256 indexed jobId, address indexed flaggler, uint256 fee)',
+  'event EvidenceSubmitted(uint256 indexed jobId, address indexed submitter, bytes32 evidenceHash)',
+  'event DisputeResolved(uint256 indexed jobId, bool releasedToProvider, address indexed arbiter, uint256 arbiterFee)',
+] as const);
+
 // ============================================================================
 // KokonutClient
 // ============================================================================
@@ -193,6 +234,7 @@ export class KokonutClient {
   public commitReveal: CommitRevealModule;
   public slashManager: SlashManagerModule;
   public bidding: BiddingSystemModule;
+  public milestones: MilestoneModule;
 
 
   constructor(config: SDKConfig) {
@@ -238,6 +280,7 @@ export class KokonutClient {
     this.commitReveal = new CommitRevealModule(this.wallet, this.publicClient, this.contracts);
     this.slashManager = new SlashManagerModule(this.wallet, this.publicClient, this.contracts);
     this.bidding = new BiddingSystemModule(this.wallet, this.publicClient, this.contracts);
+    this.milestones = new MilestoneModule(this.wallet, this.publicClient, this.contracts);
 
     this.setupEventListeners();
   }
@@ -2277,6 +2320,229 @@ class BiddingSystemModule {
     return (maxBudget * 100n) / 10000n;
   }
 }
+
+// ============================================================================
+// MilestoneModule - Phase 24: Milestone payments and dispute resolution
+// ============================================================================
+
+interface Milestone {
+  description: string;
+  amount: bigint;
+  dueDate: bigint;
+  completed: boolean;
+  released: boolean;
+  proofHash: string;
+}
+
+interface JobMilestones {
+  client: Address;
+  provider: Address;
+  paymentToken: Address;
+  totalBudget: bigint;
+  usesMilestones: boolean;
+}
+
+interface Dispute {
+  jobId: bigint;
+  flaggler: Address;
+  arbiter: Address;
+  flaggedAt: bigint;
+  resolved: boolean;
+  releaseToProvider: boolean;
+}
+
+class MilestoneModule {
+  private wallet: any;
+  private publicClient: any;
+  private contracts: ContractAddresses;
+
+  ARBITER_STAKE_ETH = 0.01e18 as const;
+  ARBITER_FEE_ETH = 0.001e18 as const;
+
+  constructor(wallet: any, publicClient: any, contracts: ContractAddresses) {
+    this.wallet = wallet;
+    this.publicClient = publicClient;
+    this.contracts = contracts;
+  }
+
+  private get address(): Address {
+    return this.wallet.account.address;
+  }
+
+  async enableMilestones(params: {
+    jobId: bigint;
+    provider: Address;
+    paymentToken: Address;
+    totalBudget: bigint;
+  }): Promise<TransactionResult> {
+    const hash = await this.wallet.writeContract({
+      address: this.contracts.milestoneEscrow! as Address,
+      abi: MILESTONE_ESCROW_ABI,
+      functionName: 'enableMilestones',
+      args: [params.jobId, params.provider, params.paymentToken, params.totalBudget],
+    } as any);
+    return { hash, wait: () => this.publicClient.waitForTransactionReceipt({ hash }) };
+  }
+
+  async addMilestone(params: {
+    jobId: bigint;
+    description: string;
+    amount: bigint;
+    dueDate: bigint;
+  }): Promise<TransactionResult> {
+    const hash = await this.wallet.writeContract({
+      address: this.contracts.milestoneEscrow! as Address,
+      abi: MILESTONE_ESCROW_ABI,
+      functionName: 'addMilestone',
+      args: [params.jobId, params.description, params.amount, params.dueDate],
+    } as any);
+    return { hash, wait: () => this.publicClient.waitForTransactionReceipt({ hash }) };
+  }
+
+  async completeMilestone(params: {
+    jobId: bigint;
+    milestoneIndex: bigint;
+    proofHash: string;
+  }): Promise<TransactionResult> {
+    const hash = await this.wallet.writeContract({
+      address: this.contracts.milestoneEscrow! as Address,
+      abi: MILESTONE_ESCROW_ABI,
+      functionName: 'completeMilestone',
+      args: [params.jobId, params.milestoneIndex, params.proofHash as `0x${string}`],
+    } as any);
+    return { hash, wait: () => this.publicClient.waitForTransactionReceipt({ hash }) };
+  }
+
+  async releaseMilestone(params: { jobId: bigint; milestoneIndex: bigint }): Promise<TransactionResult> {
+    const hash = await this.wallet.writeContract({
+      address: this.contracts.milestoneEscrow! as Address,
+      abi: MILESTONE_ESCROW_ABI,
+      functionName: 'releaseMilestone',
+      args: [params.jobId, params.milestoneIndex],
+    } as any);
+    return { hash, wait: () => this.publicClient.waitForTransactionReceipt({ hash }) };
+  }
+
+  async getJobMilestones(jobId: bigint): Promise<Milestone[]> {
+    return (await this.publicClient.readContract({
+      address: this.contracts.milestoneEscrow! as Address,
+      abi: MILESTONE_ESCROW_ABI,
+      functionName: 'getJobMilestones',
+      args: [jobId],
+    } as any)) as unknown as Milestone[];
+  }
+
+  async getJobMilestonesDetails(jobId: bigint): Promise<JobMilestones | null> {
+    try {
+      return (await this.publicClient.readContract({
+        address: this.contracts.milestoneEscrow! as Address,
+        abi: MILESTONE_ESCROW_ABI,
+        functionName: 'jobMilestones',
+        args: [jobId],
+      } as any)) as unknown as JobMilestones;
+    } catch {
+      return null;
+    }
+  }
+
+  async registerAsArbiter(): Promise<TransactionResult> {
+    const hash = await this.wallet.writeContract({
+      address: this.contracts.milestoneEscrow! as Address,
+      abi: MILESTONE_ESCROW_ABI,
+      functionName: 'registerAsArbiter',
+      value: this.ARBITER_STAKE_ETH,
+    } as any);
+    return { hash, wait: () => this.publicClient.waitForTransactionReceipt({ hash }) };
+  }
+
+  async unregisterAsArbiter(): Promise<TransactionResult> {
+    const hash = await this.wallet.writeContract({
+      address: this.contracts.milestoneEscrow! as Address,
+      abi: MILESTONE_ESCROW_ABI,
+      functionName: 'unregisterAsArbiter',
+    } as any);
+    return { hash, wait: () => this.publicClient.waitForTransactionReceipt({ hash }) };
+  }
+
+  async isArbiter(address: Address): Promise<boolean> {
+    return (await this.publicClient.readContract({
+      address: this.contracts.milestoneEscrow! as Address,
+      abi: MILESTONE_ESCROW_ABI,
+      functionName: 'isArbiter',
+      args: [address],
+    } as any)) as unknown as boolean;
+  }
+
+  async getArbiterStake(arbiter: Address): Promise<bigint> {
+    return (await this.publicClient.readContract({
+      address: this.contracts.milestoneEscrow! as Address,
+      abi: MILESTONE_ESCROW_ABI,
+      functionName: 'getArbiterStake',
+      args: [arbiter],
+    } as any)) as unknown as bigint;
+  }
+
+  async getArbiterCount(): Promise<number> {
+    return Number(await this.publicClient.readContract({
+      address: this.contracts.milestoneEscrow! as Address,
+      abi: MILESTONE_ESCROW_ABI,
+      functionName: 'getArbiterCount',
+    } as unknown as object));
+  }
+
+  async flagDispute(jobId: bigint): Promise<TransactionResult> {
+    const hash = await this.wallet.writeContract({
+      address: this.contracts.milestoneEscrow! as Address,
+      abi: MILESTONE_ESCROW_ABI,
+      functionName: 'flagDispute',
+      args: [jobId],
+      value: this.ARBITER_FEE_ETH,
+    } as any);
+    return { hash, wait: () => this.publicClient.waitForTransactionReceipt({ hash }) };
+  }
+
+  async submitEvidence(params: { jobId: bigint; evidenceHash: string }): Promise<TransactionResult> {
+    const hash = await this.wallet.writeContract({
+      address: this.contracts.milestoneEscrow! as Address,
+      abi: MILESTONE_ESCROW_ABI,
+      functionName: 'submitEvidence',
+      args: [params.jobId, params.evidenceHash as `0x${string}`],
+    } as any);
+    return { hash, wait: () => this.publicClient.waitForTransactionReceipt({ hash }) };
+  }
+
+  async resolveDispute(params: { jobId: bigint; releaseToProvider: boolean }): Promise<TransactionResult> {
+    const hash = await this.wallet.writeContract({
+      address: this.contracts.milestoneEscrow! as Address,
+      abi: MILESTONE_ESCROW_ABI,
+      functionName: 'resolveDispute',
+      args: [params.jobId, params.releaseToProvider],
+    } as any);
+    return { hash, wait: () => this.publicClient.waitForTransactionReceipt({ hash }) };
+  }
+
+  async getDispute(jobId: bigint): Promise<Dispute | null> {
+    try {
+      return (await this.publicClient.readContract({
+        address: this.contracts.milestoneEscrow! as Address,
+        abi: MILESTONE_ESCROW_ABI,
+        functionName: 'getDispute',
+        args: [jobId],
+      } as any)) as unknown as Dispute;
+    } catch {
+      return null;
+    }
+  }
+
+  async getActiveDisputes(): Promise<bigint[]> {
+    return (await this.publicClient.readContract({
+      address: this.contracts.milestoneEscrow! as Address,
+      abi: MILESTONE_ESCROW_ABI,
+      functionName: 'getActiveDisputes',
+    } as any)) as unknown as bigint[];
+  }
+}
+
 
 // ============================================================================
 // Exports

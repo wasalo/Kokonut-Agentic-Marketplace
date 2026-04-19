@@ -184,6 +184,8 @@ The wildcard format (e.g., `10.108.1.*`) allows any IP in that subnet. Add expli
 
 | Contract                 | Address                                      | Purpose                    |
 | ------------------------ | -------------------------------------------- | -------------------------- |
+| **MilestoneEscrow**      | `0xf24eDD2d8e99c80d40e959b1F37636b6C04FF9A9` | Milestone payments (UUPS)  |
+| **MilestoneEscrow Impl** | `0xc163d6a68c0ed0cd897456E55B1e47103279e883` | Phase 24: Milestone system |
 | **AgentSkillRegistryV2** | `0xA84684261558f342d6871DD2CFef90A2117Aa20A` | Skills/capabilities (UUPS) |
 | **ServiceRegistryV2**    | `0x62E1eeEa1A2Ab987004F35bDA430457Ed6077201` | Service listings (UUPS)    |
 | **AgenticCommerce**      | `0x948d97EA7F0c49796fB576ADff375C900627568E` | Job escrow (USDC, fund(expectedBudget))          |

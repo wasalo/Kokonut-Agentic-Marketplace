@@ -209,7 +209,7 @@ contract FuzzAgenticCommerceV4 is TestFixtures {
         agenticCommerce.setBudget(jobId, 1 ether);
         
         vm.prank(client);
-        agenticCommerce.fund{value: 1 ether}(jobId);
+        agenticCommerce.fund{value: 1 ether}(jobId, 1 ether);
         
         // Submit
         vm.prank(provider);

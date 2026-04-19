@@ -1,5 +1,3 @@
-'use client';
-
 export const CAIP_NAMESPACE = 'eip155';
 
 const CAIP_REGEX = /^eip155:[-_a-zA-Z0-9]{1,32}$/;

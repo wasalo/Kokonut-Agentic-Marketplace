@@ -65,6 +65,7 @@ export interface ContractAddresses {
   priceOracle: `0x${string}`;
   commitReveal: `0x${string}`;
   slashManager: `0x${string}`;
+  milestoneEscrow?: `0x${string}`; // Phase 24: Milestone payments
   usdc: `0x${string}`;
 }
 

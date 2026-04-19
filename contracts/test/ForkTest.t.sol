@@ -1,5 +1,5 @@
 // SPDX-License-Identifier: MIT
-pragma solid ^0.8.20;
+pragma solidity ^0.8.22;
 
 import "forge-std/Test.sol";
 
@@ -90,7 +90,7 @@ contract IntegrationForkTest is ForkTestBase {
      * @dev Simulate a full job creation and funding flow
      * Note: This is a read-only test. For write tests, you'd need mainnet fork with private key
      */
-    function testForkSimulatedJobFlow() public view {
+    function testForkSimulatedJobFlow() public {
         // In a real fork test with a funded key, you would:
         // 1. Create a job on AgenticCommerceV6
         // 2. Fund it with USDC from mainnet
@@ -99,8 +99,11 @@ contract IntegrationForkTest is ForkTestBase {
         // For now, we verify the contract code exists at the expected address
         address commerceProxy = 0x948d97EA7F0c49796fB576ADff375C900627568E;
         
-        (, bytes memory code) = commerceProxy.staticcall("");
-        assertTrue(code.length > 0, "AgenticCommerceV6 should be deployed");
+        uint256 size;
+        assembly {
+            size := extcodesize(commerceProxy)
+        }
+        assertTrue(size > 0, "AgenticCommerceV6 should be deployed");
     }
 }
 

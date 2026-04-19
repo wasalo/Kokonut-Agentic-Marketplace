@@ -3443,6 +3443,340 @@ program
     }
   });
 
+// ============================================================================
+// Phase 24: Milestone Commands
+// ============================================================================
+
+const MILESTONE_ESCROW_ABI = parseAbi([
+  'function enableMilestones(uint256 jobId, address provider, address paymentToken, uint256 totalBudget) external',
+  'function addMilestone(uint256 jobId, string description, uint256 amount, uint256 dueDate) external',
+  'function completeMilestone(uint256 jobId, uint256 milestoneIndex, bytes32 proofHash) external',
+  'function releaseMilestone(uint256 jobId, uint256 milestoneIndex) external',
+  'function getJobMilestones(uint256 jobId) external view returns ((string description, uint256 amount, uint256 dueDate, bool completed, bool released, bytes32 proofHash)[])',
+  'function registerAsArbiter() external payable',
+  'function unregisterAsArbiter() external',
+  'function isArbiter(address account) external view returns (bool)',
+  'function getArbiterStake(address arbiter) external view returns (uint256)',
+  'function getArbiterCount() external view returns (uint256)',
+  'function flagDispute(uint256 jobId) external payable',
+  'function getDispute(uint256 jobId) external view returns (uint256, address, address, uint256, bool, bool)',
+]);
+
+program
+  .command('register-arbiter')
+  .description('Register as an arbiter with 0.01 ETH stake')
+  .action(async () => {
+    try {
+      initWallet();
+
+      if (!config.contracts.milestoneEscrow) {
+        console.error(chalk.red('❌ MilestoneEscrow not configured'));
+        return;
+      }
+
+      const contract = getContractInstance(
+        config.contracts.milestoneEscrow as Address,
+        MILESTONE_ESCROW_ABI
+      );
+
+      console.log(chalk.cyan('Registering as arbiter (stake: 0.01 ETH)...'));
+      const hash = await contract.write.registerAsArbiter([], { value: BigInt(1e16) });
+
+      console.log(chalk.cyan('Transaction sent:'), hash);
+      await waitForTransactionReceipt(hash);
+      console.log(chalk.green('✅ Registered as arbiter!'));
+    } catch (error: unknown) {
+      const err = error as { message?: string };
+      console.error(chalk.red('❌ Error:'), err.message);
+    }
+  });
+
+program
+  .command('unregister-arbiter')
+  .description('Unregister as an arbiter and recover stake')
+  .action(async () => {
+    try {
+      initWallet();
+
+      if (!config.contracts.milestoneEscrow) {
+        console.error(chalk.red('❌ MilestoneEscrow not configured'));
+        return;
+      }
+
+      const contract = getContractInstance(
+        config.contracts.milestoneEscrow as Address,
+        MILESTONE_ESCROW_ABI
+      );
+
+      console.log(chalk.cyan('Unregistering as arbiter...'));
+      const hash = await contract.write.unregisterAsArbiter();
+
+      console.log(chalk.cyan('Transaction sent:'), hash);
+      await waitForTransactionReceipt(hash);
+      console.log(chalk.green('✅ Unregistered as arbiter!'));
+    } catch (error: unknown) {
+      const err = error as { message?: string };
+      console.error(chalk.red('❌ Error:'), err.message);
+    }
+  });
+
+program
+  .command('is-arbiter')
+  .description('Check if an address is a registered arbiter')
+  .argument('[address]', 'Address to check', undefined)
+  .action(async (address?: string) => {
+    try {
+      if (!config.contracts.milestoneEscrow) {
+        console.error(chalk.red('❌ MilestoneEscrow not configured'));
+        return;
+      }
+
+      const targetAddress = address || config.signerAddress;
+      const contract = getContractInstance(
+        config.contracts.milestoneEscrow as Address,
+        MILESTONE_ESCROW_ABI
+      );
+
+      const result = await contract.read.isArbiter([targetAddress as Address]);
+      console.log(chalk.cyan('Address:'), targetAddress);
+      console.log(chalk.green('Is Arbiter:'), result);
+    } catch (error: unknown) {
+      const err = error as { message?: string };
+      console.error(chalk.red('❌ Error:'), err.message);
+    }
+  });
+
+program
+  .command('arbiter-count')
+  .description('Get total number of registered arbiters')
+  .action(async () => {
+    try {
+      if (!config.contracts.milestoneEscrow) {
+        console.error(chalk.red('❌ MilestoneEscrow not configured'));
+        return;
+      }
+
+      const contract = getContractInstance(
+        config.contracts.milestoneEscrow as Address,
+        MILESTONE_ESCROW_ABI
+      );
+
+      const count = await contract.read.getArbiterCount();
+      console.log(chalk.green('Total Arbiters:'), Number(count));
+    } catch (error: unknown) {
+      const err = error as { message?: string };
+      console.error(chalk.red('❌ Error:'), err.message);
+    }
+  });
+
+program
+  .command('enable-milestones')
+  .description('Enable milestone payments for a job')
+  .requiredOption('-j, --job <number>', 'Job ID')
+  .requiredOption('-p, --provider <address>', 'Provider address')
+  .requiredOption('-t, --token <address>', 'Payment token address')
+  .requiredOption('-b, --budget <number>', 'Total budget in wei')
+  .action(async (options: { job: string; provider: string; token: string; budget: string }) => {
+    try {
+      initWallet();
+
+      if (!config.contracts.milestoneEscrow) {
+        console.error(chalk.red('❌ MilestoneEscrow not configured'));
+        return;
+      }
+
+      const contract = getContractInstance(
+        config.contracts.milestoneEscrow as Address,
+        MILESTONE_ESCROW_ABI
+      );
+
+      console.log(chalk.cyan('Enabling milestones...'));
+      console.log(chalk.dim('  Job ID:'), options.job);
+      const hash = await contract.write.enableMilestones([
+        BigInt(options.job),
+        options.provider as Address,
+        options.token as Address,
+        BigInt(options.budget),
+      ]);
+
+      console.log(chalk.cyan('Transaction sent:'), hash);
+      await waitForTransactionReceipt(hash);
+      console.log(chalk.green('✅ Milestones enabled!'));
+    } catch (error: unknown) {
+      const err = error as { message?: string };
+      console.error(chalk.red('❌ Error:'), err.message);
+    }
+  });
+
+program
+  .command('add-milestone')
+  .description('Add a milestone to a job')
+  .requiredOption('-j, --job <number>', 'Job ID')
+  .requiredOption('-d, --description <string>', 'Milestone description')
+  .requiredOption('-a, --amount <number>', 'Amount in wei')
+  .option('--due <number>', 'Due date (Unix timestamp)')
+  .action(async (options: { job: string; description: string; amount: string; due?: string }) => {
+    try {
+      initWallet();
+
+      if (!config.contracts.milestoneEscrow) {
+        console.error(chalk.red('❌ MilestoneEscrow not configured'));
+        return;
+      }
+
+      const contract = getContractInstance(
+        config.contracts.milestoneEscrow as Address,
+        MILESTONE_ESCROW_ABI
+      );
+
+      console.log(chalk.cyan('Adding milestone...'));
+      const hash = await contract.write.addMilestone([
+        BigInt(options.job),
+        options.description,
+        BigInt(options.amount),
+        options.due ? BigInt(options.due) : 0n,
+      ]);
+
+      console.log(chalk.cyan('Transaction sent:'), hash);
+      await waitForTransactionReceipt(hash);
+      console.log(chalk.green('✅ Milestone added!'));
+    } catch (error: unknown) {
+      const err = error as { message?: string };
+      console.error(chalk.red('❌ Error:'), err.message);
+    }
+  });
+
+program
+  .command('complete-milestone')
+  .description('Mark a milestone as completed (provider)')
+  .requiredOption('-j, --job <number>', 'Job ID')
+  .requiredOption('-i, --index <number>', 'Milestone index')
+  .requiredOption('-p, --proof <hash>', 'Proof hash (IPFS or data URI)')
+  .action(async (options: { job: string; index: string; proof: string }) => {
+    try {
+      initWallet();
+
+      if (!config.contracts.milestoneEscrow) {
+        console.error(chalk.red('❌ MilestoneEscrow not configured'));
+        return;
+      }
+
+      const contract = getContractInstance(
+        config.contracts.milestoneEscrow as Address,
+        MILESTONE_ESCROW_ABI
+      );
+
+      console.log(chalk.cyan('Completing milestone...'));
+      const hash = await contract.write.completeMilestone([
+        BigInt(options.job),
+        BigInt(options.index),
+        options.proof as `0x${string}`,
+      ]);
+
+      console.log(chalk.cyan('Transaction sent:'), hash);
+      await waitForTransactionReceipt(hash);
+      console.log(chalk.green('✅ Milestone completed!'));
+    } catch (error: unknown) {
+      const err = error as { message?: string };
+      console.error(chalk.red('❌ Error:'), err.message);
+    }
+  });
+
+program
+  .command('release-milestone')
+  .description('Release milestone payment (client)')
+  .requiredOption('-j, --job <number>', 'Job ID')
+  .requiredOption('-i, --index <number>', 'Milestone index')
+  .action(async (options: { job: string; index: string }) => {
+    try {
+      initWallet();
+
+      if (!config.contracts.milestoneEscrow) {
+        console.error(chalk.red('❌ MilestoneEscrow not configured'));
+        return;
+      }
+
+      const contract = getContractInstance(
+        config.contracts.milestoneEscrow as Address,
+        MILESTONE_ESCROW_ABI
+      );
+
+      console.log(chalk.cyan('Releasing milestone payment...'));
+      const hash = await contract.write.releaseMilestone([
+        BigInt(options.job),
+        BigInt(options.index),
+      ]);
+
+      console.log(chalk.cyan('Transaction sent:'), hash);
+      await waitForTransactionReceipt(hash);
+      console.log(chalk.green('✅ Milestone payment released!'));
+    } catch (error: unknown) {
+      const err = error as { message?: string };
+      console.error(chalk.red('❌ Error:'), err.message);
+    }
+  });
+
+program
+  .command('get-milestones')
+  .description('Get milestones for a job')
+  .requiredOption('-j, --job <number>', 'Job ID')
+  .action(async (options: { job: string }) => {
+    try {
+      if (!config.contracts.milestoneEscrow) {
+        console.error(chalk.red('❌ MilestoneEscrow not configured'));
+        return;
+      }
+
+      const contract = getContractInstance(
+        config.contracts.milestoneEscrow as Address,
+        MILESTONE_ESCROW_ABI
+      );
+
+      const milestones = await contract.read.getJobMilestones([BigInt(options.job)]);
+
+      console.log(chalk.cyan(`Milestones for Job #${options.job}:`));
+      milestones.forEach((m: any, i: number) => {
+        console.log(`\n${i + 1}. ${m.description}`);
+        console.log(`   Amount: ${viemFormatEther(m.amount)} ETH`);
+        console.log(`   Completed: ${m.completed ? '✅' : '❌'}`);
+        console.log(`   Released: ${m.released ? '✅' : '❌'}`);
+      });
+    } catch (error: unknown) {
+      const err = error as { message?: string };
+      console.error(chalk.red('❌ Error:'), err.message);
+    }
+  });
+
+program
+  .command('flag-dispute')
+  .description('Flag a dispute for a job (requires 0.001 ETH fee)')
+  .requiredOption('-j, --job <number>', 'Job ID')
+  .action(async (options: { job: string }) => {
+    try {
+      initWallet();
+
+      if (!config.contracts.milestoneEscrow) {
+        console.error(chalk.red('❌ MilestoneEscrow not configured'));
+        return;
+      }
+
+      const contract = getContractInstance(
+        config.contracts.milestoneEscrow as Address,
+        MILESTONE_ESCROW_ABI
+      );
+
+      console.log(chalk.cyan('Flagging dispute (fee: 0.001 ETH)...'));
+      const hash = await contract.write.flagDispute([BigInt(options.job)], { value: BigInt(1e15) });
+
+      console.log(chalk.cyan('Transaction sent:'), hash);
+      await waitForTransactionReceipt(hash);
+      console.log(chalk.green('✅ Dispute flagged!'));
+    } catch (error: unknown) {
+      const err = error as { message?: string };
+      console.error(chalk.red('❌ Error:'), err.message);
+    }
+  });
+
 // 🎯 HELP COMMAND
 program
   .command('help')

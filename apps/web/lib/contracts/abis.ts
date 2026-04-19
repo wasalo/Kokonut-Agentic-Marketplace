@@ -247,3 +247,73 @@ export const BIDDING_SYSTEM_ABI = parseAbi([
   'function upgradeTo(address newImplementation) external',
 ]);
 
+
+// =============================================================================
+// MILESTONE ESCROW ABI (Phase 24)
+// Milestone-based payments and dispute resolution
+// =============================================================================
+
+export const MILESTONE_ESCROW_ABI = parseAbi([
+  // Initialization
+  'function initialize(address initialOwner, address _agenticCommerce) external',
+
+  // Configuration
+  'function setAgenticCommerce(address _agenticCommerce) external',
+  'function agenticCommerce() external view returns (address)',
+  'function owner() external view returns (address)',
+
+  // Constants
+  'function ARBITER_STAKE() external view returns (uint256)',
+  'function ARBITER_FEE() external view returns (uint256)',
+  'function SLASH_PERCENT() external view returns (uint256)',
+  'function MAX_MILESTONES_PER_JOB() external view returns (uint256)',
+  'function ARBITER_RESPONSE_WINDOW() external view returns (uint256)',
+
+  // Milestone Management
+  'function enableMilestones(uint256 jobId, address provider, address paymentToken, uint256 totalBudget) external',
+  'function addMilestone(uint256 jobId, string description, uint256 amount, uint256 dueDate) external',
+  'function completeMilestone(uint256 jobId, uint256 milestoneIndex, bytes32 proofHash) external',
+  'function releaseMilestone(uint256 jobId, uint256 milestoneIndex) external',
+  'function getJobMilestones(uint256 jobId) external view returns ((string description, uint256 amount, uint256 dueDate, bool completed, bool released, bytes32 proofHash)[] memory)',
+  'function getMilestoneCount(uint256 jobId) external view returns (uint256)',
+  'function jobMilestones(uint256) external view returns (address client, address provider, address paymentToken, uint256 totalBudget, bool usesMilestones)',
+
+  // Arbiter System
+  'function registerAsArbiter() external payable',
+  'function unregisterAsArbiter() external',
+  'function getArbiterStake(address arbiter) external view returns (uint256)',
+  'function isArbiter(address account) external view returns (bool)',
+  'function getArbiterCount() external view returns (uint256)',
+  'function arbiterPool(uint256) external view returns (address)',
+  'function arbiterStakes(address) external view returns (uint256)',
+  'function isRegisteredArbiter(address) external view returns (bool)',
+
+  // Dispute System
+  'function flagDispute(uint256 jobId) external payable',
+  'function submitEvidence(uint256 jobId, bytes32 evidenceHash) external',
+  'function resolveDispute(uint256 jobId, bool releaseToProvider) external',
+  'function getDispute(uint256 jobId) external view returns (uint256 jobId, address flaggler, address arbiter, uint256 flaggedAt, bool resolved, bool releaseToProvider)',
+  'function getActiveDisputes() external view returns (uint256[] memory)',
+  'function disputes(uint256) external view returns (uint256 jobId, address flaggler, address arbiter, uint256 flaggedAt, bool resolved, bool releaseToProvider)',
+
+  // Upgradeable
+  'function upgradeTo(address newImplementation) external',
+]);
+
+// MilestoneEscrow Events
+export const MILESTONE_ESCROW_EVENTS = parseAbi([
+  'event MilestoneEnabled(uint256 indexed jobId)',
+  'event MilestoneAdded(uint256 indexed jobId, uint256 indexed milestoneIndex, string description, uint256 amount)',
+  'event MilestoneCompleted(uint256 indexed jobId, uint256 indexed milestoneIndex, bytes32 proofHash)',
+  'event MilestoneReleased(uint256 indexed jobId, uint256 indexed milestoneIndex, uint256 amount)',
+  'event MilestoneAutoReleased(uint256 indexed jobId, uint256 indexed milestoneIndex, uint256 amount)',
+  'event ArbiterRegistered(address indexed arbiter, uint256 stake)',
+  'event ArbiterUnregistered(address indexed arbiter, uint256 refundedStake)',
+  'event DisputeFlagged(uint256 indexed jobId, address indexed flaggler, uint256 fee)',
+  'event EvidenceSubmitted(uint256 indexed jobId, address indexed submitter, bytes32 evidenceHash)',
+  'event DisputeResolved(uint256 indexed jobId, bool releasedToProvider, address indexed arbiter, uint256 arbiterFee)',
+  'event ArbiterSlashed(address indexed arbiter, uint256 slashedAmount, string reason)',
+  'event ArbiterAssigned(uint256 indexed jobId, address indexed arbiter)',
+  'event AgenticCommerceSet(address indexed oldAddress, address indexed newAddress)',
+]);
+

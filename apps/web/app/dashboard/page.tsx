@@ -19,6 +19,7 @@ import { useUserJobs, getJobStatusLabel } from '@/lib/hooks/useJobs';
 import { useProposalCount, useProposals } from '@/lib/hooks/useProposals';
 import { useActivityFeed, ActivityType } from '@/lib/hooks/useActivityFeed';
 import { Address } from '@/components/Address';
+import { ArbiterSection } from '@/components/ArbiterSection';
 
 function WalletConnectPrompt() {
   return (
@@ -335,6 +336,7 @@ export default function DashboardPage(): JSX.Element {
       )}
 
       <QuickActions />
+      <ArbiterSection />
       <PlatformActivityWidget />
       <RecentActivity user={user} />
     </div>

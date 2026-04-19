@@ -376,12 +376,12 @@ contract SecurityFixesTest is Test {
         // Fund the job with ETH
         vm.prank(client);
         vm.deal(client, 0.02 ether);
-        agenticCommerce.fund{value: 0.01 ether}(jobId);
+        agenticCommerce.fund{value: 0.01 ether}(jobId, 0.01 ether);
         
         // Try to fund again - should revert with WrongStatus
         vm.prank(client);
         vm.expectRevert(AgenticCommerceV6.WrongStatus.selector);
-        agenticCommerce.fund{value: 0.01 ether}(jobId);
+        agenticCommerce.fund{value: 0.01 ether}(jobId, 0.01 ether);
     }
     
     function test_L2_customErrors_Unauthorized() public {
@@ -468,7 +468,7 @@ contract SecurityFixesTest is Test {
         
         vm.deal(client, 10 ether);
         vm.prank(client);
-        agenticCommerce.fund{value: 0.01 ether}(jobId);
+        agenticCommerce.fund{value: 0.01 ether}(jobId, 0.01 ether);
         
         uint256 clientBalanceBefore = client.balance;
         
@@ -506,7 +506,7 @@ contract SecurityFixesTest is Test {
         
         vm.deal(client, 10 ether);
         vm.prank(client);
-        agenticCommerce.fund{value: 0.05 ether}(jobId);
+        agenticCommerce.fund{value: 0.05 ether}(jobId, 0.05 ether);
         
         uint256 clientBalanceBefore = client.balance;
         
@@ -539,7 +539,7 @@ contract SecurityFixesTest is Test {
         
         vm.deal(client, 1 ether);
         vm.prank(client);
-        agenticCommerce.fund{value: 0.01 ether}(jobId);
+        agenticCommerce.fund{value: 0.01 ether}(jobId, 0.01 ether);
         
         // Try to refund before expiry - should fail
         vm.prank(makeAddr("stranger"));

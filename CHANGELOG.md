@@ -5,6 +5,133 @@ All notable changes to the Kokonut Agent Economy Stack are documented in this fi
 The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.0.0/),
 and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0.html).
 
+## [2026-04-18] - Phase 24: Milestone Payments & Dispute Resolution
+
+### 🎯 MilestoneEscrow Contract
+
+**New standalone contract for milestone-based payments and dispute resolution:**
+
+| Contract | Proxy | Implementation | Purpose |
+| -------- | ----- | -------------- | ------- |
+| `MilestoneEscrow` | `0xf24eDD2d8e99c80d40e959b1F37636b6C04FF9A9` | `0xc163d6a68c0ed0cd897456E55B1e47103279e883` | Milestone payments (UUPS) |
+
+**Features:**
+- **Milestone-based payments**: Split job payments into up to 10 phases
+- **Arbiter pool**: Registered arbiters stake 0.01 ETH to resolve disputes
+- **Dispute system**: Flag disputes with 0.001 ETH fee, arbiter resolves
+- **7-day auto-release timeout**: Payments auto-release after 7 days if client doesn't release manually
+
+**Constants:**
+- `ARBITER_STAKE = 0.01 ETH`
+- `ARBITER_FEE = 0.001 ETH`
+- `MAX_MILESTONES_PER_JOB = 10`
+- `ARBITER_RESPONSE_WINDOW = 7 days`
+
+### 🎯 UI Updates
+
+**Dashboard Arbiter Section:**
+- Created `components/ArbiterSection.tsx`
+- Register/unregister as arbiter with 0.01 ETH stake
+- View arbiter count and stake balance
+
+**Job Detail Page:**
+- Created `components/MilestoneSection.tsx`
+- Shows milestone phases with completion status
+- Provider: Submit milestone completion with proof hash
+- Client: Release payment after completion
+- Dispute flagging with 0.001 ETH fee
+
+### 🎯 SDK Updates
+
+**TypeScript SDK (`sdk/typescript/client.ts`):**
+- Added `milestoneEscrow` to `ContractAddresses` type
+- Added `MILESTONE_ESCROW_ABI` with all milestone/arbiter/dispute functions
+- Added `MilestoneModule` class with methods:
+  - `enableMilestones()`, `addMilestone()`, `completeMilestone()`, `releaseMilestone()`
+  - `registerAsArbiter()`, `unregisterAsArbiter()`, `isArbiter()`, `getArbiterCount()`
+  - `flagDispute()`, `submitEvidence()`, `resolveDispute()`
+
+### 🎯 CLI Updates
+
+**Added 12 new CLI commands:**
+- `register-arbiter` - Register as arbiter with 0.01 ETH stake
+- `unregister-arbiter` - Unregister and recover stake
+- `is-arbiter [address]` - Check if address is arbiter
+- `arbiter-count` - Get total arbiters
+- `enable-milestones -j <job> -p <provider> -t <token> -b <budget>` - Enable milestone payments
+- `add-milestone -j <job> -d <description> -a <amount> [--due <timestamp>]` - Add milestone
+- `complete-milestone -j <job> -i <index> -p <proof>` - Mark milestone complete (provider)
+- `release-milestone -j <job> -i <index>` - Release payment (client)
+- `get-milestones -j <job>` - List job milestones
+- `flag-dispute -j <job>` - Flag dispute (0.001 ETH fee)
+
+**Config Updates:**
+- `config/networks.js` - Added `milestoneEscrow: '0xf24eDD2d8e99c80d40e959b1F37636b6C04FF9A9'`
+
+### 📦 Files Created
+
+| File | Purpose |
+| ---- | ------- |
+| `contracts/shared/MilestoneEscrow.sol` | Milestone payments & dispute resolution contract |
+| `contracts/scripts/DeployMilestoneEscrow.s.sol` | Deployment script |
+| `contracts/test/MilestoneEscrowSecurityTest.t.sol` | Security tests |
+| `apps/web/lib/hooks/useMilestoneEscrow.ts` | React hooks for milestone/arbiter |
+| `apps/web/components/MilestoneSection.tsx` | Job detail milestone UI |
+| `apps/web/components/ArbiterSection.tsx` | Dashboard arbiter UI |
+
+### 📦 Files Modified
+
+| File | Changes |
+| ---- | ------- |
+| `apps/web/lib/contracts/config.ts` | Added milestoneEscrow/milestoneEscrowImpl |
+| `apps/web/lib/contracts/abis.ts` | Added MILESTONE_ESCROW_ABI, MILESTONE_ESCROW_EVENTS |
+| `apps/web/app/dashboard/page.tsx` | Added ArbiterSection |
+| `apps/web/app/jobs/[id]/page.tsx` | Integrated MilestoneSection |
+| `apps/web/lib/caip.ts` | Removed 'use client' for SSR compatibility |
+| `sdk/typescript/types.ts` | Added milestoneEscrow to ContractAddresses |
+| `sdk/typescript/client.ts` | Added MilestoneModule |
+| `cli/cli.ts` | Added 12 milestone/arbiter commands |
+| `config/networks.js` | Added milestoneEscrow address |
+| `.env` | Added NEXT_PUBLIC_MILESTONE_ESCROW_ADDRESS |
+
+### ✅ Build Status
+
+- TypeScript: 0 errors
+- Contract size: 27,686 bytes (under 24KB limit)
+
+### 🧪 Security Tests
+
+**MilestoneEscrowSecurityTest (28 passing):**
+
+| Test Category | Tests |
+|--------------|-------|
+| Initialization | 2 |
+| Arbiter Registration | 7 |
+| Enable Milestones | 2 |
+| Add Milestone | 5 |
+| Complete Milestone | 3 |
+| Release Milestone | 4 |
+| Dispute | 5 |
+| UUPS | 1 |
+
+**SecurityFixes.t.sol (49 passing):** All Phase 12/13/14/23 security tests passing.
+
+### 🔧 Test Fixes
+
+**Phase 23 fund() signature updates:**
+
+Fixed 12 test files to use new `fund(jobId, expectedBudget)` signature:
+
+| File | Changes |
+|------|--------|
+| `contracts/test/SecurityFixes.t.sol` | 5 fund() calls |
+| `contracts/test/AgenticCommerceV6.t.sol` | 3 fund() calls |
+| `contracts/test/AgenticCommerceV61.t.sol` | 3 fund() calls |
+| `contracts/test/Invariants.t.sol` | 1 fund() call |
+| `contracts/test/ForkTest.t.sol` | Fixed pragma + staticcall |
+
+---
+
 ## [2026-04-18] - Escrow Front-Running Protection
 
 ### 🎯 AgenticCommerceV6 Fund Function Upgrade
