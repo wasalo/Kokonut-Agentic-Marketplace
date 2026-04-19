@@ -1,7 +1,13 @@
 /**
  * API Key Management for Rate Limiting Tiers
- * 
+ *
  * Key format: kokonut_live_xxxxx (production) or kokonut_test_xxxxx (test)
+ *
+ * x402 Payment Pricing (USDC, 6 decimals):
+ * - anonymous/free: Free tier - paid via x402
+ * - basic: $0.005 USDC cap (exact: $0.001)
+ * - pro: $0.05 USDC cap (exact: $0.01)
+ * - enterprise: Free via contract (no x402)
  */
 
 export type ApiKeyTier = 'free' | 'basic' | 'pro' | 'enterprise' | 'anonymous';
@@ -11,14 +17,51 @@ export interface ApiKeyConfig {
   maxRequests: number;
   windowMs: number;
   unlimited?: boolean;
+  x402Pricing?: {
+    exact: string;
+    upto: string;
+    max?: string;
+  };
+  x402Chain?: string;
 }
 
 export const API_KEY_TIERS: Record<ApiKeyTier, ApiKeyConfig> = {
-  anonymous: { tier: 'anonymous', maxRequests: 30, windowMs: 60000 },
-  free: { tier: 'free', maxRequests: 30, windowMs: 60000 },
-  basic: { tier: 'basic', maxRequests: 100, windowMs: 60000 },
-  pro: { tier: 'pro', maxRequests: 500, windowMs: 60000 },
-  enterprise: { tier: 'enterprise', maxRequests: 0, windowMs: 0, unlimited: true },
+  anonymous: {
+    tier: 'anonymous',
+    maxRequests: 30,
+    windowMs: 60000,
+    x402Pricing: { exact: '1000', upto: '10000', max: '100000' },
+    x402Chain: 'eip155:84532',
+  },
+  free: {
+    tier: 'free',
+    maxRequests: 30,
+    windowMs: 60000,
+    x402Pricing: { exact: '1000', upto: '10000', max: '100000' },
+    x402Chain: 'eip155:84532',
+  },
+  basic: {
+    tier: 'basic',
+    maxRequests: 100,
+    windowMs: 60000,
+    x402Pricing: { exact: '5000', upto: '50000', max: '500000' },
+    x402Chain: 'eip155:84532',
+  },
+  pro: {
+    tier: 'pro',
+    maxRequests: 500,
+    windowMs: 60000,
+    x402Pricing: { exact: '10000', upto: '100000', max: '1000000' },
+    x402Chain: 'eip155:8453',
+  },
+  enterprise: {
+    tier: 'enterprise',
+    maxRequests: 0,
+    windowMs: 0,
+    unlimited: true,
+    x402Pricing: { exact: '0', upto: '0', max: '0' },
+    x402Chain: 'eip155:8453',
+  },
 };
 
 const API_KEY_PREFIXES = {
