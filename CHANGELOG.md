@@ -5,6 +5,48 @@ All notable changes to the Kokonut Agent Economy Stack are documented in this fi
 The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.0.0/),
 and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0.html).
 
+## [2026-04-18] - Escrow Front-Running Protection
+
+### 🎯 AgenticCommerceV6 Fund Function Upgrade
+
+**New `fund(uint256 jobId, uint256 expectedBudget)` signature:**
+
+- Added `expectedBudget` parameter to prevent front-running attacks
+- Clients pass their expected budget; contract reverts if actual budget differs
+- New custom error: `BudgetMismatch(uint256 expected, uint256 actual)`
+
+**Contract Upgrade (Sepolia):**
+
+| Contract | Proxy | New Implementation |
+| -------- | ----- | ------------------ |
+| AgenticCommerceV6 | `0x948d97EA7F0c49796fB576ADff375C900627568E` | `0xB8d0a16843d76622710b940eE67490525f57F083` |
+
+**SDK/CLI Updates:**
+
+- `sdk/typescript/client.ts` - `fundJob(jobId, amount, expectedBudget)` now passes expectedBudget
+- `cli/cli.ts` - `fund-job` command now passes budget as expectedBudget
+
+**Updated Files:**
+
+| File | Changes |
+| ---- | ------- |
+| `contracts/shared/AgenticCommerceV6.sol` | Added expectedBudget param, BudgetMismatch error |
+| `contracts/interfaces/IAgenticCommerceV6.sol` | Updated fund() signature |
+| `contracts/shared/BiddingSystem.sol` | Updated fund call with expectedBudget |
+| `contracts/test/TestFixtures.sol` | Updated test fixtures |
+| `apps/web/lib/hooks/useJobs.ts` | useFundJob accepts optional expectedBudget |
+| `apps/web/app/jobs/[id]/page.tsx` | Passes job.budget as expectedBudget |
+
+### 📦 Files Modified
+
+| File | Changes |
+| ---- | --------- |
+| `sdk/typescript/client.ts` | fundJob/fundJobWithETH now accept expectedBudget |
+| `cli/cli.ts` | fund-job command passes expectedBudget |
+| `apps/web/lib/contracts/config.ts` | Added agenticCommerceImpl address |
+
+---
+
 ## [2026-04-18] - Webhook System Enhancements
 
 ### 🎯 API Key Authentication with Rate Limit Tiers

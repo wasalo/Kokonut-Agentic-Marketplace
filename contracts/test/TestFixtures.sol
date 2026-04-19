@@ -157,7 +157,7 @@ contract TestFixtures is Test {
         vm.startPrank(jobClient);
         usdc.approve(address(agenticCommerce), amount);
         agenticCommerce.setBudget(jobId, amount);
-        agenticCommerce.fund(jobId);
+        agenticCommerce.fund(jobId, amount);
         vm.stopPrank();
     }
     

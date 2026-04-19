@@ -83,7 +83,7 @@ interface IAgenticCommerceV6 {
     event JobCreated(uint256 indexed jobId, address indexed client, address indexed provider, uint256 serviceId, uint256 expiredAt);
     event OpenJobCreated(uint256 indexed jobId, address indexed client, uint256 maxBudget, address indexed evaluator, uint256 expiredAt);
     event ProviderSet(uint256 indexed jobId, address indexed provider, address oldProvider);
-    event BudgetSet(uint256 indexed jobId, uint256 oldBudget, uint256 newBudget);
+    event BudgetSet(uint256 indexed jobId, uint256 indexed oldBudget, uint256 indexed newBudget);
     event JobFunded(uint256 indexed jobId, address indexed client, uint256 amount);
     event JobSubmitted(uint256 indexed jobId, address indexed provider, bytes32 deliverable);
     event JobCompleted(uint256 indexed jobId, address indexed evaluator, address indexed provider, uint256 evaluatorFee);
@@ -163,7 +163,7 @@ interface IAgenticCommerceV6 {
     
     function setProvider(uint256 jobId, address provider) external;
     function setBudget(uint256 jobId, uint256 amount) external;
-    function fund(uint256 jobId) external payable;
+    function fund(uint256 jobId, uint256 expectedBudget) external payable;
     function submit(uint256 jobId, bytes32 deliverable) external;
     function complete(uint256 jobId, bytes32 reason) external;
     function completeAfterTimeout(uint256 jobId, bytes32 reason) external;

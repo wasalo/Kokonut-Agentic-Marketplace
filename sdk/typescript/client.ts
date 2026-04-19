@@ -88,7 +88,7 @@ const AGENTIC_COMMERCE_ABI = parseAbi([
   // NOTE: createOpenJob is DISABLED in V6.1 - use BiddingSystem for bidding instead
   'function setProvider(uint256 jobId, address provider) external',
   'function setBudget(uint256 jobId, uint256 amount) external',
-  'function fund(uint256 jobId) external payable',
+  'function fund(uint256 jobId, uint256 expectedBudget) external payable',
   'function submit(uint256 jobId, bytes32 deliverable) external',
   'function complete(uint256 jobId, bytes32 reason) external',
   'function reject(uint256 jobId, bytes32 reason) external',
@@ -882,7 +882,7 @@ class CommerceModule {
     };
   }
 
-  async fundJob(jobId: number | bigint, amount?: bigint): Promise<TransactionResult> {
+  async fundJob(jobId: number | bigint, amount?: bigint, expectedBudget?: bigint): Promise<TransactionResult> {
     if (amount) {
       const allowance = (await this.publicClient.readContract({
         address: this.contracts.usdc,
@@ -905,7 +905,7 @@ class CommerceModule {
       address: this.contracts.agenticCommerce as Address,
       abi: AGENTIC_COMMERCE_ABI,
       functionName: 'fund',
-      args: [BigInt(jobId)],
+      args: [BigInt(jobId), expectedBudget || 0n],
     } as any);
 
 
@@ -915,12 +915,12 @@ class CommerceModule {
     };
   }
 
-  async fundJobWithETH(jobId: number | bigint, value?: bigint): Promise<TransactionResult> {
+  async fundJobWithETH(jobId: number | bigint, value?: bigint, expectedBudget?: bigint): Promise<TransactionResult> {
     const hash = await this.wallet.writeContract({
       address: this.contracts.agenticCommerce,
       abi: AGENTIC_COMMERCE_ABI,
       functionName: 'fund',
-      args: [jobId],
+      args: [jobId, expectedBudget || 0n],
       value: value || 0n,
     } as any);
 

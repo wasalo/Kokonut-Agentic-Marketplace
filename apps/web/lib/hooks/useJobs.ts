@@ -245,12 +245,12 @@ export function useCreateJob() {
 export function useFundJob() {
   const { writeContract, data, isPending, error, reset } = useWriteContract();
   return {
-    fundJob: (jobId: bigint) =>
+    fundJob: (jobId: bigint, expectedBudget?: bigint) =>
       writeContract({
         address: AGENTIC_COMMERCE_ADDRESS,
         abi: AGENTIC_COMMERCE_ABI,
         functionName: 'fund',
-        args: [jobId],
+        args: [jobId, expectedBudget ?? BigInt(0)],
       }),
     hash: data,
     isPending,
@@ -598,12 +598,12 @@ export function useFundJobWithETH() {
   const { writeContract, data, isPending, error, reset } = useWriteContract();
 
   return {
-    fundJob: (jobId: bigint, value: bigint) =>
+    fundJob: (jobId: bigint, value: bigint, expectedBudget?: bigint) =>
       writeContract({
         address: AGENTIC_COMMERCE_ADDRESS,
         abi: AGENTIC_COMMERCE_ABI,
         functionName: 'fund',
-        args: [jobId],
+        args: [jobId, expectedBudget ?? BigInt(0)],
         value,
       }),
     hash: data,

@@ -424,7 +424,7 @@ contract BiddingSystem is
         
         // Set budget and fund
         IAgenticCommerceV6(commerce).setBudget(jobId, bidAmount);
-        IAgenticCommerceV6(commerce).fund{value: bidAmount}(jobId);
+        IAgenticCommerceV6(commerce).fund{value: bidAmount}(jobId, bidAmount);
         
         // Pay platform fee
         uint256 fee = (bidAmount * platformFeeBP) / FEE_DENOMINATOR;

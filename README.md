@@ -186,7 +186,8 @@ The wildcard format (e.g., `10.108.1.*`) allows any IP in that subnet. Add expli
 | ------------------------ | -------------------------------------------- | -------------------------- |
 | **AgentSkillRegistryV2** | `0xA84684261558f342d6871DD2CFef90A2117Aa20A` | Skills/capabilities (UUPS) |
 | **ServiceRegistryV2**    | `0x62E1eeEa1A2Ab987004F35bDA430457Ed6077201` | Service listings (UUPS)    |
-| **AgenticCommerce**      | `0x948d97EA7F0c49796fB576ADff375C900627568E` | Job escrow (USDC)          |
+| **AgenticCommerce**      | `0x948d97EA7F0c49796fB576ADff375C900627568E` | Job escrow (USDC, fund(expectedBudget))          |
+| **AgenticCommerce Impl** | `0xB8d0a16843d76622710b940eE67490525f57F083` | Front-running protection (April 18, 2026)        |
 | **AgentReviewV5**        | `0x5CDb592Fd37749bF87448FBf5725D1Cd986dd1Cb` | A/B evaluation             |
 | **BiddingSystem**        | `0x32c9d069a248a619d3EAc4dFC76F2639AaBeF04`  | Commit-reveal bidding      |
 | **ERC-8004 Identity**    | `0x8004A818BFB912233c491871b3d84c89A494BD9e` | Agent identities           |

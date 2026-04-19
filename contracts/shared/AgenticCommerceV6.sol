@@ -122,6 +122,7 @@ contract AgenticCommerceV6 is
     error ExpiryTooLong();
     error ZeroBudget();
     error BudgetTooLow();
+    error BudgetMismatch(uint256 expected, uint256 actual);
     error BudgetTooHigh();
     error ProviderNotSet();
     error InvalidHook();
@@ -341,11 +342,16 @@ contract AgenticCommerceV6 is
         emit JobUpdated(jobId, _UPDATE_TYPE_BUDGET, bytes32(oldBudget), bytes32(amount), block.timestamp);
     }
 
-    function fund(uint256 jobId) external payable nonReentrant onlyClient(jobId) {
+    function fund(uint256 jobId, uint256 expectedBudget) external payable nonReentrant onlyClient(jobId) {
         Job storage job = jobs[jobId];
         _validateFund(job);
 
         uint256 cachedBudget = job.budget;
+
+        // Front-running protection: ensure client gets the budget they expected
+        if (expectedBudget != 0 && cachedBudget != expectedBudget) {
+            revert BudgetMismatch(expectedBudget, cachedBudget);
+        }
 
         // CEI Fix: Effects before Interactions - update status BEFORE hook call
         JobStatus oldStatus = job.status;

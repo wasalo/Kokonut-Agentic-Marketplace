@@ -54,7 +54,7 @@ export const AGENTIC_COMMERCE_ABI = parseAbi([
   'function setPaymentToken(uint256 jobId, address paymentToken) external',
   'function setDisputeWindow(uint256 jobId, uint256 window) external',
   'function setNonResponsiveSlashBP(uint256 jobId, uint256 slashBP) external',
-  'function fund(uint256 jobId) external payable',
+  'function fund(uint256 jobId, uint256 expectedBudget) external payable',
   'function submit(uint256 jobId, bytes32 deliverable) external',
   'function complete(uint256 jobId, bytes32 reason) external',
   'function completeAfterTimeout(uint256 jobId, bytes32 reason) external',

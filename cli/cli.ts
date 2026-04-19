@@ -1232,7 +1232,7 @@ program
       }
 
       const agenticCommerceABI = parseAbi([
-        'function fund(uint256 jobId) external',
+        'function fund(uint256 jobId, uint256 expectedBudget) external payable',
         'function getJob(uint256 jobId) external view returns ((uint256 id, address client, address provider, address evaluator, string description, uint256 budget, uint256 expiredAt, uint8 status, address hook, bytes32 deliverable))',
       ]);
 
@@ -1249,7 +1249,8 @@ program
       console.log(chalk.dim('  Approve:'), config.contracts.agenticCommerce);
       console.log(chalk.dim('  Amount:'), job.budget.toString());
 
-      const hash = await commerce.write.fund([BigInt(jobId)]);
+      // Pass expectedBudget to protect against front-running
+      const hash = await commerce.write.fund([BigInt(jobId), job.budget]);
       console.log(chalk.cyan('Transaction sent:'), hash);
 
       await waitForTransactionReceipt(hash);

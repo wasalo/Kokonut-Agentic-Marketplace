@@ -143,7 +143,8 @@ export const CONTRACT_ADDRESSES = {
     serviceRegistry: '0x62E1eeEa1A2Ab987004F35bDA430457Ed6077201',
     serviceRegistryImpl: '0x218340e07bEd7fD15058414388F2C82E0f3B04f9',
     // Phase 18: V6 - Event Enhancements, Permissionless Refund, CompleteAfterTimeout
-    agenticCommerce: '0x948d97EA7F0c49796fB576ADff375C900627568E',
+agenticCommerce: '0x948d97EA7F0c49796fB576ADff375C900627568E', // AgenticCommerceV6 (UUPS Proxy) - upgraded with fund(expectedBudget)
+  agenticCommerceImpl: '0xB8d0a16843d76622710b940eE67490525f57F083', // New implementation
     agenticCommerceImpl: '0xEecC615310f6A6144eeA0F235E83b7BD391EC251',
     // Phase 11: BiddingSystem - Standalone commit-reveal bidding
     biddingSystem: '0x32c9d069a248a619d3EAc4D1FC76F2639AaBeF04',

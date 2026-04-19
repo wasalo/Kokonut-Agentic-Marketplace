@@ -132,12 +132,12 @@ export default function JobDetailPage({
   } = useWriteContract();
 
   const fundJobWithETH = useCallback(
-    (jobId: bigint, value: bigint) => {
+    (jobId: bigint, value: bigint, expectedBudget: bigint) => {
       writeFundETH({
         address: AGENTIC_COMMERCE_ADDRESS,
         abi: AGENTIC_COMMERCE_ABI,
         functionName: 'fund',
-        args: [jobId],
+        args: [jobId, expectedBudget],
         value,
       });
     },
@@ -603,9 +603,9 @@ export default function JobDetailPage({
                       handleAction('Funding job', () => {
                         if (selectedPaymentToken.symbol === 'ETH') {
                           // Use writeContract with value for ETH
-                          fundJobWithETH(job.id, job.budget);
+                          fundJobWithETH(job.id, job.budget, job.budget);
                         } else {
-                          fundJob(job.id);
+                          fundJob(job.id, job.budget);
                         }
                       });
                     }
