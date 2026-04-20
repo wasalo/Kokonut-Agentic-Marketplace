@@ -10,12 +10,13 @@ import { useAgentServices } from '@/lib/hooks/useServices';
 import { useJobs } from '@/lib/hooks/useJobs';
 import { useAgentSkills } from '@/lib/hooks/useSkills';
 import { formatAddress } from '@/lib/utils';
-import { Tabs, TabsContent, TabsList, TabsTrigger } from '@/components/ui/tabs';
 import { 
   Wallet, 
   Package, 
   Briefcase, 
-  Star, 
+  Star,
+  Folder,
+  Plug,
   ExternalLink,
   Copy,
   Check,
@@ -25,7 +26,6 @@ import {
   MessageSquare,
   Webhook,
   Mail,
-  Plug
 } from 'lucide-react';
 
 interface AgentDetailPageProps {
@@ -394,6 +394,28 @@ function AllJobsTab({ providerJobs, clientJobs }: { providerJobs: any[]; clientJ
   );
 }
 
+import { PortfolioGrid } from '@/components/PortfolioCard';
+
+function PortfolioTab({ metadata }: { metadata: any }) {
+  const portfolio = metadata?.portfolio || [];
+
+  if (portfolio.length === 0) {
+    return (
+      <Card className="bg-content2 border-divider">
+        <div className="p-6 md:p-8 text-center">
+          <Package className="w-10 h-10 md:w-12 md:h-12 text-default-400 mx-auto mb-3 md:mb-4" />
+          <p className="text-default-500 text-sm md:text-base">No portfolio items yet</p>
+          <p className="text-default-400 text-xs md:text-sm mt-2">
+            Add portfolio items in settings to showcase your work
+          </p>
+        </div>
+      </Card>
+    );
+  }
+
+  return <PortfolioGrid items={portfolio} />;
+}
+
 function ConnectionsTab({ metadata, owner }: { metadata: any; owner: `0x${string}` | undefined }) {
   const endpoints = metadata?.endpoints || {};
   const channels = metadata?.channels || {};
@@ -581,6 +603,8 @@ export default function AgentDetailPage({ params }: AgentDetailPageProps) {
   const { jobs: allJobs } = useJobs(0, 100);
   const { skillIds, isLoading: isLoadingSkills } = useAgentSkills(agentId);
   
+  const [activeTab, setActiveTab] = useState('overview');
+  
   const providerJobs = allJobs?.filter(j => 
     j.provider && j.provider.toLowerCase() === agentAddress.toLowerCase()
   ) || [];
@@ -589,6 +613,15 @@ export default function AgentDetailPage({ params }: AgentDetailPageProps) {
   ) || [];
   
   const isLoading = isLoadingOwner || isLoadingReputation;
+
+  const tabs = [
+    { id: 'overview', label: 'Overview' },
+    { id: 'services', label: `Services (${services?.length || 0})` },
+    { id: 'jobs', label: `Jobs (${providerJobs.length + clientJobs.length})` },
+    { id: 'skills', label: `Skills (${skillIds?.length || 0})` },
+    { id: 'portfolio', label: `Portfolio (${metadata?.portfolio?.length || 0})` },
+    { id: 'connections', label: 'Connections' },
+  ];
   
   return (
     <div className="container mx-auto px-3 md:px-4 py-4 md:py-8 max-w-5xl">
@@ -598,16 +631,24 @@ export default function AgentDetailPage({ params }: AgentDetailPageProps) {
         metadata={metadata}
       />
       
-      <Tabs defaultValue="overview" className="mb-4 md:mb-6">
-        <TabsList>
-          <TabsTrigger value="overview">Overview</TabsTrigger>
-          <TabsTrigger value="services">Services ({services?.length || 0})</TabsTrigger>
-          <TabsTrigger value="jobs">Jobs ({providerJobs.length + clientJobs.length})</TabsTrigger>
-          <TabsTrigger value="skills">Skills ({skillIds?.length || 0})</TabsTrigger>
-          <TabsTrigger value="connections">Connections</TabsTrigger>
-        </TabsList>
-        
-        <TabsContent value="overview">
+      <div className="flex flex-col sm:flex-row items-center justify-center rounded-md bg-muted p-1 gap-1 mb-4 md:mb-6 overflow-x-auto">
+        {tabs.map(tab => (
+          <button
+            key={tab.id}
+            onClick={() => setActiveTab(tab.id)}
+            className={`inline-flex items-center justify-center whitespace-nowrap rounded-sm px-3 py-1.5 text-sm font-medium ring-offset-background transition-all focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring focus-visible:ring-offset-2 disabled:pointer-events-none disabled:opacity-50 ${
+              activeTab === tab.id
+                ? 'bg-background text-foreground shadow'
+                : 'text-muted-foreground hover:text-foreground'
+            }`}
+          >
+            {tab.label}
+          </button>
+        ))}
+      </div>
+      
+      <div className="mt-2">
+        {activeTab === 'overview' && (
           <Suspense fallback={<Skeleton className="h-64 rounded-xl" />}>
             <OverviewTab 
               score={score}
@@ -620,24 +661,28 @@ export default function AgentDetailPage({ params }: AgentDetailPageProps) {
               skillsCount={skillIds?.length || 0}
             />
           </Suspense>
-        </TabsContent>
+        )}
         
-        <TabsContent value="services">
+        {activeTab === 'services' && (
           <ServicesTab services={services || []} isLoading={isLoadingServices} />
-        </TabsContent>
+        )}
         
-        <TabsContent value="jobs">
+        {activeTab === 'jobs' && (
           <AllJobsTab providerJobs={providerJobs} clientJobs={clientJobs} />
-        </TabsContent>
+        )}
         
-        <TabsContent value="skills">
+        {activeTab === 'skills' && (
           <SkillsTab skillIds={skillIds} isLoading={isLoadingSkills} />
-        </TabsContent>
+        )}
         
-        <TabsContent value="connections">
+        {activeTab === 'portfolio' && (
+          <PortfolioTab metadata={metadata} />
+        )}
+        
+        {activeTab === 'connections' && (
           <ConnectionsTab metadata={metadata} owner={owner} />
-        </TabsContent>
-      </Tabs>
+        )}
+      </div>
     </div>
   );
 }

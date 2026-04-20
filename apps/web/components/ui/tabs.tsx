@@ -19,6 +19,10 @@ function useTabsContext() {
   return context;
 }
 
+function useOptionalTabsContext() {
+  return React.useContext(TabsContext);
+}
+
 const tabsVariants = cva(
   'flex flex-col sm:flex-row items-center justify-center rounded-md bg-muted p-1 text-muted-foreground',
   {
@@ -55,6 +59,26 @@ export function Tabs({ variant, size, defaultValue, className, children }: TabsP
     <TabsContext.Provider value={{ value, setValue }}>
       <div className={cn(tabsVariants({ variant, size }), 'w-full', className)}>
         {children}
+      </div>
+    </TabsContext.Provider>
+  );
+}
+
+export interface TabsSeparateProps {
+  variant?: 'default' | 'underlined';
+  size?: 'default' | 'sm' | 'lg';
+  defaultValue?: string;
+  className?: string;
+  children: (args: { activeValue: string; setActiveValue: (value: string) => void }) => React.ReactNode;
+}
+
+export function TabsSeparate({ variant, size, defaultValue, className, children }: TabsSeparateProps) {
+  const [value, setValue] = React.useState(defaultValue || 'overview');
+  
+  return (
+    <TabsContext.Provider value={{ value, setValue }}>
+      <div className="w-full">
+        {children({ activeValue: value, setActiveValue: setValue })}
       </div>
     </TabsContext.Provider>
   );

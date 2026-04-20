@@ -12,6 +12,7 @@ import { generateAgentMetadata, type AgentMetadata8004 } from '@/lib/metadata';
 import { useWalletAgentsWithDetails } from '@/lib/hooks/useWalletAgentsWithDetails';
 import { CONTRACT_ADDRESSES, getContractAddress } from '@/lib/contracts/config';
 import { TransactionError } from '@/components/TransactionError';
+import { PortfolioForm, type PortfolioItem } from '@/components/PortfolioForm';
 import { useFormSubmit, formatTimeRemaining } from '@/lib/hooks/useDebounce';
 
 const ERC8004_ADDRESS = getContractAddress(
@@ -25,6 +26,7 @@ interface FormData {
   version: string;
   endpoint: string;
   capabilities: string;
+  portfolio: PortfolioItem[];
 }
 
 const initialFormData: FormData = {
@@ -33,6 +35,7 @@ const initialFormData: FormData = {
   version: '1.0.0',
   endpoint: '',
   capabilities: '',
+  portfolio: [],
 };
 
 export default function RegisterAgentPage(): JSX.Element {
@@ -46,6 +49,10 @@ export default function RegisterAgentPage(): JSX.Element {
 
   const handleFieldChange = useCallback((field: keyof FormData, value: string) => {
     setFormData(prev => ({ ...prev, [field]: value }));
+  }, []);
+
+  const handlePortfolioChange = useCallback((portfolio: PortfolioItem[]) => {
+    setFormData(prev => ({ ...prev, portfolio }));
   }, []);
 
   const { writeContract, data: txHash, isPending, error: txError } = useWriteContract();
@@ -68,7 +75,8 @@ export default function RegisterAgentPage(): JSX.Element {
           .map(c => c.trim())
           .filter(Boolean),
         endpoints: formData.endpoint ? { https: formData.endpoint } : undefined,
-        source: 'kokonut-marketplace', // Tag the agent as registered via Kokonut UI
+        source: 'kokonut-marketplace',
+        portfolio: formData.portfolio.length > 0 ? formData.portfolio : undefined,
         createdAt: new Date().toISOString(),
         updatedAt: new Date().toISOString(),
       };
@@ -235,6 +243,11 @@ export default function RegisterAgentPage(): JSX.Element {
                   className="w-full px-3 py-2 bg-content2 border border-divider rounded-lg text-default-700 placeholder:text-default-400 focus:outline-none focus:ring-2 focus:ring-success focus:border-transparent transition-all"
                 />
               </div>
+
+              <PortfolioForm
+                portfolio={formData.portfolio}
+                onChange={handlePortfolioChange}
+              />
 
               <div className="p-4 bg-content2 rounded-lg">
                 <p className="text-xs text-default-400 mb-1">Your Address</p>

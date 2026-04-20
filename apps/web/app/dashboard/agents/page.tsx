@@ -1,10 +1,13 @@
 'use client';
 
 import { useAccount } from 'wagmi';
-import { Card, Skeleton } from '@heroui/react';
-import { Wallet, Plus, ArrowLeft, ExternalLink, Settings } from 'lucide-react';
+import { Card, Skeleton, Badge } from '@heroui/react';
+import { Wallet, Plus, ArrowLeft, ExternalLink, Settings, Package, Star } from 'lucide-react';
 import NextLink from 'next/link';
 import { useWalletAgentsWithDetails } from '@/lib/hooks/useWalletAgentsWithDetails';
+import { useProviderServices } from '@/lib/hooks/useServices';
+import { useJobs } from '@/lib/hooks/useJobs';
+import { useAgentReputation } from '@/lib/hooks/useAgentReputation';
 
 function WalletConnectPrompt() {
   return (
@@ -18,13 +21,19 @@ function WalletConnectPrompt() {
 
 function AgentCard({
   agent,
+  owner,
 }: {
   agent: {
     id: number;
-    metadata?: { name?: string; description?: string } | null;
+    metadata?: { name?: string; description?: string; capabilities?: string[] } | null;
     hasKokonutTag: boolean;
   };
+  owner: `0x${string}` | undefined;
 }) {
+  const { services, isLoading: isLoadingServices } = useProviderServices(owner);
+  const { normalizedRating, initialScore } = useAgentReputation(owner);
+  const capabilities = agent.metadata?.capabilities || [];
+
   return (
     <Card className="border border-divider p-4 hover:border-success/30 transition-colors">
       <div className="flex items-center gap-3 mb-3">
@@ -36,9 +45,9 @@ function AgentCard({
             {agent.metadata?.name || `Agent #${agent.id}`}
           </h3>
           {agent.hasKokonutTag && (
-            <span className="text-xs px-2 py-0.5 rounded-full bg-success/10 text-success">
+            <Badge color="success" size="sm">
               Kokonut
-            </span>
+            </Badge>
           )}
         </div>
       </div>
@@ -47,16 +56,51 @@ function AgentCard({
         <p className="text-sm text-default-500 mb-3 line-clamp-2">{agent.metadata.description}</p>
       )}
 
-      <div className="flex items-center justify-between mt-4 pt-4 border-t border-divider">
-        <div className="flex items-center gap-2">
-          <NextLink
-            href={`/identity/${agent.id}`}
-            className="flex items-center gap-1.5 text-sm text-default-500 hover:text-primary transition-colors"
-          >
-            <ExternalLink className="w-4 h-4" />
-            Profile
-          </NextLink>
+      <div className="grid grid-cols-2 gap-2 mb-3 p-2 bg-content2 rounded-lg">
+        <div className="text-center">
+          <div className="flex items-center justify-center gap-1 text-default-400">
+            <Package className="w-3.5 h-3.5" />
+          </div>
+          <p className="text-sm font-semibold">{isLoadingServices ? '-' : services.length}</p>
+          <p className="text-xs text-default-400">Services</p>
         </div>
+        <div className="text-center">
+          <div className="flex items-center justify-center gap-1 text-default-400">
+            <Star className="w-3.5 h-3.5" />
+          </div>
+          <p className="text-sm font-semibold">
+            {normalizedRating ? normalizedRating.toFixed(1) : '-'}
+          </p>
+          <p className="text-xs text-default-400">Rating</p>
+        </div>
+      </div>
+
+      {capabilities.length > 0 && (
+        <div className="flex flex-wrap gap-1 mb-3">
+          {capabilities.slice(0, 3).map(cap => (
+            <span
+              key={cap}
+              className="text-xs px-2 py-0.5 bg-content2 rounded-full text-default-500"
+            >
+              {cap}
+            </span>
+          ))}
+          {capabilities.length > 3 && (
+            <span className="text-xs px-2 py-0.5 text-default-400">
+              +{capabilities.length - 3}
+            </span>
+          )}
+        </div>
+      )}
+
+      <div className="flex items-center justify-between mt-4 pt-4 border-t border-divider">
+        <NextLink
+          href={`/identity/${agent.id}`}
+          className="flex items-center gap-1.5 text-sm text-default-500 hover:text-primary transition-colors"
+        >
+          <ExternalLink className="w-4 h-4" />
+          Profile
+        </NextLink>
         <NextLink
           href={`/identity/settings?agentId=${agent.id}`}
           className="flex items-center gap-1.5 px-3 py-1.5 text-sm bg-primary text-white rounded-lg hover:opacity-90 transition-opacity"
@@ -152,7 +196,7 @@ export default function DashboardAgentsPage() {
       ) : agents.length > 0 ? (
         <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-4">
           {agents.map(agent => (
-            <AgentCard key={agent.id} agent={agent} />
+            <AgentCard key={agent.id} agent={agent} owner={address} />
           ))}
         </div>
       ) : (

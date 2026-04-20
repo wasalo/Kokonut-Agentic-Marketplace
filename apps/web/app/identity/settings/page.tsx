@@ -25,7 +25,10 @@ import {
   useAgentWallet,
 } from '@/lib/hooks/useAgents';
 import { useKokonutAgentsByOwner } from '@/lib/hooks/useKokonutAgentsByOwner';
+import { useGenerateWalletSignature } from '@/lib/hooks/useGenerateWalletSignature';
+import { generateAgentMetadata, decodeAgentMetadata, type AgentMetadata8004 } from '@/lib/metadata';
 import { EmailPreferencesForm } from '@/components/EmailPreferencesForm';
+import { PortfolioForm, type PortfolioItem } from '@/components/PortfolioForm';
 
 export default function AgentSettingsPage(): JSX.Element {
   const searchParams = useSearchParams();
@@ -73,14 +76,26 @@ export default function AgentSettingsPage(): JSX.Element {
   const [metadataKey, setMetadataKey] = useState('');
   const [metadataValue, setMetadataValue] = useState('');
   const [newWallet, setNewWallet] = useState('');
-  const [deadline, setDeadline] = useState('');
-  const [signature, setSignature] = useState('');
+  const [portfolio, setPortfolio] = useState<PortfolioItem[]>([]);
+  const [isSavingPortfolio, setIsSavingPortfolio] = useState(false);
+  const [portfolioSuccess, setPortfolioSuccess] = useState(false);
+
+  // Load portfolio from agent metadata
+  useEffect(() => {
+    if (agent?.agentURI) {
+      const decoded = decodeAgentMetadata(agent.agentURI);
+      if (decoded?.portfolio) {
+        setPortfolio(decoded.portfolio);
+      }
+    }
+  }, [agent?.agentURI]);
 
   // Hooks
   const { setAgentURI, hash: uriHash, isPending: isUriPending } = useSetAgentURI();
   const { setMetadata, hash: metaHash, isPending: isMetaPending } = useSetAgentMetadata();
   const { setAgentWallet, hash: walletHash, isPending: isWalletPending } = useSetAgentWallet();
   const { unsetAgentWallet, hash: unsetHash, isPending: isUnsetPending } = useUnsetAgentWallet();
+  const { generateSignature, isPending: isSigning } = useGenerateWalletSignature();
 
   // Watch transactions
   const { isSuccess: uriSuccess } = useWaitForTransactionReceipt({ hash: uriHash });
@@ -107,23 +122,70 @@ export default function AgentSettingsPage(): JSX.Element {
   );
 
   const handleSetWallet = useCallback(
-    (e: React.FormEvent) => {
+    async (e: React.FormEvent) => {
       e.preventDefault();
-      if (!agentId || !newWallet || !deadline || !signature) return;
-      setAgentWallet(
+      if (!agentId || !newWallet) return;
+
+      const deadlineBigInt = BigInt(Math.floor(Date.now() / 1000) + 300); // 5 minutes (max allowed by ERC-8004)
+      const sig = await generateSignature({
         agentId,
-        newWallet as `0x${string}`,
-        BigInt(deadline),
-        signature as `0x${string}`
-      );
+        newWallet: newWallet as `0x${string}`,
+        deadline: deadlineBigInt,
+      });
+
+      if (sig) {
+        setAgentWallet(agentId, newWallet as `0x${string}`, deadlineBigInt, sig);
+      }
     },
-    [agentId, newWallet, deadline, signature, setAgentWallet]
+    [agentId, newWallet, generateSignature, setAgentWallet]
   );
 
   const handleUnsetWallet = useCallback(() => {
     if (!agentId) return;
     unsetAgentWallet(agentId);
   }, [agentId, unsetAgentWallet]);
+
+  const handleSavePortfolio = useCallback(
+    async (newPortfolio: PortfolioItem[]) => {
+      if (!agentId || !agent?.agentURI) return;
+
+      setIsSavingPortfolio(true);
+      setPortfolioSuccess(false);
+
+      try {
+        const decoded = decodeAgentMetadata(agent.agentURI) || {
+          name: agent.name || '',
+          description: agent.description || '',
+          version: '1.0.0',
+          capabilities: [],
+          source: 'kokonut-marketplace',
+          createdAt: new Date().toISOString(),
+          updatedAt: new Date().toISOString(),
+        };
+
+        const updated: AgentMetadata8004 = {
+          ...decoded,
+          portfolio: newPortfolio.length > 0 ? newPortfolio : undefined,
+          updatedAt: new Date().toISOString(),
+        };
+
+        const newURI = generateAgentMetadata(updated);
+        setAgentURI(agentId, newURI);
+        setPortfolio(newPortfolio);
+        setPortfolioSuccess(true);
+      } finally {
+        setIsSavingPortfolio(false);
+      }
+    },
+    [agentId, agent, setAgentURI]
+  );
+
+  const handlePortfolioChange = useCallback(
+    (newPortfolio: PortfolioItem[]) => {
+      handleSavePortfolio(newPortfolio);
+    },
+    [handleSavePortfolio]
+  );
 
   if (!address) {
     return (
@@ -355,7 +417,7 @@ export default function AgentSettingsPage(): JSX.Element {
           ) : (
             <form onSubmit={handleSetWallet} className="space-y-4">
               <p className="text-sm text-default-500">
-                Set a dedicated wallet for this agent. This requires a signature for security.
+                Set a dedicated wallet for this agent. The signature will be auto-generated when you submit.
               </p>
               <div>
                 <label className="text-sm font-medium">New Wallet Address</label>
@@ -368,41 +430,17 @@ export default function AgentSettingsPage(): JSX.Element {
                   className="w-full mt-1 px-3 py-2 bg-content2 border border-divider rounded-lg focus:outline-none focus:ring-2 focus:ring-primary font-mono text-sm"
                 />
               </div>
-              <div className="grid grid-cols-1 md:grid-cols-2 gap-3 md:gap-4">
-                <div>
-                  <label className="text-sm font-medium">Deadline (timestamp)</label>
-                  <input
-                    type="number"
-                    placeholder="Unix timestamp"
-                    value={deadline}
-                    onChange={e => setDeadline(e.target.value)}
-                    required
-                    className="w-full mt-1 px-3 py-2 bg-content2 border border-divider rounded-lg focus:outline-none focus:ring-2 focus:ring-primary"
-                  />
-                </div>
-                <div>
-                  <label className="text-sm font-medium">Signature</label>
-                  <input
-                    type="text"
-                    placeholder="0x..."
-                    value={signature}
-                    onChange={e => setSignature(e.target.value)}
-                    required
-                    className="w-full mt-1 px-3 py-2 bg-content2 border border-divider rounded-lg focus:outline-none focus:ring-2 focus:ring-primary font-mono text-sm"
-                  />
-                </div>
-              </div>
               <button
                 type="submit"
-                disabled={isWalletPending}
+                disabled={isWalletPending || isSigning}
                 className="flex items-center gap-2 px-4 py-2 bg-primary text-white rounded-lg font-medium hover:opacity-90 disabled:opacity-50"
               >
-                {isWalletPending ? (
+                {(isWalletPending || isSigning) ? (
                   <Loader2 className="w-4 h-4 animate-spin" />
                 ) : (
                   <Save className="w-4 h-4" />
                 )}
-                Set Wallet
+                {isSigning ? 'Generating Signature...' : 'Set Wallet'}
               </button>
               {walletSuccess && (
                 <div className="flex items-center gap-2 text-success text-sm">
@@ -413,6 +451,13 @@ export default function AgentSettingsPage(): JSX.Element {
             </form>
           )}
         </Card>
+
+        <PortfolioForm
+          portfolio={portfolio}
+          onChange={handlePortfolioChange}
+          isSaving={isSavingPortfolio}
+          saveSuccess={portfolioSuccess}
+        />
 
         <EmailPreferencesForm />
       </div>
