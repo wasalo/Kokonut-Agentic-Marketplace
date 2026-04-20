@@ -123,6 +123,20 @@ export default function JobDetailPage({
 
   const [txStep, setTxStep] = useState<string | null>(null);
 
+  // LLM Evaluation state
+  const [fulfillmentText, setFulfillmentText] = useState('');
+  const [evaluationResult, setEvaluationResult] = useState<{
+    meetsRequirements: boolean;
+    confidenceScore: number;
+    analysis: string;
+    checks: { passed: string[]; failed: string[] };
+  } | null>(null);
+  const [isEvaluating, setIsEvaluating] = useState(false);
+  const [showFulfillmentInput, setShowFulfillmentInput] = useState(false);
+
+  // Client review state (Phase 3)
+  const [clientApproved, setClientApproved] = useState(false);
+
   const { fundJob, hash: fundHash, isPending: isFundPending, error: fundError } = useFundJob();
 
   // ETH funding with value
@@ -284,6 +298,36 @@ export default function JobDetailPage({
     fn();
   }, []);
 
+  // LLM Evaluation handler
+  const handleEvaluate = useCallback(async () => {
+    if (!fulfillmentText || !job?.description) return;
+    setIsEvaluating(true);
+    setEvaluationResult(null);
+    try {
+      const response = await fetch('/api/llm/evaluate', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({
+          jobDescription: job.description,
+          fulfillmentText,
+        }),
+      });
+      const data = await response.json();
+      if (data.success) {
+        setEvaluationResult(data);
+      }
+    } catch (error) {
+      console.error('Evaluation failed:', error);
+    } finally {
+      setIsEvaluating(false);
+    }
+  }, [fulfillmentText, job?.description]);
+
+  // Client review handler (Phase 3)
+  const handleClientApprove = useCallback(() => {
+    setClientApproved(true);
+  }, []);
+
   const isClient = !!(job && address && job.client.toLowerCase() === address.toLowerCase());
   const isProvider = !!(job && address && job.provider.toLowerCase() === address.toLowerCase());
   const isEvaluator = !!(job && address && job.evaluator.toLowerCase() === address.toLowerCase());
@@ -308,7 +352,8 @@ export default function JobDetailPage({
     isRefundPending ||
     isWithdrawPending ||
     isCompleteAfterTimeoutPending ||
-    isRefundExpiredPending;
+    isRefundExpiredPending ||
+    isEvaluating;
   const currentError =
     fundError ||
     submitError ||
@@ -657,41 +702,164 @@ export default function JobDetailPage({
             )}
 
             {job.status === JobStatus.Funded && isProvider && (
+              <>
+                {!showFulfillmentInput ? (
+                  <button
+                    onClick={() => setShowFulfillmentInput(true)}
+                    disabled={anyPending || !!txStep}
+                    className="w-full flex items-center gap-3 p-4 border border-primary/30 rounded-lg hover:bg-primary/5 transition-colors disabled:opacity-50"
+                  >
+                    <Send className="w-5 h-5 text-primary" />
+                    <div className="text-left">
+                      <p className="font-medium">Submit Deliverable</p>
+                      <p className="text-xs text-default-500">Describe the work you've completed</p>
+                    </div>
+                  </button>
+                ) : (
+                  <div className="space-y-3 p-4 border border-primary/30 rounded-lg">
+                    <p className="font-medium">Submit Delivery Description</p>
+                    <textarea
+                      placeholder="Describe what you delivered for this job..."
+                      value={fulfillmentText}
+                      onChange={e => setFulfillmentText(e.target.value)}
+                      rows={4}
+                      className="w-full px-3 py-2 bg-content2 border border-divider rounded-lg focus:outline-none focus:ring-2 focus:ring-primary resize-none text-sm"
+                    />
+                    <div className="flex gap-2">
+                      <button
+                        onClick={() => {
+                          setShowFulfillmentInput(false);
+                          setFulfillmentText('');
+                        }}
+                        className="px-4 py-2 text-sm border border-divider rounded-lg hover:bg-content2"
+                      >
+                        Cancel
+                      </button>
+                      <button
+                        onClick={() =>
+                          handleAction('Submitting deliverable', () => {
+                            const deliverableHash = fulfillmentText
+                              ? keccak256(toHex(fulfillmentText))
+                              : keccak256(toHex('deliverable-submitted'));
+                            submitJob(job.id, deliverableHash);
+                          })
+                        }
+                        disabled={anyPending || !!txStep || !fulfillmentText.trim()}
+                        className="flex-1 px-4 py-2 bg-primary text-white rounded-lg font-medium hover:opacity-90 disabled:opacity-50"
+                      >
+                        {isSubmitPending ? 'Submitting...' : 'Submit'}
+                      </button>
+                    </div>
+                  </div>
+                )}
+              </>
+            )}
+
+            {/* V7: Client approval for PendingClientApproval status */}
+            {job.status === JobStatus.PendingClientApproval && isClient && (
               <button
-                onClick={() =>
-                  handleAction('Submitting deliverable', () =>
-                    submitJob(job.id, keccak256(toHex('deliverable-submitted')))
-                  )
-                }
+                onClick={handleClientApprove}
                 disabled={anyPending || !!txStep}
                 className="w-full flex items-center gap-3 p-4 border border-primary/30 rounded-lg hover:bg-primary/5 transition-colors disabled:opacity-50"
               >
-                <Send className="w-5 h-5 text-primary" />
+                <CheckSquare className="w-5 h-5 text-primary" />
                 <div className="text-left">
-                  <p className="font-medium">Submit Deliverable</p>
-                  <p className="text-xs text-default-500">Mark your work as submitted for review</p>
+                  <p className="font-medium">Approve Delivery</p>
+                  <p className="text-xs text-default-500">
+                    Approve the deliverable to release payment to provider
+                  </p>
+                </div>
+              </button>
+            )}
+
+            {/* Legacy: Direct client approval in Submitted status (for V6 jobs without client review) */}
+            {job.status === JobStatus.Submitted && isClient && (
+              <button
+                onClick={handleClientApprove}
+                disabled={anyPending || !!txStep || clientApproved}
+                className="w-full flex items-center gap-3 p-4 border border-primary/30 rounded-lg hover:bg-primary/5 transition-colors disabled:opacity-50"
+              >
+                <CheckSquare className="w-5 h-5 text-primary" />
+                <div className="text-left">
+                  <p className="font-medium">{clientApproved ? 'Approved' : 'Review & Approve'}</p>
+                  <p className="text-xs text-default-500">
+                    {clientApproved ? 'You approved the delivery' : 'Mark delivery as satisfactory'}
+                  </p>
                 </div>
               </button>
             )}
 
             {job.status === JobStatus.Submitted && isEvaluator && (
-              <button
-                onClick={() =>
-                  handleAction('Approving work', () =>
-                    completeJob(job.id, keccak256(toHex('approved')))
-                  )
-                }
-                disabled={anyPending || !!txStep}
-                className="w-full flex items-center gap-3 p-4 border border-success/30 rounded-lg hover:bg-success/5 transition-colors disabled:opacity-50"
-              >
-                <CheckSquare className="w-5 h-5 text-success" />
-                <div className="text-left">
-                  <p className="font-medium">Approve & Release Payment</p>
-                  <p className="text-xs text-default-500">
-                    Release ${formattedBudget} USDC to provider
-                  </p>
+              <>
+                {(isClient || clientApproved) && (
+                  <div className="space-y-3">
+                    <button
+                      onClick={() =>
+                        handleAction('Approving work', () =>
+                          completeJob(job.id, keccak256(toHex('approved')))
+                        )
+                      }
+                      disabled={anyPending || !!txStep}
+                      className="w-full flex items-center gap-3 p-4 border border-success/30 rounded-lg hover:bg-success/5 transition-colors disabled:opacity-50"
+                    >
+                      <CheckSquare className="w-5 h-5 text-success" />
+                      <div className="text-left">
+                        <p className="font-medium">Approve & Release Payment</p>
+                        <p className="text-xs text-default-500">
+                          Release ${formattedBudget} USDC to provider
+                        </p>
+                      </div>
+                    </button>
+                  </div>
+                )}
+
+                <div className="space-y-2">
+                  <button
+                    onClick={handleEvaluate}
+                    disabled={anyPending || !!txStep || isEvaluating}
+                    className="w-full flex items-center gap-3 p-3 border border-divider rounded-lg hover:bg-content2 transition-colors disabled:opacity-50"
+                  >
+                    <Loader2 className={`w-4 h-4 ${isEvaluating ? 'animate-spin' : ''}`} />
+                    <div className="text-left">
+                      <p className="font-medium text-sm">Evaluate with AI</p>
+                      <p className="text-xs text-default-500">Analyze fulfillment against requirements</p>
+                    </div>
+                  </button>
+
+                  {evaluationResult && (
+                    <div className="p-3 bg-content2 rounded-lg border border-divider">
+                      <div className="flex items-center justify-between mb-2">
+                        <span className="text-sm font-medium">AI Analysis</span>
+                        <span
+                          className={`text-xs px-2 py-0.5 rounded-full ${
+                            evaluationResult.meetsRequirements
+                              ? 'bg-success/20 text-success'
+                              : 'bg-danger/20 text-danger'
+                          }`}
+                        >
+                          {evaluationResult.meetsRequirements ? 'Meets Requirements' : 'Does Not Meet'}
+                        </span>
+                      </div>
+                      <p className="text-xs text-default-500 mb-2">{evaluationResult.analysis}</p>
+                      <div className="text-xs space-y-1">
+                        {evaluationResult.checks?.passed?.length > 0 && (
+                          <p className="text-success">
+                            ✓ {evaluationResult.checks.passed.join(', ')}
+                          </p>
+                        )}
+                        {evaluationResult.checks?.failed?.length > 0 && (
+                          <p className="text-danger">
+                            ✗ {evaluationResult.checks.failed.join(', ')}
+                          </p>
+                        )}
+                      </div>
+                      <p className="text-xs text-default-400 mt-2">
+                        Confidence: {evaluationResult.confidenceScore}%
+                      </p>
+                    </div>
+                  )}
                 </div>
-              </button>
+              </>
             )}
 
             {(job.status === JobStatus.Funded || job.status === JobStatus.Submitted) &&

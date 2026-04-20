@@ -17,6 +17,7 @@ const TYPES = {
   SetAgentWallet: [
     { name: 'agentId', type: 'uint256' },
     { name: 'newWallet', type: 'address' },
+    { name: 'owner', type: 'address' },
     { name: 'deadline', type: 'uint256' },
   ],
 } as const;
@@ -24,6 +25,7 @@ const TYPES = {
 interface SignParams {
   agentId: bigint;
   newWallet: `0x${string}`;
+  owner: `0x${string}`;
   /**
    * Deadline timestamp (must be <= now + 5 minutes per ERC-8004 spec)
    * Use 300 seconds (5 min) for best compatibility
@@ -36,7 +38,7 @@ export function useGenerateWalletSignature() {
   const [error, setError] = useState<string | null>(null);
 
   const generateSignature = useCallback(
-    async ({ agentId, newWallet, deadline }: SignParams): Promise<`0x${string}` | null> => {
+    async ({ agentId, newWallet, owner, deadline }: SignParams): Promise<`0x${string}` | null> => {
       setError(null);
 
       try {
@@ -47,6 +49,7 @@ export function useGenerateWalletSignature() {
           message: {
             agentId,
             newWallet,
+            owner,
             deadline,
           },
         });

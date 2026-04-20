@@ -25,6 +25,7 @@ import {
   useAgentWallet,
 } from '@/lib/hooks/useAgents';
 import { useKokonutAgentsByOwner } from '@/lib/hooks/useKokonutAgentsByOwner';
+import { useAgentOwner } from '@/lib/hooks/useAgents';
 import { useGenerateWalletSignature } from '@/lib/hooks/useGenerateWalletSignature';
 import { generateAgentMetadata, decodeAgentMetadata, type AgentMetadata8004 } from '@/lib/metadata';
 import { EmailPreferencesForm } from '@/components/EmailPreferencesForm';
@@ -68,7 +69,8 @@ export default function AgentSettingsPage(): JSX.Element {
     }
   }, [agents.length, selectedAgentIndex]);
 
-  // Fetch agent wallet separately
+  // Fetch agent owner and wallet
+  const { owner } = useAgentOwner(agentId);
   const { wallet: agentWallet } = useAgentWallet(agentId);
 
   // Form states
@@ -124,12 +126,13 @@ export default function AgentSettingsPage(): JSX.Element {
   const handleSetWallet = useCallback(
     async (e: React.FormEvent) => {
       e.preventDefault();
-      if (!agentId || !newWallet) return;
+      if (!agentId || !newWallet || !owner) return;
 
       const deadlineBigInt = BigInt(Math.floor(Date.now() / 1000) + 300); // 5 minutes (max allowed by ERC-8004)
       const sig = await generateSignature({
         agentId,
         newWallet: newWallet as `0x${string}`,
+        owner: owner,
         deadline: deadlineBigInt,
       });
 
@@ -137,7 +140,7 @@ export default function AgentSettingsPage(): JSX.Element {
         setAgentWallet(agentId, newWallet as `0x${string}`, deadlineBigInt, sig);
       }
     },
-    [agentId, newWallet, generateSignature, setAgentWallet]
+    [agentId, newWallet, owner, generateSignature, setAgentWallet]
   );
 
   const handleUnsetWallet = useCallback(() => {

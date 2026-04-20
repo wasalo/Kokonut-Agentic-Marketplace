@@ -32,6 +32,7 @@ export const JobStatus = {
   Completed: 3,
   Rejected: 4,
   Expired: 5,
+  PendingClientApproval: 6, // V7: Client must approve before payment
 } as const;
 
 export type JobStatusType = (typeof JobStatus)[keyof typeof JobStatus];

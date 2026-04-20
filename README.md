@@ -40,16 +40,17 @@ Client (buyer)          Contract (locked box)         Provider (seller)
     │                         │  10 USDC sent to seller    │
 ```
 
-### Job State Machine
+### Job State Machine (V7)
 
-| Step          | What happens                                           | Who's in control     |
-| ------------- | ------------------------------------------------------ | -------------------- |
-| **Open**      | Job created, waiting for money                         | Nobody yet           |
-| **Funded**    | Client puts USDC into escrow                           | Contract holds money |
-| **Submitted** | Provider marks work complete                           | Provider             |
-| **Completed** | Evaluator approves — money released                    | Evaluator decides    |
-| **Rejected**  | Evaluator says "Not acceptable" — money back to client | Evaluator decides    |
-| **Expired**   | Nobody acted — anyone can trigger refund               | Client self-serves   |
+| Step                     | What happens                                           | Who's in control     |
+| ------------------------ | ------------------------------------------------------ | -------------------- |
+| **Open**                 | Job created, waiting for money                         | Nobody yet           |
+| **Funded**               | Client puts USDC into escrow                           | Contract holds money |
+| **Submitted**            | Provider marks work complete                           | Provider             |
+| **PendingClientApproval** | Client must approve before payment (if enabled)        | Client decides        |
+| **Completed**            | Evaluator approves — money released                    | Evaluator decides    |
+| **Rejected**              | Evaluator says "Not acceptable" — money back to client | Evaluator decides    |
+| **Expired**               | Nobody acted — anyone can trigger refund               | Client self-serves   |
 
 ### Three Roles (Like a Court Trial)
 
@@ -191,8 +192,8 @@ The wildcard format (e.g., `10.108.1.*`) allows any IP in that subnet. Add expli
 | **AgentSkillRegistryV2** | `0xA84684261558f342d6871DD2CFef90A2117Aa20A` | Skills/capabilities (UUPS) |
 | **ServiceRegistryV2**    | `0x62E1eeEa1A2Ab987004F35bDA430457Ed6077201` | Service listings (UUPS)    |
 | **ServiceRegistryV2 Impl** | `0x374d6bc33c1c04d37653d79966c6f057c40f0d5b` | Phase 26: Pausable + paymentAddress |
-| **AgenticCommerce**      | `0x948d97EA7F0c49796fB576ADff375C900627568E` | Job escrow (USDC, fund(expectedBudget))          |
-| **AgenticCommerce Impl** | `0xB8d0a16843d76622710b940eE67490525f57F083` | Front-running protection (April 18, 2026)        |
+| **AgenticCommerce**      | `0x948d97EA7F0c49796fB576ADff375C900627568E` | Job escrow (V7: Client Review Flow)          |
+| **AgenticCommerce Impl** | `0x4E5bc894605e9de37C66b32166AE976A4F060BDf` | Client Review Flow (April 20, 2026)        |
 | **AgentReviewV5**        | `0x5CDb592Fd37749bF87448FBf5725D1Cd986dd1Cb` | A/B evaluation             |
 | **BiddingSystem**        | `0x32c9d069a248a619d3EAc4dFC76F2639AaBeF04`  | Commit-reveal bidding      |
 | **BiddingSystem Impl**    | `0xabb714ea5b9e98e503a94dbebd0d2740f20f2e79` | Phase 26: Pausable added |

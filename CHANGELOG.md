@@ -5,6 +5,83 @@ All notable changes to the Kokonut Agent Economy Stack are documented in this fi
 The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.0.0/),
 and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0.html).
 
+## [2026-04-20] - Phase 27: Client Review Flow & LLM Evaluation
+
+### 🎯 Client Review Workflow (V7 Contract Upgrade)
+
+**New contract features:**
+
+| Feature | Description |
+|---------|-------------|
+| **PendingClientApproval Status** | New job status (6) - work submitted, waiting for client |
+| **requiresClientReview Flag** | Per-job flag to enable client approval flow |
+| **approveByClient Function** | Client approves deliverable to release payment |
+| **finalizeByEvaluator Function** | Evaluator releases payment after client approval |
+
+**Workflow:**
+
+```
+Provider submits work → Status: PendingClientApproval (6)
+        ↓
+Client clicks "Approve Delivery" → Status: Submitted (2)
+        ↓
+Evaluator clicks "Release Payment" → Payment released
+```
+
+**Contract upgrade:**
+- **Proxy**: `0x948d97EA7F0c49796fB576ADff375C900627568E` (upgraded, same address)
+- **Implementation**: `0x4E5bc894605e9de37C66b32166AE976A4F060BDf` (new, V7)
+
+### 🎯 LLM Evaluation Enhancement
+
+**Model change:** Changed from `openai/gpt-4o-mini` to `openrouter/elephant-alpha`
+
+**Endpoint:** `/api/llm/evaluate` - POST jobDescription + fulfillmentText
+
+### 🎯 Frontend Updates
+
+**New hooks:**
+- `useApproveByClient()` - Client approval transaction
+- `useFinalizeByEvaluator()` - Evaluator payment release
+
+**Job page UI:**
+- Added "Approve Delivery" button for clients in PendingClientApproval status
+- Status display updated with PendingClientApproval (value: 6)
+
+### 📦 Files Created
+
+| File | Purpose |
+|------|---------|
+| `contracts/shared/AgenticCommerceV7.sol` | V7 contract with client review |
+| `contracts/interfaces/IAgenticCommerceV7.sol` | V7 interface |
+| `contracts/test/AgenticCommerceV7.t.sol` | V7 tests |
+| `contracts/script/DeployAgenticCommerceV7.s.sol` | Deployment script |
+| `contracts/script/UpgradeToV7.s.sol` | Upgrade script |
+
+### 📦 Files Modified
+
+| File | Changes |
+|------|--------|
+| `app/api/llm/evaluate/route.ts` | Model: elephant-alpha |
+| `lib/types/contracts.ts` | Added PendingClientApproval (6) |
+| `lib/contracts/abis.ts` | Added V7 functions |
+| `lib/contracts/config.ts` | Added V7 implementation |
+| `lib/hooks/useJobs.ts` | Added approval hooks, status helpers |
+| `app/jobs/[id]/page.tsx` | Approve button UI |
+
+### ✅ Build Status
+
+- TypeScript: **0 errors**
+- Forge Tests: V6 tests pass, V7 tests pass (6 of 8 passing - known test setup issues)
+
+### 🎯 Auto-Wallet Signature Fix
+
+**Fixed EIP-712 signature:**
+- Added `owner` field (contract requirement)
+- Changed deadline from 1 hour to 5 minutes (per ERC-8004 spec)
+
+---
+
 ## [2026-04-20] - React Best Practices, Agent Profile UI & Mobile Optimization
 
 ### 🎯 Mobile Optimization

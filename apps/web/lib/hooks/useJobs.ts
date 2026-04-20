@@ -331,6 +331,40 @@ export function useCompleteJob() {
   };
 }
 
+export function useApproveByClient() {
+  const { writeContract, data, isPending, error, reset } = useWriteContract();
+  return {
+    approveByClient: (jobId: bigint) =>
+      writeContract({
+        address: AGENTIC_COMMERCE_ADDRESS,
+        abi: AGENTIC_COMMERCE_ABI,
+        functionName: 'approveByClient',
+        args: [jobId],
+      }),
+    hash: data,
+    isPending,
+    error,
+    reset,
+  };
+}
+
+export function useFinalizeByEvaluator() {
+  const { writeContract, data, isPending, error, reset } = useWriteContract();
+  return {
+    finalizeByEvaluator: (jobId: bigint, reason: `0x${string}`) =>
+      writeContract({
+        address: AGENTIC_COMMERCE_ADDRESS,
+        abi: AGENTIC_COMMERCE_ABI,
+        functionName: 'finalizeByEvaluator',
+        args: [jobId, reason],
+      }),
+    hash: data,
+    isPending,
+    error,
+    reset,
+  };
+}
+
 export function useRejectJob() {
   const { writeContract, data, isPending, error, reset } = useWriteContract();
   return {
@@ -436,6 +470,8 @@ export function getJobStatusLabel(status: number): string {
       return 'Rejected';
     case JobStatus.Expired:
       return 'Expired';
+    case JobStatus.PendingClientApproval:
+      return 'Pending Approval';
     default:
       return 'Unknown';
   }
@@ -457,6 +493,8 @@ export function getJobStatusColor(
       return 'danger';
     case JobStatus.Expired:
       return 'danger';
+    case JobStatus.PendingClientApproval:
+      return 'warning';
     default:
       return 'default';
   }

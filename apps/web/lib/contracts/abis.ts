@@ -98,6 +98,9 @@ export const AGENTIC_COMMERCE_ABI = parseAbi([
   'function createJob(address provider, address evaluator, uint256 expiredAt, string description, address hook, bool evaluatorFee) external returns (uint256 jobId)',
   'function createJobFromService(uint256 serviceId, address evaluator, uint256 expiredAt, string description, address hook, bool evaluatorFee) external returns (uint256 jobId)',
   'function createJobWithRandomEvaluator(address provider, uint256 expiredAt, string description, address hook, bool evaluatorFee) external returns (uint256 jobId)',
+  // V7: createJob with client review flag
+  'function createJob(address provider, address evaluator, uint256 expiredAt, string description, address hook, bool evaluatorFee, bool clientReview) external returns (uint256 jobId)',
+  'function createJobWithRandomEvaluator(address provider, uint256 expiredAt, string description, address hook, bool evaluatorFee, bool clientReview) external returns (uint256 jobId)',
   'function fund(uint256 jobId, uint256 expectedBudget) external payable',
   'function submit(uint256 jobId, bytes32 deliverable) external',
   'function complete(uint256 jobId, bytes32 reason) external',
@@ -114,6 +117,11 @@ export const AGENTIC_COMMERCE_ABI = parseAbi([
   'function pause() external',
   'function unpause() external',
   'function paused() external view returns (bool)',
+  // V7: Client Review Flow
+  'function approveByClient(uint256 jobId) external',
+  'function finalizeByEvaluator(uint256 jobId, bytes32 reason) external',
+  'function hasClientApproved(uint256 jobId) external view returns (bool)',
+  'function isClientReviewRequired(uint256 jobId) external view returns (bool)',
 ]);
 
 export const AGENT_REVIEW_ABI = parseAbi([
