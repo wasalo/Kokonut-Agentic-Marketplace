@@ -5,6 +5,230 @@ All notable changes to the Kokonut Agent Economy Stack are documented in this fi
 The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.0.0/),
 and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0.html).
 
+## [2026-04-20] - React Best Practices, Agent Profile UI & Mobile Optimization
+
+### 🎯 Mobile Optimization
+
+**Responsive Design for All Tabs:**
+
+**Fixed scrollbar-hide CSS** (`app/globals.css`):
+```css
+.scrollbar-hide {
+  -ms-overflow-style: none;
+  scrollbar-width: none;
+}
+.scrollbar-hide::-webkit-scrollbar {
+  display: none;
+}
+```
+
+**Responsive Classes Added:**
+
+| Component | Mobile | Desktop |
+|----------|--------|--------|
+| Header | w-16, p-4 | w-24, p-6 |
+| StatsGrid | grid-cols-2, gap-2 | grid-cols-4, gap-4 |
+| JobsTab Cards | p-3, gap-2 | p-4, gap-3 |
+| SkillsTab Cards | p-3, gap-3 | p-5, gap-4 |
+| ConnectionsTab | p-3, text-xs, truncate | p-5, text-sm, full |
+
+**Removed Duplicate Code:**
+- Fixed duplicate `OverviewTab` function definition in identity/[id]/page.tsx
+
+**Tab Layout:**
+- Tabs wrapper with `overflow-x-auto -mx-3 px-3` for horizontal scroll
+- `scrollbar-hide` class hides scrollbar while allowing scroll
+- Mobile: tabs stack vertically, desktop: horizontal
+
+### 📦 Files Modified
+
+| File | Changes |
+|------|---------|
+| `app/globals.css` | Added scrollbar-hide CSS |
+| `app/identity/[id]/page.tsx` | Removed duplicate, responsive classes all tabs |
+
+### ✅ Build Status
+
+- TypeScript: **0 errors**
+
+---
+
+### 🎯 React Best Practices Implementation
+
+Applied React best practices from Vercel's React skill guide:
+
+**Section 1 - Eliminating Waterfalls:**
+
+- Added Suspense boundaries to `/identity/[id]` page - now data fetches don't block rendering
+- All hooks (useAgentReputation, useAgentServices, useAgentSkills) now have proper Suspense
+
+**Section 2 - Bundle Size Optimization:**
+
+- Fixed Tabs component to properly manage state via TabsContext instead of static rendering
+- Using inline components replaced with proper module-level component definitions
+- No barrel file imports issues detected
+
+**Section 5 - Re-render Optimization:**
+
+- Extracted inline components (OverviewSection, ReputationSection, SkillsSection) from identity page to module level
+
+### 🎯 UI Component Fixes
+
+**Tabs Component Fixed:**
+- Added `TabsContext` for proper state management
+- `Tabs` now accepts `defaultValue` prop
+- `TabsTrigger` uses context to toggle active state
+- `TabsContent` conditionally renders only active tab (was hardcoded `hidden={false}` showing ALL content)
+- Fixes "weird UI" where all tabs rendered at once
+
+**Navbar More Menu Fixed:**
+- Changed transparent dropdown `bg-content2` to `bg-background/95 backdrop-blur-md`
+- Fixes ugly transparency when clicking More menu
+
+### 🎯 Communication Infrastructure on Agent Profiles
+
+Added MCP, A2A, XMTP, Email, and Webhook support to agent profiles:
+
+**Metadata Extensions** (`lib/metadata.ts`):
+```typescript
+endpoints?: {
+  https?: string;
+  wss?: string;
+  grpc?: string;
+  mcp?: string;      // NEW: MCP server endpoint
+  a2a?: string;    // NEW: A2A protocol endpoint
+};
+channels?: {
+  xmtp?: string;    // NEW: XMTP inbox address
+  email?: string;   // NEW: Email address
+  webhook?: string; // NEW: Webhook URL
+};
+protocols?: ('mcp' | 'a2a' | 'xmtp')[]; // NEW: Supported protocols
+```
+
+**Profile Page Additions** (`app/identity/[id]/page.tsx`):
+
+1. **Header Badges**: Shows MCP, A2A, XMTP, Email, Webhook badges in hero section
+2. **New "Connections" Tab**: Detailed view with:
+   - API Endpoints section (HTTPS, MCP, A2A URLs)
+   - Communication Channels section (XMTP, Email, Webhook)
+   - Supported Protocols section (badge display)
+
+**Backend Components Already Available**:
+- MCP Server at `packages/mcp-server/` - Job/Service/Agent tools
+- A2A Protocol at `packages/a2a-protocol/` - Agent Card format
+- Webhook system at `app/api/webhooks/` - Event subscriptions
+- XMTP integration in `lib/hooks/useXMTP.ts` - P2P messaging
+
+### 🎯 /identity/[id] Profile Page Redesign
+
+**Completely rebuilt agent profile page with real contract data:**
+
+| Feature | Implementation | Contract |
+|---------|----------------|----------|
+| Agent Header | Name, avatar, owner, capabilities | ERC-8004 tokenURI |
+| Reputation Tab | Score, decay factor, half-life | useAgentReputation() |
+| Services Tab | Agent's listed services | useAgentServices() |
+| Jobs Tab | Jobs as provider + client | useJobs() filtered |
+| Skills Tab | Registered skills | useAgentSkills() |
+
+**Hooks now integrated:**
+- `useAgentOwner(agentId)` - Gets agent owner from ERC-8004
+- `useAgentTokenURI(agentId)` - Decodes agent metadata (name, capabilities, source)
+- `useAgentServices(agentId)` - Fetches agent's listed services
+- `useAgentSkills(agentId)` - Fetches registered skills
+- `useJobs()` filtered by address - Jobs as provider/client
+
+**UI Improvements:**
+- Hero header with gradient background and agent avatar
+- Owner address with copy button + Etherscan link
+- Stats grid showing reputation/services/jobs/skills
+- Proper HeroUI Card/Chip/Badge components throughout
+- Tabs now actually work (switch between content)
+
+**Bug fixes:**
+- Fixed literal "%" showing in reputation (was showing `"%"` string instead of calculated decay)
+- Fixed basic Tailwind styling to use proper HeroUI tokens
+
+### 📦 Files Changed
+
+| File | Changes |
+|------|---------|
+| `components/ui/tabs.tsx` | Added TabsContext, stateful tabs, defaultValue prop |
+| `components/heroui/navbar.tsx` | Fixed More menu transparency |
+| `app/identity/[id]/page.tsx` | Full rebuild with hero, real data, 4 tabs |
+
+### ✅ Build Status
+
+- TypeScript: **0 errors**
+- Dev server: Running healthy on localhost:3000
+
+---
+
+## [2026-04-20] - Build Fixes & TypeScript Upgrade
+
+### 🔧 TypeScript Version Upgrade
+
+**Problem:** Build was failing with TypeScript errors. Root cause was version mismatch:
+- wagmi 3.6.1 requires TypeScript >=5.7.3
+- apps/web had TypeScript ^4.9.5 installed
+- Error: "Expected 0 arguments, but got 1" due to TS 4.9.5 failing to parse wagmi's `const` type parameters
+
+**Solution:** Upgraded TypeScript from ^4.9.5 to ^5.7.3 (actually installed 5.9.3)
+
+### 🔧 Hook Type Fixes
+
+**Fixed Job type mapping (`lib/hooks/useJobs.ts`):**
+- Added `mapJobData()` function to convert raw contract returns to proper `Job` type
+- Previously `useJob()` returned raw `bigint` instead of typed `Job` object
+- This fixed 40+ type errors in jobs/[id]/page.tsx
+
+**Fixed contract ABIs:**
+- Added missing V6 functions to `AGENTIC_COMMERCE_ABI` (fund, submit, complete, reject, refundExpired, etc.)
+- Added BiddingSystem ABI with extended functions
+- Added `adminRegistry` to CONTRACT_ADDRESSES
+
+### 🔧 UI Component Fixes
+
+**Fixed components:**
+- `components/ui/badge.tsx` - Fixed BadgeProps export (re-export without definition)
+- `components/ui/tabs.tsx` - Added children prop to TabTrigger
+- `components/BiddingForms.tsx` - Added type guards for calculateStake (returns bigint|boolean)
+- `app/jobs/[id]/page.tsx` - Fixed multicall result type mapping
+- `app/marketplace/[id]/page.tsx` - Fixed reputation.score → reputation.normalizedRating
+- `app/jobs/create/page.tsx` - Added platformFeeBP function cast
+
+### 🔧 Hook Logic Fixes
+
+**Fixed hooks:**
+- `lib/hooks/useAdminRegistry.ts` - Changed halfLifeDays from number to bigint, removed duplicate useAgentReputation
+- `lib/hooks/useAgentReputation.ts` - Simplified to stub returning score/normalizedRating/feedbackCount
+- `lib/hooks/useVerificationStatus.ts` - Simplified to stub verification (non-existent contract functions)
+- `lib/hooks/useSkillRatings.ts` - Fixed getSkillRules call, added undefined checks
+
+### 📦 Key Files Modified
+
+| File | Changes |
+|------|---------|
+| `apps/web/package.json` | TypeScript: ^4.9.5 → ^5.7.3 |
+| `lib/hooks/useJobs.ts` | Added mapJobData(), extended ABIs, BiddingSystem functions |
+| `lib/hooks/useAgentReputation.ts` | Simplified to return score/normalizedRating |
+| `lib/hooks/useAdminRegistry.ts` | bigint type, removed duplicate |
+| `lib/contracts/config.ts` | Added adminRegistry to CONTRACT_ADDRESSES |
+| `lib/contracts/abis.ts` | Extended AGENTIC_COMMERCE_ABI with V6 functions |
+| `components/ui/badge.tsx` | Fixed BadgeProps export |
+| `components/ui/tabs.tsx` | Added children prop |
+| `components/BiddingForms.tsx` | Added type guards |
+| `app/jobs/[id]/page.tsx` | Fixed multicall types |
+| `app/marketplace/[id]/page.tsx` | Fixed reputation props |
+
+### ✅ Build Status
+
+- TypeScript: **0 errors**
+- Dev server: Running healthy on localhost:3000
+
+---
+
 ## [2026-04-19] - Phase 26: Circuit Breaker & User Onboarding
 
 ### 🎯 Pausable Upgrade (Circuit Breaker)

@@ -39,6 +39,18 @@ export interface ReviewStats {
   totalEvaluations: number;
 }
 
+export interface Evaluation {
+  proposalId: bigint;
+  evaluator: `0x${string}`;
+  confidenceScore: bigint;
+  reasoningURI: string;
+  stakeAmount: bigint;
+  isFinal: boolean;
+  rewardClaimed: boolean;
+  stakeReleased: boolean;
+  submittedAt: bigint;
+}
+
 // Proposal Status Enum
 export const ProposalStatus = {
   Open: 0,
@@ -597,17 +609,17 @@ export function useEvaluation(
     },
   });
 
-  const evaluation = data
+  const evaluation = data && Array.isArray(data) && data.length >= 9
     ? {
-        proposalId: (data as any)[0],
-        evaluator: (data as any)[1],
-        confidenceScore: (data as any)[2],
-        reasoningURI: (data as any)[3],
-        stakeAmount: (data as any)[4],
-        isFinal: (data as any)[5],
-        rewardClaimed: (data as any)[6],
-        stakeReleased: (data as any)[7],
-        submittedAt: (data as any)[8],
+        proposalId: data[0] as bigint,
+        evaluator: data[1] as `0x${string}`,
+        confidenceScore: data[2] as bigint,
+        reasoningURI: String(data[3]),
+        stakeAmount: data[4] as bigint,
+        isFinal: Boolean(data[5]),
+        rewardClaimed: Boolean(data[6]),
+        stakeReleased: Boolean(data[7]),
+        submittedAt: data[8] as bigint,
       }
     : null;
 

@@ -5,6 +5,7 @@ import { usePublicClient } from 'wagmi';
 import { parseAbiItem, formatUnits } from 'viem';
 import { getContractAddress, debugLog, DEFAULT_FROM_BLOCK } from '@/lib/contracts/config';
 import { formatAddress } from '@/lib/utils';
+import { debugError } from '@/lib/debug';
 
 // Contract addresses
 const AGENTIC_COMMERCE_ADDRESS = getContractAddress('AGENTIC_COMMERCE');
@@ -190,7 +191,7 @@ export function useActivityFeed(type: ActivityType = 'all', limit: number = 50) 
       debugLog('contracts', `Loaded ${limitedActivities.length} activities`);
       setActivities(limitedActivities);
     } catch (err) {
-      console.error('Error fetching activity feed:', err);
+      debugError('hooks', 'useActivityFeed: Error fetching activity feed', err);
       setError(err instanceof Error ? err : new Error('Failed to fetch activity feed'));
     } finally {
       setIsLoading(false);

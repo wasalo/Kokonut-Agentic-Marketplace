@@ -102,8 +102,8 @@ export function NavbarComponent(): JSX.Element {
                 More
                 <ChevronDown className="w-3 h-3" />
               </button>
-              <div className="absolute top-full left-0 pt-1 opacity-0 invisible group-hover:opacity-100 group-hover:visible transition-all">
-                <div className="bg-content2 border border-divider rounded-lg shadow-lg py-1 min-w-[160px]">
+              <div className="absolute top-full left-0 pt-2 opacity-0 invisible group-hover:opacity-100 group-hover:visible transition-all">
+                <div className="bg-background/95 backdrop-blur-md border border-divider rounded-lg shadow-lg py-1 min-w-[160px]">
                   {moreLinks.map(link => (
                     <NextLink
                       key={link.name}

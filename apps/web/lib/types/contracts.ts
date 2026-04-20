@@ -16,6 +16,7 @@ export interface Service {
   metadataURI: string;
   price: bigint;
   paymentToken: `0x${string}`;
+  paymentAddress: `0x${string}`;
   isActive: boolean;
   createdAt: bigint;
 }

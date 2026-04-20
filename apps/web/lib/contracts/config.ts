@@ -17,6 +17,7 @@ const sepoliaContracts = {
   // Official ERC-8004 Registries
   erc8004Registry: '0x8004A818BFB912233c491871b3d84c89A494BD9e',
   erc8004Reputation: '0x8004B663056A597Dffe9eCcC1965A193B7388713',
+  adminRegistry: '0x1B8373cDF4f2eD740c3478e0129f0B8494CE4Fa3',
 
   // SkillRegistry V2 - Uses ownerOf() instead of getAgent()
   skillRegistry: '0xA84684261558f342d6871DD2CFef90A2117Aa20A',
@@ -48,6 +49,7 @@ const sepoliaContracts = {
 const emptyChainContracts = {
   erc8004Registry: undefined,
   erc8004Reputation: undefined,
+  adminRegistry: undefined,
   skillRegistry: undefined,
   skillRegistryImpl: undefined,
   serviceRegistry: undefined,
@@ -71,6 +73,7 @@ const emptyChainContracts = {
 export interface ChainContracts {
   erc8004Registry?: `0x${string}`;
   erc8004Reputation?: `0x${string}`;
+  adminRegistry?: `0x${string}`;
   skillRegistry?: `0x${string}`;
   skillRegistryImpl?: `0x${string}`;
   serviceRegistry?: `0x${string}`;
@@ -143,6 +146,7 @@ export const CONTRACT_ADDRESSES = {
     // Official ERC-8004 Registries
     erc8004Registry: '0x8004A818BFB912233c491871b3d84c89A494BD9e',
     erc8004Reputation: '0x8004B663056A597Dffe9eCcC1965A193B7388713',
+    adminRegistry: '0x37c86fE0f3b83B3a1B9A8059215f6c9bB73B165a', // Phase 26: Pausable + paymentAddress
 
     // SkillRegistry V2 - Uses ownerOf() instead of getAgent()
     skillRegistry: '0xA84684261558f342d6871DD2CFef90A2117Aa20A',
@@ -187,6 +191,7 @@ export const CONTRACT_ENV_VARS = {
   SERVICE_REGISTRY: 'NEXT_PUBLIC_SERVICE_REGISTRY_ADDRESS',
   AGENTIC_COMMERCE: 'NEXT_PUBLIC_AGENTIC_COMMERCE_ADDRESS',
   BIDDING_SYSTEM: 'NEXT_PUBLIC_BIDDING_SYSTEM_ADDRESS',
+  ADMIN_REGISTRY: 'NEXT_PUBLIC_ADMIN_REGISTRY_ADDRESS',
   AGENT_REVIEW: 'NEXT_PUBLIC_AGENT_REVIEW_ADDRESS',
   PRICE_ORACLE: 'NEXT_PUBLIC_PRICE_ORACLE_ADDRESS',
   COMMIT_REVEAL: 'NEXT_PUBLIC_COMMIT_REVEAL_ADDRESS',
@@ -203,6 +208,7 @@ const ENV_TO_FALLBACK: Record<keyof typeof CONTRACT_ENV_VARS, string> = {
   SERVICE_REGISTRY: CONTRACT_ADDRESSES.sepolia.serviceRegistry,
   AGENTIC_COMMERCE: CONTRACT_ADDRESSES.sepolia.agenticCommerce,
   BIDDING_SYSTEM: CONTRACT_ADDRESSES.sepolia.biddingSystem,
+  ADMIN_REGISTRY: CONTRACT_ADDRESSES.sepolia.adminRegistry,
   AGENT_REVIEW: CONTRACT_ADDRESSES.sepolia.agentReview,
   PRICE_ORACLE: CONTRACT_ADDRESSES.sepolia.priceOracle,
   COMMIT_REVEAL: CONTRACT_ADDRESSES.sepolia.commitReveal,

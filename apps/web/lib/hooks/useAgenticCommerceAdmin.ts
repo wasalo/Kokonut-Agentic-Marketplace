@@ -113,8 +113,8 @@ export function useSetPlatformFee() {
 export function usePlatformFee() {
   const { data, isLoading, error, refetch } = useReadContract({
     address: AGENTIC_COMMERCE_ADDRESS,
-    abi: AGENTIC_COMMERCE_ABI,
-    functionName: 'platformFeeBP',
+    abi: AGENTIC_COMMERCE_ABI as unknown as readonly { name: 'platformFeeBP' }[],
+    functionName: 'platformFeeBP' as const,
     query: {
       retry: 2,
       staleTime: 60 * 1000,

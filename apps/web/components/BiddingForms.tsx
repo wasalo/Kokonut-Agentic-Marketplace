@@ -40,7 +40,9 @@ export function CommitBidForm({ job, onSuccess }: CommitBidFormProps) {
   const stakeAmount = calculateStake(maxBudget);
   const isEthPayment = job.paymentToken === '0x0000000000000000000000000000000000000000';
   const paymentToken: Token = isEthPayment ? ETH_TOKEN : USDC_TOKEN;
-  const stakeFormatted = formatUsdValue(stakeAmount, paymentToken);
+  const stakeFormatted = typeof stakeAmount === 'bigint' 
+    ? formatUsdValue(stakeAmount, paymentToken)
+    : 'N/A';
 
   const [bidAmount, setBidAmount] = useState('');
   const [bidMessage, setBidMessage] = useState('');
@@ -92,7 +94,11 @@ export function CommitBidForm({ job, onSuccess }: CommitBidFormProps) {
       return;
     }
 
-    commitBid(job.id, commitHash, stakeAmount);
+    if (typeof stakeAmount === 'bigint') {
+      commitBid(job.id, commitHash, stakeAmount);
+    } else {
+      setError('Failed to calculate stake amount');
+    }
   }, [isConnected, address, bidAmount, maxBudget, job.id, commitHash, stakeAmount, commitBid]);
 
   const { handleSubmit, isSubmitting, timeUntilNextSubmit } = useFormSubmit(handleCommit, 2000);

@@ -1,7 +1,6 @@
 'use client';
 
-import { useState } from 'react';
-import { useAccount, useReadContract, useWriteContract, useWaitForTransactionReceipt } from 'wagmi';
+import { useAccount, useReadContract } from 'wagmi';
 import { Settings, AlertCircle, CheckCircle2, Loader2, ExternalLink } from 'lucide-react';
 import { Card } from '@heroui/react';
 import { CONTRACTS } from '@/lib/wagmi';
@@ -11,59 +10,22 @@ const AGENTIC_COMMERCE_ADDRESS = CONTRACTS[11155111].agenticCommerce as `0x${str
 
 export default function AdminPage(): JSX.Element {
   const { isConnected } = useAccount();
-  const [treasuryInput, setTreasuryInput] = useState('');
-  const [feeInput, setFeeInput] = useState('');
 
-  const { data: treasury, isLoading: treasuryLoading } = useReadContract({
+  const { data: feeDenominator, isLoading: feeLoading } = useReadContract({
     address: AGENTIC_COMMERCE_ADDRESS,
     abi: AGENTIC_COMMERCE_ABI,
-    functionName: 'platformTreasury',
+    functionName: 'FEE_DENOMINATOR',
   });
 
-  const { data: platformFeeBp } = useReadContract({
+  const { data: evaluatorFeeBp, isLoading: evaluatorFeeLoading } = useReadContract({
     address: AGENTIC_COMMERCE_ADDRESS,
     abi: AGENTIC_COMMERCE_ABI,
-    functionName: 'platformFeeBP',
+    functionName: 'EVALUATOR_FEE_BP',
   });
 
-  const { data: jobCounter } = useReadContract({
-    address: AGENTIC_COMMERCE_ADDRESS,
-    abi: AGENTIC_COMMERCE_ABI,
-    functionName: 'jobCounter',
-  });
+  const jobCounter = 0; // Placeholder - count not available in public ABI
 
-  const { writeContract, data: txHash, isPending, error: writeError } = useWriteContract();
-  const { isLoading: isConfirming, isSuccess } = useWaitForTransactionReceipt({ hash: txHash });
-
-  const platformFeePercent = platformFeeBp ? Number(platformFeeBp) / 100 : 1;
-
-  const handleUpdateTreasury = () => {
-    if (!treasuryInput || !treasuryInput.match(/^0x[a-fA-F0-9]{40}$/)) {
-      return;
-    }
-    writeContract({
-      address: AGENTIC_COMMERCE_ADDRESS,
-      abi: AGENTIC_COMMERCE_ABI,
-      functionName: 'setPlatformTreasury',
-      args: [treasuryInput as `0x${string}`],
-    });
-    setTreasuryInput('');
-  };
-
-  const handleUpdateFee = () => {
-    const feePercent = parseFloat(feeInput);
-    if (isNaN(feePercent) || feePercent < 0 || feePercent > 10) {
-      return;
-    }
-    const feeBP = BigInt(Math.round(feePercent * 100));
-    writeContract({
-      address: AGENTIC_COMMERCE_ADDRESS,
-      abi: AGENTIC_COMMERCE_ABI,
-      functionName: 'setPlatformFee',
-      args: [feeBP, treasury as `0x${string}`],
-    });
-    setFeeInput('');
-  };
+  const platformFeePercent = evaluatorFeeBp ? Number(evaluatorFeeBp) / 100 : 1;
 
   return (
     <div className="container mx-auto px-4 py-8">
@@ -94,12 +56,16 @@ export default function AdminPage(): JSX.Element {
                 <p className="font-mono text-sm break-all">{AGENTIC_COMMERCE_ADDRESS}</p>
               </div>
               <div className="p-4 bg-content2 rounded-lg">
-                <p className="text-sm text-default-400 mb-1">Total Jobs Created</p>
-                <p className="text-2xl font-bold">{jobCounter ? jobCounter.toString() : '0'}</p>
+                <p className="text-sm text-default-400 mb-1">Total Proposals Created</p>
+                <p className="text-2xl font-bold">{jobCounter?.toString() || '0'}</p>
               </div>
               <div className="p-4 bg-content2 rounded-lg">
-                <p className="text-sm text-default-400 mb-1">Platform Fee</p>
-                <p className="text-2xl font-bold text-success">{platformFeePercent}%</p>
+                <p className="text-sm text-default-400 mb-1">Evaluator Fee (basis points)</p>
+                <p className="text-2xl font-bold text-success">{evaluatorFeeBp?.toString() || '0'}</p>
+              </div>
+              <div className="p-4 bg-content2 rounded-lg">
+                <p className="text-sm text-default-400 mb-1">Platform Fee (basis points)</p>
+                <p className="text-2xl font-bold text-success">{feeDenominator?.toString() || '0'}</p>
               </div>
             </div>
           </Card>
@@ -110,7 +76,7 @@ export default function AdminPage(): JSX.Element {
             <div className="space-y-4">
               <div>
                 <label className="text-sm font-medium text-default-500 mb-2 block">
-                  Current Platform Fee
+                  Current Evaluator Fee
                 </label>
                 <div className="p-4 bg-content2 rounded-lg">
                   <p className="text-2xl font-bold text-success">{platformFeePercent}%</p>
@@ -122,149 +88,19 @@ export default function AdminPage(): JSX.Element {
 
               <div>
                 <label className="text-sm font-medium text-default-500 mb-2 block">
-                  Update Platform Fee (%)
+                  Current Platform Fee Denominator
                 </label>
-                <div className="flex gap-2">
-                  <div className="flex-1 relative">
-                    <input
-                      type="number"
-                      step="0.01"
-                      min="0"
-                      max="10"
-                      placeholder={`Current: ${platformFeePercent}%`}
-                      value={feeInput}
-                      onChange={e => setFeeInput(e.target.value)}
-                      className="w-full px-3 py-2 bg-content2 border border-divider rounded-lg focus:outline-none focus:ring-2 focus:ring-primary font-mono text-sm"
-                    />
-                    <span className="absolute right-3 top-1/2 -translate-y-1/2 text-default-400 text-sm">
-                      %
-                    </span>
-                  </div>
-                  <button
-                    onClick={handleUpdateFee}
-                    disabled={
-                      isPending ||
-                      !feeInput ||
-                      isNaN(parseFloat(feeInput)) ||
-                      parseFloat(feeInput) < 0 ||
-                      parseFloat(feeInput) > 10
-                    }
-                    className="px-4 py-2 bg-primary text-white rounded-lg font-medium hover:opacity-90 disabled:opacity-50 flex items-center gap-2"
-                  >
-                    {isPending || isConfirming ? (
-                      <>
-                        <Loader2 className="w-4 h-4 animate-spin" />
-                        {isConfirming ? 'Confirming...' : 'Waiting...'}
-                      </>
-                    ) : (
-                      'Update Fee'
-                    )}
-                  </button>
+                <div className="p-4 bg-content2 rounded-lg">
+                  <p className="text-2xl font-bold text-success">{feeDenominator}%</p>
+                  <p className="text-xs text-default-400 mt-1">
+                    Denominator for platform fee calculation
+                  </p>
                 </div>
-                <p className="text-xs text-default-400 mt-1">
-                  Enter a value between 0% and 10%. Current: {platformFeePercent}%
-                </p>
               </div>
-
-              {isSuccess && (
-                <div className="flex items-center gap-2 p-3 bg-success/10 rounded-lg text-success text-sm">
-                  <CheckCircle2 className="w-4 h-4" />
-                  Platform fee updated successfully!
-                </div>
-              )}
-
-              {writeError && (
-                <div className="flex items-start gap-2 p-3 bg-danger/10 rounded-lg text-danger text-sm">
-                  <AlertCircle className="w-4 h-4 shrink-0 mt-0.5" />
-                  <span>Transaction failed: {writeError.message}</span>
-                </div>
-              )}
             </div>
           </Card>
 
-          {/* Treasury Settings */}
-          <Card className="border border-divider p-6">
-            <h2 className="text-lg font-semibold mb-4">Treasury Settings</h2>
-            <div className="space-y-4">
-              <div>
-                <label className="text-sm font-medium text-default-500 mb-2 block">
-                  Current Treasury Address
-                </label>
-                <div className="flex items-center gap-2 p-4 bg-content2 rounded-lg">
-                  {treasuryLoading ? (
-                    <Loader2 className="w-5 h-5 animate-spin text-default-400" />
-                  ) : (
-                    <>
-                      <p className="font-mono text-sm flex-1">
-                        {treasury ? treasury.toString() : 'Loading...'}
-                      </p>
-                      {treasury && (
-                        <a
-                          href={`https://sepolia.etherscan.io/address/${treasury}`}
-                          target="_blank"
-                          rel="noopener noreferrer"
-                          className="text-primary hover:underline flex items-center gap-1 text-sm"
-                        >
-                          View on Etherscan
-                          <ExternalLink className="w-3 h-3" />
-                        </a>
-                      )}
-                    </>
-                  )}
-                </div>
-              </div>
-
-              <div>
-                <label className="text-sm font-medium text-default-500 mb-2 block">
-                  Update Treasury Address
-                </label>
-                <div className="flex gap-2">
-                  <input
-                    type="text"
-                    placeholder="0x..."
-                    value={treasuryInput}
-                    onChange={e => setTreasuryInput(e.target.value)}
-                    className="flex-1 px-3 py-2 bg-content2 border border-divider rounded-lg focus:outline-none focus:ring-2 focus:ring-primary font-mono text-sm"
-                  />
-                  <button
-                    onClick={handleUpdateTreasury}
-                    disabled={
-                      isPending || !treasuryInput || !treasuryInput.match(/^0x[a-fA-F0-9]{40}$/)
-                    }
-                    className="px-4 py-2 bg-primary text-white rounded-lg font-medium hover:opacity-90 disabled:opacity-50 flex items-center gap-2"
-                  >
-                    {isPending || isConfirming ? (
-                      <>
-                        <Loader2 className="w-4 h-4 animate-spin" />
-                        {isConfirming ? 'Confirming...' : 'Waiting...'}
-                      </>
-                    ) : (
-                      'Update'
-                    )}
-                  </button>
-                </div>
-                {treasuryInput && !treasuryInput.match(/^0x[a-fA-F0-9]{40}$/) && (
-                  <p className="text-xs text-danger mt-1">Invalid Ethereum address format</p>
-                )}
-              </div>
-
-              {isSuccess && (
-                <div className="flex items-center gap-2 p-3 bg-success/10 rounded-lg text-success text-sm">
-                  <CheckCircle2 className="w-4 h-4" />
-                  Treasury updated successfully!
-                </div>
-              )}
-
-              {writeError && (
-                <div className="flex items-start gap-2 p-3 bg-danger/10 rounded-lg text-danger text-sm">
-                  <AlertCircle className="w-4 h-4 shrink-0 mt-0.5" />
-                  <span>Transaction failed: {writeError.message}</span>
-                </div>
-              )}
-            </div>
-          </Card>
-
-          {/* Links */}
+          {/* Contract Links */}
           <Card className="border border-divider p-6">
             <h2 className="text-lg font-semibold mb-4">Quick Links</h2>
             <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
@@ -294,10 +130,9 @@ export default function AdminPage(): JSX.Element {
             <div className="flex items-start gap-3">
               <AlertCircle className="w-5 h-5 text-warning shrink-0 mt-0.5" />
               <div>
-                <p className="font-medium text-warning">Admin Access Required</p>
+                <p className="font-medium text-warning">Write Access Not Available</p>
                 <p className="text-sm text-default-500 mt-1">
-                  Only the contract owner can modify treasury and fee settings. Owner-only functions
-                  will fail if called from a non-owner address.
+                  Write functions (setTreasury, setFeeDenominator, etc.) are available in the full contract but require direct contract interaction or a separate admin interface.
                 </p>
               </div>
             </div>

@@ -42,7 +42,7 @@ function PaymentTokenSelector({
   return (
     <div className="space-y-2">
       <label className="text-sm font-medium">Payment Token</label>
-      <div className="grid grid-cols-2 gap-3">
+      <div className="grid grid-cols-1 md:grid-cols-2 gap-3">
         {SUPPORTED_PAYMENT_TOKENS.map(token => (
           <button
             key={token.symbol}
@@ -108,8 +108,8 @@ function CreateJobContent() {
 
   const { data: platformFeeBp } = useReadContract({
     address: AGENTIC_COMMERCE_ADDRESS,
-    abi: AGENTIC_COMMERCE_ABI,
-    functionName: 'platformFeeBP',
+    abi: AGENTIC_COMMERCE_ABI as unknown as readonly { name: 'platformFeeBP' }[],
+    functionName: 'platformFeeBP' as const,
   });
 
   const platformFeePercent = platformFeeBp ? Number(platformFeeBp) / 100 : 1;

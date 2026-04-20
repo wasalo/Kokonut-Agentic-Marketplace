@@ -23,7 +23,7 @@ import {
   useActivateService,
 } from '@/lib/hooks/useServices';
 import { useServiceContract } from '@/lib/hooks/useServicesContract';
-import { useAgentReputation } from '@/lib/hooks/useReputation';
+import { useAgentReputation } from '@/lib/hooks/useAgentReputation';
 import { useTokenPriceConversion } from '@/lib/hooks/useTokenConversion';
 import { showToast, getTransactionError } from '@/lib/toast';
 
@@ -39,7 +39,7 @@ export default function ServiceDetailPage({
   const { address } = useAccount();
 
   const { service, isLoading, refetch } = useServiceContract(serviceId);
-  const { reputation } = useAgentReputation(service?.provider);
+  const reputation = useAgentReputation(service?.provider);
   const { ethToUsdcRate } = useTokenPriceConversion();
 
   const isEth =

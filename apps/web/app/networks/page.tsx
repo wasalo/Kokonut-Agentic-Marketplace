@@ -42,7 +42,7 @@ function NetworkCard({ chain, stats, isLoading }: NetworkCardProps) {
           )}
         </div>
 
-        <div className="grid grid-cols-2 gap-4 mb-4">
+        <div className="grid grid-cols-1 sm:grid-cols-2 gap-3 md:gap-4 mb-4">
           <div>
             <div className="flex items-center gap-1 text-xs text-default-400 mb-1">
               <Users className="w-3 h-3" />
@@ -106,7 +106,7 @@ function LoadingSkeleton() {
               </div>
             </div>
           </div>
-          <div className="grid grid-cols-2 gap-4">
+          <div className="grid grid-cols-1 sm:grid-cols-2 gap-3 md:gap-4">
             <div>
               <div className="h-3 bg-content2 rounded w-12 mb-2" />
               <div className="h-6 bg-content2 rounded w-16" />

@@ -111,6 +111,7 @@ export function mapServiceData(id: bigint, data: unknown): Service | null {
         metadataURI: (obj.metadataURI as string) || '',
         price: (obj.price as bigint) || BigInt(0),
         paymentToken: (obj.paymentToken as `0x${string}`) || '0x',
+        paymentAddress: (obj.paymentAddress as `0x${string}`) || '0x',
         isActive: (obj.isActive as boolean) || false,
         createdAt: (obj.createdAt as bigint) || BigInt(0),
       };

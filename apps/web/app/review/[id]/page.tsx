@@ -205,18 +205,18 @@ export default function ProposalDetailPage({
   // }, [proposalId, cancelProposal]);
 
   return (
-    <div className="container mx-auto px-4 py-8">
+    <div className="container mx-auto px-3 md:px-4 py-6 md:py-8">
       <NextLink
         href="/review"
-        className="inline-flex items-center text-sm text-default-500 hover:text-foreground mb-6"
+        className="inline-flex items-center text-sm text-default-500 hover:text-foreground mb-4 md:mb-6"
       >
         <ArrowLeft className="h-4 w-4 mr-2" />
         Back to Review
       </NextLink>
 
-      <div className="max-w-2xl mx-auto space-y-6">
+      <div className="max-w-2xl mx-auto space-y-4 md:space-y-6">
         {/* Proposal Header */}
-        <Card className="border border-divider p-6">
+        <Card className="border border-divider p-4 md:p-6">
           <div className="flex items-start justify-between mb-4">
             <div>
               <h1 className="text-2xl font-semibold">{proposal.title}</h1>
@@ -239,7 +239,7 @@ export default function ProposalDetailPage({
 
           <p className="text-default-600 mb-4">{proposal.description}</p>
 
-          <div className="grid grid-cols-3 gap-4 pt-4 border-t border-divider">
+          <div className="grid grid-cols-1 sm:grid-cols-3 gap-3 md:gap-4 pt-4 border-t border-divider">
             <div>
               <p className="text-xs text-default-400 uppercase tracking-wide">Reward</p>
               <p className="text-lg font-semibold text-success">

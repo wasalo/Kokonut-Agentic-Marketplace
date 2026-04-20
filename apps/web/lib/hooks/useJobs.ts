@@ -1,5 +1,5 @@
 import { useReadContract, useReadContracts, useWriteContract } from 'wagmi';
-import { AGENTIC_COMMERCE_ABI } from '@/lib/contracts/abis';
+import { AGENTIC_COMMERCE_ABI, BIDDING_SYSTEM_ABI } from '@/lib/contracts/abis';
 import { getContractAddress, debugLog } from '@/lib/contracts/config';
 import type { Job, JobStatusType, JobTypeType, Bid } from '@/lib/types/contracts';
 import { JobStatus, JobType } from '@/lib/types/contracts';
@@ -14,6 +14,21 @@ const AGENTIC_COMMERCE_ABI_WITH_NEW = AGENTIC_COMMERCE_ABI as typeof AGENTIC_COM
   | { name: 'unregisterAsEvaluator' }
   | { name: 'getEvaluatorPoolSize' }
   | { name: 'isEvaluator' }
+  | { name: 'setBudget' }
+  | { name: 'setProvider' }
+  | { name: 'setPaymentToken' }
+  | { name: 'createOpenJob' }
+)[];
+
+const BIDDING_SYSTEM_ABI_TYPED = BIDDING_SYSTEM_ABI as typeof BIDDING_SYSTEM_ABI & readonly (
+  | { name: 'REVEAL_WINDOW' }
+  | { name: 'calculateStake' }
+  | { name: 'getUserBid' }
+  | { name: 'jobBidCount' }
+  | { name: 'jobBids' }
+  | { name: 'withdrawStake' }
+  | { name: 'isEvaluatorFeeEnabled' }
+  | { name: 'totalStakesHeld' }
 )[];
 
 const AGENTIC_COMMERCE_ADDRESS = getContractAddress('AGENTIC_COMMERCE');
@@ -21,6 +36,26 @@ const AGENTIC_COMMERCE_ADDRESS = getContractAddress('AGENTIC_COMMERCE');
 // Re-export from centralized types for backward compatibility
 export type { Job, JobStatusType, JobTypeType, Bid };
 export { JobStatus, JobType };
+
+function mapJobData(data: unknown): Job | undefined {
+  if (!data || typeof data !== 'object') return undefined;
+  const d = data as { id: bigint; client: string; provider: string; evaluator: string; serviceId: bigint; paymentToken: string; description: string; budget: bigint; expiredAt: bigint; status: number; hook: string; deliverable: string };
+  if (!d || !('id' in d)) return undefined;
+  return {
+    id: d.id,
+    client: d.client as `0x${string}`,
+    provider: d.provider as `0x${string}`,
+    evaluator: d.evaluator as `0x${string}`,
+    serviceId: d.serviceId,
+    paymentToken: d.paymentToken as `0x${string}`,
+    description: d.description,
+    budget: d.budget,
+    expiredAt: d.expiredAt,
+    status: d.status,
+    hook: d.hook as `0x${string}`,
+    deliverable: d.deliverable as `0x${string}`,
+  };
+}
 
 // ============ Read Hooks ============
 
@@ -69,7 +104,7 @@ export function useJob(jobId: number | bigint | undefined) {
   });
 
   return {
-    job: data,
+    job: mapJobData(data),
     isLoading,
     error,
     refetch,
@@ -122,7 +157,8 @@ export function useJobs(start: number = 0, count: number = 20) {
   for (let i = 0; i < results.length; i++) {
     const result = results[i];
     if (result.status === 'success') {
-      jobs.push(result.result as unknown as Job);
+      const mapped = mapJobData(result.result);
+      if (mapped) jobs.push(mapped);
     }
   }
 
@@ -336,9 +372,10 @@ export function useSetBudget() {
     setBudget: (jobId: bigint, amount: bigint) =>
       writeContract({
         address: AGENTIC_COMMERCE_ADDRESS,
-        abi: AGENTIC_COMMERCE_ABI,
-        functionName: 'setBudget',
+        abi: AGENTIC_COMMERCE_ABI_WITH_NEW as any,
+        functionName: 'fund' as const,
         args: [jobId, amount],
+        value: amount,
       }),
     hash: data,
     isPending,
@@ -354,8 +391,8 @@ export function useSetProvider() {
     setProvider: (jobId: bigint, provider: `0x${string}`) =>
       writeContract({
         address: AGENTIC_COMMERCE_ADDRESS,
-        abi: AGENTIC_COMMERCE_ABI,
-        functionName: 'setProvider',
+        abi: AGENTIC_COMMERCE_ABI_WITH_NEW as any,
+        functionName: 'setProvider' as const,
         args: [jobId, provider],
       }),
     hash: data,
@@ -372,8 +409,8 @@ export function useSetPaymentToken() {
     setPaymentToken: (jobId: bigint, paymentToken: `0x${string}`) =>
       writeContract({
         address: AGENTIC_COMMERCE_ADDRESS,
-        abi: AGENTIC_COMMERCE_ABI,
-        functionName: 'setPaymentToken',
+        abi: AGENTIC_COMMERCE_ABI_WITH_NEW as any,
+        functionName: 'setPaymentToken' as const,
         args: [jobId, paymentToken],
       }),
     hash: data,
@@ -427,11 +464,13 @@ export function getJobStatusColor(
 
 // ============ V5 Open Job & Bidding Hooks ============
 
+const BIDDING_SYSTEM_ADDRESS = getContractAddress('BIDDING_SYSTEM');
+
 export function useJobConstants() {
   const { data: revealWindow, isLoading: isRevealLoading } = useReadContract({
-    address: AGENTIC_COMMERCE_ADDRESS,
-    abi: AGENTIC_COMMERCE_ABI,
-    functionName: 'REVEAL_WINDOW',
+    address: BIDDING_SYSTEM_ADDRESS,
+    abi: BIDDING_SYSTEM_ABI_TYPED as any,
+    functionName: 'REVEAL_WINDOW' as const,
     query: { staleTime: 60 * 60 * 1000 },
   });
 
@@ -443,8 +482,8 @@ export function useJobConstants() {
   });
 
   return {
-    revealWindow: revealWindow ? Number(revealWindow) : 3600, // Default 1 hour
-    minEthPayment: minEthPayment ?? BigInt(5000000000000000), // Default 0.005 ETH
+    revealWindow: typeof revealWindow === 'bigint' ? Number(revealWindow) : 3600,
+    minEthPayment: minEthPayment ?? BigInt(5000000000000000),
     isLoading: isRevealLoading || isMinEthLoading,
   };
 }
@@ -456,15 +495,15 @@ export function useJobConstants() {
  */
 export function useCalculateStake() {
   const { data, isLoading, error } = useReadContract({
-    address: AGENTIC_COMMERCE_ADDRESS,
-    abi: AGENTIC_COMMERCE_ABI,
-    functionName: 'calculateStake',
+    address: BIDDING_SYSTEM_ADDRESS,
+    abi: BIDDING_SYSTEM_ABI_TYPED as any,
+    functionName: 'calculateStake' as const,
     query: { staleTime: 60 * 60 * 1000 },
   });
 
   return {
-    calculateStake: (_maxBudget: bigint) => data ?? BigInt(0),
-    stakeAmount: data ?? BigInt(0),
+    calculateStake: (_maxBudget: bigint) => typeof data === 'bigint' ? data : BigInt(0),
+    stakeAmount: typeof data === 'bigint' ? data : BigInt(0),
     isLoading,
     error,
   };
@@ -491,10 +530,11 @@ export function useCreateOpenJob() {
         'useCreateOpenJob is deprecated - bidding disabled in V6.1. Use BiddingSystem instead.'
       );
       writeContract({
-        address: AGENTIC_COMMERCE_ADDRESS,
-        abi: AGENTIC_COMMERCE_ABI,
-        functionName: 'createOpenJob',
-        args: [_maxBudget, _evaluator, _expiredAt, _description, _paymentToken, _evaluatorFee],
+        address: BIDDING_SYSTEM_ADDRESS,
+        abi: BIDDING_SYSTEM_ABI_TYPED as any,
+        functionName: 'createBiddingSession' as const,
+        args: [_maxBudget, _evaluator, _expiredAt, _description, _evaluatorFee],
+        value: _maxBudget / 100n,
       });
     },
     hash: data,
@@ -576,9 +616,9 @@ export function useUserBid(jobId: number | bigint | undefined, user: `0x${string
   const id = jobId !== undefined ? (typeof jobId === 'bigint' ? jobId : BigInt(jobId)) : undefined;
 
   const { data, isLoading, error, refetch } = useReadContract({
-    address: AGENTIC_COMMERCE_ADDRESS,
-    abi: AGENTIC_COMMERCE_ABI,
-    functionName: 'getUserBid',
+    address: BIDDING_SYSTEM_ADDRESS,
+    abi: BIDDING_SYSTEM_ABI_TYPED as any,
+    functionName: 'getUserBid' as const,
     args: id !== undefined && user !== undefined ? [id, user] : undefined,
     query: {
       enabled: id !== undefined && user !== undefined,
@@ -587,9 +627,12 @@ export function useUserBid(jobId: number | bigint | undefined, user: `0x${string
     },
   });
 
+  const bidData = data as Bid | undefined;
+  const hasBid = bidData && typeof bidData === 'object' && 'bidId' in bidData && bidData.bidId > BigInt(0);
+
   return {
-    bid: data as Bid | undefined,
-    hasBid: data && data.bidId > BigInt(0),
+    bid: bidData,
+    hasBid,
     isLoading,
     error,
     refetch,
@@ -622,9 +665,9 @@ export function useFundJobWithETH() {
  */
 export function useJobBidCount(jobId: bigint | undefined) {
   const { data, isLoading, error, refetch } = useReadContract({
-    address: AGENTIC_COMMERCE_ADDRESS,
-    abi: AGENTIC_COMMERCE_ABI,
-    functionName: 'jobBidCount',
+    address: BIDDING_SYSTEM_ADDRESS,
+    abi: BIDDING_SYSTEM_ABI_TYPED as any,
+    functionName: 'jobBidCount' as const,
     args: jobId !== undefined ? [jobId] : undefined,
     query: {
       enabled: jobId !== undefined,
@@ -648,9 +691,9 @@ export function useJobBidCount(jobId: bigint | undefined) {
  */
 export function useJobBid(jobId: bigint | undefined, index: number) {
   const { data, isLoading, error, refetch } = useReadContract({
-    address: AGENTIC_COMMERCE_ADDRESS,
-    abi: AGENTIC_COMMERCE_ABI,
-    functionName: 'jobBids',
+    address: BIDDING_SYSTEM_ADDRESS,
+    abi: BIDDING_SYSTEM_ABI_TYPED as any,
+    functionName: 'jobBids' as const,
     args: jobId !== undefined ? [jobId, BigInt(index)] : undefined,
     query: {
       enabled: jobId !== undefined,
@@ -678,9 +721,9 @@ export function useWithdrawStake() {
   return {
     withdrawStake: (jobId: bigint) =>
       writeContract({
-        address: AGENTIC_COMMERCE_ADDRESS,
-        abi: AGENTIC_COMMERCE_ABI,
-        functionName: 'withdrawStake',
+        address: BIDDING_SYSTEM_ADDRESS,
+        abi: BIDDING_SYSTEM_ABI_TYPED as any,
+        functionName: 'withdrawStake' as const,
         args: [jobId],
       }),
     hash: data,
@@ -692,9 +735,9 @@ export function useWithdrawStake() {
 
 export function useEvaluatorFeeEnabled(jobId: bigint | undefined) {
   const { data, isLoading, error, refetch } = useReadContract({
-    address: AGENTIC_COMMERCE_ADDRESS,
-    abi: AGENTIC_COMMERCE_ABI,
-    functionName: 'isEvaluatorFeeEnabled',
+    address: BIDDING_SYSTEM_ADDRESS,
+    abi: BIDDING_SYSTEM_ABI_TYPED as any,
+    functionName: 'isEvaluatorFeeEnabled' as const,
     args: jobId !== undefined ? [jobId] : undefined,
     query: {
       enabled: jobId !== undefined,
@@ -704,7 +747,7 @@ export function useEvaluatorFeeEnabled(jobId: bigint | undefined) {
   });
 
   return {
-    isEvaluatorFeeEnabled: data ?? false,
+    isEvaluatorFeeEnabled: typeof data === 'boolean' ? data : false,
     isLoading,
     error,
     refetch,
@@ -713,9 +756,9 @@ export function useEvaluatorFeeEnabled(jobId: bigint | undefined) {
 
 export function useTotalStakesHeld(address: `0x${string}` | undefined) {
   const { data, isLoading, error, refetch } = useReadContract({
-    address: AGENTIC_COMMERCE_ADDRESS,
-    abi: AGENTIC_COMMERCE_ABI,
-    functionName: 'totalStakesHeld',
+    address: BIDDING_SYSTEM_ADDRESS,
+    abi: BIDDING_SYSTEM_ABI_TYPED as any,
+    functionName: 'totalStakesHeld' as const,
     args: address !== undefined ? [address] : undefined,
     query: {
       enabled: address !== undefined,
@@ -743,12 +786,12 @@ export function useCompleteAfterTimeout() {
   const { writeContract, data, isPending, error, reset } = useWriteContract();
 
   return {
-    completeAfterTimeout: (jobId: bigint) =>
+    completeAfterTimeout: (jobId: bigint, reason: `0x${string}` = '0x' as `0x${string}`) =>
       writeContract({
         address: AGENTIC_COMMERCE_ADDRESS,
-        abi: AGENTIC_COMMERCE_ABI_WITH_NEW,
-        functionName: 'completeAfterTimeout' as 'completeAfterTimeout',
-        args: [jobId],
+        abi: AGENTIC_COMMERCE_ABI_WITH_NEW as any,
+        functionName: 'completeAfterTimeout' as const,
+        args: [jobId, reason],
       }),
     hash: data,
     isPending,

@@ -2,7 +2,8 @@ export * from './useAgents';
 export * from './useServices';
 export * from './useProposals';
 export * from './useJobs';
-export * from './useReputation';
+
+export * from './useAdminRegistry';
 export * from './useSkills';
 export * from './useUSDC';
 export * from './useCommitReveal';

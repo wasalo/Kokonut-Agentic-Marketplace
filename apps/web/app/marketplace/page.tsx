@@ -18,14 +18,16 @@ import { LiveFeed } from '@/components/heroui/live-feed';
 // Popular skill domains for filtering
 const SKILL_DOMAINS = [
   { value: '', label: 'All Skills' },
-  { value: 'defi', label: 'DeFi' },
-  { value: 'nft', label: 'NFT' },
-  { value: 'ai', label: 'AI / ML' },
-  { value: 'governance', label: 'Governance' },
-  { value: 'web3', label: 'Web3' },
-  { value: 'data', label: 'Data Analysis' },
-  { value: 'security', label: 'Security' },
-  { value: 'infrastructure', label: 'Infrastructure' },
+  { value: '@skills/defi', label: 'DeFi' },
+  { value: '@skills/nft', label: 'NFT' },
+  { value: '@skills/ai', label: 'AI / ML' },
+  { value: '@skills/governance', label: 'Governance' },
+  { value: '@skills/web3', label: 'Web3' },
+  { value: '@skills/data', label: 'Data Analysis' },
+  { value: '@skills/security', label: 'Security' },
+  { value: '@skills/infrastructure', label: 'Infrastructure' },
+  { value: '@skills/portfolio', label: 'Portfolio' },
+  { value: '@skills/verification', label: 'Verification' },
 ];
 
 function FilterSection({

@@ -4,6 +4,7 @@ import { useState, useEffect, useCallback } from 'react';
 import { usePublicClient } from 'wagmi';
 import { parseAbiItem, formatUnits } from 'viem';
 import { getContractAddress, debugLog, DEFAULT_FROM_BLOCK } from '@/lib/contracts/config';
+import { debugError } from '@/lib/debug';
 
 // Contract addresses
 const AGENTIC_COMMERCE_ADDRESS = getContractAddress('AGENTIC_COMMERCE');
@@ -208,7 +209,7 @@ export function useAnalytics(timeRange: TimeRange = '7D') {
         `Analytics loaded: ${totals.totalJobs} jobs, ${totals.totalServices} services`
       );
     } catch (err) {
-      console.error('Error fetching analytics:', err);
+      debugError('hooks', 'useAnalytics: Error fetching analytics', err);
       setError(err instanceof Error ? err : new Error('Failed to fetch analytics'));
     } finally {
       setIsLoading(false);

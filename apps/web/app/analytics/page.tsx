@@ -313,10 +313,10 @@ function AnalyticsContent({
             </Card>
 
             {/* Key Metrics */}
-            <Card className="border border-divider p-6 lg:col-span-2">
-              <h3 className="text-lg font-semibold mb-4">Key Metrics</h3>
-              <div className="grid grid-cols-2 gap-4">
-                <div className="p-4 bg-content2 rounded-lg">
+            <Card className="border border-divider p-4 md:p-6 lg:col-span-2">
+              <h3 className="text-lg font-semibold mb-3 md:mb-4">Key Metrics</h3>
+              <div className="grid grid-cols-1 sm:grid-cols-2 gap-3 md:gap-4">
+                <div className="p-3 md:p-4 bg-content2 rounded-lg">
                   <p className="text-sm text-default-500">Average Job Value</p>
                   <p className="text-xl font-bold text-success mt-1">
                     $
@@ -325,13 +325,13 @@ function AnalyticsContent({
                       : '0.00'}
                   </p>
                 </div>
-                <div className="p-4 bg-content2 rounded-lg">
+                <div className="p-3 md:p-4 bg-content2 rounded-lg">
                   <p className="text-sm text-default-500">ETH Staked</p>
                   <p className="text-xl font-bold text-primary mt-1">
                     {data?.totals.totalVolumeETH.toFixed(4) || '0.0000'} ETH
                   </p>
                 </div>
-                <div className="p-4 bg-content2 rounded-lg">
+                <div className="p-3 md:p-4 bg-content2 rounded-lg">
                   <p className="text-sm text-default-500">Jobs per Day</p>
                   <p className="text-xl font-bold text-foreground mt-1">
                     {data?.totals.totalJobs
@@ -339,7 +339,7 @@ function AnalyticsContent({
                       : '0.0'}
                   </p>
                 </div>
-                <div className="p-4 bg-content2 rounded-lg">
+                <div className="p-3 md:p-4 bg-content2 rounded-lg">
                   <p className="text-sm text-default-500">Services per Day</p>
                   <p className="text-xl font-bold text-foreground mt-1">
                     {data?.totals.totalServices

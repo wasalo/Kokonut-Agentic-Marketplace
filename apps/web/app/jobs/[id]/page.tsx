@@ -214,11 +214,18 @@ export default function JobDetailPage({
         }));
 
         const results = await publicClient.multicall({ contracts: calls });
-        const fetchedBids = results
-          .filter(
-            (r): r is { status: 'success'; result: Bid } => r.status === 'success' && !!r.result
-          )
-          .map(r => r.result);
+        const fetchedBids: Bid[] = [];
+        for (const r of results) {
+          if (r.status === 'success') {
+            const result = r as unknown as { result?: unknown };
+            if (result?.result && typeof result.result === 'object') {
+              const bid = result.result as { bidId?: bigint };
+              if (bid?.bidId) {
+                fetchedBids.push(bid as unknown as Bid);
+              }
+            }
+          }
+        }
         setBids(fetchedBids);
       } catch (err) {
         console.error('Error fetching bids:', err);
@@ -313,7 +320,7 @@ export default function JobDetailPage({
 
   if (isLoading) {
     return (
-      <div className="container mx-auto px-4 py-8">
+      <div className="container mx-auto px-3 md:px-4 py-6 md:py-8">
         <div className="max-w-2xl mx-auto animate-pulse space-y-4">
           <div className="h-8 bg-content2 rounded w-1/3" />
           <div className="h-64 bg-content2 rounded" />
@@ -324,10 +331,10 @@ export default function JobDetailPage({
 
   if (!job || Number(job.id) === 0) {
     return (
-      <div className="container mx-auto px-4 py-8">
-        <Card className="max-w-2xl mx-auto border border-divider p-8 text-center">
-          <AlertCircle className="w-12 h-12 text-default-400 mx-auto mb-4" />
-          <h2 className="text-xl font-semibold mb-2">Job Not Found</h2>
+      <div className="container mx-auto px-3 md:px-4 py-6 md:py-8">
+        <Card className="max-w-2xl mx-auto border border-divider p-6 md:p-8 text-center">
+          <AlertCircle className="w-10 h-10 md:w-12 md:h-12 text-default-400 mx-auto mb-3 md:mb-4" />
+          <h2 className="text-lg md:text-xl font-semibold mb-2">Job Not Found</h2>
           <p className="text-default-500 text-sm">This job does not exist.</p>
         </Card>
       </div>
@@ -340,7 +347,7 @@ export default function JobDetailPage({
   const deadlineDate = new Date(Number(job.expiredAt) * 1000);
 
   return (
-    <div className="container mx-auto px-4 py-8">
+    <div className="container mx-auto px-3 md:px-4 py-6 md:py-8">
       <NextLink
         href="/jobs"
         className="inline-flex items-center text-sm text-default-500 hover:text-foreground mb-6"
@@ -383,10 +390,10 @@ export default function JobDetailPage({
             </NextLink>
           )}
 
-          <div className="grid grid-cols-2 gap-4 mt-4 pt-4 border-t border-divider">
+          <div className="grid grid-cols-1 sm:grid-cols-2 gap-3 md:gap-4 mt-4 pt-4 border-t border-divider">
             <div>
               <p className="text-xs text-default-400 uppercase tracking-wide">Budget</p>
-              <div className="flex items-center gap-2">
+              <div className="flex flex-wrap items-center gap-2">
                 <p className="text-lg font-semibold text-success">${formattedBudget}</p>
                 {job.paymentToken &&
                   job.paymentToken !== '0x0000000000000000000000000000000000000000' && (
@@ -410,7 +417,7 @@ export default function JobDetailPage({
             </div>
           </div>
 
-          <div className="grid grid-cols-3 gap-4 mt-4 pt-4 border-t border-divider text-xs">
+          <div className="grid grid-cols-1 sm:grid-cols-3 gap-3 md:gap-4 mt-4 pt-4 border-t border-divider text-xs">
             <div>
               <p className="text-default-400 uppercase tracking-wide">Client</p>
               <Address address={job.client as `0x${string}`} truncate className="mt-0.5" />

@@ -49,7 +49,7 @@ export interface BidInfo {
 // ============ Read Hooks ============
 
 export function useBiddingSessionCount() {
-  const { data, isLoading, error } = useReadContract({
+  const { data, isLoading, error, refetch } = useReadContract({
     address: BIDDING_SYSTEM_ADDRESS,
     abi: BIDDING_SYSTEM_ABI,
     functionName: 'sessionCounter',
@@ -63,6 +63,7 @@ export function useBiddingSessionCount() {
     count: data ? Number(data) : 0,
     isLoading,
     error,
+    refetch,
   };
 }
 

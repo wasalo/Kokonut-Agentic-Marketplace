@@ -26,15 +26,16 @@ function mapServiceData(id: bigint, data: unknown): Service | null {
         metadataURI: (obj.metadataURI as string) || '',
         price: (obj.price as bigint) || BigInt(0),
         paymentToken: (obj.paymentToken as `0x${string}`) || '0x',
+        paymentAddress: (obj.paymentAddress as `0x${string}`) || '0x',
         isActive: (obj.isActive as boolean) || false,
         createdAt: (obj.createdAt as bigint) || BigInt(0),
       };
     }
   }
 
-  // Legacy array format
-  if (Array.isArray(data) && data.length >= 10) {
-    const [serviceId, provider, agentId, name, description, metadataURI, price, paymentToken, isActive, createdAt] = data;
+  // Legacy array format (includes paymentAddress at index 10)
+  if (Array.isArray(data) && data.length >= 11) {
+    const [serviceId, provider, agentId, name, description, metadataURI, price, paymentToken, paymentAddress, isActive, createdAt] = data;
     return {
       id,
       provider: (provider as `0x${string}`) || '0x',
@@ -44,6 +45,7 @@ function mapServiceData(id: bigint, data: unknown): Service | null {
       metadataURI: (metadataURI as string) || '',
       price: (price as bigint) || BigInt(0),
       paymentToken: (paymentToken as `0x${string}`) || '0x',
+      paymentAddress: (paymentAddress as `0x${string}`) || '0x',
       isActive: (isActive as boolean) || false,
       createdAt: (createdAt as bigint) || BigInt(0),
     };
