@@ -7,12 +7,14 @@ import {
   ArrowLeft,
   Save,
   Loader2,
-  Wallet,
-  FileText,
   Database,
   CheckCircle2,
   ChevronDown,
   Shield,
+  TrendingUp,
+  DollarSign,
+  Star,
+  Calendar,
 } from 'lucide-react';
 import NextLink from 'next/link';
 import { Card } from '@heroui/react';
@@ -20,13 +22,15 @@ import { useWaitForTransactionReceipt } from 'wagmi';
 import {
   useSetAgentURI,
   useSetAgentMetadata,
-  useSetAgentWallet,
-  useUnsetAgentWallet,
-  useAgentWallet,
+  useAgentStats,
 } from '@/lib/hooks/useAgents';
+
+// Note: Removed unused imports:
+// - useGenerateWalletSignature (was for Agent Wallet - EIP-712 broken)
+// - useSetAgentWallet / useUnsetAgentWallet (was for Agent Wallet - EIP-712 broken)
+// - useAgentWallet (was for Agent Wallet display - removed)
+// - createDeadline (was for blockchain timestamp - no longer needed)
 import { useKokonutAgentsByOwner } from '@/lib/hooks/useKokonutAgentsByOwner';
-import { useAgentOwner } from '@/lib/hooks/useAgents';
-import { useGenerateWalletSignature } from '@/lib/hooks/useGenerateWalletSignature';
 import { generateAgentMetadata, decodeAgentMetadata, type AgentMetadata8004 } from '@/lib/metadata';
 import { EmailPreferencesForm } from '@/components/EmailPreferencesForm';
 import { PortfolioForm, type PortfolioItem } from '@/components/PortfolioForm';
@@ -36,17 +40,11 @@ export default function AgentSettingsPage(): JSX.Element {
   const { address } = useAccount();
   const { agents, isLoading: isLoadingAgents } = useKokonutAgentsByOwner(address);
 
-  // Check for agentId in URL params
   const urlAgentId = searchParams.get('agentId');
-
-  // Selected agent state (for multi-agent owners)
   const [selectedAgentIndex, setSelectedAgentIndex] = useState<number>(0);
 
-  // Determine which agent to show
   const selectedAgent = useMemo(() => {
     if (agents.length === 0) return null;
-
-    // If URL has agentId, find matching agent
     if (urlAgentId) {
       const idx = agents.findIndex(a => a.id.toString() === urlAgentId);
       if (idx !== -1) {
@@ -54,35 +52,26 @@ export default function AgentSettingsPage(): JSX.Element {
         return agents[idx];
       }
     }
-
-    // Otherwise use selected index
     return agents[selectedAgentIndex] || null;
   }, [agents, urlAgentId, selectedAgentIndex]);
 
   const agent = selectedAgent;
   const agentId = agent?.id ? BigInt(agent.id) : undefined;
 
-  // Reset selected index if it's out of bounds
   useEffect(() => {
     if (selectedAgentIndex >= agents.length && agents.length > 0) {
       setSelectedAgentIndex(0);
     }
   }, [agents.length, selectedAgentIndex]);
 
-  // Fetch agent owner and wallet
-  const { owner } = useAgentOwner(agentId);
-  const { wallet: agentWallet } = useAgentWallet(agentId);
+  const { jobsCompleted, rating, feedbackCount, isLoading: isLoadingStats } = useAgentStats(agentId);
 
-  // Form states
-  const [newURI, setNewURI] = useState('');
   const [metadataKey, setMetadataKey] = useState('');
   const [metadataValue, setMetadataValue] = useState('');
-  const [newWallet, setNewWallet] = useState('');
   const [portfolio, setPortfolio] = useState<PortfolioItem[]>([]);
   const [isSavingPortfolio, setIsSavingPortfolio] = useState(false);
   const [portfolioSuccess, setPortfolioSuccess] = useState(false);
 
-  // Load portfolio from agent metadata
   useEffect(() => {
     if (agent?.agentURI) {
       const decoded = decodeAgentMetadata(agent.agentURI);
@@ -92,27 +81,10 @@ export default function AgentSettingsPage(): JSX.Element {
     }
   }, [agent?.agentURI]);
 
-  // Hooks
   const { setAgentURI, hash: uriHash, isPending: isUriPending } = useSetAgentURI();
   const { setMetadata, hash: metaHash, isPending: isMetaPending } = useSetAgentMetadata();
-  const { setAgentWallet, hash: walletHash, isPending: isWalletPending } = useSetAgentWallet();
-  const { unsetAgentWallet, hash: unsetHash, isPending: isUnsetPending } = useUnsetAgentWallet();
-  const { generateSignature, isPending: isSigning } = useGenerateWalletSignature();
 
-  // Watch transactions
-  const { isSuccess: uriSuccess } = useWaitForTransactionReceipt({ hash: uriHash });
   const { isSuccess: metaSuccess } = useWaitForTransactionReceipt({ hash: metaHash });
-  const { isSuccess: walletSuccess } = useWaitForTransactionReceipt({ hash: walletHash });
-  const { isSuccess: unsetSuccess } = useWaitForTransactionReceipt({ hash: unsetHash });
-
-  const handleUpdateURI = useCallback(
-    (e: React.FormEvent) => {
-      e.preventDefault();
-      if (!agentId || !newURI) return;
-      setAgentURI(agentId, newURI);
-    },
-    [agentId, newURI, setAgentURI]
-  );
 
   const handleSetMetadata = useCallback(
     (e: React.FormEvent) => {
@@ -123,38 +95,11 @@ export default function AgentSettingsPage(): JSX.Element {
     [agentId, metadataKey, metadataValue, setMetadata]
   );
 
-  const handleSetWallet = useCallback(
-    async (e: React.FormEvent) => {
-      e.preventDefault();
-      if (!agentId || !newWallet || !owner) return;
-
-      const deadlineBigInt = BigInt(Math.floor(Date.now() / 1000) + 300); // 5 minutes (max allowed by ERC-8004)
-      const sig = await generateSignature({
-        agentId,
-        newWallet: newWallet as `0x${string}`,
-        owner: owner,
-        deadline: deadlineBigInt,
-      });
-
-      if (sig) {
-        setAgentWallet(agentId, newWallet as `0x${string}`, deadlineBigInt, sig);
-      }
-    },
-    [agentId, newWallet, owner, generateSignature, setAgentWallet]
-  );
-
-  const handleUnsetWallet = useCallback(() => {
-    if (!agentId) return;
-    unsetAgentWallet(agentId);
-  }, [agentId, unsetAgentWallet]);
-
   const handleSavePortfolio = useCallback(
     async (newPortfolio: PortfolioItem[]) => {
       if (!agentId || !agent?.agentURI) return;
-
       setIsSavingPortfolio(true);
       setPortfolioSuccess(false);
-
       try {
         const decoded = decodeAgentMetadata(agent.agentURI) || {
           name: agent.name || '',
@@ -165,13 +110,11 @@ export default function AgentSettingsPage(): JSX.Element {
           createdAt: new Date().toISOString(),
           updatedAt: new Date().toISOString(),
         };
-
         const updated: AgentMetadata8004 = {
           ...decoded,
           portfolio: newPortfolio.length > 0 ? newPortfolio : undefined,
           updatedAt: new Date().toISOString(),
         };
-
         const newURI = generateAgentMetadata(updated);
         setAgentURI(agentId, newURI);
         setPortfolio(newPortfolio);
@@ -240,6 +183,7 @@ export default function AgentSettingsPage(): JSX.Element {
       </NextLink>
 
       <div className="max-w-2xl mx-auto space-y-6">
+        {/* Header */}
         <div className="mb-8">
           <div className="flex flex-col sm:flex-row sm:items-center sm:justify-between gap-4">
             <div>
@@ -250,7 +194,6 @@ export default function AgentSettingsPage(): JSX.Element {
               <p className="text-default-500 mt-1">Manage your agent identity</p>
             </div>
 
-            {/* Agent Selector for multi-agent owners */}
             {agents.length > 1 && (
               <div className="relative">
                 <select
@@ -269,15 +212,15 @@ export default function AgentSettingsPage(): JSX.Element {
             )}
           </div>
 
-          {/* Current agent info */}
-          <div className="mt-4 flex items-center gap-3 p-3 bg-content2 rounded-lg">
-            <div className="w-10 h-10 rounded-full bg-gradient-to-br from-[#009F4D] to-[#FFCD00] flex items-center justify-center text-white font-semibold text-sm">
+          {/* Agent Info Card */}
+          <div className="mt-4 flex items-center gap-3 p-4 bg-content2 rounded-lg border border-divider">
+            <div className="w-12 h-12 rounded-full bg-gradient-to-br from-[#009F4D] to-[#FFCD00] flex items-center justify-center text-white font-semibold">
               #{agent?.id}
             </div>
             <div className="flex-1 min-w-0">
-              <p className="font-medium truncate">{agent?.name || `Agent #${agent?.id}`}</p>
+              <p className="font-semibold text-lg truncate">{agent?.name || `Agent #${agent?.id}`}</p>
               {agent?.description && (
-                <p className="text-xs text-default-500 truncate">{agent.description}</p>
+                <p className="text-sm text-default-500 truncate">{agent.description}</p>
               )}
             </div>
             <NextLink
@@ -289,49 +232,37 @@ export default function AgentSettingsPage(): JSX.Element {
           </div>
         </div>
 
-        {/* Update Agent URI */}
+        {/* Quick Stats */}
         <Card className="border border-divider p-6">
           <h2 className="text-lg font-semibold mb-4 flex items-center gap-2">
-            <FileText className="w-5 h-5 text-primary" />
-            Update Agent URI
+            <TrendingUp className="w-5 h-5 text-primary" />
+            Quick Stats
           </h2>
-          <form onSubmit={handleUpdateURI} className="space-y-4">
-            <div>
-              <label className="text-sm font-medium">New Metadata URI</label>
-              <input
-                type="text"
-                placeholder="data:application/json;base64,..."
-                value={newURI}
-                onChange={e => setNewURI(e.target.value)}
-                required
-                className="w-full mt-1 px-3 py-2 bg-content2 border border-divider rounded-lg focus:outline-none focus:ring-2 focus:ring-primary text-sm"
-              />
-              <p className="text-xs text-default-400 mt-1">
-                Enter a data:URI with base64-encoded JSON metadata
-              </p>
+          <div className="grid grid-cols-2 md:grid-cols-4 gap-4">
+            <div className="text-center p-3 bg-content2 rounded-lg">
+              <DollarSign className="w-5 h-5 text-success mx-auto mb-1" />
+              <p className="text-xl font-bold">{jobsCompleted}</p>
+              <p className="text-xs text-default-500">Jobs Completed</p>
             </div>
-            <button
-              type="submit"
-              disabled={isUriPending}
-              className="flex items-center gap-2 px-4 py-2 bg-primary text-white rounded-lg font-medium hover:opacity-90 disabled:opacity-50"
-            >
-              {isUriPending ? (
-                <Loader2 className="w-4 h-4 animate-spin" />
-              ) : (
-                <Save className="w-4 h-4" />
-              )}
-              Update URI
-            </button>
-            {uriSuccess && (
-              <div className="flex items-center gap-2 text-success text-sm">
-                <CheckCircle2 className="w-4 h-4" />
-                URI updated successfully!
-              </div>
-            )}
-          </form>
+            <div className="text-center p-3 bg-content2 rounded-lg">
+              <DollarSign className="w-5 h-5 text-warning mx-auto mb-1" />
+              <p className="text-xl font-bold">$0</p>
+              <p className="text-xs text-default-500">Total Earned</p>
+            </div>
+            <div className="text-center p-3 bg-content2 rounded-lg">
+              <Star className="w-5 h-5 text-warning mx-auto mb-1" />
+              <p className="text-xl font-bold">{rating > 0 ? rating.toFixed(1) : '—'}</p>
+              <p className="text-xs text-default-500">Rating</p>
+            </div>
+            <div className="text-center p-3 bg-content2 rounded-lg">
+              <Calendar className="w-5 h-5 text-primary mx-auto mb-1" />
+              <p className="text-xl font-bold">{feedbackCount}</p>
+              <p className="text-xs text-default-500">Reviews</p>
+            </div>
+          </div>
         </Card>
 
-        {/* Set Metadata */}
+        {/* Set Custom Metadata */}
         <Card className="border border-divider p-6">
           <h2 className="text-lg font-semibold mb-4 flex items-center gap-2">
             <Database className="w-5 h-5 text-primary" />
@@ -383,78 +314,7 @@ export default function AgentSettingsPage(): JSX.Element {
           </form>
         </Card>
 
-        {/* Wallet Management */}
-        <Card className="border border-divider p-6">
-          <h2 className="text-lg font-semibold mb-4 flex items-center gap-2">
-            <Wallet className="w-5 h-5 text-primary" />
-            Agent Wallet
-          </h2>
-
-          {agentWallet && agentWallet !== '0x0000000000000000000000000000000000000000' ? (
-            <div className="space-y-4">
-              <div className="p-3 bg-content2 rounded-lg">
-                <p className="text-sm text-default-500">Current Wallet</p>
-                <p className="font-mono text-sm">{agentWallet}</p>
-              </div>
-              <button
-                onClick={handleUnsetWallet}
-                disabled={isUnsetPending}
-                className="px-4 py-2 border border-danger/30 text-danger rounded-lg hover:bg-danger/5 disabled:opacity-50"
-              >
-                {isUnsetPending ? (
-                  <span className="flex items-center gap-2">
-                    <Loader2 className="w-4 h-4 animate-spin" />
-                    Removing...
-                  </span>
-                ) : (
-                  'Remove Wallet'
-                )}
-              </button>
-              {unsetSuccess && (
-                <div className="flex items-center gap-2 text-success text-sm">
-                  <CheckCircle2 className="w-4 h-4" />
-                  Wallet removed successfully!
-                </div>
-              )}
-            </div>
-          ) : (
-            <form onSubmit={handleSetWallet} className="space-y-4">
-              <p className="text-sm text-default-500">
-                Set a dedicated wallet for this agent. The signature will be auto-generated when you submit.
-              </p>
-              <div>
-                <label className="text-sm font-medium">New Wallet Address</label>
-                <input
-                  type="text"
-                  placeholder="0x..."
-                  value={newWallet}
-                  onChange={e => setNewWallet(e.target.value)}
-                  required
-                  className="w-full mt-1 px-3 py-2 bg-content2 border border-divider rounded-lg focus:outline-none focus:ring-2 focus:ring-primary font-mono text-sm"
-                />
-              </div>
-              <button
-                type="submit"
-                disabled={isWalletPending || isSigning}
-                className="flex items-center gap-2 px-4 py-2 bg-primary text-white rounded-lg font-medium hover:opacity-90 disabled:opacity-50"
-              >
-                {(isWalletPending || isSigning) ? (
-                  <Loader2 className="w-4 h-4 animate-spin" />
-                ) : (
-                  <Save className="w-4 h-4" />
-                )}
-                {isSigning ? 'Generating Signature...' : 'Set Wallet'}
-              </button>
-              {walletSuccess && (
-                <div className="flex items-center gap-2 text-success text-sm">
-                  <CheckCircle2 className="w-4 h-4" />
-                  Wallet set successfully!
-                </div>
-              )}
-            </form>
-          )}
-        </Card>
-
+        {/* Portfolio */}
         <PortfolioForm
           portfolio={portfolio}
           onChange={handlePortfolioChange}
@@ -462,6 +322,7 @@ export default function AgentSettingsPage(): JSX.Element {
           saveSuccess={portfolioSuccess}
         />
 
+        {/* Email Preferences */}
         <EmailPreferencesForm />
       </div>
     </div>

@@ -186,6 +186,49 @@ export function useSetAgentWallet() {
   };
 }
 
+// ============ Agent Stats ============
+
+export interface AgentStats {
+  jobsCompleted: number;
+  totalEarned: number;
+  rating: number;
+  feedbackCount: number;
+  memberSince: Date;
+  isLoading: boolean;
+}
+
+export function useAgentStats(agentId: bigint | undefined): AgentStats {
+  // Simplified stats - would need events indexing for accurate data
+  return {
+    jobsCompleted: 0,
+    totalEarned: 0,
+    rating: 0,
+    feedbackCount: 0,
+    memberSince: new Date(),
+    isLoading: false,
+  };
+}
+
+// ============ Deactivate Agent ============
+
+export function useDeactivateAgent() {
+  const { writeContract, data: hash, isPending, error, reset } = useWriteContract();
+
+  return {
+    deactivateAgent: (agentId: bigint) =>
+      writeContract({
+        address: ERC8004_ADDRESS,
+        abi: ERC8004_ABI,
+        functionName: 'burn',
+        args: [agentId],
+      }),
+    hash,
+    isPending,
+    error,
+    reset,
+  };
+}
+
 export function useUnsetAgentWallet() {
   const { writeContract, data: hash, isPending, error, reset } = useWriteContract();
 

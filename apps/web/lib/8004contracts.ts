@@ -78,6 +78,25 @@ export const ERC8004_ABI = [
     type: 'function',
   },
   {
+    inputs: [{ name: 'agentId', type: 'uint256' }],
+    name: 'getAgent',
+    outputs: [
+      { name: 'owner', type: 'address' },
+      { name: 'agentURI', type: 'string' },
+      { name: 'agentWallet', type: 'address' },
+      { name: 'isActive', type: 'bool' },
+    ],
+    stateMutability: 'view',
+    type: 'function',
+  },
+  {
+    inputs: [{ name: 'tokenId', type: 'uint256' }],
+    name: 'burn',
+    outputs: [],
+    stateMutability: 'nonpayable',
+    type: 'function',
+  },
+  {
     inputs: [
       { name: 'agentId', type: 'uint256' },
       { name: 'newWallet', type: 'address' },
