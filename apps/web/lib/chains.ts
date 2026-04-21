@@ -15,7 +15,10 @@ export interface ChainConfig {
   reputationRegistry: `0x${string}`;
   isDefault?: boolean;
   isTestnet?: boolean;
+  isProduction?: boolean;
 }
+
+export const LAUNCH_CHAIN_IDS = [1, 42220, 100, 42161, 137, 56, 4326, 11155111] as const;
 
 export const SUPPORTED_CHAINS: ChainConfig[] = [
   {
@@ -26,9 +29,94 @@ export const SUPPORTED_CHAINS: ChainConfig[] = [
     color: '#627EEA',
     isDefault: true,
     isTestnet: true,
+    rpcUrl: 'https://ethereum-sepolia.publicnode.com',
     explorerUrl: 'https://sepolia.etherscan.io',
     identityRegistry: '0x8004A818BFB912233c491871b3d84c89A494BD9e',
     reputationRegistry: '0x8004B663056A597Dffe9eCcC1965A193B7388713',
+  },
+  {
+    id: 1,
+    caip: chainIdToCAIP(1),
+    name: 'Ethereum',
+    shortName: 'Ethereum',
+    color: '#627EEA',
+    isProduction: true,
+    rpcUrl: 'https://eth.llamarpc.com',
+    explorerUrl: 'https://etherscan.io',
+    identityRegistry: '0x0000000000000000000000000000000000000001',
+    reputationRegistry: '0x0000000000000000000000000000000000000001',
+  },
+  {
+    id: 42220,
+    caip: chainIdToCAIP(42220),
+    name: 'Celo',
+    shortName: 'Celo',
+    color: '#35D07F',
+    isProduction: true,
+    rpcUrl: 'https://forno.celo.org',
+    explorerUrl: 'https://celoscan.io',
+    identityRegistry: '0x0000000000000000000000000000000000000001',
+    reputationRegistry: '0x0000000000000000000000000000000000000001',
+  },
+  {
+    id: 100,
+    caip: chainIdToCAIP(100),
+    name: 'Gnosis',
+    shortName: 'Gnosis',
+    color: '#04795B',
+    isProduction: true,
+    rpcUrl: 'https://rpc.gnosischain.com',
+    explorerUrl: 'https://gnosisscan.io',
+    identityRegistry: '0x0000000000000000000000000000000000000001',
+    reputationRegistry: '0x0000000000000000000000000000000000000001',
+  },
+  {
+    id: 42161,
+    caip: chainIdToCAIP(42161),
+    name: 'Arbitrum One',
+    shortName: 'Arbitrum',
+    color: '#28AAE2',
+    isProduction: true,
+    rpcUrl: 'https://arb1.arbitrum.io/rpc',
+    explorerUrl: 'https://arbiscan.io',
+    identityRegistry: '0x0000000000000000000000000000000000000001',
+    reputationRegistry: '0x0000000000000000000000000000000000000001',
+  },
+  {
+    id: 137,
+    caip: chainIdToCAIP(137),
+    name: 'Polygon',
+    shortName: 'Polygon',
+    color: '#8247E5',
+    isProduction: true,
+    rpcUrl: 'https://polygon-rpc.com',
+    explorerUrl: 'https://polygonscan.com',
+    identityRegistry: '0x0000000000000000000000000000000000000001',
+    reputationRegistry: '0x0000000000000000000000000000000000000001',
+  },
+  {
+    id: 56,
+    caip: chainIdToCAIP(56),
+    name: 'BNB Smart Chain',
+    shortName: 'BNB',
+    color: '#F3BA2F',
+    isProduction: true,
+    rpcUrl: 'https://bsc-dataseed.binance.org',
+    explorerUrl: 'https://bscscan.com',
+    identityRegistry: '0x0000000000000000000000000000000000000001',
+    reputationRegistry: '0x0000000000000000000000000000000000000001',
+  },
+  {
+    id: 4326,
+    caip: chainIdToCAIP(4326),
+    name: 'MegaETH',
+    shortName: 'MegaETH',
+    color: '#00F4FF',
+    isProduction: true,
+    rpcUrl: 'https://rpc.megaeth.com',
+    explorerUrl: 'https://megaexplorer.org',
+    identityRegistry: '0x0000000000000000000000000000000000000001',
+    reputationRegistry: '0x0000000000000000000000000000000000000001',
   },
   {
     id: 8453,
@@ -41,52 +129,12 @@ export const SUPPORTED_CHAINS: ChainConfig[] = [
     reputationRegistry: '0x8004B663056A597Dffe9eCcC1965A193B7388713',
   },
   {
-    id: 42161,
-    caip: chainIdToCAIP(42161),
-    name: 'Arbitrum One',
-    shortName: 'Arbitrum',
-    color: '#28AAE2',
-    explorerUrl: 'https://arbiscan.io',
-    identityRegistry: '0x8004A818BFB912233c491871b3d84c89A494BD9e',
-    reputationRegistry: '0x8004B663056A597Dffe9eCcC1965A193B7388713',
-  },
-  {
     id: 10,
     caip: chainIdToCAIP(10),
     name: 'Optimism',
     shortName: 'OP',
     color: '#FF0420',
     explorerUrl: 'https://optimistic.etherscan.io',
-    identityRegistry: '0x8004A818BFB912233c491871b3d84c89A494BD9e',
-    reputationRegistry: '0x8004B663056A597Dffe9eCcC1965A193B7388713',
-  },
-  {
-    id: 42220,
-    caip: chainIdToCAIP(42220),
-    name: 'Celo',
-    shortName: 'Celo',
-    color: '#35D07F',
-    explorerUrl: 'https://celoscan.io',
-    identityRegistry: '0x8004A818BFB912233c491871b3d84c89A494BD9e',
-    reputationRegistry: '0x8004B663056A597Dffe9eCcC1965A193B7388713',
-  },
-  {
-    id: 137,
-    caip: chainIdToCAIP(137),
-    name: 'Polygon',
-    shortName: 'Polygon',
-    color: '#8247E5',
-    explorerUrl: 'https://polygonscan.com',
-    identityRegistry: '0x8004A818BFB912233c491871b3d84c89A494BD9e',
-    reputationRegistry: '0x8004B663056A597Dffe9eCcC1965A193B7388713',
-  },
-  {
-    id: 56,
-    caip: chainIdToCAIP(56),
-    name: 'BNB Smart Chain',
-    shortName: 'BNB',
-    color: '#F3BA2F',
-    explorerUrl: 'https://bscscan.com',
     identityRegistry: '0x8004A818BFB912233c491871b3d84c89A494BD9e',
     reputationRegistry: '0x8004B663056A597Dffe9eCcC1965A193B7388713',
   },
@@ -111,32 +159,12 @@ export const SUPPORTED_CHAINS: ChainConfig[] = [
     reputationRegistry: '0x8004B663056A597Dffe9eCcC1965A193B7388713',
   },
   {
-    id: 100,
-    caip: chainIdToCAIP(100),
-    name: 'Gnosis',
-    shortName: 'Gnosis',
-    color: '#04795B',
-    explorerUrl: 'https://gnosisscan.io',
-    identityRegistry: '0x8004A818BFB912233c491871b3d84c89A494BD9e',
-    reputationRegistry: '0x8004B663056A597Dffe9eCcC1965A193B7388713',
-  },
-  {
     id: 143,
     caip: chainIdToCAIP(143),
     name: 'Monad',
     shortName: 'Monad',
     color: '#00D779',
     explorerUrl: 'https://explorer.monad.xyz',
-    identityRegistry: '0x8004A818BFB912233c491871b3d84c89A494BD9e',
-    reputationRegistry: '0x8004B663056A597Dffe9eCcC1965A193B7388713',
-  },
-  {
-    id: 4326,
-    caip: chainIdToCAIP(4326),
-    name: 'MegaETH',
-    shortName: 'MegaETH',
-    color: '#00F4FF',
-    explorerUrl: 'https://megaexplorer.org',
     identityRegistry: '0x8004A818BFB912233c491871b3d84c89A494BD9e',
     reputationRegistry: '0x8004B663056A597Dffe9eCcC1965A193B7388713',
   },
@@ -232,12 +260,16 @@ export const SUPPORTED_CHAINS: ChainConfig[] = [
   },
 ];
 
+export const PRODUCTION_CHAINS = SUPPORTED_CHAINS.filter(
+  (chain) => chain.isProduction || chain.isTestnet
+);
+
 export function getChainById(chainId: number): ChainConfig | undefined {
-  return SUPPORTED_CHAINS.find(c => c.id === chainId);
+  return SUPPORTED_CHAINS.find((c) => c.id === chainId);
 }
 
 export function getChainByCAIP(caip: string): ChainConfig | undefined {
-  return SUPPORTED_CHAINS.find(c => c.caip === caip);
+  return SUPPORTED_CHAINS.find((c) => c.caip === caip);
 }
 
 export function getChainColor(chainId: number): string {
@@ -245,7 +277,7 @@ export function getChainColor(chainId: number): string {
 }
 
 export function getDefaultChain(): ChainConfig {
-  return SUPPORTED_CHAINS.find(c => c.isDefault) || SUPPORTED_CHAINS[0];
+  return SUPPORTED_CHAINS.find((c) => c.isDefault) || SUPPORTED_CHAINS[0];
 }
 
 export function isTestnet(chainId: number): boolean {

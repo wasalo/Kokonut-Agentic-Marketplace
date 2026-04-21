@@ -11,7 +11,7 @@ import {
   ExternalLink,
 } from 'lucide-react';
 import { Card, Button } from '@heroui/react';
-import { SUPPORTED_CHAINS, ChainConfig } from '@/lib/chains';
+import { SUPPORTED_CHAINS, PRODUCTION_CHAINS, ChainConfig } from '@/lib/chains';
 import { useNetworkStats } from '@/lib/hooks/useNetworkStats';
 
 interface NetworkCardProps {
@@ -127,9 +127,9 @@ export default function NetworksPage() {
   const { stats, isLoading, refetch } = useNetworkStats();
 
   const filteredChains = useMemo(() => {
-    if (!searchQuery) return SUPPORTED_CHAINS;
+    if (!searchQuery) return PRODUCTION_CHAINS;
     const query = searchQuery.toLowerCase();
-    return SUPPORTED_CHAINS.filter(
+    return PRODUCTION_CHAINS.filter(
       chain =>
         chain.name.toLowerCase().includes(query) ||
         chain.shortName.toLowerCase().includes(query) ||
@@ -165,9 +165,12 @@ export default function NetworksPage() {
         <Card className="border border-divider p-6 flex-1">
           <div className="flex items-center gap-3 mb-2">
             <Globe className="w-5 h-5 text-primary" />
-            <span className="text-sm text-default-500">Total Networks</span>
+            <span className="text-sm text-default-500">Networks</span>
           </div>
-          <p className="text-3xl font-bold">{SUPPORTED_CHAINS.length}</p>
+          <p className="text-3xl font-bold">{PRODUCTION_CHAINS.length}</p>
+          <p className="text-xs text-default-400 mt-1">
+            {PRODUCTION_CHAINS.filter(c => c.isProduction).length} production, {PRODUCTION_CHAINS.filter(c => c.isTestnet).length} testnet
+          </p>
         </Card>
         <Card className="border border-divider p-6 flex-1">
           <div className="flex items-center gap-3 mb-2">
@@ -198,7 +201,7 @@ export default function NetworksPage() {
             />
           </div>
           <span className="text-sm text-default-400">
-            {filteredChains.length} of {SUPPORTED_CHAINS.length} networks
+            {filteredChains.length} networks
           </span>
         </div>
       </Card>

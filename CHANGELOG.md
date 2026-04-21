@@ -5,6 +5,35 @@ All notable changes to the Kokonut Agent Economy Stack are documented in this fi
 The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.0.0/),
 and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0.html).
 
+## [2026-04-21] - Phase 28: Networks Launch Preparation
+
+### 🚀 Launch Networks Configuration
+
+Filtered /networks page to display only the chains planned for mainnet launch:
+
+**Launch Chains (8 total):**
+- 7 Production: Ethereum Mainnet, Celo, Gnosis, Arbitrum One, Polygon, BNB Smart Chain, MegaETH
+- 1 Testnet: Sepolia
+
+**Changes:**
+
+| File | Changes |
+|------|--------|
+| `lib/chains.ts` | Added `isProduction` flag, `LAUNCH_CHAIN_IDS`, `PRODUCTION_CHAINS` export, public RPC URLs |
+| `app/networks/page.tsx` | Now displays `PRODUCTION_CHAINS` instead of all 21 chains |
+
+**RPC URLs configured:**
+- Ethereum: `https://eth.llamarpc.com`
+- Celo: `https://forno.celo.org`
+- Gnosis: `https://rpc.gnosischain.com`
+- Arbitrum: `https://arb1.arbitrum.io/rpc`
+- Polygon: `https://polygon-rpc.com`
+- BNB: `https://bsc-dataseed.binance.org`
+- MegaETH: `https://rpc.megaeth.com`
+- Sepolia: `https://ethereum-sepolia.publicnode.com`
+
+---
+
 ## [2026-04-21] - Phase 28: Bad Actors Red Team Protection
 
 ### 🛡️ Blacklist System
