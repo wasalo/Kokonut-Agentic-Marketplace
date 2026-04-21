@@ -150,6 +150,7 @@ NEXT_PUBLIC_SERVICE_REGISTRY_ADDRESS=0x62E1eeEa1A2Ab987004F35bDA430457Ed6077201
 NEXT_PUBLIC_AGENT_REVIEW_ADDRESS=0x5CDb592Fd37749bF87448FBf5725D1Cd986dd1Cb
 NEXT_PUBLIC_AGENTIC_COMMERCE_ADDRESS=0x948d97EA7F0c49796fB576ADff375C900627568E
 NEXT_PUBLIC_BIDDING_SYSTEM_ADDRESS=0x32c9d069a248a619d3EAc4dFC76F2639AaBeF04
+NEXT_PUBLIC_ADMIN_REGISTRY_ADDRESS=0x8A8E3C9ffB8F25236c8152c8ac634336463f3Ab0
 
 # ERC-8004 Official Registry (Sepolia)
 NEXT_PUBLIC_8004_REGISTRY_ADDRESS=0x8004A818BFB912233c491871b3d84c89A494BD9e
@@ -187,6 +188,7 @@ The wildcard format (e.g., `10.108.1.*`) allows any IP in that subnet. Add expli
 
 | Contract                 | Address                                      | Purpose                    |
 | ------------------------ | -------------------------------------------- | -------------------------- |
+| **AdminRegistry**        | `0x8A8E3C9ffB8F25236c8152c8ac634336463f3Ab0` | Blacklist, featured agents (Phase 28) |
 | **MilestoneEscrow**      | `0xf24eDD2d8e99c80d40e959b1F37636b6C04FF9A9` | Milestone payments (UUPS)  |
 | **MilestoneEscrow Impl** | `0x891498858f6f88dcf91f5ea5afb6434956a43400` | Phase 26: Pausable added |
 | **AgentSkillRegistryV2** | `0xA84684261558f342d6871DD2CFef90A2117Aa20A` | Skills/capabilities (UUPS) |

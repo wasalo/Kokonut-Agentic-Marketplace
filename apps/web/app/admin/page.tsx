@@ -1,12 +1,14 @@
 'use client';
 
-import { useState } from 'react';
+import { useState, useEffect } from 'react';
 import { useAccount, useReadContract } from 'wagmi';
-import { Settings, AlertCircle, ShieldAlert, Wallet } from 'lucide-react';
-import { Card, Input } from '@heroui/react';
+import { Settings, AlertCircle, ShieldAlert, Wallet, XCircle, Loader } from 'lucide-react';
+import { Card, Input, Button } from '@heroui/react';
 import { CONTRACTS } from '@/lib/wagmi';
 import { AGENTIC_COMMERCE_ABI, ADMIN_REGISTRY_BLACKLIST_ABI } from '@/lib/contracts/abis';
 import { getContractAddress } from '@/lib/contracts/config';
+import { useAdminBlacklist } from '@/lib/hooks/useAdminBlacklist';
+import { toast } from 'sonner';
 
 const AGENTIC_COMMERCE_ADDRESS = CONTRACTS[11155111].agenticCommerce as `0x${string}`;
 const ADMIN_REGISTRY_ADDRESS = getContractAddress('ADMIN_REGISTRY');
@@ -166,12 +168,52 @@ function ContractInfo() {
 function AgentBlacklist() {
   const [agentId, setAgentId] = useState('');
   const [reason, setReason] = useState('');
+  const [isSubmitting, setIsSubmitting] = useState(false);
 
-  const { data: agentCount } = useReadContract({
-    address: ADMIN_REGISTRY_ADDRESS,
-    abi: ADMIN_REGISTRY_BLACKLIST_ABI,
-    functionName: 'getBlacklistedAgentCount',
-  } as any);
+  const { 
+    agentCount, 
+    blacklistAgent, 
+    unblacklistAgent, 
+    isBlacklistingAgent, 
+    isUnblacklistingAgent,
+    refetchAgentCount 
+  } = useAdminBlacklist();
+
+  const canBlacklist = agentId && reason && !isSubmitting;
+  const canUnblacklist = agentId && !isSubmitting;
+
+  const handleBlacklist = async () => {
+    if (!canBlacklist) return;
+    setIsSubmitting(true);
+    try {
+      await blacklistAgent(BigInt(agentId), reason);
+      toast.success(`Agent ${agentId} blacklisted`);
+      setAgentId('');
+      setReason('');
+      refetchAgentCount();
+    } catch {
+      toast.error('Failed to blacklist agent');
+    } finally {
+      setIsSubmitting(false);
+    }
+  };
+
+  const handleUnblacklist = async () => {
+    if (!canUnblacklist) return;
+    setIsSubmitting(true);
+    try {
+      await unblacklistAgent(BigInt(agentId));
+      toast.success(`Agent ${agentId} removed from blacklist`);
+      setAgentId('');
+      refetchAgentCount();
+    } catch {
+      toast.error('Failed to unblacklist agent');
+    } finally {
+      setIsSubmitting(false);
+    }
+  };
+
+  const isLoading = isBlacklistingAgent || isUnblacklistingAgent;
 
   return (
     <div className="space-y-6 max-w-3xl">
@@ -186,35 +228,52 @@ function AgentBlacklist() {
           Blacklist has a 1-hour grace period before activation.
         </p>
 
-        <div className="flex flex-col md:flex-row gap-4 mb-6">
-          <Input
-            type="number"
-            placeholder="Agent ID"
-            value={agentId}
-            onChange={(e) => setAgentId(e.target.value)}
-            className="md:w-40"
-          />
-          <Input
-            placeholder="Reason for blacklist"
-            value={reason}
-            onChange={(e) => setReason(e.target.value)}
-            className="flex-1"
-          />
+        <div className="space-y-4 mb-6">
+          <div className="flex flex-col md:flex-row gap-4">
+            <Input
+              type="number"
+              placeholder="Agent ID"
+              value={agentId}
+              onChange={(e) => setAgentId(e.target.value)}
+              className="md:w-40"
+              disabled={isLoading}
+            />
+            <Input
+              placeholder="Reason for blacklist"
+              value={reason}
+              onChange={(e) => setReason(e.target.value)}
+              className="flex-1"
+              disabled={isLoading}
+            />
+          </div>
+          
+          <div className="flex gap-2">
+            <button
+              onClick={handleBlacklist}
+              disabled={!canBlacklist || isLoading}
+              className="px-4 py-2 bg-danger text-white rounded-lg font-medium hover:bg-danger/80 disabled:opacity-50 flex items-center gap-2"
+            >
+              {isBlacklistingAgent && <Loader className="w-4 h-4 animate-spin" />}
+              <ShieldAlert className="w-4 h-4" />
+              Blacklist Agent
+            </button>
+            <button
+              onClick={handleUnblacklist}
+              disabled={!canUnblacklist || isLoading}
+              className="px-4 py-2 border border-success text-success rounded-lg font-medium hover:bg-success/10 disabled:opacity-50 flex items-center gap-2"
+            >
+              <XCircle className="w-4 h-4" />
+              Remove from Blacklist
+            </button>
+          </div>
         </div>
 
-        <div className="p-3 bg-content2 rounded-lg mb-4">
+        <div className="p-3 bg-content2 rounded-lg">
           <p className="text-sm">
             <span className="text-default-400">Total Blacklisted:</span>{' '}
-            <span className="font-semibold">{agentCount?.toString() || '0'}</span>
+            <span className="font-semibold">{agentCount}</span>
           </p>
         </div>
-
-        <Card className="border border-warning/30 bg-warning/5 p-4">
-          <p className="text-sm text-warning">
-            Write functions (blacklistAgent, unblacklistAgent) are available for direct contract interaction on Etherscan.
-            This UI displays blacklist stats only.
-          </p>
-        </Card>
       </Card>
     </div>
   );
@@ -223,12 +282,53 @@ function AgentBlacklist() {
 function WalletBlacklist() {
   const [wallet, setWallet] = useState('');
   const [reason, setReason] = useState('');
+  const [isSubmitting, setIsSubmitting] = useState(false);
 
-  const { data: walletCount } = useReadContract({
-    address: ADMIN_REGISTRY_ADDRESS,
-    abi: ADMIN_REGISTRY_BLACKLIST_ABI,
-    functionName: 'getBlacklistedWalletCount',
-  } as any);
+  const { 
+    walletCount, 
+    blacklistWallet, 
+    unblacklistWallet, 
+    isBlacklistingWallet, 
+    isUnblacklistingWallet,
+    refetchWalletCount 
+  } = useAdminBlacklist();
+
+  const isValidAddress = wallet && wallet.startsWith('0x') && wallet.length === 42;
+  const canBlacklist = isValidAddress && reason && !isSubmitting;
+  const canUnblacklist = isValidAddress && !isSubmitting;
+
+  const handleBlacklist = async () => {
+    if (!canBlacklist) return;
+    setIsSubmitting(true);
+    try {
+      await blacklistWallet(wallet as `0x${string}`, reason);
+      toast.success(`Wallet ${wallet.slice(0, 10)}... blacklisted`);
+      setWallet('');
+      setReason('');
+      refetchWalletCount();
+    } catch {
+      toast.error('Failed to blacklist wallet');
+    } finally {
+      setIsSubmitting(false);
+    }
+  };
+
+  const handleUnblacklist = async () => {
+    if (!canUnblacklist) return;
+    setIsSubmitting(true);
+    try {
+      await unblacklistWallet(wallet as `0x${string}`);
+      toast.success(`Wallet ${wallet.slice(0, 10)}... removed from blacklist`);
+      setWallet('');
+      refetchWalletCount();
+    } catch {
+      toast.error('Failed to unblacklist wallet');
+    } finally {
+      setIsSubmitting(false);
+    }
+  };
+
+  const isLoading = isBlacklistingWallet || isUnblacklistingWallet;
 
   return (
     <div className="space-y-6 max-w-3xl">
@@ -243,34 +343,51 @@ function WalletBlacklist() {
           Blacklist has a 1-hour grace period before activation.
         </p>
 
-        <div className="flex flex-col md:flex-row gap-4 mb-6">
-          <Input
-            placeholder="Wallet address (0x...)"
-            value={wallet}
-            onChange={(e) => setWallet(e.target.value)}
-            className="flex-1 md:w-80"
-          />
-          <Input
-            placeholder="Reason for blacklist"
-            value={reason}
-            onChange={(e) => setReason(e.target.value)}
-            className="flex-1"
-          />
+        <div className="space-y-4 mb-6">
+          <div className="flex flex-col md:flex-row gap-4">
+            <Input
+              placeholder="Wallet address (0x...)"
+              value={wallet}
+              onChange={(e) => setWallet(e.target.value)}
+              className="flex-1 md:w-80"
+              disabled={isLoading}
+            />
+            <Input
+              placeholder="Reason for blacklist"
+              value={reason}
+              onChange={(e) => setReason(e.target.value)}
+              className="flex-1"
+              disabled={isLoading}
+            />
+          </div>
+          
+          <div className="flex gap-2">
+            <button
+              onClick={handleBlacklist}
+              disabled={!canBlacklist || isLoading}
+              className="px-4 py-2 bg-danger text-white rounded-lg font-medium hover:bg-danger/80 disabled:opacity-50 flex items-center gap-2"
+            >
+              {isBlacklistingWallet && <Loader className="w-4 h-4 animate-spin" />}
+              <ShieldAlert className="w-4 h-4" />
+              Blacklist Wallet
+            </button>
+            <button
+              onClick={handleUnblacklist}
+              disabled={!canUnblacklist || isLoading}
+              className="px-4 py-2 border border-success text-success rounded-lg font-medium hover:bg-success/10 disabled:opacity-50 flex items-center gap-2"
+            >
+              <XCircle className="w-4 h-4" />
+              Remove from Blacklist
+            </button>
+          </div>
         </div>
 
         <div className="p-3 bg-content2 rounded-lg">
           <p className="text-sm">
             <span className="text-default-400">Total Blacklisted:</span>{' '}
-            <span className="font-semibold">{walletCount?.toString() || '0'}</span>
+            <span className="font-semibold">{walletCount}</span>
           </p>
         </div>
-
-        <Card className="border border-warning/30 bg-warning/5 p-4 mt-4">
-          <p className="text-sm text-warning">
-            Write functions (blacklistWallet, unblacklistWallet) are available for direct contract interaction on Etherscan.
-            This UI displays blacklist stats only.
-          </p>
-        </Card>
       </Card>
     </div>
   );

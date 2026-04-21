@@ -17,7 +17,7 @@ const sepoliaContracts = {
   // Official ERC-8004 Registries
   erc8004Registry: '0x8004A818BFB912233c491871b3d84c89A494BD9e',
   erc8004Reputation: '0x8004B663056A597Dffe9eCcC1965A193B7388713',
-  adminRegistry: '0x1B8373cDF4f2eD740c3478e0129f0B8494CE4Fa3',
+  adminRegistry: '0x8A8E3C9ffB8F25236c8152c8ac634336463f3Ab0',
 
   // SkillRegistry V2 - Uses ownerOf() instead of getAgent()
   skillRegistry: '0xA84684261558f342d6871DD2CFef90A2117Aa20A',
