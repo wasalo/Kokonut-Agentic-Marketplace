@@ -5,6 +5,49 @@ All notable changes to the Kokonut Agent Economy Stack are documented in this fi
 The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.0.0/),
 and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0.html).
 
+## [2026-04-21] - Phase 28: Bad Actors Red Team Protection
+
+### 🛡️ Blacklist System
+
+**New contract features:**
+
+| Feature | Description |
+|---------|-------------|
+| **Agent Blacklist** | Blacklist agents by ID (uint256) |
+| **Wallet Blacklist** | Blacklist wallet addresses directly |
+| **1-Hour Grace Period** | Blacklisted entities have 1 hour before enforcement |
+| **Manual Blacklisting** | Owner can manually blacklist malicious agents/wallets |
+| **Automatic Blacklisting** | SlashManager-slashed agents auto-added to blacklist |
+| **Enforcement** | ServiceRegistryV2, AgenticCommerceV7, BiddingSystem all check blacklist |
+
+**New AdminRegistry functions:**
+
+- `blacklistAgent(uint256 agentId, string reason)` - Blacklist an agent by ID
+- `unblacklistAgent(uint256 agentId)` - Remove agent from blacklist
+- `blacklistWallet(address wallet, string reason)` - Blacklist a wallet address
+- `unblacklistWallet(address wallet)` - Remove wallet from blacklist
+- `isAgentBlacklistedActive(uint256 agentId)` - Check if agent is blacklisted with grace period expired
+- `isWalletBlacklistedActive(address wallet)` - Check if wallet is blacklisted with grace period expired
+
+**Contract deployments:**
+
+- **AdminRegistry**: `0x8a8E3C9FFB8f25236C8152C8ac634336463F3Ab0` (new, upgraded)
+
+**Contract integrations:**
+
+| Contract | adminRegistry Set | Blacklist Active |
+|----------|-------------------|------------------|
+| ServiceRegistryV2 (0x62E1...) | ✅ | ✅ |
+| AgenticCommerceV7 (0x948d...) | ✅ | ✅ |
+| BiddingSystem (0x32c9...) | ✅ | ✅ |
+
+**Frontend:**
+
+- Added `useAdminBlacklist` hook
+- Admin dashboard at `/admin` now includes Blacklist Management UI (Agent Blacklist, Wallet Blacklist tabs)
+
+---
+
 ## [2026-04-20] - Phase 27: Client Review Flow & LLM Evaluation
 
 ### 🎯 Client Review Workflow (V7 Contract Upgrade)

@@ -6,6 +6,7 @@ import "@openzeppelin/contracts-upgradeable/proxy/utils/UUPSUpgradeable.sol";
 import "@openzeppelin/contracts-upgradeable/utils/PausableUpgradeable.sol";
 import {ERC1967Utils} from "@openzeppelin/contracts/proxy/ERC1967/ERC1967Utils.sol";
 import {IIdentityRegistry} from "../interfaces/IIdentityRegistry.sol";
+import {AdminRegistry} from "./AdminRegistry.sol";
 
 /**
  * @title IServiceRegistryV2
@@ -121,6 +122,7 @@ contract ServiceRegistryV2 is
     // Contract addresses that can be updated
     address public agenticCommerce;
     address public slashManager;
+    address public adminRegistry;
     
     // M3 Fix: Service listing bond (in native token/ETH)
     uint256 public constant SERVICE_BOND_AMOUNT = 0.01 ether;
@@ -196,6 +198,13 @@ contract ServiceRegistryV2 is
         require(price > 0, "Price must be greater than 0");
         require(paymentToken != address(0), "Invalid payment token");
         require(msg.value >= SERVICE_BOND_AMOUNT, "Bond required"); // M3 Fix
+
+        // Bad Actor: Check if agent or wallet is blacklisted
+        if (adminRegistry != address(0)) {
+            AdminRegistry registry = AdminRegistry(adminRegistry);
+            require(!registry.isAgentBlacklistedActive(agentId), "Agent blacklisted");
+            require(!registry.isWalletBlacklistedActive(msg.sender), "Wallet blacklisted");
+        }
 
         address agentOwner = _verifyAgentOwnership(agentId);
         require(agentOwner == msg.sender, "Not agent owner");
@@ -422,6 +431,12 @@ contract ServiceRegistryV2 is
         require(_slashManager != address(0), "Invalid address");
         slashManager = _slashManager;
         emit DependencyUpdated("slashManager", _slashManager);
+    }
+
+    function setAdminRegistry(address _adminRegistry) external onlyOwner {
+        require(_adminRegistry != address(0), "Invalid address");
+        adminRegistry = _adminRegistry;
+        emit DependencyUpdated("adminRegistry", _adminRegistry);
     }
     
     /**

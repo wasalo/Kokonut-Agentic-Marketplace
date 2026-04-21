@@ -10,6 +10,7 @@ import "@openzeppelin/contracts/token/ERC20/utils/SafeERC20.sol";
 import "@openzeppelin/contracts/utils/ReentrancyGuard.sol";
 import {IACPHook} from "./IACPHook.sol";
 import {IAgenticCommerceV7} from "../interfaces/IAgenticCommerceV7.sol";
+import {AdminRegistry} from "./AdminRegistry.sol";
 
 /**
  * @title AgenticCommerceV7
@@ -79,6 +80,7 @@ contract AgenticCommerceV7 is
     /***********************************/
     
     address public platformTreasury;
+    address public adminRegistry;
 
     mapping(uint256 => Job) public jobs;
     uint256 public jobCounter;
@@ -247,6 +249,16 @@ contract AgenticCommerceV7 is
         bool clientReview_
     ) external nonReentrant whenNotPaused returns (uint256 jobId) {
         _validateJobCreation(provider, evaluator, expiredAt, description, hook);
+        
+        // Bad Actor: Check if wallets are blacklisted
+        if (adminRegistry != address(0)) {
+            AdminRegistry registry = AdminRegistry(adminRegistry);
+            require(!registry.isWalletBlacklistedActive(_msgSender()), "Client wallet blacklisted");
+            require(!registry.isWalletBlacklistedActive(provider), "Provider wallet blacklisted");
+            if (evaluator != address(0)) {
+                require(!registry.isWalletBlacklistedActive(evaluator), "Evaluator wallet blacklisted");
+            }
+        }
         
         if (clientJobCount[_msgSender()] >= MAX_JOBS_PER_CLIENT) {
             emit JobLimitExceeded(_msgSender(), clientJobCount[_msgSender()] + 1, MAX_JOBS_PER_CLIENT);
@@ -744,6 +756,11 @@ contract AgenticCommerceV7 is
     function setPlatformTreasury(address treasury) external onlyOwner {
         if (treasury == address(0)) revert ZeroAddress();
         platformTreasury = treasury;
+    }
+
+    function setAdminRegistry(address _adminRegistry) external onlyOwner {
+        if (_adminRegistry == address(0)) revert ZeroAddress();
+        adminRegistry = _adminRegistry;
     }
     
     // M5 Fix: Register as evaluator

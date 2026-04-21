@@ -9,6 +9,7 @@ import "@openzeppelin/contracts/utils/ReentrancyGuard.sol";
 import "@openzeppelin/contracts/token/ERC20/IERC20.sol";
 import {IAgenticCommerceV6} from "../interfaces/IAgenticCommerceV6.sol";
 import {IBiddingSystem} from "../interfaces/IBiddingSystem.sol";
+import {AdminRegistry} from "./AdminRegistry.sol";
 
 /**
  * @title BiddingSystem
@@ -67,6 +68,7 @@ contract BiddingSystem is
     // Integration addresses
     address public commerce;           // AgenticCommerceV6.1
     address public treasury;          // Platform treasury
+    address public adminRegistry;     // Bad actor blacklist
     
     // Configuration
     uint256 public revealWindow = DEFAULT_REVEAL_WINDOW;
@@ -168,6 +170,13 @@ contract BiddingSystem is
             msg.value >= calculateStake(maxBudget),
             "Insufficient stake for session"
         );
+
+        // Bad Actor: Check if wallets are blacklisted
+        if (adminRegistry != address(0)) {
+            AdminRegistry registry = AdminRegistry(adminRegistry);
+            require(!registry.isWalletBlacklistedActive(msg.sender), "Wallet blacklisted");
+            require(!registry.isWalletBlacklistedActive(evaluator), "Evaluator blacklisted");
+        }
         
         sessionId = ++sessionCounter;
         
@@ -594,6 +603,11 @@ function acceptBid(uint256 sessionId, uint256 bidId)
     function setTreasury(address treasury_) external onlyOwner {
         require(treasury_ != address(0), "Zero treasury");
         treasury = treasury_;
+    }
+
+    function setAdminRegistry(address _adminRegistry) external onlyOwner {
+        require(_adminRegistry != address(0), "Zero address");
+        adminRegistry = _adminRegistry;
     }
     
     function setRevealWindow(uint256 window_) external onlyOwner {

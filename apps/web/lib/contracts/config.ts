@@ -146,16 +146,16 @@ export const CONTRACT_ADDRESSES = {
     // Official ERC-8004 Registries
     erc8004Registry: '0x8004A818BFB912233c491871b3d84c89A494BD9e',
     erc8004Reputation: '0x8004B663056A597Dffe9eCcC1965A193B7388713',
-    adminRegistry: '0x37c86fE0f3b83B3a1B9A8059215f6c9bB73B165a', // Phase 26: Pausable + paymentAddress
+    adminRegistry: '0x8a8E3C9FFB8f25236C8152C8ac634336463F3Ab0', // Phase 27: Blacklist + Red Team
 
     // SkillRegistry V2 - Uses ownerOf() instead of getAgent()
     skillRegistry: '0xA84684261558f342d6871DD2CFef90A2117Aa20A',
     skillRegistryImpl: '0x3Eec6BAF9FAc410B9C580d3Eb8c971a14298BC87',
     serviceRegistry: '0x62E1eeEa1A2Ab987004F35bDA430457Ed6077201',
-    serviceRegistryImpl: '0x218340e07bEd7fD15058414388F2C82E0f3B04f9',
+    serviceRegistryImpl: '0x04b07b8f57fb79971b1e9c96ee69e1d988a3cc21', // Phase 27: Blacklist enforcement
     // Phase 18: V6 - Event Enhancements, Permissionless Refund, CompleteAfterTimeout
-    agenticCommerce: '0x948d97EA7F0c49796fB576ADff375C900627568E', // AgenticCommerceV6 (UUPS Proxy) - upgraded with fund(expectedBudget)
-    agenticCommerceImpl: '0xB8d0a16843d76622710b940eE67490525f57F083', // Phase 23: Front-running Protection
+    agenticCommerce: '0x948d97EA7F0c49796fB576ADff375C900627568E', // AgenticCommerceV7 - upgraded with blacklist
+    agenticCommerceImpl: '0x1c2a087999AF7303f7aEB577ef3B2A224270c050', // Phase 27: Blacklist enforcement
     // Phase 11: BiddingSystem - Standalone commit-reveal bidding
     biddingSystem: '0x32c9d069a248a619d3EAc4D1FC76F2639AaBeF04',
     biddingSystemImpl: '0x0A09e4Ff6DAa0eeA49526560e2c946Ea32a293Bb',

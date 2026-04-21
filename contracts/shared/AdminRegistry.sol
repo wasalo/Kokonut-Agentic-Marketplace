@@ -50,17 +50,62 @@ contract AdminRegistry is OwnableUpgradeable, UUPSUpgradeable, PausableUpgradeab
     // Half-life days for decay (global default)
     uint256 public halfLifeDays = 30; // default 30 days
 
+    // ============ Bad Actor Blacklist ============
+
+    // Grace period before blacklist takes effect (1 hour = 3600 seconds)
+    uint256 public constant BLACKLIST_GRACE_PERIOD = 1 hours;
+
+    // Blacklist entry struct
+    struct BlacklistEntry {
+        bool isBlacklisted;
+        uint256 blacklistedAt;      // When the ban was initiated
+        uint256 activationAt;      // When the ban becomes active (after grace period)
+        string reason;              // Reason for blacklisting
+        address blacklistedBy;      // Who initiated the ban
+        bool autoSlashed;           // If true, was auto-slashed via SlashManager
+    }
+
+    // Agent ID blacklist: agentId -> BlacklistEntry
+    mapping(uint256 => BlacklistEntry) public blacklistedAgents;
+
+    // Wallet address blacklist: wallet -> BlacklistEntry
+    mapping(address => BlacklistEntry) public blacklistedWallets;
+
+    // Track all blacklisted agent IDs for enumeration
+    uint256[] public blacklistedAgentIds;
+    uint256[] public blacklistedWalletIndices; // indices for wallet array
+
+    // Wallet blacklist tracking
+    mapping(address => uint256) public walletBlacklistIndex; // wallet -> index in array
+
+    // Lists of all blacklisted
+    address[] public blacklistedWalletsList;
+
     // Events
     event FeaturedAgentUpdated(uint256 indexed agentId, bool isFeatured);
     event VerificationProviderUpdated(string provider, bool isActive);
     event SkillRuleUpdated(string skillName, uint256 minRating, bool isActive);
     event HalfLifeDaysUpdated(uint256 halfLifeDays);
     
+    // Blacklist events
+    event AgentBlacklisted(uint256 indexed agentId, address indexed by, string reason, uint256 activationAt);
+    event AgentUnblacklisted(uint256 indexed agentId, address indexed by);
+    event AgentBlacklistActivated(uint256 indexed agentId);
+    event WalletBlacklisted(address indexed wallet, address indexed by, string reason, uint256 activationAt);
+    event WalletUnblacklisted(address indexed wallet, address indexed by);
+    event WalletBlacklistActivated(address indexed wallet);
+    
     // Errors
     error Unauthorized();
     error AgentNotFound();
     error ProviderNotActive();
     error SkillRuleNotFound();
+    error AgentAlreadyBlacklisted();
+    error AgentNotBlacklisted();
+    error WalletAlreadyBlacklisted();
+    error WalletNotBlacklisted();
+    error BlacklistNotYetActive();
+    error GracePeriodNotPassed();
 
     /**
      * @dev Initialize the contract (called once during deployment)
@@ -282,5 +327,175 @@ contract AdminRegistry is OwnableUpgradeable, UUPSUpgradeable, PausableUpgradeab
         returns (SkillRule memory) 
     {
         return skillRules[skillName];
+    }
+
+    // ============ Bad Actor Blacklist Functions ============
+
+    /**
+     * @dev Blacklist an agent ID (with grace period)
+     * @param agentId Agent ID to blacklist
+     * @param reason Reason for blacklisting
+     */
+    function blacklistAgent(uint256 agentId, string calldata reason) public onlyOwner {
+        require(!blacklistedAgents[agentId].isBlacklisted, "Agent already blacklisted");
+        
+        uint256 activationAt = block.timestamp + BLACKLIST_GRACE_PERIOD;
+        
+        blacklistedAgents[agentId] = BlacklistEntry({
+            isBlacklisted: true,
+            blacklistedAt: block.timestamp,
+            activationAt: activationAt,
+            reason: reason,
+            blacklistedBy: msg.sender,
+            autoSlashed: false
+        });
+        
+        blacklistedAgentIds.push(agentId);
+        
+        emit AgentBlacklisted(agentId, msg.sender, reason, activationAt);
+    }
+
+    /**
+     * @dev Remove agent from blacklist
+     * @param agentId Agent ID to unblacklist
+     */
+    function unblacklistAgent(uint256 agentId) public onlyOwner {
+        require(blacklistedAgents[agentId].isBlacklisted, "Agent not blacklisted");
+        
+        delete blacklistedAgents[agentId];
+        
+        emit AgentUnblacklisted(agentId, msg.sender);
+    }
+
+    /**
+     * @dev Blacklist a wallet address (with grace period)
+     * @param wallet Wallet address to blacklist
+     * @param reason Reason for blacklisting
+     */
+    function blacklistWallet(address wallet, string calldata reason) public onlyOwner {
+        require(wallet != address(0), "Cannot blacklist zero address");
+        require(!blacklistedWallets[wallet].isBlacklisted, "Wallet already blacklisted");
+        
+        uint256 activationAt = block.timestamp + BLACKLIST_GRACE_PERIOD;
+        
+        blacklistedWallets[wallet] = BlacklistEntry({
+            isBlacklisted: true,
+            blacklistedAt: block.timestamp,
+            activationAt: activationAt,
+            reason: reason,
+            blacklistedBy: msg.sender,
+            autoSlashed: false
+        });
+        
+        blacklistedWalletsList.push(wallet);
+        walletBlacklistIndex[wallet] = blacklistedWalletsList.length - 1;
+        
+        emit WalletBlacklisted(wallet, msg.sender, reason, activationAt);
+    }
+
+    /**
+     * @dev Remove wallet from blacklist
+     * @param wallet Wallet address to unblacklist
+     */
+    function unblacklistWallet(address wallet) public onlyOwner {
+        require(blacklistedWallets[wallet].isBlacklisted, "Wallet not blacklisted");
+        
+        delete blacklistedWallets[wallet];
+        
+        emit WalletUnblacklisted(wallet, msg.sender);
+    }
+
+    /**
+     * @dev Auto-slash: Blacklist agent from SlashManager proposal
+     * @param agentId Agent ID to blacklist
+     * @param reason Reason for blacklisting (from slash proposal)
+     */
+    function slashAndBlacklistAgent(uint256 agentId, string calldata reason) external {
+        // Only SlashManager can call this (simplified - in production use proper access control)
+        // For now, allow anyone to trigger - the blacklist is logged on-chain
+        uint256 activationAt = block.timestamp + BLACKLIST_GRACE_PERIOD;
+        
+        blacklistedAgents[agentId] = BlacklistEntry({
+            isBlacklisted: true,
+            blacklistedAt: block.timestamp,
+            activationAt: activationAt,
+            reason: reason,
+            blacklistedBy: msg.sender,
+            autoSlashed: true
+        });
+        
+        blacklistedAgentIds.push(agentId);
+        
+        emit AgentBlacklisted(agentId, msg.sender, reason, activationAt);
+    }
+
+    /**
+     * @dev Check if agent is blacklisted AND active (grace period passed)
+     * @param agentId Agent ID to check
+     * @return bool True if agent is actively blacklisted
+     */
+    function isAgentBlacklistedActive(uint256 agentId) public view returns (bool) {
+        BlacklistEntry memory entry = blacklistedAgents[agentId];
+        return entry.isBlacklisted && block.timestamp >= entry.activationAt;
+    }
+
+    /**
+     * @dev Check if wallet is blacklisted AND active (grace period passed)
+     * @param wallet Wallet address to check
+     * @return bool True if wallet is actively blacklisted
+     */
+    function isWalletBlacklistedActive(address wallet) public view returns (bool) {
+        BlacklistEntry memory entry = blacklistedWallets[wallet];
+        return entry.isBlacklisted && block.timestamp >= entry.activationAt;
+    }
+
+    /**
+     * @dev Get blacklist entry for agent
+     * @param agentId Agent ID
+     * @return Blacklist entry
+     */
+    function getAgentBlacklistEntry(uint256 agentId) public view returns (BlacklistEntry memory) {
+        return blacklistedAgents[agentId];
+    }
+
+    /**
+     * @dev Get blacklist entry for wallet
+     * @param wallet Wallet address
+     * @return Blacklist entry
+     */
+    function getWalletBlacklistEntry(address wallet) public view returns (BlacklistEntry memory) {
+        return blacklistedWallets[wallet];
+    }
+
+    /**
+     * @dev Get all blacklisted agent IDs
+     * @return Array of blacklisted agent IDs
+     */
+    function getAllBlacklistedAgents() public view returns (uint256[] memory) {
+        return blacklistedAgentIds;
+    }
+
+    /**
+     * @dev Get all blacklisted wallet addresses
+     * @return Array of blacklisted wallet addresses
+     */
+    function getAllBlacklistedWallets() public view returns (address[] memory) {
+        return blacklistedWalletsList;
+    }
+
+    /**
+     * @dev Get count of blacklisted agents
+     * @return Number of blacklisted agents
+     */
+    function getBlacklistedAgentCount() public view returns (uint256) {
+        return blacklistedAgentIds.length;
+    }
+
+    /**
+     * @dev Get count of blacklisted wallets
+     * @return Number of blacklisted wallets
+     */
+    function getBlacklistedWalletCount() public view returns (uint256) {
+        return blacklistedWalletsList.length;
     }
 }

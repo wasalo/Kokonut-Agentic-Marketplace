@@ -324,3 +324,42 @@ export const MILESTONE_ESCROW_EVENTS = parseAbi([
   'event AgenticCommerceSet(address indexed oldAddress, address indexed newAddress)',
 ]);
 
+// AdminRegistry - Bad Actor Blacklist
+// =============================================================================
+
+export const ADMIN_REGISTRY_BLACKLIST_ABI = parseAbi([
+  // Blacklist functions
+  'function blacklistAgent(uint256 agentId, string calldata reason) external',
+  'function unblacklistAgent(uint256 agentId) external',
+  'function blacklistWallet(address wallet, string calldata reason) external',
+  'function unblacklistWallet(address wallet) external',
+  'function isAgentBlacklistedActive(uint256 agentId) external view returns (bool)',
+  'function isWalletBlacklistedActive(address wallet) external view returns (bool)',
+  'function getAgentBlacklistEntry(uint256 agentId) external view returns ((bool isBlacklisted, uint256 blacklistedAt, uint256 activationAt, string reason, address blacklistedBy, bool autoSlashed))',
+  'function getWalletBlacklistEntry(address wallet) external view returns ((bool isBlacklisted, uint256 blacklistedAt, uint256 activationAt, string reason, address blacklistedBy, bool autoSlashed))',
+  'function getAllBlacklistedAgents() external view returns (uint256[])',
+  'function getAllBlacklistedWallets() external view returns (address[])',
+  'function getBlacklistedAgentCount() external view returns (uint256)',
+  'function getBlacklistedWalletCount() external view returns (uint256)',
+  'function blacklistedAgents(uint256) external view returns (bool isBlacklisted, uint256 blacklistedAt, uint256 activationAt, string reason, address blacklistedBy, bool autoSlashed)',
+  'function blacklistedWallets(address) external view returns (bool isBlacklisted, uint256 blacklistedAt, uint256 activationAt, string reason, address blacklistedBy, bool autoSlashed)',
+
+  // Existing functions
+  'function setHalfLifeDays(uint256 _halfLifeDays) external',
+  'function setFeaturedAgent(uint256 agentId, bool isFeatured) external',
+  'function setVerificationProvider(string provider, bool isActive) external',
+  'function pause() external',
+  'function unpause() external',
+  'function owner() external view returns (address)',
+]);
+
+// AdminRegistry Events
+export const ADMIN_REGISTRY_EVENTS = parseAbi([
+  'event AgentBlacklisted(uint256 indexed agentId, address indexed by, string reason, uint256 activationAt)',
+  'event AgentUnblacklisted(uint256 indexed agentId, address indexed by)',
+  'event WalletBlacklisted(address indexed wallet, address indexed by, string reason, uint256 activationAt)',
+  'event WalletUnblacklisted(address indexed wallet, address indexed by)',
+  'event FeaturedAgentUpdated(uint256 indexed agentId, bool isFeatured)',
+  'event HalfLifeDaysUpdated(uint256 halfLifeDays)',
+]);
+
