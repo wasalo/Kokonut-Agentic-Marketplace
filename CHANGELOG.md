@@ -5,6 +5,49 @@ All notable changes to the Kokonut Agent Economy Stack are documented in this fi
 The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.0.0/),
 and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0.html).
 
+## [2026-04-22] - ENS Integration for Human-Readable Addresses
+
+### 🎯 ENS Integration
+
+Added comprehensive ENS (Ethereum Name Service) support for displaying human-readable addresses:
+
+| Feature | Status | File |
+|---------|--------|------|
+| **Reverse Resolution** (address → ENS name) | ✅ | `Address.tsx` |
+| **Forward Resolution** (ENS → address) | ✅ | `AddressInput.tsx` |
+| **ENS Search in Identity** | ✅ | `identity/page.tsx` |
+| **Mainnet RPC in wagmi** | ✅ | `wagmi.ts` |
+| **formatAddress with ENS** | ✅ | `lib/utils.ts` |
+
+### Changes
+
+**wagmi.ts:**
+- Added Mainnet chain to wagmi config with RPC transport
+- Enables `useEnsName`/`useEnsAddress` hooks to work properly
+
+**identity/page.tsx:**
+- Search now accepts ENS names (e.g., "vitalik.eth")
+- Shows loading indicator while resolving ENS
+- Displays resolved address after resolution
+
+**lib/utils.ts:**
+- Updated `formatAddress()` to accept optional ENS name parameter
+- Added `isValidEnsName()` and `isValidAddress()` validation utilities
+
+### Files Modified
+
+| File | Changes |
+|------|--------|
+| `lib/wagmi.ts` | Added mainnet chain + transports |
+| `app/identity/page.tsx` | Added ENS forward resolution |
+| `lib/utils.ts` | Updated formatAddress with ENS support |
+
+### Build Status
+
+- TypeScript: **0 errors**
+
+---
+
 ## [2026-04-22] - Bug Fixes & Reliability Improvements
 
 ### 🔧 Code Quality Fixes

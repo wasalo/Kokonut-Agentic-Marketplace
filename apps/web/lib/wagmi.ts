@@ -105,9 +105,10 @@ const getMetadataUrl = () => {
 
 // Build RPC list from config
 const sepoliaRpcs = getChainRPCs(11155111);
+const mainnetRpcs = getChainRPCs(1);
 
 export const config = createConfig({
-  chains: [sepolia] as const,
+  chains: [sepolia, mainnet] as const,
   connectors: [
     injected(),
     walletConnect({
@@ -123,6 +124,7 @@ export const config = createConfig({
   ],
   transports: {
     [sepolia.id]: fallback(sepoliaRpcs.map(url => http(url))),
+    [mainnet.id]: fallback(mainnetRpcs.map(url => http(url))),
   },
   config: {
     pollingInterval: 3000,
