@@ -176,10 +176,10 @@ const EVENT_ABI_ITEMS = {
 } as const;
 
 export function useNotificationEvents() {
-  const publicClient = usePublicClient();
+const publicClient = usePublicClient();
   const { address } = useAccount();
   const { addNotification } = useNotifications();
-  const networkStatus = useNetworkStatus();
+  const { isOnline } = useNetworkStatus();
   const lastBlockRef = useRef<bigint>(getLastProcessedBlock());
   const processedEventsRef = useRef<Set<string>>(new Set());
 
@@ -948,11 +948,10 @@ export function useNotificationEvents() {
   useEffect(() => {
     if (!publicClient) return;
 
-    const { isOnline } = useNetworkStatus();
     let pollingInterval: ReturnType<typeof setInterval>;
 
     const processAllEvents = async () => {
-      if (!networkStatus.isOnline) {
+      if (!isOnline) {
         debugLog('network', 'Skipping notification polling - offline');
         return;
       }
@@ -991,7 +990,7 @@ export function useNotificationEvents() {
     };
   }, [
     publicClient,
-    networkStatus,
+    isOnline,
     processAgenticCommerceEvents,
     processServiceRegistryEvents,
     processAgentReviewEvents,
