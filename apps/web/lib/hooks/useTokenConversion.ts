@@ -1,4 +1,4 @@
-import { useMemo } from 'react';
+import { useMemo, useCallback } from 'react';
 import { useChainlinkEthUsdPrice } from './useChainlinkPrice';
 import { CONTRACT_ADDRESSES } from '@/lib/contracts/config';
 
@@ -121,11 +121,19 @@ export function useTokenPriceConversion() {
 }
 
 export function useJobBudgetConversion(paymentToken: Token, budget: bigint) {
-  const { formatUsdValue, formatAmount, isLoading } = useTokenPriceConversion();
+  const conversion = useTokenPriceConversion();
+
+  const budgetFormatted = useMemo(() => {
+    return conversion.formatAmount(budget, paymentToken);
+  }, [conversion.formatAmount, budget, paymentToken]);
+
+  const budgetInUsd = useMemo(() => {
+    return conversion.formatUsdValue(budget, paymentToken);
+  }, [conversion.formatUsdValue, budget, paymentToken]);
 
   return {
-    budgetFormatted: formatAmount(budget, paymentToken),
-    budgetInUsd: formatUsdValue(budget, paymentToken),
-    isLoading,
+    budgetFormatted,
+    budgetInUsd,
+    isLoading: conversion.isLoading,
   };
 }

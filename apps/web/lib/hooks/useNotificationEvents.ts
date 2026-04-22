@@ -7,6 +7,34 @@ import { getContractAddress, debugLog, DEFAULT_FROM_BLOCK } from '@/lib/contract
 import { useNotifications } from '@/lib/hooks/useNotifications';
 import { triggerWebhooks } from '@/lib/webhooks/trigger';
 import { sendNotificationEmail } from '@/lib/emails/notification-bridge';
+import { validateJobData, commonRules } from '@/lib/utils/validation';
+import { withRetry } from '@/lib/utils/retry';
+import { useNetworkStatus } from '@/lib/hooks/useNetworkStatus';
+
+function isValidAddress(value: unknown): value is string {
+  return commonRules.isAddress(value);
+}
+
+function isValidBigInt(value: unknown): value is bigint {
+  return typeof value === 'bigint';
+}
+
+function safeGetAddress(args: Record<string, unknown>, key: string): string | undefined {
+  const value = args[key];
+  return isValidAddress(value) ? value : undefined;
+}
+
+function safeGetBigInt(args: Record<string, unknown>, key: string): bigint | undefined {
+  const value = args[key];
+  return isValidBigInt(value) ? value : undefined;
+}
+
+function safeGetNumber(args: Record<string, unknown>, key: string): number | undefined {
+  const value = args[key];
+  if (typeof value === 'number') return value;
+  if (typeof value === 'bigint') return Number(value);
+  return undefined;
+}
 
 const AGENTIC_COMMERCE_ADDRESS = getContractAddress('AGENTIC_COMMERCE');
 const SERVICE_REGISTRY_ADDRESS = getContractAddress('SERVICE_REGISTRY');
@@ -17,13 +45,24 @@ const STORAGE_KEY = 'kokonut_last_notification_block';
 
 function getLastProcessedBlock(): bigint {
   if (typeof window === 'undefined') return DEFAULT_FROM_BLOCK;
-  const stored = localStorage.getItem(STORAGE_KEY);
-  return stored ? BigInt(stored) : DEFAULT_FROM_BLOCK;
+  try {
+    const stored = localStorage.getItem(STORAGE_KEY);
+    return stored ? BigInt(stored) : DEFAULT_FROM_BLOCK;
+  } catch (error) {
+    debugLog('errors', `Error reading last notification block: ${error}`);
+    return DEFAULT_FROM_BLOCK;
+  }
 }
 
-function setLastProcessedBlock(block: bigint) {
-  if (typeof window === 'undefined') return;
-  localStorage.setItem(STORAGE_KEY, block.toString());
+function setLastProcessedBlock(block: bigint): boolean {
+  if (typeof window === 'undefined') return false;
+  try {
+    localStorage.setItem(STORAGE_KEY, block.toString());
+    return true;
+  } catch (error) {
+    debugLog('errors', `Error saving last notification block: ${error}`);
+    return false;
+  }
 }
 
 const EVENT_ABI_ITEMS = {
@@ -140,7 +179,9 @@ export function useNotificationEvents() {
   const publicClient = usePublicClient();
   const { address } = useAccount();
   const { addNotification } = useNotifications();
+  const networkStatus = useNetworkStatus();
   const lastBlockRef = useRef<bigint>(getLastProcessedBlock());
+  const processedEventsRef = useRef<Set<string>>(new Set());
 
   const notifyAndEmail = useCallback(
     async (notification: Parameters<typeof addNotification>[0]) => {
@@ -192,6 +233,10 @@ export function useNotificationEvents() {
 
         for (const log of logs) {
           const event = log.eventName;
+
+          const eventKey = `${log.transactionHash}:${log.logIndex}`;
+          if (processedEventsRef.current.has(eventKey)) continue;
+          processedEventsRef.current.add(eventKey);
 
           if (event === 'JobCreated' && log.args.client && log.args.jobId) {
             if (address && log.args.client.toLowerCase() === address.toLowerCase()) {
@@ -478,6 +523,10 @@ export function useNotificationEvents() {
         for (const log of logs) {
           const event = log.eventName;
 
+          const eventKey = `${log.transactionHash}:${log.logIndex}`;
+          if (processedEventsRef.current.has(eventKey)) continue;
+          processedEventsRef.current.add(eventKey);
+
           if (
             event === 'ServiceCreated' &&
             log.args.serviceId &&
@@ -601,6 +650,10 @@ export function useNotificationEvents() {
 
         for (const log of logs) {
           const event = log.eventName;
+
+          const eventKey = `${log.transactionHash}:${log.logIndex}`;
+          if (processedEventsRef.current.has(eventKey)) continue;
+          processedEventsRef.current.add(eventKey);
 
           if (event === 'MilestoneEnabled' && log.args.jobId) {
             const jobId = log.args.jobId;
@@ -771,6 +824,10 @@ export function useNotificationEvents() {
         for (const log of logs) {
           const event = log.eventName;
 
+          const eventKey = `${log.transactionHash}:${log.logIndex}`;
+          if (processedEventsRef.current.has(eventKey)) continue;
+          processedEventsRef.current.add(eventKey);
+
           if (
             event === 'ProposalCreated' &&
             log.args.proposalId &&
@@ -891,11 +948,20 @@ export function useNotificationEvents() {
   useEffect(() => {
     if (!publicClient) return;
 
+    const { isOnline } = useNetworkStatus();
     let pollingInterval: ReturnType<typeof setInterval>;
 
     const processAllEvents = async () => {
+      if (!networkStatus.isOnline) {
+        debugLog('network', 'Skipping notification polling - offline');
+        return;
+      }
+
       try {
-        const currentBlock = await publicClient.getBlockNumber();
+        const currentBlock = await withRetry(
+          () => publicClient.getBlockNumber(),
+          { maxRetries: 2, initialDelay: 500 }
+        );
         let fromBlock = lastBlockRef.current;
 
         if (currentBlock <= fromBlock) return;
@@ -925,6 +991,7 @@ export function useNotificationEvents() {
     };
   }, [
     publicClient,
+    networkStatus,
     processAgenticCommerceEvents,
     processServiceRegistryEvents,
     processAgentReviewEvents,

@@ -5,6 +5,49 @@ All notable changes to the Kokonut Agent Economy Stack are documented in this fi
 The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.0.0/),
 and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0.html).
 
+## [2026-04-22] - Bug Fixes & Reliability Improvements
+
+### 🔧 Code Quality Fixes
+
+**Fixed 9 critical and high-priority issues from codebase analysis:**
+
+| Issue | File | Fix |
+|------|------|-----|
+| **Event Deduplication** | `useNotificationEvents.ts` | Added `processedEventsRef` Set to track `txHash:logIndex` |
+| **localStorage Error Handling** | `useNotificationEvents.ts` | Added try-catch to `getLastProcessedBlock()` and `setLastProcessedBlock()` |
+| **Invalid Memoization** | `useTokenConversion.ts` | Fixed `useJobBudgetConversion()` to use `useMemo` |
+| **Runtime Contract Validation** | `lib/contracts/config.ts` | Added `isValidContractAddress()` and `validateContractAddress()` |
+| **RPC Retry Logic** | `lib/utils/retry.ts` | Created `withRetry()` with exponential backoff |
+| **Network Status Detection** | `lib/hooks/useNetworkStatus.ts` | Created `useNetworkStatus()` hook |
+| **Type Validation Utilities** | `lib/utils/validation.ts` | Created `validateJobData()`, `validateServiceData()`, `commonRules` |
+| **Notification Retry Integration** | `useNotificationEvents.ts` | Integrated `withRetry` for `getBlockNumber` calls |
+| **Network Status Integration** | `useNotificationEvents.ts` | Added `useNetworkStatus` - skips polling when offline |
+| **Rate Limit Handling** | `useNetworkStats.ts` | Added retry logic and network status check |
+
+### 📦 Files Created
+
+| File | Purpose |
+|------|---------|
+| `lib/utils/retry.ts` | RPC retry with exponential backoff |
+| `lib/utils/validation.ts` | Runtime type validation for ABI-decoded data |
+| `lib/hooks/useNetworkStatus.ts` | Network connectivity detection hook |
+
+### 📦 Files Modified
+
+| File | Changes |
+|------|--------|
+| `lib/hooks/useNotificationEvents.ts` | Event deduplication, retry integration, network status |
+| `lib/hooks/useTokenConversion.ts` | Fixed memoization with `useMemo` |
+| `lib/hooks/useNetworkStats.ts` | Added retry and error handling |
+| `lib/contracts/config.ts` | Added contract validation functions |
+
+### ✅ Build Status
+
+- TypeScript: **0 errors**
+- All 9 issues resolved
+
+---
+
 ## [2026-04-21] - Phase 28: Networks Launch Preparation
 
 ### 🚀 Launch Networks Configuration

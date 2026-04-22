@@ -911,6 +911,104 @@ This helps identify:
 
 ---
 
+## Reliability Utilities (April 2026)
+
+### Retry with Exponential Backoff
+
+**File:** `lib/utils/retry.ts`
+
+Network operations can fail transiently. The retry utility provides automatic retry with exponential backoff:
+
+```typescript
+import { withRetry } from '@/lib/utils/retry';
+
+const result = await withRetry(
+  () => publicClient.getBlockNumber(),
+  {
+    maxRetries: 3,
+    initialDelay: 1000,
+    maxDelay: 10000,
+    backoffMultiplier: 2,
+  }
+);
+```
+
+**Options:**
+
+| Option | Type | Default | Description |
+|--------|------|---------|-------------|
+| `maxRetries` | number | 3 | Maximum retry attempts |
+| `initialDelay` | number | 1000 | Initial delay in ms |
+| `maxDelay` | number | 10000 | Maximum delay cap |
+| `backoffMultiplier` | number | 2 | Exponential factor |
+| `onRetry` | function | - | Callback on each retry |
+| `retryableErrors` | array | Default patterns | Error patterns to retry |
+
+### Network Status Detection
+
+**File:** `lib/hooks/useNetworkStatus.ts`
+
+Detect offline state to prevent unnecessary polling:
+
+```typescript
+import { useNetworkStatus } from '@/lib/hooks/useNetworkStatus';
+
+function MyComponent() {
+  const { isOnline, isOffline, wasOffline } = useNetworkStatus();
+
+  if (isOffline) {
+    return <p>You are offline. Some features unavailable.</p>;
+  }
+
+  return <RealTimeData />;
+}
+```
+
+### Runtime Type Validation
+
+**File:** `lib/utils/validation.ts`
+
+Validate ABI-decoded data at runtime:
+
+```typescript
+import { validateJobData, commonRules } from '@/lib/utils/validation';
+
+// Validate job data
+const result = validateJobData(data);
+if (!result.isValid) {
+  console.error('Invalid job data:', result.errors);
+}
+
+// Use common validation rules
+if (commonRules.isAddress(value)) {
+  // Safe to use as address
+}
+```
+
+**Available validators:**
+
+- `isAddress(value)` - Ethereum address format
+- `isBigInt(value)` - BigInt or numeric string
+- `isString(value)` - Non-empty string
+- `isNumber(value)` - Number
+- `isPositiveNumber(value)` - Positive number
+
+### Event Deduplication
+
+Events are automatically deduplicated using `txHash:logIndex` tracking to prevent duplicate processing:
+
+```typescript
+// In useNotificationEvents.ts
+const processedEventsRef = useRef<Set<string>>(new Set());
+
+// Check before processing
+const eventKey = `${log.transactionHash}:${log.logIndex}`;
+if (processedEventsRef.current.has(eventKey)) continue;
+processedEventsRef.current.add(eventKey);
+```
+
+---
+
 ## Phase 2: DoS Prevention & Frontend Validation (March 2026)
 
 Phase 2 introduces critical security improvements to prevent Denial of Service attacks and improve user experience.

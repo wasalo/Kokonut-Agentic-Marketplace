@@ -320,6 +320,41 @@ pnpm run lint
 
 ---
 
+## Reliability Utilities (April 2026)
+
+The platform includes several utilities for building reliable dApp interfaces:
+
+| Utility | File | Purpose |
+|---------|------|---------|
+| **Retry** | `lib/utils/retry.ts` | Exponential backoff for RPC calls |
+| **Validation** | `lib/utils/validation.ts` | Runtime type checking |
+| **Network Status** | `lib/hooks/useNetworkStatus.ts` | Offline detection |
+| **Event Deduplication** | `lib/hooks/useNotificationEvents.ts` | Prevent duplicate processing |
+
+### Example Usage
+
+```typescript
+import { withRetry } from '@/lib/utils/retry';
+import { useNetworkStatus } from '@/lib/hooks/useNetworkStatus';
+
+function MyComponent() {
+  const { isOnline } = useNetworkStatus();
+
+  // Works offline
+  if (!isOnline) return <OfflineIndicator />;
+
+  // Automatic retry on failure
+  const data = await withRetry(
+    () => contract.read(),
+    { maxRetries: 3, initialDelay: 1000 }
+  );
+
+  return <DataDisplay data={data} />;
+}
+```
+
+---
+
 ## Contributing
 
 1. Fork the repository

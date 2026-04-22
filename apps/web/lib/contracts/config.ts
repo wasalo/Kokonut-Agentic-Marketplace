@@ -12,6 +12,23 @@ const SEPOLIA_CAIP = chainIdToCAIP(11155111);
 export const ZERO_ADDRESS = '0x0000000000000000000000000000000000000000' as const;
 export const MAX_UINT256 = '0xffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffff' as const;
 
+// Runtime validation functions
+export function isValidContractAddress(address: string | undefined): address is string {
+  if (!address) return false;
+  return /^0x[a-fA-F0-9]{40}$/.test(address);
+}
+
+export function validateContractAddress(address: string, name: string): void {
+  if (!isValidContractAddress(address)) {
+    console.warn(`[Config] Invalid contract address for ${name}: ${address}`);
+  }
+}
+
+export function validateAllContractAddresses(): void {
+  const addresses = getContractAddress('ERC8004_REGISTRY');
+  validateContractAddress(addresses, 'ERC8004_REGISTRY');
+}
+
 // Contracts deployed on Sepolia (currently only chain with deployments)
 const sepoliaContracts = {
   // Official ERC-8004 Registries
