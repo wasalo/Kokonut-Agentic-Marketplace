@@ -114,14 +114,15 @@ export default function ContactPage() {
             />
           </div>
 
-          <div className="pt-2">
-            <Button
-              type="submit"
-              isDisabled={!formData.email || !formData.message}
-            >
-              Send Message
-            </Button>
-          </div>
+<div className="pt-2">
+              <Button
+                type="submit"
+                isDisabled={!formData.email || !formData.message}
+                className="border-2 border-[#009F4D] text-[#009F4D] hover:bg-[#009F4D]/5 font-semibold w-full"
+              >
+                Send Message
+              </Button>
+            </div>
         </form>
       </Card>
 

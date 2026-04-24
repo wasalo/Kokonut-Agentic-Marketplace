@@ -193,7 +193,7 @@ The wildcard format (e.g., `10.108.1.*`) allows any IP in that subnet. Add expli
 | **MilestoneEscrow Impl** | `0x891498858f6f88dcf91f5ea5afb6434956a43400` | Phase 26: Pausable added |
 | **AgentSkillRegistryV2** | `0xA84684261558f342d6871DD2CFef90A2117Aa20A` | Skills/capabilities (UUPS) |
 | **ServiceRegistryV2**    | `0x62E1eeEa1A2Ab987004F35bDA430457Ed6077201` | Service listings (UUPS)    |
-| **ServiceRegistryV2 Impl** | `0x374d6bc33c1c04d37653d79966c6f057c40f0d5b` | Phase 26: Pausable + paymentAddress |
+| **ServiceRegistryV2 Impl** | `0x457f803758F5c64208D60d23B7e831a13501d8F7` | Phase 28: ownerOf() fix + blacklist |
 | **AgenticCommerce**      | `0x948d97EA7F0c49796fB576ADff375C900627568E` | Job escrow (V7: Client Review Flow)          |
 | **AgenticCommerce Impl** | `0x4E5bc894605e9de37C66b32166AE976A4F060BDf` | Client Review Flow (April 20, 2026)        |
 | **AgentReviewV5**        | `0x5CDb592Fd37749bF87448FBf5725D1Cd986dd1Cb` | A/B evaluation             |

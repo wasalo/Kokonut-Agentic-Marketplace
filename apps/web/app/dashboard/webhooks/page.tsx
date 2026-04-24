@@ -288,7 +288,7 @@ function CreateWebhookForm({
 
           <Button
             variant="primary"
-            className="w-full"
+            className="w-full border-2 border-[#009F4D] text-[#009F4D] hover:bg-[#009F4D]/5 font-semibold"
             onClick={() => {
               void handleSubmit();
             }}
@@ -395,6 +395,7 @@ export default function WebhooksPage() {
             variant="primary"
             onClick={() => setShowCreateForm(true)}
             disabled={serverWebhooks.length >= MAX_WEBHOOKS_PER_AGENT}
+            className="bg-gradient-to-r from-[#009F4D] to-[#00c853] text-white font-semibold"
           >
             <Plus className="w-4 h-4" />
             Create Webhook
@@ -438,7 +439,11 @@ export default function WebhooksPage() {
           <p className="text-default-500 mb-6">
             Create your first webhook to receive notifications about platform events.
           </p>
-          <Button variant="primary" onClick={() => setShowCreateForm(true)}>
+          <Button 
+            variant="primary" 
+            onClick={() => setShowCreateForm(true)}
+            className="bg-gradient-to-r from-[#009F4D] to-[#00c853] text-white font-semibold"
+          >
             <Plus className="w-4 h-4" />
             Create Webhook
           </Button>

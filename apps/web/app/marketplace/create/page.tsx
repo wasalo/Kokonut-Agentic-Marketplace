@@ -42,6 +42,7 @@ interface FormData {
   metadataURI: string;
   price: string;
   paymentToken: Token;
+  paymentAddress: string;
 }
 
 const initialFormData: FormData = {
@@ -50,6 +51,7 @@ const initialFormData: FormData = {
   metadataURI: '',
   price: '',
   paymentToken: USDC_TOKEN,
+  paymentAddress: '',
 };
 
 interface FormErrors {
@@ -57,6 +59,7 @@ interface FormErrors {
   description: string | null;
   metadataURI: string | null;
   price: string | null;
+  paymentAddress: string | null;
 }
 
 const initialFormErrors: FormErrors = {
@@ -64,6 +67,7 @@ const initialFormErrors: FormErrors = {
   description: null,
   metadataURI: null,
   price: null,
+  paymentAddress: null,
 };
 
 type Step = 'checking' | 'no-agents' | 'untagged' | 'ready' | 'creating' | 'done';
@@ -236,6 +240,18 @@ export default function CreateServicePage() {
     }
   }, []);
 
+  const validatePaymentAddress = useCallback((value: string): string | null => {
+    // Optional field - empty is OK
+    if (!value || value === '') {
+      return null;
+    }
+    // Validate Ethereum address format
+    if (!/^0x[a-fA-F0-9]{40}$/.test(value)) {
+      return 'Invalid Ethereum address';
+    }
+    return null;
+  }, []);
+
   const handleInputChange = useCallback(
     (field: keyof FormData, value: string) => {
       setFormData(prev => ({ ...prev, [field]: value }));
@@ -289,7 +305,12 @@ export default function CreateServicePage() {
   const performSubmit = useCallback(
     (e: React.FormEvent) => {
       e.preventDefault();
-      if (!isConnected || taggedAgents.length === 0) return;
+      console.log('[CreateService] Button clicked, isConnected:', !!isConnected, 'taggedAgents:', taggedAgents.length);
+      
+      if (!isConnected || taggedAgents.length === 0) {
+        console.log('[CreateService] Early return - not connected or no agents');
+        return;
+      }
 
       // Mark as attempted submit to show validation errors
       setHasAttemptedSubmit(true);
@@ -300,17 +321,22 @@ export default function CreateServicePage() {
         description: validateDescription(formData.description),
         metadataURI: validateMetadataURIField(formData.metadataURI),
         price: validatePrice(formData.price),
+        paymentAddress: validatePaymentAddress(formData.paymentAddress),
       };
 
       setFormErrors(errors);
 
+      console.log('[CreateService] Validation errors:', errors);
+
       // Check if any errors exist
       if (Object.values(errors).some(error => error !== null)) {
         addLog('info', 'Form validation failed', errors);
+        console.log('[CreateService] Validation failed, returning early');
         return;
       }
 
       const agent = taggedAgents[0];
+      console.log('[CreateService] Proceeding with agent:', agent.id, 'formData:', formData);
       addLog('info', 'Submitting service creation', { agentId: agent.id, formData });
 
       setStep('creating');
@@ -321,6 +347,10 @@ export default function CreateServicePage() {
       // For ETH, we also store the USD equivalent for display (8 decimals for Chainlink)
       // The contract stores the raw token amount, and we convert for display in UI
 
+      // Payment address: use custom if provided, otherwise use user's wallet
+      const paymentAddress = (formData.paymentAddress.trim() || address || ZERO_ADDRESS) as `0x${string}`;
+      console.log('[CreateService] paymentAddress:', paymentAddress);
+
       createService({
         agentId: BigInt(agent.id),
         name: formData.name,
@@ -329,8 +359,10 @@ export default function CreateServicePage() {
         price: priceInToken,
         paymentToken: formData.paymentToken.address === ZERO_ADDRESS
           ? ZERO_ADDRESS
-          : formData.paymentToken.address
+          : formData.paymentToken.address,
+        paymentAddress: paymentAddress
       });
+      console.log('[CreateService] createService called with args');
     },
     [
       isConnected,
@@ -342,17 +374,26 @@ export default function CreateServicePage() {
       validateDescription,
       validateMetadataURIField,
       validatePrice,
+      validatePaymentAddress,
+      address,
     ]
   );
 
-  // Apply form submission debouncing (2 second cooldown)
-  const { handleSubmit, isSubmitting, timeUntilNextSubmit } = useFormSubmit(performSubmit, 2000);
+  // Apply form submission debouncing (500ms cooldown for better UX)
+  const { handleSubmit, isSubmitting, timeUntilNextSubmit } = useFormSubmit(performSubmit, 500);
 
-  // Check if form is valid - requires attempt + no errors + required fields filled
+  // Check if form is valid - fields filled correctly (Option A: form is initially valid if filled)
   const formPrice = parseFloat(formData.price);
   const isFormValid =
-    hasAttemptedSubmit &&
+    hasAttemptedSubmit &&  // Option B: Shows errors on first attempt
     Object.values(formErrors).every(error => error === null) &&
+    formData.name.trim().length > 0 &&
+    formData.description.trim().length > 0 &&
+    !isNaN(formPrice) &&
+    formPrice > 0;
+
+  // Simple validity check for button enabled state (Option A: allow clicking if fields have content)
+  const canSubmit =
     formData.name.trim().length > 0 &&
     formData.description.trim().length > 0 &&
     !isNaN(formPrice) &&
@@ -394,12 +435,15 @@ export default function CreateServicePage() {
           <p className="text-default-500 mb-6">
             Your service has been successfully created and is now visible in the marketplace.
           </p>
-          <div className="flex gap-4 justify-center">
-            <Button onPress={() => router.push('/marketplace')}>View Marketplace</Button>
-            <Button variant="ghost" onPress={() => router.push('/dashboard')}>
-              Go to Dashboard
-            </Button>
-          </div>
+<div className="flex gap-4 justify-center">
+              <Button 
+                onPress={() => router.push('/marketplace')}
+                className="bg-gradient-to-r from-[#009F4D] to-[#00c853] text-white font-semibold"
+              >View Marketplace</Button>
+              <Button variant="ghost" onPress={() => router.push('/dashboard')}>
+                Go to Dashboard
+              </Button>
+            </div>
         </Card>
       </div>
     );
@@ -485,14 +529,17 @@ export default function CreateServicePage() {
             <div className="text-center">
               <CheckCircle2 className="w-8 h-8 text-success mx-auto mb-2" />
               <p className="text-success mb-4">Tag added successfully!</p>
-              <Button onPress={() => refetch()}>Continue</Button>
+              <Button 
+                onPress={() => refetch()}
+                className="bg-gradient-to-r from-[#009F4D] to-[#00c853] text-white font-semibold"
+              >Continue</Button>
             </div>
           ) : (
             <div className="flex flex-col gap-3">
               <Button
                 onPress={() => handleAddTag(agent.id)}
                 isDisabled={isAddingTag}
-                className="w-full"
+                className="w-full bg-gradient-to-r from-[#009F4D] to-[#00c853] text-white font-semibold hover:opacity-90"
               >
                 {isAddingTag ? (
                   <>
@@ -707,26 +754,44 @@ export default function CreateServicePage() {
                 )}
               </div>
 
+              {/* Payment Address (optional) */}
+              <div>
+                <label className="block text-sm font-medium mb-2">
+                  Payment Address (Optional)
+                  <span className="text-default-400 ml-2">- Defaults to your wallet</span>
+                </label>
+                <input
+                  type="text"
+                  value={formData.paymentAddress}
+                  onChange={e => handleInputChange('paymentAddress', e.target.value)}
+                  onBlur={() => handleInputChange('paymentAddress', formData.paymentAddress)}
+                  className={`w-full px-3 py-2 border rounded-lg bg-content2 ${
+                    formErrors.paymentAddress ? 'border-danger' : 'border-divider'
+                  }`}
+                  placeholder={address || '0x...'}
+                />
+                {formErrors.paymentAddress ? (
+                  <p className="text-xs text-danger mt-1">{formErrors.paymentAddress}</p>
+                ) : (
+                  <p className="text-xs text-default-400 mt-1">
+                    Custom address to receive payments (leave empty for your wallet)
+                  </p>
+                )}
+              </div>
+
               <TransactionError error={serviceError} />
 
               <Button
                 type="submit"
-                className="w-full"
-                isDisabled={isServicePending || isServiceConfirming || !isFormValid || isSubmitting}
+                className="w-full border-2 border-[#009F4D] text-[#009F4D] hover:bg-[#009F4D]/5 font-semibold"
+                isDisabled={isServicePending || isServiceConfirming || !canSubmit}
               >
-                {isServicePending || isServiceConfirming ? (
-                  <>
-                    <Loader2 className="w-4 h-4 mr-2 animate-spin" />
-                    Creating...
-                  </>
-                ) : isSubmitting ? (
-                  <>
-                    <Loader2 className="w-4 h-4 mr-2 animate-spin" />
-                    Wait {formatTimeRemaining(timeUntilNextSubmit)}...
-                  </>
-                ) : (
-                  'Create Service'
-                )}
+                {isServicePending || isServiceConfirming 
+                  ? <><Loader2 className="w-4 h-4 mr-2 animate-spin" />Creating...</> 
+                  : isSubmitting 
+                    ? <><Loader2 className="w-4 h-4 mr-2 animate-spin" />Wait {formatTimeRemaining(timeUntilNextSubmit)}...</>
+                    : 'Create Service'
+                }
               </Button>
             </form>
           </div>

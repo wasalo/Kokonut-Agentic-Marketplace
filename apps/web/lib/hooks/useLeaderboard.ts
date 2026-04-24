@@ -6,6 +6,7 @@ import { ERC8004_ABI } from '@/lib/8004contracts';
 import { debugLog, debugError } from '@/lib/debug';
 import { getContractAddress, CONTRACT_ADDRESSES } from '@/lib/contracts/config';
 import { calculateHealthScore, HealthScore } from '@/lib/healthScore';
+import { KokonutAgent } from './useKokonutAgents';
 
 const LEADERBOARD_STORAGE_KEY = 'kokonut_leaderboard_snapshots';
 const SNAPSHOT_RETENTION_DAYS = 30;
@@ -102,7 +103,7 @@ function getScoreFromSnapshot(
 }
 
 export function useLeaderboard(
-  agentIds: bigint[] = [],
+  kokonutAgents: KokonutAgent[] = [],
   chainId: number = 11155111
 ): UseLeaderboardReturn {
   const [entries, setEntries] = useState<LeaderboardEntry[]>([]);
@@ -119,7 +120,7 @@ export function useLeaderboard(
   );
 
   const refresh = useCallback(async () => {
-    if (!publicClient || agentIds.length === 0) {
+    if (kokonutAgents.length === 0) {
       setEntries([]);
       setIsLoading(false);
       return;
@@ -129,58 +130,26 @@ export function useLeaderboard(
     setError(null);
 
     try {
-      debugLog('hooks', `useLeaderboard: Fetching data for ${agentIds.length} agents`);
-
-      const calls = agentIds.flatMap(id => [
-        {
-          address: REGISTRY_ADDRESS,
-          abi: ERC8004_ABI,
-          functionName: 'getAgent' as const,
-          args: [id],
-        },
-        {
-          address: REGISTRY_ADDRESS,
-          abi: ERC8004_ABI,
-          functionName: 'tokenURI' as const,
-          args: [id],
-        },
-      ]);
-
-      const results = await publicClient.multicall({ contracts: calls });
+      debugLog('hooks', `useLeaderboard: Building leaderboard from ${kokonutAgents.length} Kokonut agents`);
 
       const fetchedEntries: LeaderboardEntry[] = [];
       const scores: Record<string, number> = {};
 
-      for (let i = 0; i < agentIds.length; i++) {
-        const agentResult = results[i * 2];
-        const uriResult = results[i * 2 + 1];
+      // Build entries directly from KokonutAgents (no contract calls needed)
+      for (const agent of kokonutAgents) {
+        const agentId = BigInt(agent.id);
+        const uri = agent.agentURI || '';
+        
+        // Parse metadata from URI - use already-parsed metadata from useKokonutAgents
+        const metadata = agent.metadata || {};
+        const owner = agent.owner;
 
-        if (agentResult.status !== 'success') continue;
-
-        const agentData = agentResult.result as unknown as {
-          owner: `0x${string}`;
-          isActive: boolean;
-        };
-        const uri = uriResult.status === 'success' ? (uriResult.result as string) : '';
-
-        let metadata: LeaderboardEntry['metadata'] = {};
-        if (uri && uri.startsWith('data:')) {
-          try {
-            const jsonStr = atob(uri.split(',')[1] || '');
-            metadata = JSON.parse(jsonStr);
-          } catch {
-            debugLog('hooks', `useLeaderboard: Failed to parse URI for agent ${agentIds[i]}`);
-          }
-        }
-
-        if (metadata && metadata.source !== 'kokonut-marketplace') continue;
-
+        // Generate mock health data (in production, fetch real reputation data)
         const mockReputation = {
           average: Math.random() * 40 + 60,
           total: Math.floor(Math.random() * 100),
           providers: Math.floor(Math.random() * 20),
         };
-
         const mockCompletedJobs = Math.floor(Math.random() * 50);
         const mockActiveServices = Math.floor(Math.random() * 5);
         const mockLastActivity = Math.floor(Math.random() * 30);
@@ -192,12 +161,12 @@ export function useLeaderboard(
           recentActivity: mockLastActivity,
         });
 
-        const agentKey = agentIds[i].toString();
+        const agentKey = agentId.toString();
         scores[agentKey] = healthScore.score;
 
         fetchedEntries.push({
-          agentId: agentIds[i],
-          owner: agentData.owner,
+          agentId,
+          owner,
           agentURI: uri,
           metadata,
           healthScore,
@@ -206,6 +175,7 @@ export function useLeaderboard(
           activeServices: mockActiveServices,
           lastActivity: mockLastActivity,
         });
+        debugLog('hooks', `useLeaderboard: Added agent ${agentId} to leaderboard`);
       }
 
       const sorted = fetchedEntries.sort((a, b) => b.healthScore.score - a.healthScore.score);
@@ -220,7 +190,7 @@ export function useLeaderboard(
     } finally {
       setIsLoading(false);
     }
-  }, [publicClient, agentIds, chainId, REGISTRY_ADDRESS]);
+  }, [publicClient, kokonutAgents, chainId]);
 
   useEffect(() => {
     refresh();

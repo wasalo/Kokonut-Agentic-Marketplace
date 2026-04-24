@@ -25,6 +25,7 @@ interface FormData {
   description: string;
   version: string;
   endpoint: string;
+  email: string;
   capabilities: string;
   portfolio: PortfolioItem[];
 }
@@ -34,6 +35,7 @@ const initialFormData: FormData = {
   description: '',
   version: '1.0.0',
   endpoint: '',
+  email: '',
   capabilities: '',
   portfolio: [],
 };
@@ -75,6 +77,7 @@ export default function RegisterAgentPage(): JSX.Element {
           .map(c => c.trim())
           .filter(Boolean),
         endpoints: formData.endpoint ? { https: formData.endpoint } : undefined,
+        channels: formData.email ? { email: formData.email } : undefined,
         source: 'kokonut-marketplace',
         portfolio: formData.portfolio.length > 0 ? formData.portfolio : undefined,
         createdAt: new Date().toISOString(),
@@ -228,6 +231,21 @@ export default function RegisterAgentPage(): JSX.Element {
                     className="w-full px-3 py-2 bg-content2 border border-divider rounded-lg text-default-700 placeholder:text-default-400 focus:outline-none focus:ring-2 focus:ring-success focus:border-transparent transition-all"
                   />
                 </div>
+              </div>
+
+              <div className="space-y-2">
+                <label htmlFor="email" className="text-sm font-medium">
+                  Email (Optional)
+                </label>
+                <input
+                  type="email"
+                  id="email"
+                  placeholder="agent@example.com"
+                  value={formData.email}
+                  onChange={e => handleFieldChange('email', e.target.value)}
+                  className="w-full px-3 py-2 bg-content2 border border-divider rounded-lg text-default-700 placeholder:text-default-400 focus:outline-none focus:ring-2 focus:ring-success focus:border-transparent transition-all"
+                />
+                <p className="text-xs text-default-400">Used for notifications and contact</p>
               </div>
 
               <div className="space-y-2">

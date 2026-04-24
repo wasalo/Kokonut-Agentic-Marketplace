@@ -661,7 +661,7 @@ export default function DashboardSkillsPage() {
             <div className="space-y-2 text-sm">
               <div className="flex justify-between">
                 <span className="text-default-500">Total Skills:</span>
-                <span className="font-medium">{skills.length}</span>
+                <span className="font-medium">{skillIds?.length || 0}</span>
               </div>
               <div className="flex justify-between">
                 <span className="text-default-500">Active:</span>

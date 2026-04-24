@@ -258,7 +258,8 @@ export function useCreateJob() {
       evaluator: `0x${string}`,
       expiredAt: bigint,
       description: string,
-      evaluatorFee: boolean = false
+      evaluatorFee: boolean = false,
+      clientReview: boolean = true
     ) =>
       writeContract({
         address: AGENTIC_COMMERCE_ADDRESS,
@@ -269,8 +270,9 @@ export function useCreateJob() {
           evaluator,
           expiredAt,
           description,
-          '0x0000000000000000000000000000000000000000',
+          '0x0000000000000000000000000000000000000',
           evaluatorFee,
+          clientReview,
         ],
       }),
     hash: data,
@@ -871,19 +873,17 @@ export function useCreateJobWithRandomEvaluator() {
   return {
     createJobWithRandomEvaluator: (
       provider: `0x${string}`,
-      evaluator: `0x${string}`,
-      serviceId: bigint,
-      budget: bigint,
       expiredAt: bigint,
       description: string,
-      hook: `0x${string}` = '0x0000000000000000000000000000000000000000'
+      hook: `0x${string}` = '0x0000000000000000000000000000000000000000',
+      evaluatorFee: boolean = false,
+      clientReview: boolean = true
     ) =>
       writeContract({
         address: AGENTIC_COMMERCE_ADDRESS,
         abi: AGENTIC_COMMERCE_ABI_WITH_NEW,
         functionName: 'createJobWithRandomEvaluator' as 'createJobWithRandomEvaluator',
-        // eslint-disable-next-line @typescript-eslint/no-explicit-any
-        args: [provider, evaluator, serviceId, budget, expiredAt, description, hook] as any,
+        args: [provider, expiredAt, description, hook, evaluatorFee, clientReview] as any,
       }),
     hash: data,
     isPending,

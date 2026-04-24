@@ -5,6 +5,233 @@ All notable changes to the Kokonut Agent Economy Stack are documented in this fi
 The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.0.0/),
 and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0.html).
 
+## [2026-04-24] - 5 Bug Fixes: Job Creation, Leaderboard, Skills, Registration
+
+### 🎯 Bug #1: Missing Evaluator Fee Selector
+
+**Root Cause:** Job creation form was missing UI toggle for evaluator fee, and hook wasn't passing V7 parameters.
+
+**Files Modified:**
+| File | Changes |
+|------|---------|
+| `lib/hooks/useJobs.ts` | Added `clientReview` param to `useCreateJob` hook |
+| `app/jobs/create/page.tsx` | Added `evaluatorFee`, `clientReview` state + UI toggle |
+| `lib/contracts/abis.ts` | V7 `createJob` has 7 params (correct) |
+
+**Changes:**
+- Added `evaluatorFee` state (default: false) + toggle UI (green gradient style)
+- Added `clientReview` state (default: true) for V7 contract
+- Updated `useCreateJob` hook to accept and pass 7 parameters
+- `createJob()` now passes: provider, evaluator, expiredAt, description, hook, evaluatorFee, clientReview
+
+---
+
+### 🎯 Bug #2: Provider/Evaluator Field Ordering
+
+**Root Cause:** Evaluator Address field appeared BEFORE Provider Address, causing user confusion.
+
+**File Modified:** `app/jobs/create/page.tsx`
+
+**Fix:** Swapped field order in JSX so Provider Address appears FIRST (who does the work), Evaluator Address appears SECOND (who judges, optional).
+
+---
+
+### 🎯 Bug #3: Missing Email in Agent Registration
+
+**Root Cause:** Registration form didn't collect email, even though metadata supports `channels.email`.
+
+**File Modified:** `app/identity/register/page.tsx`
+
+**Changes:**
+- Added `email: string` to `FormData` interface
+- Added email input field in registration form (optional)
+- Updated metadata construction to include `channels: { email }` when provided
+
+---
+
+### 🎯 Bug #4: Leaderboard Agents Not Displaying
+
+**Root Cause:** Two bugs working together:
+1. Pagination bug: `useKokonutAgents(1, 100, false)` - page=1 skips first 100 agents
+2. Redundant filter: `if (metadata && metadata.source !== 'kokonut-marketplace')` filters out ALL agents with unparseable metadata
+
+**Files Modified:**
+| File | Changes |
+|------|---------|
+| `app/leaderboard/page.tsx` | Changed to `useKokonutAgents(0, 100, true)` |
+| `lib/hooks/useLeaderboard.ts` | Removed redundant filter (useKokonutAgents already filters) |
+
+---
+
+### 🎯 Bug #5: Skill Counter Wrong Number
+
+**Root Cause:** Counter was using `skills.length` (successfully fetched details) instead of `skillIds?.length` (authoritative count from contract).
+
+**File Modified:** `app/dashboard/skills/page.tsx` (line 664)
+
+**Fix:** Changed `{skills.length}` to `{skillIds?.length || 0}` to show correct number of skills for the agent.
+
+---
+
+### 📦 Files Modified Summary
+
+| File | Bug(s) Fixed |
+|------|--------------|
+| `app/jobs/create/page.tsx` | #1, #2 |
+| `lib/hooks/useJobs.ts` | #1 |
+| `app/identity/register/page.tsx` | #3 |
+| `app/leaderboard/page.tsx` | #4 |
+| `lib/hooks/useLeaderboard.ts` | #4 |
+| `app/dashboard/skills/page.tsx` | #5 |
+| `lib/contracts/abis.ts` | #1 (verified V7 ABI) |
+
+---
+
+## [2026-04-24] - Random Evaluator Pool + Leaderboard Fix
+
+### 🎯 Random Evaluator Pool
+
+**Removed evaluator address fields** from all job creation forms. Evaluators are now randomly selected from a pool for fair evaluation.
+
+**Changes:**
+
+| Feature | File | Description |
+|---------|------|-------------|
+| **EvaluatorSection** | NEW `components/EvaluatorSection.tsx` | Dashboard component for register/unregister |
+| **Job Creation** | `app/jobs/create/page.tsx` | Removed evaluator address field, added random pool info |
+| **Job Detail** | `app/jobs/[id]/page.tsx` | Shows "Randomly Assigned" badge when evaluator = 0x0... |
+| **Dashboard** | `app/dashboard/page.tsx` | Added EvaluatorSection after ArbiterSection |
+| **Hooks** | `lib/hooks/useJobs.ts` | Added `useCreateJobWithRandomEvaluator()` |
+
+**Contract Function:**
+- `createJobWithRandomEvaluator(address provider, uint256 expiredAt, string description, address hook, bool evaluatorFee, bool clientReview_)` - Uses random pool instead of passed evaluator
+
+**New Hooks:**
+- `useCreateJobWithRandomEvaluator()` - Create jobs with random evaluator
+- `useRegisterAsEvaluator()` - Register as evaluator (0.01 ETH stake)
+- `useUnregisterAsEvaluator()` - Unregister and recover stake
+- `useEvaluatorPoolSize()` - Get pool count
+- `useEvaluatorStatus(address)` - Check if address is evaluator
+
+---
+
+### 🎯 Leaderboard Fix (Phase 2)
+
+**Root Cause:** Leaderboard list was empty even though counter showed 9 agents:
+1. **Pagination bug**: `useKokonutAgents(1, 100, false)` - page=1 skips first 100 agents
+2. **Contract calls failing**: `getAgent()` calls failing because API returns agents not on-chain
+3. **Loading state race**: `isLoading` calc wrong initially showing EmptyState
+
+**Files Modified:**
+| File | Changes |
+|------|---------|
+| `app/leaderboard/page.tsx` | Changed to `useKokonutAgents(0, 100, true)`, added `isScanning` to loading |
+| `lib/hooks/useLeaderboard.ts` | Skip contract calls, use KokonutAgent[] directly |
+| `lib/hooks/useLeaderboard.ts` | Removed source filter (useKokonutAgents already filters) |
+
+**Technical Fix:**
+- Changed `useKokonutAgents(page, itemsPerPage, showAll)` from `(1, 100, false)` to `(0, 100, true)` to fetch first 100 agents
+- `useLeaderboard(kokonutAgents)` now accepts `KokonutAgent[]` directly instead of `bigint[]` - no contract calls needed
+- Added `isScanning` to loading state calculation to properly show LoadingSkeleton
+
+---
+
+### 🎯 Evaluator Fee Toggle
+
+**Added evaluator fee selector** in job creation form:
+- `evaluatorFee` toggle (default: false)
+- `clientReview` toggle (default: true) 
+- Green gradient toggle UI
+- Hook updated to pass 7 parameters to contract
+
+---
+
+### 📦 Files Created
+
+| File | Purpose |
+|------|---------|
+| `components/EvaluatorSection.tsx` | Register/unregister as evaluator from Dashboard |
+
+### 📦 Files Modified
+
+| File | Changes |
+|------|--------|
+| `app/jobs/create/page.tsx` | Removed evaluator field, added evaluatorFee/clientReview toggles |
+| `app/jobs/[id]/page.tsx` | Added "Randomly Assigned" badge for 0x0 evaluator |
+| `app/dashboard/page.tsx` | Added EvaluatorSection |
+| `app/leaderboard/page.tsx` | Fixed pagination + loading state |
+| `lib/hooks/useJobs.ts` | Added evaluator pool hooks |
+| `lib/hooks/useLeaderboard.ts` | Simplified to use KokonutAgent[] directly |
+
+### ✅ Build Status
+
+- TypeScript: **0 errors**
+- Build: **Successful**
+
+---
+
+## [2026-04-23] - Phase 28 Bug Fixes: Service Creation Flow
+
+### 🎯 ServiceRegistryV2 Contract Fix
+
+**Root Cause:** Service creation was reverting because the contract was calling `getAgent()` on the ERC-8004 registry, which doesn't exist. The registry is a standard ERC-721 NFT with `ownerOf()` instead.
+
+**Fix:** Changed `_verifyAgentOwnership()` in ServiceRegistryV2.sol to use `ownerOf()` instead of `getAgent()`:
+
+```solidity
+// Before (fails)
+address owner = identityRegistry.getAgent(agentId);
+
+// After (works)
+address owner = identityRegistry.ownerOf(agentId);
+```
+
+**Updated IIdentityRegistry interface** to include `ownerOf()` function.
+
+**Contract Upgrade:**
+
+| Action | Address |
+|--------|---------|
+| Proxy | `0x62E1eeEa1A2Ab987004F35bDA430457Ed6077201` |
+| New Implementation | `0x457f803758F5c64208D60d23B7e831a13501d8F7` |
+
+### 🎯 Frontend Bug Fixes
+
+Fixed 5 critical issues in the service creation flow at `/marketplace/create`:
+
+| Issue | File | Fix |
+|-------|------|-----|
+| **Button always disabled** | `marketplace/create/page.tsx` | Added `canSubmit` flag for proper button state |
+| **Missing paymentAddress** | `useServices.ts` | Added paymentAddress to createService args |
+| **Missing ETH bond** | `useServices.ts` | Added `value: parseEther('0.01')` for 0.01 ETH bond |
+| **useDebounce async bug** | `useDebounce.ts` | Fixed promise handling for async submission |
+| **useNetworkStatus hook violation** | `useNotificationEvents.ts` | Moved hook call outside useEffect |
+
+### 🎯 Button Styling Consistency
+
+Applied consistent button styling across the app:
+
+- **"Explore Marketplace" style** - Outlined green buttons for form submissions
+- **"Register Agent" style** - Green gradient buttons for primary actions
+
+### 📦 Files Modified
+
+| File | Changes |
+|------|---------|
+| `contracts/shared/ServiceRegistryV2.sol` | Changed getAgent() to ownerOf() |
+| `contracts/interfaces/IIdentityRegistry.sol` | Added ownerOf() function |
+| `lib/hooks/useServices.ts` | Added paymentAddress + ETH bond |
+| `lib/hooks/useDebounce.ts` | Fixed async handling |
+| `lib/hooks/useNotificationEvents.ts` | Fixed hook violation |
+| `app/marketplace/create/page.tsx` | Added canSubmit, button styles |
+
+### ✅ Build Status
+
+- TypeScript: **0 errors**
+- Contract upgrade: **Successfully deployed** (April 23, 2026)
+
+---
+
 ## [2026-04-22] - ENS Integration for Human-Readable Addresses
 
 ### 🎯 ENS Integration
@@ -47,6 +274,39 @@ Added comprehensive ENS (Ethereum Name Service) support for displaying human-rea
 - TypeScript: **0 errors**
 
 ---
+
+### 🐛 Bug Fixes (April 2026)
+
+- Fixed button always disabled - added `paymentAddress` field (BUG #1)
+  - Added paymentAddress to form (defaults to user's wallet, customizable)
+  - Added `validatePaymentAddress` validation function
+  - Created `canSubmit` flag for button enabled state (Option A)
+  - Kept `hasAttemptedSubmit` for showing validation errors on first try (Option B)
+  - Button can now be clicked!
+
+- Fixed missing `paymentAddress` argument in createService (BUG #2)
+  - Added paymentAddress to useCreateService args (7 params instead of 6)
+  - Contract now receives all required arguments
+
+- Fixed service bond (0.01 ETH) not being sent in `createService` transaction
+  - Added `value: parseEther('0.01')` to `useCreateService` hook
+  - Bond is now sent with every service creation transaction
+  - Contract requires bond - transactions were reverting before
+
+- Fixed `useDebounce` hook to properly handle async form submission callbacks
+  - `useFormSubmit` now correctly tracks actual submission state (not just debounce cooldown)
+  - `isSubmitting` now accurately reflects blockchain transaction pending state
+  - UI now shows "Creating..." during actual transaction submission
+
+- Fixed `useNotificationEvents` hook calling `useNetworkStatus` inside `useEffect`
+  - Moved `useNetworkStatus()` call to top level of hook (outside useEffect)
+  - Complies with React Rules of Hooks
+
+- Fixed `useFormSubmit` debounce state tracking
+  - Added proper promise handling in debounced callbacks
+  - Enhanced `useDebounce` to support async operations
+
+- General stability improvements across notification and event processing hooks
 
 ## [2026-04-22] - Bug Fixes & Reliability Improvements
 

@@ -247,7 +247,7 @@ export default function CreateProposalPage() {
                 <button
                   type="submit"
                   disabled={!isConnected || isPending || isConfirming}
-                  className="flex-1 inline-flex items-center justify-center gap-2 px-6 py-3 bg-success text-white font-medium rounded-lg hover:opacity-90 transition-opacity disabled:opacity-50 disabled:cursor-not-allowed"
+                  className="flex-1 inline-flex items-center justify-center gap-2 px-6 py-3 border-2 border-[#009F4D] text-[#009F4D] font-semibold rounded-lg hover:bg-[#009F4D]/5 transition-colors disabled:opacity-50 disabled:cursor-not-allowed"
                 >
                   {isPending || isConfirming ? 'Creating...' : 'Create Proposal'}
                 </button>

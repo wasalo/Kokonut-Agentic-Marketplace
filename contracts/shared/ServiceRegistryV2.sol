@@ -170,13 +170,13 @@ contract ServiceRegistryV2 is
     }
 
     /**
-     * @dev Verify agent ownership and active status using IIdentityRegistry.getAgent()
-     * M2 Fix: Now checks isActive status - deactivated agents cannot create services
+     * @dev Verify agent ownership using standard ERC-721 ownerOf()
+     * Uses ownerOf() instead of getAgent() for compatibility with ERC-721 registry
      */
     function _verifyAgentOwnership(uint256 agentId) internal view returns (address) {
-        (address owner, , , bool isActive) = identityRegistry.getAgent(agentId);
+        // Use ownerOf() instead of getAgent() for compatibility with ERC-721 registry
+        address owner = identityRegistry.ownerOf(agentId);
         require(owner != address(0), "Invalid agent");
-        require(isActive, "Agent inactive"); // M2 Fix: Check active status
         return owner;
     }
     
@@ -353,13 +353,6 @@ contract ServiceRegistryV2 is
         require(success, "Bond refund failed");
         
         emit ServiceBondRefunded(serviceId, provider, bondAmount);
-    }
-    
-    /**
-     * @dev Get service bond amount
-     */
-    function getServiceBond(uint256 serviceId) external view returns (uint256) {
-        return _serviceBonds[serviceId];
     }
     
     // ============ View Functions ============

@@ -26,7 +26,7 @@ export const SERVICE_REGISTRY_ABI = parseAbi([
   'function deactivateService(uint256 serviceId) external',
   'function activateService(uint256 serviceId) external',
   'function setPaymentAddress(uint256 serviceId, address paymentAddress) external',
-  'function getService(uint256 serviceId) external view returns ((uint256 id, address provider, uint256 agentId, string name, string description, string metadataURI, uint256 price, address paymentToken, address paymentAddress, bool isActive, uint256 createdAt))',
+  'function getService(uint256 serviceId) external view returns ((uint256 id, address provider, address paymentAddress, uint256 agentId, string name, string description, string metadataURI, uint256 price, address paymentToken, bool isActive, uint256 createdAt))',
   'function getServices(uint256 start, uint256 count) external view returns (uint256[] memory)',
   'function getActiveServiceCount() external view returns (uint256)',
   'function getProviderServices(address provider) external view returns (uint256[] memory)',

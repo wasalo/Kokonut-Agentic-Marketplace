@@ -7,7 +7,7 @@ import { ArrowLeft, Loader2, ShieldCheck, AlertTriangle, Coins, Users } from 'lu
 import NextLink from 'next/link';
 import { Card } from '@heroui/react';
 import { useService } from '@/lib/hooks/useServices';
-import { useCreateJobFromService, useCreateJob, useCreateOpenJob } from '@/lib/hooks/useJobs';
+import { useCreateJobFromService, useCreateJobWithRandomEvaluator, useCreateJob, useCreateOpenJob } from '@/lib/hooks/useJobs';
 import { CONTRACT_ADDRESSES, getContractAddress } from '@/lib/contracts/config';
 import { AGENTIC_COMMERCE_ABI } from '@/lib/contracts/abis';
 import { validateAddress, validateDeadline, validateStringLength } from '@/lib/hooks/useValidation';
@@ -115,13 +115,14 @@ function CreateJobContent() {
   const platformFeePercent = platformFeeBp ? Number(platformFeeBp) / 100 : 1;
 
   const [provider, setProvider] = useState('');
-  const [evaluator, setEvaluator] = useState('');
   const [deadline, setDeadline] = useState('');
   const [description, setDescription] = useState('');
   const [budget, setBudget] = useState('');
   const [paymentToken, setPaymentToken] = useState<Token>(USDC_TOKEN);
   const [isOpenJob, setIsOpenJob] = useState(false);
   const [useMilestones, setUseMilestones] = useState(false);
+  const [evaluatorFee, setEvaluatorFee] = useState(false);
+  const [clientReview, setClientReview] = useState(true);
   const [maxBudget, setMaxBudget] = useState('');
 
   useEffect(() => {
@@ -133,13 +134,10 @@ function CreateJobContent() {
   }, [providerParam, service?.provider, provider]);
 
   const [providerError, setProviderError] = useState<string | null>(null);
-  const [evaluatorError, setEvaluatorError] = useState<string | null>(null);
   const [deadlineError, setDeadlineError] = useState<string | null>(null);
   const [descriptionError, setDescriptionError] = useState<string | null>(null);
   const [budgetError, setBudgetError] = useState<string | null>(null);
   const [maxBudgetError, setMaxBudgetError] = useState<string | null>(null);
-
-  const effectiveEvaluator = evaluator || address || '0x0000000000000000000000000000000000000000';
 
   const {
     createJobFromService,
@@ -156,13 +154,20 @@ function CreateJobContent() {
   } = useCreateJob();
 
   const {
+    createJobWithRandomEvaluator,
+    hash: randomHash,
+    isPending: isRandomPending,
+    error: randomError,
+  } = useCreateJobWithRandomEvaluator();
+
+  const {
     createOpenJob,
     hash: openHash,
     isPending: isOpenPending,
     error: openError,
   } = useCreateOpenJob();
 
-  const txHash = serviceHash || directHash || openHash;
+  const txHash = serviceHash || directHash || randomHash || openHash;
   const { isLoading: isConfirming, isSuccess: isConfirmed } = useWaitForTransactionReceipt({
     hash: txHash,
   });
@@ -185,19 +190,6 @@ function CreateJobContent() {
       return true;
     },
     [serviceId]
-  );
-
-  const validateEvaluatorField = useCallback(
-    (value: string) => {
-      if (value && value !== address) {
-        const error = validateAddress(value);
-        setEvaluatorError(error);
-        return !error;
-      }
-      setEvaluatorError(null);
-      return true;
-    },
-    [address]
   );
 
   const validateDeadlineField = useCallback((value: string) => {
@@ -296,7 +288,6 @@ function CreateJobContent() {
       }
 
       setProviderError(null);
-      setEvaluatorError(null);
       setDeadlineError(null);
       setDescriptionError(null);
       setBudgetError(null);
@@ -310,24 +301,29 @@ function CreateJobContent() {
         const maxBudgetUsdc = Math.floor(parseFloat(maxBudget) * 1e6);
         createOpenJob(
           BigInt(maxBudgetUsdc),
-          effectiveEvaluator as `0x${string}`,
+          '0x0000000000000000000000000000000000000000',
           deadlineTs,
           description || 'Open job - bid for this work',
-          paymentToken.address
+          paymentToken.address,
+          evaluatorFee
         );
       } else if (serviceId && service) {
         createJobFromService(
           serviceId,
-          effectiveEvaluator as `0x${string}`,
+          '0x0000000000000000000000000000000000000000',
           deadlineTs,
-          description || `Job for ${service.name}`
+          description || `Job for ${service.name}`,
+          '0x0000000000000000000000000000000000000',
+          evaluatorFee
         );
       } else {
-        createJob(
+        createJobWithRandomEvaluator(
           provider as `0x${string}`,
-          effectiveEvaluator as `0x${string}`,
           deadlineTs,
-          description || 'Direct job'
+          description || 'Direct job',
+          '0x0000000000000000000000000000000000000000',
+          evaluatorFee,
+          clientReview
         );
       }
     },
@@ -338,7 +334,6 @@ function CreateJobContent() {
       service,
       deadline,
       description,
-      effectiveEvaluator,
       provider,
       budget,
       maxBudget,
@@ -352,17 +347,18 @@ function CreateJobContent() {
       createJobFromService,
       createJob,
       createOpenJob,
+      evaluatorFee,
+      clientReview,
     ]
   );
 
   const { handleSubmit, isSubmitting, timeUntilNextSubmit } = useFormSubmit(performSubmit, 2000);
 
-  const isFormLoading = isServicePending || isDirectPending || isOpenPending || isConfirming;
-  const error = serviceError || directError || openError;
+  const isFormLoading = isServicePending || isDirectPending || isRandomPending || isOpenPending || isConfirming;
+  const error = serviceError || directError || randomError || openError;
 
   const isFormValid =
     !providerError &&
-    !evaluatorError &&
     !deadlineError &&
     !descriptionError &&
     !budgetError &&
@@ -525,41 +521,42 @@ function CreateJobContent() {
                         useMilestones ? 'translate-x-6' : 'translate-x-1'
                       }`}
                     />
-                  </button>
-                </div>
+                </button>
+              </div>
 
-                <PaymentTokenSelector
+              {/* Evaluator Fee Toggle */}
+              <div className="flex items-start gap-4 p-4 bg-primary/5 border border-primary/20 rounded-lg">
+                <div className="flex-1">
+                  <div className="flex items-center gap-2">
+                    <ShieldCheck className="w-5 h-5 text-primary" />
+                    <span className="font-medium">Evaluator Fee (1%)</span>
+                  </div>
+                  <p className="text-sm text-default-500 mt-1">
+                    Pay evaluator an additional 1% fee from the job budget.
+                  </p>
+                </div>
+                <button
+                  type="button"
+                  onClick={() => setEvaluatorFee(!evaluatorFee)}
+                  className={`relative inline-flex h-6 w-11 items-center rounded-full transition-colors ${
+                    evaluatorFee ? 'bg-primary' : 'bg-default-300'
+                  }`}
+                >
+                  <span
+                    className={`inline-block h-4 w-4 transform rounded-full bg-white shadow-lg transition-transform ${
+                      evaluatorFee ? 'translate-x-6' : 'translate-x-1'
+                    }`}
+                  />
+                </button>
+              </div>
+
+              <PaymentTokenSelector
                   selectedToken={paymentToken}
                   onSelect={setPaymentToken}
                   disabled={isFormLoading}
                 />
               </>
             )}
-
-            <div className="space-y-2">
-              <label htmlFor="evaluator" className="text-sm font-medium">
-                Evaluator Address
-              </label>
-              <AddressInput
-                value={evaluator}
-                onChange={e => {
-                  setEvaluator(e);
-                  validateEvaluatorField(e);
-                }}
-                onBlur={() => validateEvaluatorField(evaluator)}
-                placeholder={address || '0x... (optional)'}
-                error={evaluatorError}
-                showValidation={false}
-                resolveEns={true}
-              />
-              {evaluatorError ? (
-                <p className="text-xs text-danger">{evaluatorError}</p>
-              ) : (
-                <p className="text-xs text-default-400">
-                  Who approves/rejects the work? Defaults to your address.
-                </p>
-              )}
-            </div>
 
             {!serviceId && !isOpenJob && (
               <div className="space-y-2">
@@ -581,6 +578,17 @@ function CreateJobContent() {
                 {providerError && <p className="text-xs text-danger">{providerError}</p>}
               </div>
             )}
+
+            <div className="p-4 bg-primary/5 border border-primary/20 rounded-lg">
+              <div className="flex items-center gap-2">
+                <ShieldCheck className="w-5 h-5 text-primary" />
+                <span className="font-medium">Random Evaluator Pool</span>
+              </div>
+              <p className="text-sm text-default-500 mt-1">
+                An evaluator will be randomly selected from the registered pool for fair evaluation.
+                {evaluatorFee && <span className="text-primary font-medium"> (+1% evaluator fee)</span>}
+              </p>
+            </div>
 
             {!serviceId && !isOpenJob && (
               <div className="space-y-2">
@@ -761,7 +769,7 @@ function CreateJobContent() {
               <button
                 type="submit"
                 disabled={!isConnected || isFormLoading || !isFormValid || isSubmitting || isAtLimit}
-                className="flex-1 inline-flex items-center justify-center gap-2 px-6 py-3 bg-gradient-to-r from-[#009F4D] to-[#00c853] text-white rounded-lg font-medium hover:opacity-90 transition-opacity disabled:opacity-50 disabled:cursor-not-allowed"
+                className="flex-1 inline-flex items-center justify-center gap-2 px-6 py-3 border-2 border-[#009F4D] text-[#009F4D] rounded-lg font-semibold hover:bg-[#009F4D]/5 transition-colors disabled:opacity-50 disabled:cursor-not-allowed"
               >
                 {isFormLoading ? (
                   <>

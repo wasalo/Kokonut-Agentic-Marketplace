@@ -25,7 +25,7 @@ import {
   CircleDot,
   Link,
 } from 'lucide-react';
-import { Card } from '@heroui/react';
+import { Card, Chip } from '@heroui/react';
 import { formatUnits, toHex, keccak256 } from 'viem';
 import {
   useJob,
@@ -481,10 +481,21 @@ export default function JobDetailPage({
             </div>
             <div>
               <p className="text-default-400 uppercase tracking-wide">Evaluator</p>
-              <Address address={job.evaluator as `0x${string}`} truncate className="mt-0.5" />
-              {isEvaluator && <span className="text-primary">(You)</span>}
-              {isEvaluatorFeeEnabled && (
-                <span className="block text-xs text-success mt-1">+1% evaluator fee</span>
+              {job.evaluator === '0x0000000000000000000000000000000000000000' ? (
+                <div className="flex items-center gap-2 mt-0.5">
+                  <span className="text-sm bg-primary/20 text-primary px-2 py-0.5 rounded">Randomly Assigned</span>
+                  {isEvaluatorFeeEnabled && (
+                    <span className="block text-xs text-success">+1% evaluator fee</span>
+                  )}
+                </div>
+              ) : (
+                <>
+                  <Address address={job.evaluator as `0x${string}`} truncate className="mt-0.5" />
+                  {isEvaluator && <span className="text-primary">(You)</span>}
+                  {isEvaluatorFeeEnabled && (
+                    <span className="block text-xs text-success mt-1">+1% evaluator fee</span>
+                  )}
+                </>
               )}
             </div>
           </div>

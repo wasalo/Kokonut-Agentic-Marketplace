@@ -223,8 +223,7 @@ function LoadingSkeleton() {
 }
 
 export default function LeaderboardPage() {
-  const { agents, isLoading: isLoadingAgents, totalCount } = useKokonutAgents(1, 100, false);
-  const agentIds = useMemo(() => agents.map(a => BigInt(a.id.toString())), [agents]);
+  const { agents, isLoading: isLoadingAgents, totalCount, isScanning } = useKokonutAgents(0, 100, true);
 
   const {
     entries,
@@ -233,9 +232,9 @@ export default function LeaderboardPage() {
     setPeriod,
     lastUpdated,
     refresh,
-  } = useLeaderboard(agentIds);
+  } = useLeaderboard(agents);
 
-  const isLoading = isLoadingAgents || isLoadingLeaderboard;
+  const isLoading = isLoadingAgents || isScanning || isLoadingLeaderboard;
 
   return (
     <div className="container mx-auto px-4 py-8">

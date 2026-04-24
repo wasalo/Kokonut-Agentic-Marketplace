@@ -1,6 +1,7 @@
 import { useReadContract, useReadContracts, useWriteContract, usePublicClient } from 'wagmi';
 import { useQuery } from '@tanstack/react-query';
 import { useState, useEffect, useCallback } from 'react';
+import { parseEther } from 'viem';
 import { SERVICE_REGISTRY_ABI } from '@/lib/contracts/abis';
 import { getContractAddress } from '@/lib/contracts/config';
 import { getQueryConfig } from '@/lib/queryConfig';
@@ -8,6 +9,7 @@ import { debugLog, debugError } from '@/lib/debug';
 import type { Service } from '@/lib/types/contracts';
 
 const SERVICE_REGISTRY_ADDRESS = getContractAddress('SERVICE_REGISTRY');
+const SERVICE_BOND_AMOUNT = parseEther('0.01');
 
 export type { Service };
 
@@ -248,6 +250,7 @@ export function useCreateService() {
       metadataURI: string;
       price: bigint;
       paymentToken: `0x${string}`;
+      paymentAddress: `0x${string}`;
     }) => {
       const tx = await writeContract({
         address: SERVICE_REGISTRY_ADDRESS,
@@ -260,7 +263,9 @@ export function useCreateService() {
           args.metadataURI,
           args.price,
           args.paymentToken,
+          args.paymentAddress,
         ],
+        value: SERVICE_BOND_AMOUNT,
       });
       return tx;
     },
