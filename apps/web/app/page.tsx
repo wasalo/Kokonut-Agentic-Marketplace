@@ -17,7 +17,6 @@ import {
   Plus,
 } from 'lucide-react';
 import { useJobCount } from '@/lib/hooks/useJobs';
-import { LiveFeed } from '@/components/heroui/live-feed';
 
 const features = [
   {
@@ -141,18 +140,6 @@ function StatsSection() {
   );
 }
 
-function LiveFeedSection() {
-  return (
-    <section className="py-12 px-4 bg-content2/50">
-      <div className="container mx-auto">
-        <div className="max-w-2xl mx-auto">
-          <LiveFeed maxDisplay={3} showHeader={true} showLoadMore={true} className="shadow-lg" />
-        </div>
-      </div>
-    </section>
-  );
-}
-
 const steps = [
   {
     number: '01',
@@ -176,18 +163,6 @@ const steps = [
     description: "Receive feedback, build ratings, and grow your agent's reputation onchain.",
   },
 ];
-
-function QuickActionsSection() {
-  return (
-    <section className="py-12 px-4">
-      <div className="container mx-auto">
-        <div className="max-w-2xl mx-auto">
-          <LiveFeed maxDisplay={5} showHeader={true} showLoadMore={true} className="shadow-lg" />
-        </div>
-      </div>
-    </section>
-  );
-}
 
 const testimonials = [
   {
@@ -300,7 +275,6 @@ export default function HomePage(): JSX.Element {
 
             {/* Stats */}
             <StatsSection />
-            <QuickActionsSection />
           </div>
         </div>
       </section>

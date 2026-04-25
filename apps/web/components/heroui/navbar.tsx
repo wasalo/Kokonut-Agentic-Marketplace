@@ -27,19 +27,8 @@ const primaryNavLinks = [
   { name: 'Marketplace', href: '/marketplace', description: 'Discover services' },
   { name: 'Jobs', href: '/jobs', description: 'Find work' },
   { name: 'Identity', href: '/identity', description: 'Agent directory' },
-  { name: 'Leaderboard', href: '/leaderboard', description: 'Top agents' },
-  { name: 'Networks', href: '/networks', description: 'Multi-chain' },
-];
-
-const moreLinks = [
-  { name: 'Activity', href: '/activity', description: 'Recent events' },
-  { name: 'Analytics', href: '/analytics', description: 'Platform metrics' },
-  { name: 'Integrations', href: '/integrations', description: 'MCP, webhooks, email' },
-  { name: 'Webhooks', href: '/dashboard/webhooks', description: 'HTTP callbacks' },
   { name: 'Review', href: '/review', description: 'Evaluation proposals' },
   { name: 'Bidding', href: '/bidding', description: 'Bidding sessions' },
-  { name: 'Admin', href: '/admin', description: 'Contract settings' },
-  { name: 'About', href: '/about', description: 'About Kokonut' },
 ];
 
 export function NavbarComponent(): JSX.Element {
@@ -96,26 +85,6 @@ export function NavbarComponent(): JSX.Element {
                 Dashboard
               </NextLink>
             )}
-            <div className="relative group">
-              <button className="flex items-center gap-1 px-3 py-2 text-sm text-foreground hover:bg-content2 rounded-lg transition-colors">
-                More
-                <ChevronDown className="w-3 h-3" />
-              </button>
-              <div className="absolute top-full left-0 pt-2 opacity-0 invisible group-hover:opacity-100 group-hover:visible transition-all">
-                <div className="bg-background/95 backdrop-blur-md border border-divider rounded-lg shadow-lg py-1 min-w-[160px]">
-                  {moreLinks.map(link => (
-                    <NextLink
-                      key={link.name}
-                      href={link.href}
-                      className="block px-4 py-2 text-sm text-foreground hover:bg-content3 transition-colors"
-                    >
-                      <span className="block font-medium">{link.name}</span>
-                      <span className="block text-xs text-default-500">{link.description}</span>
-                    </NextLink>
-                  ))}
-                </div>
-              </div>
-            </div>
           </div>
 
           <div className="flex items-center gap-2">
@@ -167,22 +136,6 @@ export function NavbarComponent(): JSX.Element {
                 Dashboard
               </NextLink>
             )}
-            <div className="px-4 py-2 text-xs font-semibold text-default-500 uppercase tracking-wider mt-2">
-              Tools
-            </div>
-            {moreLinks.map(link => (
-              <NextLink
-                key={link.name}
-                href={link.href}
-                className="block px-4 py-2 text-sm text-foreground hover:bg-content2 rounded-lg transition-colors"
-                onClick={closeMenu}
-              >
-                {link.name}
-              </NextLink>
-            ))}
-            <div className="pt-4 px-4">
-              <ConnectButton />
-            </div>
           </div>
         )}
       </nav>

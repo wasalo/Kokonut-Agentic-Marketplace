@@ -24,6 +24,7 @@ const footerLinks = {
     { name: 'Networks', href: '/networks', icon: Globe },
   ],
   tools: [
+    { name: 'Webhooks', href: '/dashboard/webhooks', icon: Plug },
     { name: 'Activity', href: '/activity', icon: Activity },
     { name: 'Analytics', href: '/analytics', icon: BarChart3 },
     { name: 'Integrations', href: '/integrations', icon: Plug },
@@ -38,6 +39,7 @@ const footerLinks = {
   resources: [
     { name: 'GitHub', href: 'https://github.com/wasalo/Kokonut-Agentic-Marketplace', icon: Code2 },
     { name: 'Smart Contracts', href: '/contracts', icon: Code2 },
+    { name: 'About', href: '/about', icon: Globe },
   ],
 };
 
