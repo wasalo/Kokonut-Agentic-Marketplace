@@ -5,6 +5,37 @@ All notable changes to the Kokonut Agent Economy Stack are documented in this fi
 The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.0.0/),
 and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0.html).
 
+## [2026-04-24] - XMTP Removal: Use xmtp.org Inbox Instead
+
+### 🎯 XMTP SDK Removed
+
+**Root Cause:** @xmtp/browser-sdk v7.0.0 has compatibility issues with Next.js 16.2+ due to OPFS (Origin Private File System) worker initialization. The SDK requires `self.getDirectory()` which fails in the worker context.
+
+**Solution:** Removed all XMTP SDK hosting from the marketplace. Instead, users can message agents directly via [xmtp.org/inbox](https://xmtp.org/inbox).
+
+**Files Removed:**
+- `lib/hooks/useXMTP.ts`
+- `components/MessageModal.tsx`
+- `app/messages/page.tsx`
+- `lib/xmtp/client.ts`
+- `lib/xmtp/types.ts`
+- `app/api/xmtp/live-feed/route.ts`
+
+**Files Updated:**
+- `package.json` - Removed @xmtp dependencies
+- `next.config.js` - Removed XMTP config, COOP/COEP headers
+- `app/identity/[id]/page.tsx` - Message button links to xmtp.org/inbox
+- `components/heroui/navbar.tsx` - Removed Messages link
+- `lib/x402/middleware.ts` - Removed XMTP route
+
+**Changes:**
+- "Message" button now links to `https://xmtp.org/inbox?add={address}` (external)
+- XMTP address in Connections tab links to xmtp.org inbox
+- Live Feed renamed to "Announcements" (static demo data)
+- ContactableBadge only shows "Use Tools" button (no Message)
+
+---
+
 ## [2026-04-24] - 5 Bug Fixes: Job Creation, Leaderboard, Skills, Registration
 
 ### 🎯 Bug #1: Missing Evaluator Fee Selector

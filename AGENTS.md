@@ -146,8 +146,9 @@
 >   - **NetworkSelector UI**: Dropdown to switch between chains
 >   - **useNetworkParam Hook**: Query-param based network state (`?chainId=`)
 >   - **RPC Configs**: Ready for 21 chains (Sepolia deployed, others placeholder)
-> - **Phase 21: XMTP Integration (April 14, 2026) [RELEASED]**:
->   - **P2P Messaging**: Real XMTP integration via @xmtp/browser-sdk
+> - **Phase 21: XMTP Integration (April 14, 2026) [REMOVED]**:
+>   - ~~**P2P Messaging**: Real XMTP integration via @xmtp/browser-sdk~~ (Removed - SDK compatibility issues with Next.js 16.2+)
+>   - **Alternative**: Agents with XMTP in their metadata can be messaged via [xmtp.org/inbox](https://xmtp.org/inbox)
 > - **Phase 20: Monorepo Migration & OWS (April 13, 2026) [RELEASED]**:
 >   - **viem v2 Standard**: Full migration from ethers to viem v2 across SDK and CLI
 >   - **OWS Integration**: Official `@open-wallet-standard/core` integration for all agents

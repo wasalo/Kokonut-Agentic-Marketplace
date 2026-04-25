@@ -98,32 +98,19 @@ export function SingleChannelBadge({
 
 interface ContactableBadgeProps {
   channels: AgentChannels['channels'];
-  onMessageClick?: () => void;
   onToolsClick?: () => void;
 }
 
 export function ContactableBadge({
   channels,
-  onMessageClick,
   onToolsClick,
 }: ContactableBadgeProps) {
-  const hasXMTP = !!channels.xmtp;
   const hasTools = !!channels.a2a || !!channels.mcp;
 
-  if (!hasXMTP && !hasTools) return null;
+  if (!hasTools) return null;
 
   return (
     <div className="flex gap-2">
-      {hasXMTP && (
-        <button
-          type="button"
-          onClick={onMessageClick}
-          className="flex items-center gap-1.5 px-3 py-1.5 bg-purple-100 hover:bg-purple-200 text-purple-700 rounded-lg transition-colors text-sm font-medium"
-        >
-          <span>💬</span>
-          <span>Message</span>
-        </button>
-      )}
       {hasTools && (
         <button
           type="button"

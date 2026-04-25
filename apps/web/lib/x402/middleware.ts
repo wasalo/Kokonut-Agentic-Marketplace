@@ -44,7 +44,6 @@ const X402_ROUTE_CONFIGS: X402RouteConfig[] = [
   { path: '/api/emails/preferences', scheme: 'exact', amount: '1000', description: 'Update email prefs' },
   { path: '/api/cron/events', scheme: 'exact', amount: '1000', description: 'Event watcher' },
   { path: '/api/cron/digest', scheme: 'exact', amount: '5000', description: 'Weekly digest' },
-  { path: '/api/xmtp/live-feed', scheme: 'upto', amount: '50000', max: '100000', description: 'XMTP live feed' },
   { path: '/api/health', scheme: 'exact', amount: '0', description: 'Health check', tierExempt: ['free', 'anonymous'] },
   { path: '/api/swagger', scheme: 'exact', amount: '0', description: 'Swagger docs', tierExempt: ['free', 'anonymous'] },
   { path: '/api/csp-report', scheme: 'exact', amount: '1000', description: 'CSP report' },

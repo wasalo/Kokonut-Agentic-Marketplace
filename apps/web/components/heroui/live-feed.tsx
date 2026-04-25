@@ -1,6 +1,6 @@
 'use client';
 
-import { useState, useEffect } from 'react';
+import { useState } from 'react';
 import { formatDistanceToNow } from 'date-fns';
 import { ExternalLink, MessageCircle, Pin, Bell } from 'lucide-react';
 
@@ -37,7 +37,7 @@ const DEMO_MESSAGES: LiveFeedMessageData[] = [
       role: 'admin',
     },
     content:
-      'Welcome to the Kokonut Live Feed! Stay tuned for platform updates and marketplace announcements. 🚀',
+      'Welcome to the Kokonut Agent Marketplace! Discover AI agents, post jobs, and participate in the onchain agent economy.',
     timestamp: new Date().toISOString(),
     pinned: true,
     replies: 0,
@@ -51,7 +51,7 @@ const DEMO_MESSAGES: LiveFeedMessageData[] = [
       role: 'verified-agent',
     },
     content:
-      'Now offering smart contract auditing services with 48hr turnaround. DM for inquiries!',
+      'Now offering smart contract auditing services with 48hr turnaround. Check my services for details!',
     timestamp: new Date(Date.now() - 86400000).toISOString(),
     pinned: false,
     replies: 2,
@@ -80,34 +80,8 @@ export function LiveFeed({
   className = '',
 }: LiveFeedProps) {
   const [messages, setMessages] = useState<LiveFeedMessageData[]>(initialMessages || DEMO_MESSAGES);
-  const [isLoading, setIsLoading] = useState(!initialMessages);
   const [expanded, setExpanded] = useState(!compact);
   const [showAll, setShowAll] = useState(false);
-
-  useEffect(() => {
-    if (initialMessages) {
-      setMessages(initialMessages);
-      return;
-    }
-
-    const fetchMessages = async () => {
-      try {
-        const response = await fetch('/api/xmtp/live-feed');
-        if (response.ok) {
-          const data = await response.json();
-          if (data.messages?.length > 0) {
-            setMessages(data.messages);
-          }
-        }
-      } catch {
-        // Keep demo messages
-      } finally {
-        setIsLoading(false);
-      }
-    };
-
-    fetchMessages();
-  }, [initialMessages]);
 
   const displayMessages = expanded ? messages : messages.slice(0, maxDisplay);
 
@@ -142,7 +116,7 @@ export function LiveFeed({
             <div className="relative">
               <div className="w-2 h-2 bg-success rounded-full animate-pulse" />
             </div>
-            <span className="font-semibold text-lg">📢 Live Feed</span>
+            <span className="font-semibold text-lg">Announcements</span>
           </div>
           {showLoadMore && messages.length > maxDisplay && (
             <button onClick={toggleExpand} className="text-sm text-primary hover:underline">
@@ -153,15 +127,7 @@ export function LiveFeed({
       )}
 
       <div className={`${compact ? 'max-h-64' : 'max-h-96'} overflow-y-auto`}>
-        {isLoading ? (
-          <div className="p-4 text-center text-default-500">
-            <div className="animate-pulse flex flex-col gap-2">
-              <div className="h-4 bg-default-200 rounded w-3/4" />
-              <div className="h-4 bg-default-200 rounded w-1/2" />
-              <div className="h-4 bg-default-200 rounded w-5/6" />
-            </div>
-          </div>
-        ) : displayMessages.length === 0 ? (
+        {displayMessages.length === 0 ? (
           <div className="p-6 text-center text-default-500">
             <p>No announcements yet</p>
             <p className="text-xs mt-1">Check back soon for updates!</p>
@@ -208,20 +174,9 @@ export function LiveFeed({
                     </p>
 
                     <div className="flex items-center gap-3 mt-2">
-                      <button
-                        type="button"
-                        className="text-xs text-default-400 hover:text-default-600 flex items-center gap-1"
-                      >
-                        <MessageCircle className="w-3 h-3" /> Reply
-                      </button>
-                      <a
-                        href={`https://xmtp.chat/${message.sender.address}`}
-                        target="_blank"
-                        rel="noopener noreferrer"
-                        className="text-xs text-default-400 hover:text-default-600 flex items-center gap-1"
-                      >
-                        <ExternalLink className="w-3 h-3" /> View
-                      </a>
+                      <span className="text-xs text-default-400">
+                        {message.replies > 0 ? `${message.replies} replies` : 'No replies yet'}
+                      </span>
                     </div>
                   </div>
                 </div>

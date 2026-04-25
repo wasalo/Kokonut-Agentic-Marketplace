@@ -9,6 +9,7 @@ import { useAgentOwner, useAgentTokenURI } from '@/lib/hooks/useAgents';
 import { useAgentServices } from '@/lib/hooks/useServices';
 import { useJobs } from '@/lib/hooks/useJobs';
 import { useAgentSkills } from '@/lib/hooks/useSkills';
+import { useAccount } from 'wagmi';
 import { formatAddress } from '@/lib/utils';
 import { 
   Wallet, 
@@ -42,6 +43,7 @@ function AgentHeader({
   metadata: any;
 }) {
   const [copied, setCopied] = useState(false);
+  const { isConnected } = useAccount();
   
   const agentName = metadata?.name || `Agent #${agentId}`;
   const agentDescription = metadata?.description || '';
@@ -91,7 +93,7 @@ function AgentHeader({
           )}
           
           {/* Communication Channels - Compact badges */}
-          {(metadata?.endpoints?.mcp || metadata?.endpoints?.a2a || metadata?.channels?.xmtp || metadata?.channels?.email || metadata?.channels?.webhook) && (
+          {(metadata?.endpoints?.mcp || metadata?.endpoints?.a2a || metadata?.channels?.email || metadata?.channels?.webhook) && (
             <div className="flex flex-wrap gap-1.5 md:gap-2 mb-3 md:mb-4">
               {metadata?.endpoints?.mcp && (
                 <Badge className="text-xs flex items-center gap-1">
@@ -101,11 +103,6 @@ function AgentHeader({
               {metadata?.endpoints?.a2a && (
                 <Badge className="text-xs flex items-center gap-1">
                   <Plug className="w-3 h-3" /> A2A
-                </Badge>
-              )}
-              {metadata?.channels?.xmtp && (
-                <Badge className="text-xs flex items-center gap-1">
-                  <MessageSquare className="w-3 h-3" /> XMTP
                 </Badge>
               )}
               {metadata?.channels?.email && (
@@ -420,7 +417,7 @@ function ConnectionsTab({ metadata, owner }: { metadata: any; owner: `0x${string
   const endpoints = metadata?.endpoints || {};
   const channels = metadata?.channels || {};
   
-  const hasConnections = endpoints.https || endpoints.mcp || endpoints.a2a || channels.xmtp || channels.email || channels.webhook;
+  const hasConnections = endpoints.https || endpoints.mcp || endpoints.a2a || channels.email || channels.webhook;
   
   if (!hasConnections) {
     return (
@@ -429,7 +426,7 @@ function ConnectionsTab({ metadata, owner }: { metadata: any; owner: `0x${string
           <Plug className="w-10 h-10 md:w-12 md:h-12 text-default-400 mx-auto mb-3 md:mb-4" />
           <p className="text-default-500 text-sm md:text-base">No connections configured</p>
           <p className="text-default-400 text-xs md:text-sm mt-2">
-            Add endpoints to your agent metadata to enable MCP, A2A, XMTP, email, or webhooks
+            Add endpoints to your agent metadata to enable MCP, A2A, email, or webhooks
           </p>
         </div>
       </Card>
@@ -492,7 +489,7 @@ function ConnectionsTab({ metadata, owner }: { metadata: any; owner: `0x${string
       )}
       
       {/* Channels */}
-      {(channels.xmtp || channels.email || channels.webhook) && (
+      {(channels.email || channels.webhook) && (
         <Card className="bg-content2 border-divider">
           <div className="p-3 md:p-5">
             <h3 className="font-semibold mb-3 md:mb-4 flex items-center gap-2 text-sm md:text-base">
@@ -500,12 +497,6 @@ function ConnectionsTab({ metadata, owner }: { metadata: any; owner: `0x${string
               Communication Channels
             </h3>
             <div className="space-y-2 md:space-y-3">
-              {channels.xmtp && (
-                <div className="flex justify-between items-center gap-2">
-                  <span className="text-default-500 text-xs md:text-sm">XMTP</span>
-                  <span className="font-mono text-xs md:text-sm text-foreground truncate max-w-[120px] md:max-w-none">{channels.xmtp}</span>
-                </div>
-              )}
               {channels.email && (
                 <div className="flex justify-between items-center gap-2">
                   <span className="text-default-500 text-xs md:text-sm">Email</span>
@@ -543,9 +534,9 @@ function ConnectionsTab({ metadata, owner }: { metadata: any; owner: `0x${string
                 <Badge key={i} className="text-xs">{proto.toUpperCase()}</Badge>
               ))}
             </div>
-          </div>
-        </Card>
-      )}
+</div>
+      </Card>
+    )}
     </div>
   );
 }
