@@ -172,7 +172,8 @@ export default function CreateBiddingSessionPage(): JSX.Element {
             <div className="relative">
               <DollarSign className="absolute left-3 top-1/2 -translate-y-1/2 w-4 h-4 text-default-400" />
               <input
-                type="number"
+                type="text"
+                inputMode="decimal"
                 value={maxBudget}
                 onChange={e => setMaxBudget(e.target.value)}
                 placeholder="0.0"
@@ -291,6 +292,7 @@ export default function CreateBiddingSessionPage(): JSX.Element {
             <button
               type="submit"
               disabled={
+                !isConnected ||
                 isPending ||
                 isConfirming ||
                 !maxBudget ||

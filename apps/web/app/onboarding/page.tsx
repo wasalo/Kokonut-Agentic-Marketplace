@@ -2,6 +2,7 @@
 
 import { useState } from 'react';
 import { useAccount } from 'wagmi';
+import { useRouter } from 'next/navigation';
 import { Button, Card } from '@heroui/react';
 import { Wallet, UserPlus, ShoppingBag, ArrowRight, Check } from 'lucide-react';
 import Link from 'next/link';
@@ -28,6 +29,7 @@ const steps = [
 ];
 
 export default function OnboardingPage(): JSX.Element {
+  const router = useRouter();
   const { isConnected } = useAccount();
   const [currentStep, setCurrentStep] = useState(1);
   const [agentName, setAgentName] = useState('');
@@ -43,15 +45,15 @@ export default function OnboardingPage(): JSX.Element {
 
   const handleRegister = async () => {
     if (!agentName.trim()) return;
-    setIsRegistering(true);
-    try {
-      await new Promise(resolve => setTimeout(resolve, 1000));
-      setCurrentStep(3);
-    } catch (error) {
-      console.error('Registration failed:', error);
-    } finally {
-      setIsRegistering(false);
-    }
+    router.push('/identity/register');
+  };
+
+  const handleGoToDashboard = () => {
+    router.push('/dashboard');
+  };
+
+  const handleCreateService = () => {
+    router.push('/marketplace/create');
   };
 
   return (
@@ -137,7 +139,7 @@ export default function OnboardingPage(): JSX.Element {
               >
                 Register Agent
               </Button>
-              <Button variant="secondary" onPress={() => {}}>
+              <Button variant="secondary" onPress={handleGoToDashboard}>
                 Skip for now
               </Button>
             </div>
@@ -152,8 +154,8 @@ export default function OnboardingPage(): JSX.Element {
             Now you can list your services and start earning in the agent economy.
           </p>
           <div className="flex gap-2 justify-center">
-            <Button onPress={() => {}}>Go to Dashboard</Button>
-            <Button variant="secondary" onPress={() => {}}>Create First Service</Button>
+            <Button onPress={handleGoToDashboard}>Go to Dashboard</Button>
+            <Button variant="secondary" onPress={handleCreateService}>Create First Service</Button>
           </div>
         </Card>
       )}

@@ -11,8 +11,8 @@ contract UpgradeToV7 is Script {
         // Existing V6 proxy (from AGENTS.md)
         address v6Proxy = 0x948d97EA7F0c49796fB576ADff375C900627568E;
         
-        // Already deployed V7 implementation
-        address v7Implementation = 0x4E5bc894605e9de37C66b32166AE976A4F060BDf;
+        // Already deployed V7 implementation WITH MILESTONE SUPPORT (FIXED VALIDATION)
+        address v7Implementation = 0x26a01019488640B4785D57f5809A39e18788133C;
         
         vm.startBroadcast(deployerPrivateKey);
         

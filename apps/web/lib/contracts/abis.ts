@@ -97,9 +97,7 @@ export const AGENTIC_COMMERCE_ABI = parseAbi([
   'function initialize(address treasury_) external',
   'function createJob(address provider, address evaluator, uint256 expiredAt, string description, address hook, bool evaluatorFee) external returns (uint256 jobId)',
   'function createJobFromService(uint256 serviceId, address evaluator, uint256 expiredAt, string description, address hook, bool evaluatorFee) external returns (uint256 jobId)',
-  'function createJobWithRandomEvaluator(address provider, uint256 expiredAt, string description, address hook, bool evaluatorFee) external returns (uint256 jobId)',
-  // V7: createJob with client review flag
-  'function createJob(address provider, address evaluator, uint256 expiredAt, string description, address hook, bool evaluatorFee, bool clientReview) external returns (uint256 jobId)',
+  // V7: createJob with client review flag (6 params)
   'function createJobWithRandomEvaluator(address provider, uint256 expiredAt, string description, address hook, bool evaluatorFee, bool clientReview) external returns (uint256 jobId)',
   'function fund(uint256 jobId, uint256 expectedBudget) external payable',
   'function submit(uint256 jobId, bytes32 deliverable) external',

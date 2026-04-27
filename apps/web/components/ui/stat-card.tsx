@@ -12,6 +12,10 @@ interface StatCardProps {
   padding?: 'sm' | 'md' | 'lg';
   icon?: React.ComponentType<{ className?: string }>;
   subtext?: string;
+  sourceLink?: {
+    href: string;
+    label?: string;
+  };
 }
 
 const paddingMap = {
@@ -28,6 +32,7 @@ export const StatCard = memo(function StatCard({
   padding = 'md',
   icon: Icon,
   subtext,
+  sourceLink,
 }: StatCardProps) {
   const content = (
     <>
@@ -35,7 +40,19 @@ export const StatCard = memo(function StatCard({
       {isLoading ? (
         <div className="h-8 w-16 bg-content3 rounded animate-pulse mt-2" />
       ) : (
-        <div className="text-2xl font-bold mt-1">{value}</div>
+        <div className="flex items-center gap-2 mt-1">
+          <span className="text-2xl font-bold">{value}</span>
+          {sourceLink && (
+            <a
+              href={sourceLink.href}
+              target="_blank"
+              rel="noopener noreferrer"
+              className="text-xs text-primary hover:underline"
+            >
+              {sourceLink.label || 'View'}
+            </a>
+          )}
+        </div>
       )}
       {subtext && !isLoading && <p className="text-xs text-default-400 mt-1">{subtext}</p>}
     </>

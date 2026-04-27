@@ -784,7 +784,7 @@ export default function CreateServicePage() {
               <Button
                 type="submit"
                 className="w-full border-2 border-[#009F4D] text-[#009F4D] hover:bg-[#009F4D]/5 font-semibold"
-                isDisabled={isServicePending || isServiceConfirming || !canSubmit}
+                isDisabled={!isConnected || isServicePending || isServiceConfirming || !canSubmit}
               >
                 {isServicePending || isServiceConfirming 
                   ? <><Loader2 className="w-4 h-4 mr-2 animate-spin" />Creating...</> 

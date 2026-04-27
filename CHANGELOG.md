@@ -5,6 +5,72 @@ All notable changes to the Kokonut Agent Economy Stack are documented in this fi
 The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.0.0/),
 and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0.html).
 
+## [2026-04-27] - Job Creation Fix & UI Cleanup
+
+### 🎯 Contract Validation Bug Fix
+
+**Root Cause:** `createJobWithRandomEvaluator` was passing `evaluator = address(0)` but `_validateJobCreation` rejected it with `ZeroAddress()` error.
+
+**Fix:** Modified `_validateJobCreation` in `AgenticCommerceV7.sol` to allow `address(0)` for evaluator (random selection):
+
+```solidity
+// Before: Always revert if evaluator = address(0)
+if (evaluator == address(0)) revert ZeroAddress();
+
+// After: Allow for random evaluator selection
+if (evaluator != address(0)) {
+    if (_msgSender() == evaluator) revert RolesMustBeDistinct();
+    if (provider == evaluator) revert RolesMustBeDistinct();
+}
+```
+
+**Contract Upgrade:**
+| Contract | Proxy | New Implementation |
+|----------|-------|-------------------|
+| AgenticCommerceV7 | `0x948d97EA7F0c49796fB576ADff375C900627568E` | `0x26a01019488640B4785D57f5809A39e18788133C` |
+
+---
+
+### 🎯 Job Creation UI Simplification
+
+**Changes:**
+
+1. **Removed Open Job Toggle** - Users now go to `/bidding/create` for open jobs
+2. **Removed Evaluator Fee Toggle** - Always 1% (no toggle needed)
+3. **Provider Address REQUIRED** - Changed from "Optional" to "Required"
+4. **Consolidated Fees Section** - Merged platform + evaluator fees into single display
+
+**Files Modified:**
+| File | Changes |
+|------|---------|
+| `app/jobs/create/page.tsx` | Simplified form, removed toggles, unified fees |
+| `lib/hooks/useJobs.ts` | Added `useEnableJobMilestones()` hook |
+| `contracts/shared/AgenticCommerceV7.sol` | Fixed validation, added milestone integration |
+
+---
+
+### 🎯 Milestone Flow (Option B: Two-Step)
+
+**Implementation:**
+1. Job creation form stores milestone preference in localStorage
+2. Job detail page prompts "Enable Milestones?" after funding
+3. User confirms → `enableJobMilestones()` called on MilestoneEscrow
+
+**Files Added/Modified:**
+| File | Purpose |
+|------|---------|
+| `app/jobs/[id]/page.tsx` | Added milestone prompt modal |
+| `lib/hooks/useJobs.ts` | Added `useEnableJobMilestones()` |
+
+---
+
+### ✅ Build Status
+
+- TypeScript: **0 errors**
+- Contract: **Deployed & Verified**
+
+---
+
 ## [2026-04-24] - XMTP Removal: Use xmtp.org Inbox Instead
 
 ### 🎯 XMTP SDK Removed
@@ -479,7 +545,7 @@ Evaluator clicks "Release Payment" → Payment released
 
 **Contract upgrade:**
 - **Proxy**: `0x948d97EA7F0c49796fB576ADff375C900627568E` (upgraded, same address)
-- **Implementation**: `0x4E5bc894605e9de37C66b32166AE976A4F060BDf` (new, V7)
+- **Implementation**: `0x26a01019488640B4785D57f5809A39e18788133C` (new, V7)
 
 ### 🎯 LLM Evaluation Enhancement
 

@@ -41,6 +41,9 @@ interface StatusBadgeProps {
   className?: string;
 }
 
+// Helper function to convert job/proposal/service status numbers to StatusType
+// PREFERRED: Use these helpers instead of manual status to ensure chain-sourced values
+
 const statusConfig: Record<
   StatusType,
   {

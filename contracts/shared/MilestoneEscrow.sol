@@ -192,7 +192,8 @@ contract MilestoneEscrow is
         address paymentToken,
         uint256 totalBudget
     ) external whenNotPaused {
-        if (_msgSender() != agenticCommerce) revert Unauthorized();
+        // Allow either agenticCommerce OR the client to call
+        if (_msgSender() != agenticCommerce && _msgSender() != client) revert Unauthorized();
         
         jobMilestones[jobId].client = client;
         jobMilestones[jobId].provider = provider;

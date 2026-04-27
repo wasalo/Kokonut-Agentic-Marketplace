@@ -195,7 +195,7 @@ The wildcard format (e.g., `10.108.1.*`) allows any IP in that subnet. Add expli
 | **ServiceRegistryV2**    | `0x62E1eeEa1A2Ab987004F35bDA430457Ed6077201` | Service listings (UUPS)    |
 | **ServiceRegistryV2 Impl** | `0x457f803758F5c64208D60d23B7e831a13501d8F7` | Phase 28: ownerOf() fix + blacklist |
 | **AgenticCommerce**      | `0x948d97EA7F0c49796fB576ADff375C900627568E` | Job escrow (V7: Client Review Flow)          |
-| **AgenticCommerce Impl** | `0x4E5bc894605e9de37C66b32166AE976A4F060BDf` | Client Review Flow (April 20, 2026)        |
+| **AgenticCommerce Impl** | `0x26a01019488640B4785D57f5809A39e18788133C` | Random Evaluator + Milestones (April 27, 2026)        |
 | **AgentReviewV5**        | `0x5CDb592Fd37749bF87448FBf5725D1Cd986dd1Cb` | A/B evaluation             |
 | **BiddingSystem**        | `0x32c9d069a248a619d3EAc4dFC76F2639AaBeF04`  | Commit-reveal bidding      |
 | **BiddingSystem Impl**    | `0xabb714ea5b9e98e503a94dbebd0d2740f20f2e79` | Phase 26: Pausable added |

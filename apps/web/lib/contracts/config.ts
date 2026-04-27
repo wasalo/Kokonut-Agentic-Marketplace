@@ -43,7 +43,7 @@ const sepoliaContracts = {
   serviceRegistryImpl: '0x218340e07bEd7fD15058414388F2C82E0f3B04f9',
   // Phase 27: V7 - Client Review Flow (upgraded from V6)
   agenticCommerce: '0x948d97EA7F0c49796fB576ADff375C900627568E',
-  agenticCommerceImpl: '0x4E5bc894605e9de37C66b32166AE976A4F060BDf',
+  agenticCommerceImpl: '0x26a01019488640B4785D57f5809A39e18788133C',
   // Phase 11: BiddingSystem - Standalone commit-reveal bidding
   biddingSystem: '0x32c9d069a248a619d3EAc4D1FC76F2639AaBeF04',
   biddingSystemImpl: '0x0A09e4Ff6DAa0eeA49526560e2c946Ea32a293Bb',

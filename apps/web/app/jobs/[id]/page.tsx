@@ -49,6 +49,7 @@ import {
   isOpenJob,
   Job,
   Bid,
+  useEnableJobMilestones,
 } from '@/lib/hooks/useJobs';
 import { useWatchJob } from '@/lib/hooks/useJobEvents';
 import { useService } from '@/lib/hooks/useServices';
@@ -138,6 +139,46 @@ export default function JobDetailPage({
   const [clientApproved, setClientApproved] = useState(false);
 
   const { fundJob, hash: fundHash, isPending: isFundPending, error: fundError } = useFundJob();
+
+  // Milestone enable state
+  const { enableJobMilestones, hash: milestoneHash, isPending: isMilestonePending } = useEnableJobMilestones();
+  const [showMilestonePrompt, setShowMilestonePrompt] = useState(false);
+  const [milestoneSetupDone, setMilestoneSetupDone] = useState(false);
+
+  // Check for pending milestone job on mount
+  // Note: isClient derived inline since it's defined later in component
+  useEffect(() => {
+    if (!job || !address) return;
+    const clientIsMe = job.client.toLowerCase() === address.toLowerCase();
+    if (clientIsMe && job.status === JobStatus.Open && job.budget > 0n) {
+      const pending = localStorage.getItem('pending_milestone_job');
+      const jobKey = `milestone_setup_${job.id}`;
+      if (pending === 'true' && localStorage.getItem(jobKey) !== 'done') {
+        setShowMilestonePrompt(true);
+      }
+      localStorage.removeItem('pending_milestone_job');
+    }
+  }, [job, address]);
+
+  // Handle milestone enable after fund
+  const handleEnableMilestones = useCallback(() => {
+    if (!job || !address) return;
+    enableJobMilestones(
+      job.id,
+      job.client as `0x${string}`,
+      job.provider as `0x${string}`,
+      job.paymentToken as `0x${string}`,
+      job.budget
+    );
+  }, [job, address, enableJobMilestones]);
+
+  // Track milestone tx confirmation
+  useEffect(() => {
+    if (milestoneHash) {
+      const jobKey = `milestone_setup_${jobId}`;
+      localStorage.setItem(jobKey, 'done');
+    }
+  }, [milestoneHash, jobId]);
 
   // ETH funding with value
   const {
@@ -1169,6 +1210,29 @@ export default function JobDetailPage({
           </div>
         )}
       </div>
+
+        {/* Milestone Prompt Modal */}
+        {showMilestonePrompt && (
+          <ConfirmModal
+            isOpen={showMilestonePrompt}
+            onConfirm={() => {
+              handleEnableMilestones();
+              setShowMilestonePrompt(false);
+              setMilestoneSetupDone(true);
+            }}
+            onCancel={() => {
+              setShowMilestonePrompt(false);
+              const jobKey = `milestone_setup_${jobId}`;
+              localStorage.setItem(jobKey, 'skipped');
+            }}
+            title="Enable Milestone Payments?"
+            message="You selected milestone-based payment when creating this job. Would you like to enable milestones now? This allows staged payments as work is completed."
+            confirmText="Enable Milestones"
+            cancelText="Skip for Now"
+            variant="default"
+            isPending={isMilestonePending}
+          />
+        )}
 
         {/* Milestone Section */}
         <MilestoneSection

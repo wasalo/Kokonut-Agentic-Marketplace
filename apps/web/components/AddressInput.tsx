@@ -35,7 +35,7 @@ export function AddressInput({
   const [touched, setTouched] = useState(false);
   const [mounted, setMounted] = useState(false);
 
-  const isValidFormat = value.length === 0 || validateAddress(value);
+  const isValidFormat = value.length === 0 || validateAddress(value) === null;
 
   const { data: ensAddress, isLoading: isEnsLoading } = useEnsAddress({
     name: value,

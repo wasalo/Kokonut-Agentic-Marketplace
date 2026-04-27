@@ -3,11 +3,11 @@
 import { useState, useCallback, Suspense, useEffect } from 'react';
 import { useAccount, useReadContract, useWaitForTransactionReceipt } from 'wagmi';
 import { useRouter, useSearchParams } from 'next/navigation';
-import { ArrowLeft, Loader2, ShieldCheck, AlertTriangle, Coins, Users } from 'lucide-react';
+import { ArrowLeft, Loader2, ShieldCheck, AlertTriangle, Coins } from 'lucide-react';
 import NextLink from 'next/link';
 import { Card } from '@heroui/react';
 import { useService } from '@/lib/hooks/useServices';
-import { useCreateJobFromService, useCreateJobWithRandomEvaluator, useCreateJob, useCreateOpenJob } from '@/lib/hooks/useJobs';
+import { useCreateJobFromService, useCreateJobWithRandomEvaluator } from '@/lib/hooks/useJobs';
 import { CONTRACT_ADDRESSES, getContractAddress } from '@/lib/contracts/config';
 import { AGENTIC_COMMERCE_ABI } from '@/lib/contracts/abis';
 import { validateAddress, validateDeadline, validateStringLength } from '@/lib/hooks/useValidation';
@@ -119,11 +119,8 @@ function CreateJobContent() {
   const [description, setDescription] = useState('');
   const [budget, setBudget] = useState('');
   const [paymentToken, setPaymentToken] = useState<Token>(USDC_TOKEN);
-  const [isOpenJob, setIsOpenJob] = useState(false);
   const [useMilestones, setUseMilestones] = useState(false);
-  const [evaluatorFee, setEvaluatorFee] = useState(false);
   const [clientReview, setClientReview] = useState(true);
-  const [maxBudget, setMaxBudget] = useState('');
 
   useEffect(() => {
     if (providerParam) {
@@ -137,7 +134,6 @@ function CreateJobContent() {
   const [deadlineError, setDeadlineError] = useState<string | null>(null);
   const [descriptionError, setDescriptionError] = useState<string | null>(null);
   const [budgetError, setBudgetError] = useState<string | null>(null);
-  const [maxBudgetError, setMaxBudgetError] = useState<string | null>(null);
 
   const {
     createJobFromService,
@@ -147,27 +143,13 @@ function CreateJobContent() {
   } = useCreateJobFromService();
 
   const {
-    createJob,
-    hash: directHash,
-    isPending: isDirectPending,
-    error: directError,
-  } = useCreateJob();
-
-  const {
     createJobWithRandomEvaluator,
     hash: randomHash,
     isPending: isRandomPending,
     error: randomError,
   } = useCreateJobWithRandomEvaluator();
 
-  const {
-    createOpenJob,
-    hash: openHash,
-    isPending: isOpenPending,
-    error: openError,
-  } = useCreateOpenJob();
-
-  const txHash = serviceHash || directHash || randomHash || openHash;
+  const txHash = serviceHash || randomHash;
   const { isLoading: isConfirming, isSuccess: isConfirmed } = useWaitForTransactionReceipt({
     hash: txHash,
   });
@@ -175,13 +157,21 @@ function CreateJobContent() {
   useEffect(() => {
     if (isConfirmed && txHash) {
       showToast.success('Job Created!', 'Redirecting to your jobs...');
+      // Store milestone preference if selected, for job detail page
+      if (useMilestones) {
+        localStorage.setItem('pending_milestone_job', 'true');
+      }
       router.push('/jobs');
     }
-  }, [isConfirmed, txHash, router]);
+  }, [isConfirmed, txHash, router, useMilestones]);
 
   const validateProvider = useCallback(
     (value: string) => {
-      if (!serviceId && value) {
+      if (!serviceId && !value) {
+        setProviderError('Provider address is required');
+        return false;
+      }
+      if (value) {
         const error = validateAddress(value);
         setProviderError(error);
         return !error;
@@ -210,11 +200,11 @@ function CreateJobContent() {
 
   const validateBudgetField = useCallback(
     (value: string) => {
-      if (!serviceId && !value && !isOpenJob) {
-        setBudgetError('Budget is required for direct jobs');
+      if (!serviceId && !value) {
+        setBudgetError('Budget is required');
         return false;
       }
-      if (value && !isOpenJob) {
+      if (value) {
         const numValue = parseFloat(value);
         if (isNaN(numValue) || numValue < MIN_BUDGET_USDC) {
           setBudgetError(`Minimum budget is $${MIN_BUDGET_USDC} USDC`);
@@ -224,62 +214,52 @@ function CreateJobContent() {
       setBudgetError(null);
       return true;
     },
-    [serviceId, isOpenJob]
-  );
-
-  const validateMaxBudgetField = useCallback(
-    (value: string) => {
-      if (isOpenJob && !value) {
-        setMaxBudgetError('Maximum budget is required for open jobs');
-        return false;
-      }
-      if (value && isOpenJob) {
-        const numValue = parseFloat(value);
-        if (isNaN(numValue) || numValue < MIN_BUDGET_USDC) {
-          setMaxBudgetError(`Minimum max budget is $${MIN_BUDGET_USDC} USDC`);
-          return false;
-        }
-        if (numValue > 1000000) {
-          setMaxBudgetError('Maximum budget cannot exceed $1,000,000 USDC');
-          return false;
-        }
-      }
-      setMaxBudgetError(null);
-      return true;
-    },
-    [isOpenJob]
+    [serviceId]
   );
 
   const performSubmit = useCallback(
     (e: React.FormEvent) => {
       e.preventDefault();
-      if (!isConnected || !address) return;
+      
+      if (!isConnected || !address) {
+        return;
+      }
 
       let isValid = true;
 
-      if (!serviceId) {
-        if (!provider) {
+      // Clear previous errors
+      setProviderError(null);
+      setDeadlineError(null);
+      setDescriptionError(null);
+      setBudgetError(null);
+
+      // Validation by mode
+      if (serviceId && service) {
+        // Service mode: only check description (budget from service)
+        if (!description) {
+          setDescriptionError('Description is required');
+          isValid = false;
+        }
+        if (Number(service.price) === 0) {
+          setProviderError('Service has price of 0');
+          isValid = false;
+        }
+      } else {
+        // Direct mode: provider REQUIRED, budget + description
+        if (!provider || !provider.startsWith('0x')) {
           setProviderError('Provider address is required');
           isValid = false;
-        } else {
-          isValid = validateProvider(provider) && isValid;
         }
-
         if (!validateBudgetField(budget)) {
           isValid = false;
         }
+        if (!description) {
+          setDescriptionError('Description is required');
+          isValid = false;
+        }
       }
 
-      if (deadline) {
-        isValid = validateDeadlineField(deadline) && isValid;
-      }
-
-      if (description) {
-        isValid = validateDescriptionField(description) && isValid;
-      }
-
-      if (serviceId && service && Number(service.price) === 0) {
-        setProviderError('Service has a price of 0. Cannot create job.');
+      if (deadline && !validateDeadlineField(deadline)) {
         isValid = false;
       }
 
@@ -287,87 +267,64 @@ function CreateJobContent() {
         return;
       }
 
-      setProviderError(null);
-      setDeadlineError(null);
-      setDescriptionError(null);
-      setBudgetError(null);
-      setMaxBudgetError(null);
-
       const deadlineTs = deadline
         ? BigInt(Math.floor(new Date(deadline).getTime() / 1000))
         : BigInt(Math.floor(Date.now() / 1000) + 86400 * 7);
 
-      if (isOpenJob) {
-        const maxBudgetUsdc = Math.floor(parseFloat(maxBudget) * 1e6);
-        createOpenJob(
-          BigInt(maxBudgetUsdc),
-          '0x0000000000000000000000000000000000000000',
-          deadlineTs,
-          description || 'Open job - bid for this work',
-          paymentToken.address,
-          evaluatorFee
-        );
-      } else if (serviceId && service) {
+if (serviceId && service) {
         createJobFromService(
           serviceId,
           '0x0000000000000000000000000000000000000000',
           deadlineTs,
           description || `Job for ${service.name}`,
-          '0x0000000000000000000000000000000000000',
-          evaluatorFee
+          '0x0000000000000000000000000000000000000000',
+          true // evaluatorFee always 1%
         );
       } else {
+        // Direct job - provider is REQUIRED
         createJobWithRandomEvaluator(
           provider as `0x${string}`,
           deadlineTs,
           description || 'Direct job',
           '0x0000000000000000000000000000000000000000',
-          evaluatorFee,
+          true, // evaluatorFee always 1%
           clientReview
         );
       }
     },
-    [
-      isConnected,
-      address,
-      serviceId,
-      service,
-      deadline,
-      description,
-      provider,
-      budget,
-      maxBudget,
-      isOpenJob,
-      paymentToken,
-      validateProvider,
-      validateDeadlineField,
-      validateDescriptionField,
-      validateBudgetField,
-      validateMaxBudgetField,
-      createJobFromService,
-      createJob,
-      createOpenJob,
-      evaluatorFee,
-      clientReview,
-    ]
-  );
+[
+  isConnected,
+  address,
+  serviceId,
+  service,
+  deadline,
+  description,
+  provider,
+  budget,
+  paymentToken,
+  validateProvider,
+  validateDeadlineField,
+  validateDescriptionField,
+  validateBudgetField,
+  createJobFromService,
+  clientReview,
+]
+);
 
-  const { handleSubmit, isSubmitting, timeUntilNextSubmit } = useFormSubmit(performSubmit, 2000);
+const { handleSubmit, isSubmitting, timeUntilNextSubmit } = useFormSubmit(performSubmit, 2000);
 
-  const isFormLoading = isServicePending || isDirectPending || isRandomPending || isOpenPending || isConfirming;
-  const error = serviceError || directError || randomError || openError;
+const isFormLoading = isServicePending || isRandomPending || isConfirming;
+const error = serviceError || randomError;
 
-  const isFormValid =
-    !providerError &&
-    !deadlineError &&
-    !descriptionError &&
-    !budgetError &&
-    !maxBudgetError &&
-    (!serviceId || isOpenJob
-      ? !!maxBudget && parseFloat(maxBudget) >= MIN_BUDGET_USDC
-      : !!budget && parseFloat(budget) >= MIN_BUDGET_USDC);
+// Check form validity by mode
+let isFormValid = false;
+if (serviceId && service) {
+  isFormValid = !!description && Number(service.price) > 0;
+} else {
+  isFormValid = !!provider && provider.startsWith('0x') && !!budget && parseFloat(budget) >= MIN_BUDGET_USDC && !!description;
+}
 
-  const budgetInUsdc =
+const budgetInUsdc =
     budget && parseFloat(budget) > 0
       ? formatUsdValue(
           BigInt(Math.floor(parseFloat(budget) * 10 ** paymentToken.decimals)),
@@ -464,40 +421,10 @@ function CreateJobContent() {
           </Card>
         )}
 
-        <Card className="border border-divider p-6">
+<Card className="border border-divider p-6">
           <form onSubmit={handleSubmit} className="space-y-6">
             {!serviceId && (
               <>
-                <div className="flex items-start gap-4 p-4 bg-content2 rounded-lg">
-                  <div className="flex-1">
-                    <div className="flex items-center gap-2">
-                      <Users className="w-5 h-5 text-primary" />
-                      <span className="font-medium">Open Job (Bidding)</span>
-                    </div>
-                    <p className="text-sm text-default-500 mt-1">
-                      Allow providers to bid on your job. You set a maximum budget and accept the
-                      best bid.
-                    </p>
-                  </div>
-                  <button
-                    type="button"
-                    onClick={() => {
-                      setIsOpenJob(!isOpenJob);
-                      if (isOpenJob) setMaxBudget('');
-                      else setBudget('');
-                    }}
-                    className={`relative inline-flex h-6 w-11 items-center rounded-full transition-colors ${
-                      isOpenJob ? 'bg-success' : 'bg-default-300'
-                    }`}
-                  >
-                    <span
-                      className={`inline-block h-4 w-4 transform rounded-full bg-white shadow-lg transition-transform ${
-                        isOpenJob ? 'translate-x-6' : 'translate-x-1'
-                      }`}
-                    />
-                  </button>
-                </div>
-
                 {/* Milestone Toggle */}
                 <div className="flex items-start gap-4 p-4 bg-[#009F4D]/5 border border-[#009F4D]/20 rounded-lg">
                   <div className="flex-1">
@@ -521,36 +448,10 @@ function CreateJobContent() {
                         useMilestones ? 'translate-x-6' : 'translate-x-1'
                       }`}
                     />
-                </button>
-              </div>
-
-              {/* Evaluator Fee Toggle */}
-              <div className="flex items-start gap-4 p-4 bg-primary/5 border border-primary/20 rounded-lg">
-                <div className="flex-1">
-                  <div className="flex items-center gap-2">
-                    <ShieldCheck className="w-5 h-5 text-primary" />
-                    <span className="font-medium">Evaluator Fee (1%)</span>
-                  </div>
-                  <p className="text-sm text-default-500 mt-1">
-                    Pay evaluator an additional 1% fee from the job budget.
-                  </p>
+                  </button>
                 </div>
-                <button
-                  type="button"
-                  onClick={() => setEvaluatorFee(!evaluatorFee)}
-                  className={`relative inline-flex h-6 w-11 items-center rounded-full transition-colors ${
-                    evaluatorFee ? 'bg-primary' : 'bg-default-300'
-                  }`}
-                >
-                  <span
-                    className={`inline-block h-4 w-4 transform rounded-full bg-white shadow-lg transition-transform ${
-                      evaluatorFee ? 'translate-x-6' : 'translate-x-1'
-                    }`}
-                  />
-                </button>
-              </div>
 
-              <PaymentTokenSelector
+                <PaymentTokenSelector
                   selectedToken={paymentToken}
                   onSelect={setPaymentToken}
                   disabled={isFormLoading}
@@ -558,7 +459,7 @@ function CreateJobContent() {
               </>
             )}
 
-            {!serviceId && !isOpenJob && (
+            {!serviceId && (
               <div className="space-y-2">
                 <label htmlFor="provider" className="text-sm font-medium">
                   Provider Address <span className="text-danger">*</span>
@@ -579,18 +480,30 @@ function CreateJobContent() {
               </div>
             )}
 
-            <div className="p-4 bg-primary/5 border border-primary/20 rounded-lg">
-              <div className="flex items-center gap-2">
-                <ShieldCheck className="w-5 h-5 text-primary" />
-                <span className="font-medium">Random Evaluator Pool</span>
+            {(platformFeePercent > 0 || !serviceId) && (
+              <div className="p-4 bg-primary/5 border border-primary/20 rounded-lg">
+                <div className="flex items-center gap-2">
+                  <Coins className="w-5 h-5 text-primary" />
+                  <span className="font-medium">Fees</span>
+                </div>
+                <div className="mt-2 space-y-1">
+                  {!serviceId && (
+                    <p className="text-sm text-default-500">
+                      <ShieldCheck className="w-4 h-4 inline mr-1" />
+                      Evaluator fee: 1% (included automatically)
+                    </p>
+                  )}
+                  {platformFeePercent > 0 && (
+                    <p className="text-sm text-default-500">
+                      <Coins className="w-4 h-4 inline mr-1" />
+                      Platform fee: {platformFeePercent}%
+                    </p>
+                  )}
+                </div>
               </div>
-              <p className="text-sm text-default-500 mt-1">
-                An evaluator will be randomly selected from the registered pool for fair evaluation.
-                {evaluatorFee && <span className="text-primary font-medium"> (+1% evaluator fee)</span>}
-              </p>
-            </div>
+            )}
 
-            {!serviceId && !isOpenJob && (
+            {!serviceId && (
               <div className="space-y-2">
                 <label htmlFor="budget" className="text-sm font-medium">
                   Budget ({paymentToken.symbol}) <span className="text-danger">*</span>
@@ -628,66 +541,6 @@ function CreateJobContent() {
                     💰 Funds will be held in escrow and released per milestone upon completion verification
                   </p>
                 )}
-              </div>
-            )}
-
-            {!serviceId && isOpenJob && (
-              <div className="space-y-2">
-                <label htmlFor="maxBudget" className="text-sm font-medium">
-                  Maximum Budget ({paymentToken.symbol}) <span className="text-danger">*</span>
-                </label>
-                <div className="relative">
-                  <input
-                    id="maxBudget"
-                    type="number"
-                    step={paymentToken.symbol === 'USDC' ? '0.01' : '0.001'}
-                    min={MIN_BUDGET_USDC}
-                    placeholder={`0.00`}
-                    value={maxBudget}
-                    onChange={e => {
-                      setMaxBudget(e.target.value);
-                      validateMaxBudgetField(e.target.value);
-                    }}
-                    onBlur={() => validateMaxBudgetField(maxBudget)}
-                    required
-                    className={`w-full px-3 py-2 bg-content2 border rounded-lg text-default-700 placeholder:text-default-400 focus:outline-none focus:ring-2 focus:ring-success focus:border-transparent ${
-                      maxBudgetError ? 'border-danger' : 'border-divider'
-                    }`}
-                  />
-                </div>
-                {maxBudgetError ? (
-                  <p className="text-xs text-danger">{maxBudgetError}</p>
-                ) : maxBudget && parseFloat(maxBudget) > 0 ? (
-                  <div className="space-y-2">
-                    <p className="text-xs text-default-400">
-                      ≈ ${parseFloat(maxBudget).toFixed(2)} USD max budget
-                    </p>
-                    <p className="text-xs text-primary">
-                      Providers will stake 1% (${(parseFloat(maxBudget) * 0.01).toFixed(2)}) to bid.
-                      Bid amount can be less than max.
-                    </p>
-                  </div>
-                ) : (
-                  <p className="text-xs text-default-400">
-                    The maximum you're willing to pay. Providers bid lower.
-                  </p>
-                )}
-              </div>
-            )}
-
-            {platformFeePercent > 0 && (
-              <div className="p-3 bg-primary/5 border border-primary/20 rounded-lg">
-                <div className="flex items-center gap-2 text-sm">
-                  <Coins className="w-4 h-4 text-primary" />
-                  <span className="font-medium text-primary">
-                    Platform Fee: {platformFeePercent}%
-                  </span>
-                </div>
-                <p className="text-xs text-default-500 mt-1 ml-6">
-                  {platformFeePercent > 0
-                    ? `A ${platformFeePercent}% platform fee applies. Evaluator fee is additional 1%.`
-                    : 'No platform fees applied.'}
-                </p>
               </div>
             )}
 
@@ -752,13 +605,9 @@ function CreateJobContent() {
             <div className="p-4 bg-content2 rounded-lg flex items-start gap-3">
               <ShieldCheck className="w-5 h-5 text-primary mt-0.5 shrink-0" />
               <div className="text-sm">
-                <p className="font-medium">
-                  {isOpenJob ? 'Open Job Protection' : 'Escrow Protection'}
-                </p>
+                <p className="font-medium">Escrow Protection</p>
                 <p className="text-default-500 mt-0.5">
-                  {isOpenJob
-                    ? 'Providers stake 1% to bid. After deadline, you have 1 hour to review and accept bids. Funds held in escrow until work is approved.'
-                    : "Funds are held by the smart contract until work is approved. If the provider doesn't deliver, you get a full refund after the deadline."}
+                  Funds are held by the smart contract until work is approved. If the provider doesn't deliver, you get a full refund after the deadline.
                 </p>
               </div>
             </div>
@@ -783,8 +632,8 @@ function CreateJobContent() {
                   </>
                 ) : isAtLimit ? (
                   'Job Limit Reached'
-                ) : isOpenJob ? (
-                  'Create Open Job'
+                ) : serviceId ? (
+                  'Purchase Service'
                 ) : (
                   'Create Job'
                 )}

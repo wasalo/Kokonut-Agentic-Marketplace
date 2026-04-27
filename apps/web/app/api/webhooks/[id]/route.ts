@@ -26,6 +26,37 @@ const VALID_EVENTS = [
   'payment.sent',
 ];
 
+export async function GET(request: NextRequest, { params }: { params: Promise<{ id: string }> }) {
+  try {
+    const { id } = await params;
+    const webhook = useWebhookStore.getState().getWebhook(id);
+
+    if (!webhook) {
+      return NextResponse.json({ error: 'Webhook not found' }, { status: 404 });
+    }
+
+    const owner = request.headers.get('x-owner-address');
+    if (owner && owner.toLowerCase() !== webhook.owner.toLowerCase()) {
+      return NextResponse.json(
+        { error: 'Webhook not found or not authorized' },
+        { status: 404 }
+      );
+    }
+
+    return NextResponse.json({
+      id: webhook.id,
+      url: webhook.url,
+      events: webhook.events,
+      isActive: webhook.isActive,
+      createdAt: webhook.createdAt,
+      updatedAt: webhook.updatedAt,
+    });
+  } catch (error) {
+    console.error('Webhook GET error:', error);
+    return NextResponse.json({ error: 'Internal server error' }, { status: 500 });
+  }
+}
+
 export async function PATCH(request: NextRequest, { params }: { params: Promise<{ id: string }> }) {
   try {
     const { id } = await params;

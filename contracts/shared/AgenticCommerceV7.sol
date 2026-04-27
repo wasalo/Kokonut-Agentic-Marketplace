@@ -11,6 +11,7 @@ import "@openzeppelin/contracts/utils/ReentrancyGuard.sol";
 import {IACPHook} from "./IACPHook.sol";
 import {IAgenticCommerceV7} from "../interfaces/IAgenticCommerceV7.sol";
 import {AdminRegistry} from "./AdminRegistry.sol";
+import {MilestoneEscrow} from "./MilestoneEscrow.sol";
 
 /**
  * @title AgenticCommerceV7
@@ -113,6 +114,9 @@ contract AgenticCommerceV7 is
     address[] public evaluatorPool;
     mapping(address => bool) public isRegisteredEvaluator;
     
+    // M5 Fix: MilestoneEscrow integration
+    address public milestoneEscrow;
+    
     // Minimum reputation score required to be an evaluator
     uint256 public constant MIN_EVALUATOR_REPUTATION = 50;
 
@@ -137,6 +141,7 @@ contract AgenticCommerceV7 is
     
     // V7 Errors
     error ClientNotApproved();
+    error MilestoneEscrowNotSet();
 
     // Security errors
     error RolesMustBeDistinct();
@@ -329,9 +334,11 @@ contract AgenticCommerceV7 is
         address hook
     ) internal view {
         if (provider == address(0)) revert ZeroAddress();
-        if (evaluator == address(0)) revert ZeroAddress();
-        if (_msgSender() == provider || _msgSender() == evaluator) revert RolesMustBeDistinct();
-        if (provider == evaluator) revert RolesMustBeDistinct();
+        // evaluator can be address(0) for random evaluator selection
+        if (evaluator != address(0)) {
+            if (_msgSender() == evaluator) revert RolesMustBeDistinct();
+            if (provider == evaluator) revert RolesMustBeDistinct();
+        }
         if (expiredAt <= block.timestamp + MIN_EXPIRY_DURATION) revert ExpiryTooShort();
         if (expiredAt > block.timestamp + MAX_EXPIRY_DURATION) revert ExpiryTooLong();
         if (bytes(description).length == 0 || bytes(description).length > MAX_DESCRIPTION_LENGTH) revert InvalidJob();
@@ -763,6 +770,12 @@ contract AgenticCommerceV7 is
         adminRegistry = _adminRegistry;
     }
     
+    // M5 Fix: Set MilestoneEscrow address
+    function setMilestoneEscrow(address _milestoneEscrow) external onlyOwner {
+        if (_milestoneEscrow == address(0)) revert ZeroAddress();
+        milestoneEscrow = _milestoneEscrow;
+    }
+    
     // M5 Fix: Register as evaluator
     function registerAsEvaluator() external {
         require(!isRegisteredEvaluator[msg.sender], "Already registered");
@@ -776,6 +789,30 @@ contract AgenticCommerceV7 is
         require(isRegisteredEvaluator[msg.sender], "Not registered");
         isRegisteredEvaluator[msg.sender] = false;
         emit EvaluatorUnregistered(msg.sender);
+    }
+    
+    // M5 Fix: Enable milestones for a job
+    function enableJobMilestones(
+        uint256 jobId,
+        address client,
+        address provider,
+        address paymentToken,
+        uint256 totalBudget
+    ) external nonReentrant whenNotPaused {
+        Job storage job = jobs[jobId];
+        if (job.client != _msgSender()) revert Unauthorized();
+        if (milestoneEscrow == address(0)) revert MilestoneEscrowNotSet();
+        
+        // Call MilestoneEscrow to enable milestones
+        MilestoneEscrow(milestoneEscrow).enableMilestones(
+            jobId,
+            client,
+            provider,
+            paymentToken,
+            totalBudget
+        );
+        
+        emit JobMilestonesEnabled(jobId);
     }
     
     // M5 Fix: Random evaluator selection using block-based randomness
@@ -868,4 +905,5 @@ contract AgenticCommerceV7 is
     event EvaluatorRegistered(address indexed evaluator);
     event EvaluatorUnregistered(address indexed evaluator);
     event EvaluatorRandomlySelected(uint256 indexed jobId, address indexed evaluator);
+    event JobMilestonesEnabled(uint256 indexed jobId);
 }

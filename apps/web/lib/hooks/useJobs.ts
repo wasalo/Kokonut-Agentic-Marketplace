@@ -17,6 +17,8 @@ const AGENTIC_COMMERCE_ABI_WITH_NEW = AGENTIC_COMMERCE_ABI as typeof AGENTIC_COM
   | { name: 'setBudget' }
   | { name: 'setProvider' }
   | { name: 'setPaymentToken' }
+  | { name: 'setMilestoneEscrow' }
+  | { name: 'enableJobMilestones' }
   | { name: 'createOpenJob' }
 )[];
 
@@ -265,15 +267,15 @@ export function useCreateJob() {
         address: AGENTIC_COMMERCE_ADDRESS,
         abi: AGENTIC_COMMERCE_ABI,
         functionName: 'createJob',
-        args: [
+args: [
           provider,
           evaluator,
           expiredAt,
           description,
-          '0x0000000000000000000000000000000000000',
+          '0x0000000000000000000000000000000000',
           evaluatorFee,
           clientReview,
-        ],
+        ] as any,
       }),
     hash: data,
     isPending,
@@ -952,6 +954,58 @@ export function useEvaluatorPoolSize() {
     isLoading,
     error,
     refetch,
+  };
+}
+
+/**
+ * Set the MilestoneEscrow contract address (owner only).
+ */
+export function useSetMilestoneEscrow() {
+  const { writeContract, data, isPending, error, reset } = useWriteContract();
+
+  return {
+    setMilestoneEscrow: (milestoneEscrow: `0x${string}`) =>
+      writeContract({
+        address: AGENTIC_COMMERCE_ADDRESS,
+        // eslint-disable-next-line @typescript-eslint/no-explicit-any
+        abi: AGENTIC_COMMERCE_ABI as any,
+        functionName: 'setMilestoneEscrow',
+        // eslint-disable-next-line @typescript-eslint/no-explicit-any
+        args: [milestoneEscrow] as any,
+      }),
+    hash: data,
+    isPending,
+    error,
+    reset,
+  };
+}
+
+/**
+ * Enable milestone payments for a job.
+ */
+export function useEnableJobMilestones() {
+  const { writeContract, data, isPending, error, reset } = useWriteContract();
+
+  return {
+    enableJobMilestones: (
+      jobId: bigint,
+      client: `0x${string}`,
+      provider: `0x${string}`,
+      paymentToken: `0x${string}`,
+      totalBudget: bigint
+    ) =>
+      writeContract({
+        address: AGENTIC_COMMERCE_ADDRESS,
+        // eslint-disable-next-line @typescript-eslint/no-explicit-any
+        abi: AGENTIC_COMMERCE_ABI as any,
+        functionName: 'enableJobMilestones',
+        // eslint-disable-next-line @typescript-eslint/no-explicit-any
+        args: [jobId, client, provider, paymentToken, totalBudget] as any,
+      }),
+    hash: data,
+    isPending,
+    error,
+    reset,
   };
 }
 

@@ -39,7 +39,7 @@
 >   - **Frontend UI**: Client sees "Approve Delivery" button when pending review
 >   - **Contracts**:
 >     - Proxy: `0x948d97EA7F0c49796fB576ADff375C900627568E`
->     - Implementation: `0x4E5bc894605e9de37C66b32166AE976A4F060BDf`
+>     - Implementation: `0x26a01019488640B4785D57f5809A39e18788133C`
 
 > - **Agent Portfolio Feature (April 20, 2026) [COMPLETE]**:
 >   - **Portfolio Form**: Add/edit up to 10 portfolio items (title, description, link, image)
@@ -302,7 +302,7 @@ USDC:      0x1c7D4B196Cb0C7B01d743Fbc6116a902379C7238
 | `AdminRegistry Impl`        | `0x8A8E3C9ffB8F25236c8152c8ac634336463f3Ab0` | Implementation (Phase 28: Blacklist System + 1hr Grace Period) | ✅ Live | [Etherscan](https://sepolia.etherscan.io/address/0x8A8E3C9ffB8F25236c8152c8ac634336463f3Ab0#code) |
 | `ServiceRegistryV2 Impl`    | `0x457f803758F5c64208D60d23B7e831a13501d8F7` | Implementation (Phase 28: ownerOf() fix + blacklist) | ✅ Live | [Etherscan](https://sepolia.etherscan.io/address/0x374D6bc33C1C04d37653d79966c6f057c40F0d5b#code) |
 | `AgenticCommerce`           | `0x948d97EA7F0c49796fB576ADff375C900627568E` | How do I get paid? (V7 + Client Review Flow)                 | ✅ Live | [Etherscan](https://sepolia.etherscan.io/address/0x948d97EA7F0c49796fB576ADff375C900627568E#code) |
-| `AgenticCommerce Impl`      | `0x4E5bc894605e9de37C66b32166AE976A4F060BDf` | Implementation (Phase 27: Client Review Flow)         | ✅ Live | [Etherscan](https://sepolia.etherscan.io/address/0x4E5bc894605e9de37C66b32166AE976A4F060BDf#code) |
+| `AgenticCommerce Impl`      | `0x26a01019488640B4785D57f5809A39e18788133C` | Implementation (April 27: Random Evaluator + Milestones) | ✅ Live | [Etherscan](https://sepolia.etherscan.io/address/0x26a01019488640B4785D57f5809A39e18788133C#code) |
 | `BiddingSystem`             | `0x32c9d069a248a619d3EAc4D1FC76F2639AaBeF04` | Standalone bidding with commit-reveal (UUPS)               | ✅ Live | [Etherscan](https://sepolia.etherscan.io/address/0x32c9d069a248a619d3EAc4D1FC76F2639AaBeF04#code) |
 | `BiddingSystem Impl`        | `0xAbb714ea5B9e98e503A94dBeBd0D2740f20f2E79` | Implementation (Phase 26: Pausable added)           | ✅ Live | [Etherscan](https://sepolia.etherscan.io/address/0xAbb714ea5B9e98e503A94dBeBd0D2740f20f2E79#code) |
 | `AgentReviewV5`             | `0x5CDb592Fd37749bF87448FBf5725D1Cd986dd1Cb` | How do I prove my value? (Phase 13: Median + Proportional) | ✅ Live | [Etherscan](https://sepolia.etherscan.io/address/0x5CDb592Fd37749bF87448FBf5725D1Cd986dd1Cb#code) |

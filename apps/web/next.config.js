@@ -51,20 +51,25 @@ const nextConfig = {
     // Development CSP: Allow HTTP, include localhost + explicitly configured LAN/dev hosts, report-only mode
     // Production CSP: Enforce HTTPS, upgrade-insecure-requests, enforce mode
     // Note: localhost is always allowed in dev for local tooling; LAN hosts must be opt-in via NEXT_PUBLIC_DEV_HOST.
-    const connectSrc = isDev
-      ? [
-          "'self'",
-          ...devHttpSources,
+const connectSrc = isDev
+    ? [
+          'http://localhost:*',
+          'http://127.0.0.1:*',
+          'http://0.0.0.0:*',
+          'http://10.108.1.45',
           'https://ethereum-sepolia-rpc.publicnode.com',
           'https://ethereum-sepolia.publicnode.com',
           'https://ethereum.publicnode.com',
           'https://eth.llamarpc.com',
           'https://8004scan.io',
+          'https://rpc.ankr.com',
+          'https://eth.public-rpc.com',
+          'https://eth-sepolia.g.alchemy.com',
           'wss://*.walletconnect.com',
           'https://*.rpc.walletconnect.com',
           ...devWsSources,
         ].join(' ')
-      : "'self' https://ethereum-sepolia-rpc.publicnode.com https://ethereum-sepolia.publicnode.com https://ethereum.publicnode.com https://eth.llamarpc.com https://8004scan.io wss://*.walletconnect.com https://*.rpc.walletconnect.com";
+    : "'self' https://ethereum-sepolia-rpc.publicnode.com https://ethereum-sepolia.publicnode.com https://ethereum.publicnode.com https://eth.llamarpc.com https://8004scan.io https://rpc.ankr.com https://eth.public-rpc.com https://eth-sepolia.g.alchemy.com wss://*.walletconnect.com https://*.rpc.walletconnect.com";
 
     const cspDirectives = [
       "default-src 'self'",
