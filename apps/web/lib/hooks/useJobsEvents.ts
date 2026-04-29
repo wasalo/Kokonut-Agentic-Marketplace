@@ -61,7 +61,7 @@ export function useJobsFromEvents() {
       const logs = await publicClient.getLogs({
         address: AGENTIC_COMMERCE_ADDRESS,
         event: parseAbiItem(
-          'event JobCreated(uint256 indexed jobId, address indexed client, address indexed provider, address evaluator, uint256 serviceId, uint256 expiredAt)'
+          'event JobCreated(uint256 indexed jobId, address indexed client, address indexed provider, uint256 serviceId, uint256 expiredAt)'
         ),
         fromBlock: FROM_BLOCK,
         toBlock: 'latest',

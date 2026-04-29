@@ -10,6 +10,8 @@ const AGENTIC_COMMERCE_ABI_WITH_NEW = AGENTIC_COMMERCE_ABI as typeof AGENTIC_COM
   | { name: 'completeAfterTimeout' }
   | { name: 'refundExpired' }
   | { name: 'createJobWithRandomEvaluator' }
+  | { name: 'createJob' }
+  | { name: 'createJobV7' }
   | { name: 'registerAsEvaluator' }
   | { name: 'unregisterAsEvaluator' }
   | { name: 'getEvaluatorPoolSize' }
@@ -20,6 +22,11 @@ const AGENTIC_COMMERCE_ABI_WITH_NEW = AGENTIC_COMMERCE_ABI as typeof AGENTIC_COM
   | { name: 'setMilestoneEscrow' }
   | { name: 'enableJobMilestones' }
   | { name: 'createOpenJob' }
+  | { name: 'approveByClient' }
+  | { name: 'finalizeByEvaluator' }
+  | { name: 'requiresClientReview' }
+  | { name: 'clientApproved' }
+  | { name: 'evaluatorFeeEnabled' }
 )[];
 
 const BIDDING_SYSTEM_ABI_TYPED = BIDDING_SYSTEM_ABI as typeof BIDDING_SYSTEM_ABI & readonly (
@@ -411,9 +418,8 @@ export function useSetBudget() {
       writeContract({
         address: AGENTIC_COMMERCE_ADDRESS,
         abi: AGENTIC_COMMERCE_ABI_WITH_NEW as any,
-        functionName: 'fund' as const,
+        functionName: 'setBudget' as const,
         args: [jobId, amount],
-        value: amount,
       }),
     hash: data,
     isPending,
@@ -886,6 +892,72 @@ export function useCreateJobWithRandomEvaluator() {
         abi: AGENTIC_COMMERCE_ABI_WITH_NEW,
         functionName: 'createJobWithRandomEvaluator' as 'createJobWithRandomEvaluator',
         args: [provider, expiredAt, description, hook, evaluatorFee, clientReview] as any,
+      }),
+    hash: data,
+    isPending,
+    error,
+    reset,
+  };
+}
+
+/**
+ * V8: Create job with budget, paymentToken, serviceId at creation, optional immediate funding.
+ * This replaces the broken $0 budget flow where setBudget() was never confirming.
+ */
+export function useCreateJobV8() {
+  const { writeContract, data, isPending, error, reset } = useWriteContract();
+
+  return {
+    createJob: (
+      provider: `0x${string}`,
+      budget: bigint,
+      paymentToken: `0x${string}`,
+      serviceId: bigint,
+      expiredAt: bigint,
+      description: string,
+      evaluator: `0x${string}`,
+      hook: `0x${string}`,
+      evaluatorFee: boolean,
+      clientReview: boolean,
+      fundNow: boolean,
+      fundAmount: bigint
+    ) =>
+      writeContract({
+        address: AGENTIC_COMMERCE_ADDRESS,
+        abi: AGENTIC_COMMERCE_ABI_WITH_NEW,
+        functionName: 'createJob' as 'createJob',
+        args: [provider, budget, paymentToken, serviceId, expiredAt, description, evaluator, hook, evaluatorFee, clientReview, fundNow, fundAmount] as any,
+        // Only send native ETH value if paying with ETH (address(0)) and fundNow is true
+        value: (fundNow && paymentToken === '0x0000000000000000000000000000000000000000000') ? fundAmount : 0n,
+      }),
+    hash: data,
+    isPending,
+    error,
+    reset,
+  };
+}
+
+/**
+ * V8: Backward compatibility - createJob with V7 signature (no budget at creation).
+ */
+export function useCreateJobV7() {
+  const { writeContract, data, isPending, error, reset } = useWriteContract();
+
+  return {
+    createJobV7: (
+      provider: `0x${string}`,
+      evaluator: `0x${string}`,
+      expiredAt: bigint,
+      description: string,
+      hook: `0x${string}`,
+      evaluatorFee: boolean,
+      clientReview: boolean
+    ) =>
+      writeContract({
+        address: AGENTIC_COMMERCE_ADDRESS,
+        abi: AGENTIC_COMMERCE_ABI_WITH_NEW,
+        functionName: 'createJobV7' as 'createJobV7',
+        args: [provider, evaluator, expiredAt, description, hook, evaluatorFee, clientReview] as any,
       }),
     hash: data,
     isPending,

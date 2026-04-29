@@ -29,11 +29,14 @@ via_ir = true
 
 # Phase 4: Gas reporting for all contracts
 gas_reports = [
-    "AgenticCommerceV4",
-    "AgentReviewV4",
+    "AgenticCommerceV9",
+    "AgentReviewV5",
     "ServiceRegistryV2",
+    "AgentSkillRegistryV2",
     "SlashManager",
-    "AgentSkillRegistry"
+    "BiddingSystem",
+    "MilestoneEscrowV2",
+    "PriceOracleV2"
 ]
 
 # Phase 4: CI profile with stricter settings

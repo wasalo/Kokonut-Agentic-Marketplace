@@ -1,19 +1,21 @@
 'use client';
 
-import { useState, useCallback, Suspense, useEffect } from 'react';
-import { useAccount, useReadContract, useWaitForTransactionReceipt } from 'wagmi';
+import { useState, useCallback, Suspense, useEffect, useRef, useMemo } from 'react';
+import { useAccount, useReadContract, useWaitForTransactionReceipt, usePublicClient, useWriteContract } from 'wagmi';
+import { erc20Abi } from 'viem';
 import { useRouter, useSearchParams } from 'next/navigation';
 import { ArrowLeft, Loader2, ShieldCheck, AlertTriangle, Coins } from 'lucide-react';
 import NextLink from 'next/link';
 import { Card } from '@heroui/react';
 import { useService } from '@/lib/hooks/useServices';
-import { useCreateJobFromService, useCreateJobWithRandomEvaluator } from '@/lib/hooks/useJobs';
+import { useCreateJobFromService, useCreateJobWithRandomEvaluator, useCreateJobV8, useJobCount, useSetBudget } from '@/lib/hooks/useJobs';
 import { CONTRACT_ADDRESSES, getContractAddress } from '@/lib/contracts/config';
 import { AGENTIC_COMMERCE_ABI } from '@/lib/contracts/abis';
 import { validateAddress, validateDeadline, validateStringLength } from '@/lib/hooks/useValidation';
 import { TransactionError } from '@/components/TransactionError';
 import { useFormSubmit, formatTimeRemaining } from '@/lib/hooks/useDebounce';
 import { useClientJobCount, MAX_JOBS_PER_CLIENT } from '@/lib/hooks/useClientJobCount';
+import { useMinBudget } from '@/lib/hooks/useMinBudget';
 import {
   useTokenPriceConversion,
   USDC_TOKEN,
@@ -26,7 +28,6 @@ import { formatAddress } from '@/lib/utils';
 
 const MAX_DESCRIPTION_LENGTH = 1000;
 const MIN_EXPIRY_DURATION = 5 * 60 * 1000;
-const MIN_BUDGET_USDC = 0.01;
 
 function PaymentTokenSelector({
   selectedToken,
@@ -91,7 +92,7 @@ function CreateJobContent() {
   const serviceId = serviceIdParam ? BigInt(serviceIdParam) : undefined;
   const { service } = useService(serviceId ?? BigInt(0));
 
-  const { formatUsdValue } = useTokenPriceConversion();
+  const { formatUsdValue, ethToUsdcRate } = useTokenPriceConversion();
 
   const {
     count: jobCount,
@@ -106,13 +107,8 @@ function CreateJobContent() {
     CONTRACT_ADDRESSES.sepolia.agenticCommerce
   );
 
-  const { data: platformFeeBp } = useReadContract({
-    address: AGENTIC_COMMERCE_ADDRESS,
-    abi: AGENTIC_COMMERCE_ABI as unknown as readonly { name: 'platformFeeBP' }[],
-    functionName: 'platformFeeBP' as const,
-  });
-
-  const platformFeePercent = platformFeeBp ? Number(platformFeeBp) / 100 : 1;
+  // V9 has hardcoded 1% platform fee (100 basis points)
+  const platformFeePercent = 1;
 
   const [provider, setProvider] = useState('');
   const [deadline, setDeadline] = useState('');
@@ -121,6 +117,12 @@ function CreateJobContent() {
   const [paymentToken, setPaymentToken] = useState<Token>(USDC_TOKEN);
   const [useMilestones, setUseMilestones] = useState(false);
   const [clientReview, setClientReview] = useState(true);
+  const [fundJobNow, setFundJobNow] = useState(false);
+
+  const { minBudget: minBudgetInToken, isLoading: isMinBudgetLoading } = useMinBudget(
+    paymentToken.address as `0x${string}`,
+    paymentToken.decimals
+  );
 
   useEffect(() => {
     if (providerParam) {
@@ -149,13 +151,42 @@ function CreateJobContent() {
     error: randomError,
   } = useCreateJobWithRandomEvaluator();
 
-  const txHash = serviceHash || randomHash;
+  const {
+    createJob: createJobV8,
+    hash: v8Hash,
+    isPending: isV8Pending,
+    error: v8Error,
+  } = useCreateJobV8();
+
+  const { setBudget: setJobBudget, isPending: isSetBudgetPending } = useSetBudget();
+  const jobCounter = useJobCount();
+
+  const txHash = serviceHash || randomHash || v8Hash;
   const { isLoading: isConfirming, isSuccess: isConfirmed } = useWaitForTransactionReceipt({
     hash: txHash,
   });
 
+  // Lazy on-demand approval: hooks for direct contract interaction
+  const publicClient = usePublicClient();
+  const { writeContractAsync } = useWriteContract();
+  const [submitPhase, setSubmitPhase] = useState<'idle' | 'checking' | 'approving' | 'creating'>('idle');
+  const AGENTIC_COMMERCE_PROXY: `0x${string}` = getContractAddress(
+    process.env.NEXT_PUBLIC_AGENTIC_COMMERCE_ADDRESS,
+    CONTRACT_ADDRESSES.sepolia.agenticCommerce
+  );
+
   useEffect(() => {
-    if (isConfirmed && txHash) {
+    if (isConfirmed && txHash && jobCounter) {
+      setSubmitPhase('idle');
+      // The new jobId is jobCounter - 1 (since counter is incremented after job creation)
+      const newJobId = BigInt(jobCounter.count - 1);
+      const budgetAmount = BigInt(Math.floor(parseFloat(budget) * 1e6));
+      
+      // Only set budget separately if NOT using V8 (which sets budget at creation)
+      if (!fundJobNow && budget) {
+        setJobBudget(newJobId, budgetAmount);
+      }
+      
       showToast.success('Job Created!', 'Redirecting to your jobs...');
       // Store milestone preference if selected, for job detail page
       if (useMilestones) {
@@ -163,7 +194,7 @@ function CreateJobContent() {
       }
       router.push('/jobs');
     }
-  }, [isConfirmed, txHash, router, useMilestones]);
+  }, [isConfirmed, txHash, jobCounter, router, useMilestones, budget, setJobBudget, fundJobNow]);
 
   const validateProvider = useCallback(
     (value: string) => {
@@ -206,19 +237,19 @@ function CreateJobContent() {
       }
       if (value) {
         const numValue = parseFloat(value);
-        if (isNaN(numValue) || numValue < MIN_BUDGET_USDC) {
-          setBudgetError(`Minimum budget is $${MIN_BUDGET_USDC} USDC`);
+        if (isNaN(numValue) || numValue < minBudgetInToken) {
+          setBudgetError(`Minimum budget is ${minBudgetInToken.toFixed(paymentToken.decimals === 6 ? 0 : 4)} ${paymentToken.symbol}`);
           return false;
         }
       }
       setBudgetError(null);
       return true;
     },
-    [serviceId]
+    [serviceId, paymentToken, minBudgetInToken]
   );
 
   const performSubmit = useCallback(
-    (e: React.FormEvent) => {
+    async (e: React.FormEvent) => {
       e.preventDefault();
       
       if (!isConnected || !address) {
@@ -271,7 +302,7 @@ function CreateJobContent() {
         ? BigInt(Math.floor(new Date(deadline).getTime() / 1000))
         : BigInt(Math.floor(Date.now() / 1000) + 86400 * 7);
 
-if (serviceId && service) {
+      if (serviceId && service) {
         createJobFromService(
           serviceId,
           '0x0000000000000000000000000000000000000000',
@@ -281,47 +312,142 @@ if (serviceId && service) {
           true // evaluatorFee always 1%
         );
       } else {
-        // Direct job - provider is REQUIRED
-        createJobWithRandomEvaluator(
+        // Direct job - use V8 with budget at creation! (fixes $0 budget issue)
+        // Budget is token-aware: enter in selected token's native units
+        const budgetRaw = parseFloat(budget || '0');
+        const budgetAmount = BigInt(
+          Math.floor(budgetRaw * Math.pow(10, paymentToken.decimals))
+        );
+        const paymentTokenAddr = paymentToken.address as `0x${string}`;
+        
+        // If funding now with ETH: pass exact ETH amount (already in wei)
+        // For USDC: fundAmount not used, contract uses budget directly
+        const fundAmount = fundJobNow && paymentToken.symbol === 'ETH'
+          ? budgetAmount
+          : 0n;
+
+        // --- LAZY ON-DEMAND USDC APPROVAL CHECK ---
+        if (fundJobNow && paymentToken.symbol === 'USDC') {
+          try {
+            setSubmitPhase('checking');
+            console.log('[CreateJob] Checking USDC allowance on-demand...');
+            
+            const allowance = await publicClient!.readContract({
+              address: USDC_TOKEN.address,
+              abi: erc20Abi,
+              functionName: 'allowance',
+              args: [address!, AGENTIC_COMMERCE_PROXY],
+            });
+
+            console.log('[CreateJob] Allowance:', allowance.toString(), 'Budget:', budgetAmount.toString());
+
+            if (allowance < budgetAmount) {
+              setSubmitPhase('approving');
+              showToast.info('USDC approval needed', `Approving exact amount: ${budget} USDC`);
+              
+              console.log('[CreateJob] Triggering USDC approval for exact amount...');
+              const approveHash = await writeContractAsync({
+                address: USDC_TOKEN.address,
+                abi: erc20Abi,
+                functionName: 'approve',
+                args: [AGENTIC_COMMERCE_PROXY, budgetAmount],
+              });
+
+              console.log('[CreateJob] Approval hash:', approveHash);
+              showToast.info('Approval submitted', 'Waiting for confirmation...');
+              
+              // Wait for confirmation via polling
+              let confirmed = false;
+              let attempts = 0;
+              const maxAttempts = 60; // 2 minutes at 2s intervals
+              
+              while (!confirmed && attempts < maxAttempts) {
+                await new Promise(resolve => setTimeout(resolve, 2000));
+                try {
+                  const receipt = await publicClient!.getTransactionReceipt({ hash: approveHash });
+                  if (receipt && receipt.status === 'success') {
+                    confirmed = true;
+                    console.log('[CreateJob] Approval confirmed!');
+                    showToast.success('USDC approved', 'You can now create the job');
+                  }
+                } catch {
+                  // Transaction not mined yet, continue polling
+                }
+                attempts++;
+              }
+
+              if (!confirmed) {
+                showToast.error('Approval timeout', 'Please check your wallet and try again');
+                setSubmitPhase('idle');
+                return;
+              }
+            }
+          } catch (err: any) {
+            console.error('[CreateJob] Allowance/approval error:', err);
+            showToast.error('Approval failed', err.message || 'Please try again');
+            setSubmitPhase('idle');
+            return;
+          }
+        }
+
+        setSubmitPhase('creating');
+        createJobV8(
           provider as `0x${string}`,
+          budgetAmount,              // budget in token's decimals
+          paymentTokenAddr,          // paymentToken
+          0n,                         // serviceId (not using service)
           deadlineTs,
           description || 'Direct job',
-          '0x0000000000000000000000000000000000000000',
-          true, // evaluatorFee always 1%
-          clientReview
+          '0x0000000000000000000000000000000000000000', // evaluator (random)
+          '0x0000000000000000000000000000000000000000', // hook
+          true,                       // evaluatorFee 1%
+          clientReview,
+          fundJobNow,                 // fundNow
+          fundAmount                  // fundAmount in wei for ETH, 0 for USDC
         );
       }
     },
-[
-  isConnected,
-  address,
-  serviceId,
-  service,
-  deadline,
-  description,
-  provider,
-  budget,
-  paymentToken,
-  validateProvider,
-  validateDeadlineField,
-  validateDescriptionField,
-  validateBudgetField,
-  createJobFromService,
-  clientReview,
-]
-);
+    [
+      isConnected,
+      address,
+      serviceId,
+      service,
+      deadline,
+      description,
+      provider,
+      budget,
+      paymentToken,
+      validateProvider,
+      validateDeadlineField,
+      validateDescriptionField,
+      validateBudgetField,
+      createJobFromService,
+      createJobV8,
+      clientReview,
+      fundJobNow,
+      publicClient,
+      writeContractAsync,
+    ]
+  );
 
 const { handleSubmit, isSubmitting, timeUntilNextSubmit } = useFormSubmit(performSubmit, 2000);
 
-const isFormLoading = isServicePending || isRandomPending || isConfirming;
-const error = serviceError || randomError;
+const isFormLoading = isServicePending || isRandomPending || isV8Pending || isConfirming || submitPhase !== 'idle';
+const error = serviceError || randomError || v8Error;
+
+// Reset submit phase on transaction errors
+useEffect(() => {
+  if (error && submitPhase !== 'idle') {
+    setSubmitPhase('idle');
+  }
+}, [error, submitPhase]);
 
 // Check form validity by mode
 let isFormValid = false;
 if (serviceId && service) {
   isFormValid = !!description && Number(service.price) > 0;
 } else {
-  isFormValid = !!provider && provider.startsWith('0x') && !!budget && parseFloat(budget) >= MIN_BUDGET_USDC && !!description;
+  isFormValid = !!provider && provider.startsWith('0x') && !!budget && parseFloat(budget) >= minBudgetInToken && !!description;
 }
 
 const budgetInUsdc =
@@ -512,9 +638,9 @@ const budgetInUsdc =
                   <input
                     id="budget"
                     type="number"
-                    step={paymentToken.symbol === 'USDC' ? '0.01' : '0.001'}
-                    min={MIN_BUDGET_USDC}
-                    placeholder={`0.00`}
+                    step={paymentToken.symbol === 'USDC' ? '0.01' : '0.0001'}
+                    min={minBudgetInToken > 0 ? minBudgetInToken : 0}
+                    placeholder={paymentToken.symbol === 'USDC' ? '100.00' : '0.0500'}
                     value={budget}
                     onChange={e => {
                       setBudget(e.target.value);
@@ -533,13 +659,31 @@ const budgetInUsdc =
                   <p className="text-xs text-default-400">≈ {budgetInUsdc} USD</p>
                 ) : (
                   <p className="text-xs text-default-400">
-                    Minimum ${MIN_BUDGET_USDC} USD equivalent
+                    Minimum {minBudgetInToken.toFixed(paymentToken.decimals === 6 ? 0 : 4)} {paymentToken.symbol}
                   </p>
                 )}
                 {useMilestones && (
                   <p className="text-xs text-[#009F4D] bg-[#009F4D]/10 p-2 rounded">
                     💰 Funds will be held in escrow and released per milestone upon completion verification
                   </p>
+                )}
+
+                {/* V8: Fund Job Now Toggle */}
+                {!serviceId && budget && parseFloat(budget) > 0 && (
+                  <label className="flex items-center gap-3 p-3 border border-divider rounded-lg cursor-pointer hover:bg-content2/50">
+                    <input
+                      type="checkbox"
+                      checked={fundJobNow}
+                      onChange={e => setFundJobNow(e.target.checked)}
+                      className="w-5 h-5 rounded border-default-300 text-success focus:ring-success"
+                    />
+                    <div>
+                      <p className="text-sm font-medium">Fund Job Now</p>
+                      <p className="text-xs text-default-400">
+                        Pay {paymentToken.symbol} {budget} now in a single transaction (recommended)
+                      </p>
+                    </div>
+                  </label>
                 )}
               </div>
             )}
@@ -620,10 +764,25 @@ const budgetInUsdc =
                 disabled={!isConnected || isFormLoading || !isFormValid || isSubmitting || isAtLimit}
                 className="flex-1 inline-flex items-center justify-center gap-2 px-6 py-3 border-2 border-[#009F4D] text-[#009F4D] rounded-lg font-semibold hover:bg-[#009F4D]/5 transition-colors disabled:opacity-50 disabled:cursor-not-allowed"
               >
-                {isFormLoading ? (
+                {submitPhase === 'checking' ? (
                   <>
                     <Loader2 className="w-4 h-4 animate-spin" />
-                    {isConfirming ? 'Confirming...' : 'Creating...'}
+                    Checking USDC allowance...
+                  </>
+                ) : submitPhase === 'approving' ? (
+                  <>
+                    <Loader2 className="w-4 h-4 animate-spin" />
+                    Approving USDC...
+                  </>
+                ) : submitPhase === 'creating' ? (
+                  <>
+                    <Loader2 className="w-4 h-4 animate-spin" />
+                    Creating Job...
+                  </>
+                ) : isConfirming ? (
+                  <>
+                    <Loader2 className="w-4 h-4 animate-spin" />
+                    Confirming...
                   </>
                 ) : isSubmitting ? (
                   <>

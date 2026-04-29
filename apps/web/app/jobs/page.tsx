@@ -32,7 +32,6 @@ function JobCard({ job, isConnected }: { job: any; isConnected: boolean }) {
   const { isBookmarked, toggleBookmark } = useJobBookmarks();
   const { getJobCount } = useBookmarkCounts();
   const formattedBudget = formatUnits(job.budget, 6);
-  const isOpen = job.status === JobStatus.Open;
   const jobIdStr = job.id.toString();
   const bookmarked = isBookmarked(jobIdStr);
   const bookmarkCount = getJobCount(jobIdStr);
@@ -81,23 +80,6 @@ function JobCard({ job, isConnected }: { job: any; isConnected: boolean }) {
           </button>
           {bookmarkCount > 0 && <span className="text-xs text-default-400">{bookmarkCount}</span>}
         </div>
-
-        {isOpen && (
-          <div className="shrink-0">
-            {isConnected ? (
-              <NextLink
-                href={`/jobs/${jobIdStr}/proposal`}
-                className="inline-flex items-center gap-2 px-4 py-2 bg-gradient-to-r from-[#009F4D] to-[#00c853] text-white text-sm font-medium rounded-lg hover:opacity-90 transition-opacity"
-              >
-                Submit Proposal
-              </NextLink>
-            ) : (
-              <span className="text-xs text-default-400 bg-content2 px-3 py-2 rounded-lg">
-                Connect wallet to propose
-              </span>
-            )}
-          </div>
-        )}
       </div>
     </Card>
   );
@@ -132,7 +114,7 @@ export default function JobsPage(): JSX.Element {
   const [searchQuery, setSearchQuery] = useState('');
   const [debouncedSearchQuery, setDebouncedSearchQuery] = useState('');
   const [statusFilter, setStatusFilter] = useState<string>('all');
-  const [roleFilter, setRoleFilter] = useState<string>('all'); // all, myJobs, openForBidding
+  const [roleFilter, setRoleFilter] = useState<string>('all'); // all, myJobs
   const [minBudget, setMinBudget] = useState('');
   const [maxBudget, setMaxBudget] = useState('');
   const [showFilters, setShowFilters] = useState(false);
@@ -159,18 +141,13 @@ export default function JobsPage(): JSX.Element {
       return false;
     }
 
-    // Role filter
+// Role filter
     if (roleFilter === 'myJobs' && address) {
       // Show jobs where user is client, provider, or evaluator
       const isClient = job.client?.toLowerCase() === address.toLowerCase();
       const isProvider = job.provider?.toLowerCase() === address.toLowerCase();
       const isEvaluator = job.evaluator?.toLowerCase() === address.toLowerCase();
       if (!isClient && !isProvider && !isEvaluator) return false;
-    } else if (roleFilter === 'openForBidding') {
-      // Show only open jobs (no provider assigned - bidding jobs)
-      if (job.status !== JobStatus.Open) return false;
-      if (job.provider && job.provider !== '0x0000000000000000000000000000000000000000')
-        return false;
     }
 
     // Status filter
@@ -291,7 +268,6 @@ export default function JobsPage(): JSX.Element {
                 >
                   <option value="all">All Jobs</option>
                   <option value="myJobs">My Jobs</option>
-                  <option value="openForBidding">Open for Bidding</option>
                 </select>
               </div>
             )}

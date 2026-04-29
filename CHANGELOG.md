@@ -5,6 +5,269 @@ All notable changes to the Kokonut Agent Economy Stack are documented in this fi
 The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.0.0/),
 and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0.html).
 
+## [2026-04-28] - AgenticCommerceV9: Multi-Token Configurable Minimums + Dynamic Oracle Integration
+
+### 🎯 V9 Contract: Multi-Token Architecture
+
+**New contract features:**
+
+| Feature | Description |
+|---------|-------------|
+| **Multi-Token Minimums** | Owner-changeable `minBudgetUsd` (default $5) with per-token overrides |
+| **Stablecoin Detection** | USDC/USDT recognized as $1-pegged via `isStablecoin` mapping |
+| **Dynamic ETH Minimum** | Live Chainlink ETH/USD price feed — auto-adjusts with market price |
+| **Volatile Token Support** | Any ERC20 with Chainlink feed (tested with LINK) |
+| **Exact-Amount Approvals** | Only job budget approved — not unlimited/MAX_UINT256 |
+| **Lazy On-Demand Approval** | Checks allowance on submit click, not proactively |
+
+**Architecture:**
+
+```
+┌─────────────────────────────────────────┐
+│         AgenticCommerceV9               │
+│  ┌─────────────────────────────────┐   │
+│  │ getMinBudget(token, decimals)   │   │
+│  │  ├── Override? Return override  │   │
+│  │  ├── Stablecoin? Return $5      │   │
+│  │  ├── ETH? Query oracle → calc   │   │
+│  │  └── Volatile? Query oracle →   │   │
+│  │              calc               │   │
+│  └─────────────────────────────────┘   │
+└─────────────────┬───────────────────────┘
+                  │ calls
+┌─────────────────▼───────────────────────┐
+│         PriceOracleV2                   │
+│  ├── ETH/USD feed (live)               │
+│  ├── USDC/USD feed                      │
+│  ├── LINK/USD feed (example)           │
+│  └── Any token/USD feed (configurable) │
+└─────────────────────────────────────────┘
+```
+
+**Dynamic Minimum Calculation:**
+```solidity
+// ETH at $2,292 → minimum = 0.00218 ETH ($5)
+// ETH at $1,000 → minimum = 0.005 ETH ($5)
+// ETH at $5,000 → minimum = 0.001 ETH ($5)
+return (minBudgetUsd * 10^(decimals-6) * 10^8) / oraclePrice;
+```
+
+**Contract Deployments:**
+
+| Contract | Proxy | Implementation |
+|----------|-------|----------------|
+| AgenticCommerceV9 | `0x4c592510e4FAbbEEA8D7142dE1f38d548b500e7f` | `0x1731A683461D379261887947A33126EA55Ee1816` |
+| MilestoneEscrowV2 | `0xd4Fdc345b1c6aF1B4Cc84339bcB251B33527Eb45` | `0x2f45DC6AA7c65C26cAD63d8BA33Bc13d263b3567` |
+| PriceOracleV2 | `0x32fD2A54B722D2048A052fD0456004483a683aFE` | `0xb4660AceBf93874fB6E945C312c5706093336Ef8` |
+
+**MilestoneEscrowV2 Critical Fix:**
+- **Bug**: V1 hardcoded `ARBITER_FEE = 0.001 ether` + `IERC20.transfer(arbiter, ARBITER_FEE)` = transferred 1e15 units of USDC ($1 trillion)
+- **Fix**: Per-token `arbiterFeePerToken` mapping — USDC dispute fee is now 0.001 USDC (not $1T)
+- **Staking**: Supports USDC/USDT/ETH stakes via `registerAsArbiter(token, amount)`
+
+**PriceOracleV2 Features:**
+- UUPS Upgradeable for future modifications
+- Per-token price feed registration via mapping
+- Dedicated ETH price feed (`ethPriceFeed` state variable)
+- Dynamic token decimal querying
+- Support for arbitrary ERC20 tokens
+
+---
+
+### 🎯 New Hooks
+
+**`lib/hooks/useMinBudget.ts`** — Fetch contract minimum budget for any token:
+```typescript
+const { minBudget, isLoading } = useMinBudget(tokenAddress, decimals);
+// Returns: 5.0 for USDC, 0.00218 for ETH (dynamic), etc.
+```
+
+---
+
+## [2026-04-28] - Lazy On-Demand USDC Approval
+
+### 🎯 Problem: Hanging Approval Check
+
+**Root Cause:** The proactive `useReadContract` hook for checking USDC allowance was hanging indefinitely due to:
+1. Missing `query.enabled` guard causing undefined args
+2. Timeout reset on every React re-render
+3. `useReadContract` hook stuck in `isLoading` state
+
+**Solution:** Implemented lazy on-demand approval check - only checks allowance when user clicks "Create Job"
+
+### 🎯 New Flow
+
+```
+User clicks "Create Job"
+    ↓
+System checks USDC allowance ON-DEMAND (not proactively)
+    ↓
+Allowance > 0? → Create job immediately
+Allowance = 0? → Trigger approval tx → Wait confirmation → Auto-create job
+```
+
+### 🎯 Implementation
+
+**New Hook:** `lib/hooks/useTokenAllowance.ts`
+- `useTokenAllowance()` - Check token allowance (fallback hook)
+- `useApproveSpend()` - Approve token spending
+
+**Updated:** `app/jobs/create/page.tsx`
+- Removed proactive allowance checking
+- Added `publicClient.readContract` call inside `performSubmit`
+- Sequential flow: Check → Approve (if needed) → Create Job
+- Single "Create Job" button with phase states:
+  - "Checking USDC allowance..."
+  - "Approving USDC..."
+  - "Creating Job..."
+
+**Key Changes:**
+- `useWriteContract` → `useWriteContractAsync` for sequential tx handling
+- Manual polling for approval confirmation (2s intervals, 60 attempts max)
+- Clear error handling with toast notifications
+
+### 🎯 Security Improvement: Exact-Amount Approvals
+
+**Changed from unlimited to exact-amount approvals:**
+
+| Before | After |
+|--------|-------|
+| `approve(spender, MAX_UINT256)` | `approve(spender, budgetAmount)` |
+| Unlimited token exposure | Only job budget at risk |
+| Permanent approval | Approval equals exact job cost |
+
+**Why this matters:**
+- If the contract is compromised, attackers can only steal the approved budget amount
+- User's remaining token balance stays protected
+- Industry best practice for ERC20 security
+
+### 🎯 UX Improvements
+
+| Before | After |
+|--------|-------|
+| Separate "Approve USDC" button | Single "Create Job" button |
+| Proactive check (hanging) | On-demand check (reliable) |
+| Multiple button states | Clear phase-based loading states |
+| Complex error recovery | Automatic retry with toast feedback |
+
+---
+
+## [2026-04-27] - AgenticCommerceV8: Budget at Creation + Token-Aware Payments
+
+### 🎯 V8 Contract: Budget at Job Creation
+
+**Root Cause:** The previous flow had a critical bug where `setBudget()` was called AFTER job creation, but the transaction was never confirming before the redirect - so jobs had $0 budget.
+
+**Solution:** Budget, paymentToken, and serviceId are now set in a single `createJob()` call. Optional immediate funding in same transaction.
+
+**New V8 Function Signature:**
+```solidity
+function createJob(
+    address provider,
+    uint256 budget,              // In token's decimals (USDC=6, ETH=18)
+    address paymentToken,         // Token address (USDC or ETH)
+    uint256 serviceId,            // Optional service ID (0 = none)
+    uint256 expiredAt,
+    string description,
+    address evaluator,             // address(0) = random from pool
+    address hook,
+    bool evaluatorFee,
+    bool clientReview_,
+    bool fundNow,                 // Fund immediately?
+    uint256 fundAmount            // Amount to fund (for ETH: in wei)
+) external payable returns (uint256 jobId)
+```
+
+**Key Features:**
+- **Budget at Creation**: No more separate `setBudget()` call
+- **Token-Aware**: Budget entered in selected token's native units
+  - USDC: 100 = 100 USDC (6 decimals)
+  - ETH: 0.05 = 0.05 ETH (18 decimals)
+- **Fund Job Now**: Optional immediate funding checkbox
+  - For USDC: Uses ERC20 transferFrom
+  - For ETH: Sends native ETH with transaction
+- **USD Equivalent**: Helper text only ("≈ $100 USD") - not used for payment
+- **createJobV7**: Backward compatible for service-based jobs
+
+**Contract Upgrade:**
+
+| Contract | Proxy | New Implementation |
+|----------|-------|-------------------|
+| AgenticCommerceV8 | `0x2e4De14A245F5b4AD154D2677C076817e4f1CE3D` | `0xaC7132aEfF6c52b7da628A54F043Fb2cc87Aeedb` |
+
+---
+
+### 🎯 Token-Aware Budget Input
+
+**Changes to job creation UI:**
+
+1. **Budget input now token-aware**:
+   - USDC selected: Enter "100" → stored as 100,000,000 (6 decimals)
+   - ETH selected: Enter "0.05" → stored as 50,000,000,000,000,000 (18 decimals)
+
+2. **Dynamic placeholders**:
+   - USDC: "100.00" (step: 0.01)
+   - ETH: "0.0500" (step: 0.0001)
+
+3. **"Fund Job Now" checkbox**:
+   - When checked, budget is funded immediately in same transaction
+   - Label: "Pay {token} {budget} now in a single transaction"
+
+4. **Validation updated**:
+   - Minimum $0.01 USD equivalent in selected token
+   - For ETH: converts to ETH based on current price
+
+---
+
+### 🎯 Contract Tests
+
+**V8 Test Suite (10 passing):**
+
+| Test | Description |
+|------|-------------|
+| test_createJob_withBudget | Create job with budget at creation |
+| test_createJob_withZeroBudget | Create job without budget |
+| test_createJob_withPaymentToken | Create job with ETH payment |
+| test_createJob_fundNow_ERC20 | Immediate funding with USDC |
+| test_createJob_fundNow_Native | Immediate funding with ETH |
+| test_createJob_InvalidToken | Reverts for non-allowed tokens |
+| test_createJob_serviceId | Job with service ID |
+| test_createJob_randomEvaluator | Random evaluator selection |
+| test_createJob_clientReview | Client review flag |
+| test_createJobV7_backwardCompat | V7 backward compatibility |
+
+---
+
+### 📦 Files Modified
+
+| File | Changes |
+|------|---------|
+| `contracts/shared/AgenticCommerceV8.sol` | New V8 contract with budget at creation |
+| `contracts/interfaces/IAgenticCommerceV8.sol` | New V8 interface |
+| `contracts/test/AgenticCommerceV8.t.sol` | V8 tests (10 passing) |
+| `contracts/script/DeployAgenticCommerceV8.s.sol` | Deployment script |
+| `apps/web/lib/contracts/config.ts` | Added V8 addresses |
+| `apps/web/lib/contracts/abis.ts` | Added V8 createJob signature |
+| `apps/web/lib/hooks/useJobs.ts` | Added useCreateJobV8 hook |
+| `apps/web/app/jobs/create/page.tsx` | Token-aware budget, Fund Job Now toggle |
+
+### 📦 Files Created
+
+| File | Purpose |
+|------|---------|
+| `contracts/shared/AgenticCommerceV8.sol` | V8 contract |
+| `contracts/interfaces/IAgenticCommerceV8.sol` | V8 interface |
+| `contracts/test/AgenticCommerceV8.t.sol` | V8 test suite |
+| `contracts/script/DeployAgenticCommerceV8.s.sol` | Deployment script |
+
+### ✅ Build Status
+
+- TypeScript: **0 errors**
+- Forge Tests: **10/10 passing**
+- Contract: **Deployed & Verified** on Sepolia
+
+---
+
 ## [2026-04-27] - Job Creation Fix & UI Cleanup
 
 ### 🎯 Contract Validation Bug Fix
@@ -28,6 +291,32 @@ if (evaluator != address(0)) {
 | Contract | Proxy | New Implementation |
 |----------|-------|-------------------|
 | AgenticCommerceV7 | `0x948d97EA7F0c49796fB576ADff375C900627568E` | `0x26a01019488640B4785D57f5809A39e18788133C` |
+
+---
+
+### 🎯 Job Directory Fix (April 27, 2026)
+
+**Issue:** Jobs not displaying in `/jobs` directory (visible on Dashboard but not in jobs grid)
+
+**Root Cause:** Event signature mismatch - hook queried old 6-param event, but V7 contract emits 5-param event
+
+**Fix:** Updated `useJobsEvents.ts` to query correct V7 event signature:
+
+```typescript
+// Before (6 params - wrong)
+'event JobCreated(uint256 indexed jobId, address indexed client, address indexed provider, address evaluator, uint256 serviceId, uint256 expiredAt)'
+
+// After (5 params - correct)
+'event JobCreated(uint256 indexed jobId, address indexed client, address indexed provider, uint256 serviceId, uint256 expiredAt)'
+```
+
+---
+
+### 🎯 UI Cleanup: Remove Bidding Filter
+
+**Changes:**
+- Removed "Open for Bidding" filter from `/jobs` page (bidding moved to `/bidding/create`)
+- Removed related filter logic
 
 ---
 

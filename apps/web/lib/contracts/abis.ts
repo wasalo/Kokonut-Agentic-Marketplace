@@ -99,6 +99,10 @@ export const AGENTIC_COMMERCE_ABI = parseAbi([
   'function createJobFromService(uint256 serviceId, address evaluator, uint256 expiredAt, string description, address hook, bool evaluatorFee) external returns (uint256 jobId)',
   // V7: createJob with client review flag (6 params)
   'function createJobWithRandomEvaluator(address provider, uint256 expiredAt, string description, address hook, bool evaluatorFee, bool clientReview) external returns (uint256 jobId)',
+  // V8: createJob with budget, paymentToken, serviceId, and optional immediate funding
+  'function createJob(address provider, uint256 budget, address paymentToken, uint256 serviceId, uint256 expiredAt, string description, address evaluator, address hook, bool evaluatorFee, bool clientReview, bool fundNow, uint256 fundAmount) external payable returns (uint256 jobId)',
+  // V8: createJobV7 for backward compatibility
+  'function createJobV7(address provider, address evaluator, uint256 expiredAt, string description, address hook, bool evaluatorFee, bool clientReview) external returns (uint256 jobId)',
   'function fund(uint256 jobId, uint256 expectedBudget) external payable',
   'function submit(uint256 jobId, bytes32 deliverable) external',
   'function complete(uint256 jobId, bytes32 reason) external',
@@ -120,6 +124,14 @@ export const AGENTIC_COMMERCE_ABI = parseAbi([
   'function finalizeByEvaluator(uint256 jobId, bytes32 reason) external',
   'function hasClientApproved(uint256 jobId) external view returns (bool)',
   'function isClientReviewRequired(uint256 jobId) external view returns (bool)',
+  // V9: Multi-token minimum budget
+  'function minBudgetUsd() external view returns (uint256)',
+  'function minBudgetOverride(address token) external view returns (uint256)',
+  'function isStablecoin(address token) external view returns (bool)',
+  'function getMinBudget(address token, uint8 decimals) external view returns (uint256)',
+  'function setMinBudgetUsd(uint256 newMin) external',
+  'function setMinBudgetOverride(address token, uint256 minAmount) external',
+  'function setStablecoin(address token, bool isStable) external',
 ]);
 
 export const AGENT_REVIEW_ABI = parseAbi([

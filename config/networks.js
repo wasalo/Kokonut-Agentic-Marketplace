@@ -19,12 +19,13 @@ exports.NETWORKS = {
             skillRegistry: '0xA84684261558f342d6871DD2CFef90A2117Aa20A', // AgentSkillRegistryV2 Proxy
             serviceRegistry: '0x62E1eeEa1A2Ab987004F35bDA430457Ed6077201', // ServiceRegistryV2 Proxy
             agentReview: '0x5CDb592Fd37749bF87448FBf5725D1Cd986dd1Cb', // AgentReviewV5 Proxy
-            agenticCommerce: '0x948d97EA7F0c49796fB576ADff375C900627568E', // AgenticCommerceV6.1 Proxy
+            agenticCommerce: '0x4c592510e4FAbbEEA8D7142dE1f38d548b500e7f', // AgenticCommerceV9 Proxy
             biddingSystem: '0x32c9d069a248a619d3EAc4D1FC76F2639AaBeF04', // BiddingSystem Proxy
-            priceOracle: '0x5C4AC3dAF76708DCd51911BA3B33027eAB1B4047',
-            commitReveal: '0x6CEd1574A3dF7ec646e43DD8408300117c453Aa3',
-            slashManager: '0x7Cf955900FD7a12680E90D834eAf19346f5DBcf9',
-            milestoneEscrow: '0xf24eDD2d8e99c80d40e959b1F37636b6C04FF9A9', // Phase 24
+            priceOracle: '0x32fD2A54B722D2048A052fD0456004483a683aFE', // PriceOracleV2 Proxy
+            commitReveal: '0x85F193670fCb7B0c97D55E70Bf2a950b1065Fb3a', // CommitReveal Proxy
+            slashManager: '0x1B8373cDF4f2eD740c3478e0129f0B8494CE4Fa3', // SlashManager Proxy
+            milestoneEscrow: '0xd4Fdc345b1c6aF1B4Cc84339bcB251B33527Eb45', // MilestoneEscrowV2 Proxy
+            adminRegistry: '0x8A8E3C9ffB8F25236c8152c8ac634336463f3Ab0', // AdminRegistry Proxy
             usdc: '0x1c7D4B196Cb0C7B01d743Fbc6116a902379C7238',
         },
     },

@@ -14,9 +14,12 @@ export const CONTRACTS: Record<string, ContractAddress> = {
   erc8004Registry: '0x8004A818BFB912233c491871b3d84c89A494BD9e',
   erc8004Reputation: '0x8004B663056A597Dffe9eCcC1965A193B7388713',
   serviceRegistry: '0x62E1eeEa1A2Ab987004F35bDA430457Ed6077201',
-  agenticCommerce: '0x948d97EA7F0c49796fB576ADff375C900627568E',
-  agentReview: '0x716B02447b52Eab450e31bD77103B41bC2c7bE0b',
+  agenticCommerce: '0x4c592510e4FAbbEEA8D7142dE1f38d548b500e7f', // AgenticCommerceV9
+  agentReview: '0x5CDb592Fd37749bF87448FBf5725D1Cd986dd1Cb', // AgentReviewV5
   skillRegistry: '0xA84684261558f342d6871DD2CFef90A2117Aa20A',
+  priceOracle: '0x32fD2A54B722D2048A052fD0456004483a683aFE', // PriceOracleV2
+  milestoneEscrow: '0xd4Fdc345b1c6aF1B4Cc84339bcB251B33527Eb45', // MilestoneEscrowV2
+  adminRegistry: '0x8A8E3C9ffB8F25236c8152c8ac634336463f3Ab0', // AdminRegistry
   usdc: '0x1c7D4B196Cb0C7B01d743Fbc6116a902379C7238',
 };
 
