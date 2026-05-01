@@ -99,10 +99,10 @@ jobs:
         run: forge build --sizes --via-ir
 
       - name: Forge tests
-        run: forge test -vvv
+        run: forge test -vvv --via-ir
 
       - name: Coverage report
-        run: forge coverage --report summary
+        run: forge coverage --report summary --via-ir
 
       - name: Check coverage threshold
         run: |
@@ -134,7 +134,7 @@ jobs:
           version: nightly
 
       - name: Run gas benchmarks
-        run: forge test --match-contract GasBenchmark -vvv
+        run: forge test --match-contract GasBenchmark -vvv --via-ir
 
   # ============================================
   # Fuzzing Tests
@@ -153,7 +153,7 @@ jobs:
           version: nightly
 
       - name: Run fuzz tests
-        run: forge test --match-contract Fuzz -vvv --fuzz-runs 10000
+        run: forge test --match-contract Fuzz -vvv --fuzz-runs 10000 --via-ir
 
   # ============================================
   # Frontend Build
