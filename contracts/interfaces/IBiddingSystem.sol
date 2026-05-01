@@ -8,7 +8,7 @@ pragma solidity ^0.8.20;
  * This contract handles the complete bidding lifecycle:
  * - Commit-reveal bidding with stakes
  * - Winner selection by job creator
- * - Integration with AgenticCommerceV6.1 for job creation and escrow
+ * - Integration with AgenticCommerceV9 for job creation and escrow
  * - Pull pattern for stake management
  */
 interface IBiddingSystem {
@@ -231,7 +231,7 @@ interface IBiddingSystem {
     /***********************************/
     
     /**
-     * @dev Create a job in AgenticCommerceV6.1 with the winning bid
+     * @dev Create a job in AgenticCommerceV9 with the winning bid
      * @param sessionId The bidding session ID
      * @param jobExpiredAt When the job expires
      * @param description Job description

@@ -20,7 +20,7 @@ export const NETWORKS = {
       commitReveal: '0x85F193670fCb7B0c97D55E70Bf2a950b1065Fb3a', // CommitReveal Proxy
       slashManager: '0x1B8373cDF4f2eD740c3478e0129f0B8494CE4Fa3', // SlashManager Proxy
       milestoneEscrow: '0xd4Fdc345b1c6aF1B4Cc84339bcB251B33527Eb45', // MilestoneEscrowV2 Proxy
-      adminRegistry: '0x8A8E3C9ffB8F25236c8152c8ac634336463f3Ab0', // AdminRegistry Proxy
+      adminRegistry: '0xC81C864CEAb6231ad764cf9867e031D8b6dee41d', // AdminRegistry Phase 29e UUPS proxy
       usdc: '0x1c7D4B196Cb0C7B01d743Fbc6116a902379C7238',
     },
   },

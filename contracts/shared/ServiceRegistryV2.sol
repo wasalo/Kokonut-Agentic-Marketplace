@@ -290,6 +290,12 @@ contract ServiceRegistryV2 is
         require(_services[serviceId].provider == msg.sender, "Not owner");
         require(!_services[serviceId].isActive, "Already active");
 
+        // Bad Actor: Re-check blacklist on reactivation
+        if (adminRegistry != address(0)) {
+            AdminRegistry registry = AdminRegistry(adminRegistry);
+            require(!registry.isWalletBlacklistedActive(msg.sender), "Wallet blacklisted");
+        }
+
         _services[serviceId].isActive = true;
         
         // O(1) update: increment active service count

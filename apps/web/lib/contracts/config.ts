@@ -34,21 +34,21 @@ const sepoliaContracts = {
   // Official ERC-8004 Registries
   erc8004Registry: '0x8004A818BFB912233c491871b3d84c89A494BD9e',
   erc8004Reputation: '0x8004B663056A597Dffe9eCcC1965A193B7388713',
-  adminRegistry: '0x8A8E3C9ffB8F25236c8152c8ac634336463f3Ab0',
+  adminRegistry: '0xC81C864CEAb6231ad764cf9867e031D8b6dee41d', // Phase 29e: UUPS proxy with Pashov fixes
 
   // SkillRegistry V2 - Uses ownerOf() instead of getAgent()
   skillRegistry: '0xA84684261558f342d6871DD2CFef90A2117Aa20A',
-  skillRegistryImpl: '0x3Eec6BAF9FAc410B9C580d3Eb8c971a14298BC87',
+  skillRegistryImpl: '0x656B6520CE44Bb0Fb08552274Be3a9B11aaa3569', // Phase 14: O(1) domain lookup
   serviceRegistry: '0x62E1eeEa1A2Ab987004F35bDA430457Ed6077201',
-  serviceRegistryImpl: '0x218340e07bEd7fD15058414388F2C82E0f3B04f9',
+  serviceRegistryImpl: '0xb75B02D4523171ABdB6f5bcB9D60903ed3e30fAD', // Phase 29e: blacklist recheck
   // Phase 29: V9 - Multi-token configurable minimum budgets
   agenticCommerce: '0x4c592510e4FAbbEEA8D7142dE1f38d548b500e7f',
-  agenticCommerceImpl: '0x1731A683461D379261887947A33126EA55Ee1816',
+  agenticCommerceImpl: '0x9634280fb2416061124aa6474F1BcF692473bEF4', // Phase 29e: commit-reveal + Pashov
   // Phase 11: BiddingSystem - Standalone commit-reveal bidding
   biddingSystem: '0x32c9d069a248a619d3EAc4D1FC76F2639AaBeF04',
-  biddingSystemImpl: '0x0A09e4Ff6DAa0eeA49526560e2c946Ea32a293Bb',
+  biddingSystemImpl: '0x0eE5E780bbbBA610D0B1926a3993A2aa0B1B9812', // Phase 29e: blacklist check
   agentReview: '0x5CDb592Fd37749bF87448FBf5725D1Cd986dd1Cb', // AgentReviewV5
-  agentReviewImpl: '0xFf4D6df8dDca340e2ff59615Dd00C325706019f7', // Phase 18
+  agentReviewImpl: '0xB93A8Ef6DBD364A4e936bE53061099864465B678', // Phase 29e: blacklist checks
   commitReveal: '0x85F193670fCb7B0c97D55E70Bf2a950b1065Fb3a',
   commitRevealImpl: '0xd9efa18c45357CC3d218E1FEC86E0C851270d33D',
   slashManager: '0x1B8373cDF4f2eD740c3478e0129f0B8494CE4Fa3',
@@ -56,7 +56,7 @@ const sepoliaContracts = {
 
   // Phase 29: MilestoneEscrowV2 - Per-token arbiter fees + USDC staking
   milestoneEscrow: '0xd4Fdc345b1c6aF1B4Cc84339bcB251B33527Eb45',
-  milestoneEscrowImpl: '0x2f45DC6AA7c65C26cAD63d8BA33Bc13d263b3567',
+  milestoneEscrowImpl: '0xfb764A5c740aC47721bC9802596395CdF2DC4CdB', // Phase 29e: activeDisputeIds cleanup
 
   // Phase 29: PriceOracleV2 - UUPS upgradeable per-token feeds
   priceOracle: '0x32fD2A54B722D2048A052fD0456004483a683aFE',
@@ -168,21 +168,21 @@ export const CONTRACT_ADDRESSES = {
     // Official ERC-8004 Registries
     erc8004Registry: '0x8004A818BFB912233c491871b3d84c89A494BD9e',
     erc8004Reputation: '0x8004B663056A597Dffe9eCcC1965A193B7388713',
-    adminRegistry: '0x8a8E3C9FFB8f25236C8152C8ac634336463F3Ab0', // Phase 27: Blacklist + Red Team
+    adminRegistry: '0xC81C864CEAb6231ad764cf9867e031D8b6dee41d', // Phase 29e: UUPS proxy with Pashov fixes
 
     // SkillRegistry V2 - Uses ownerOf() instead of getAgent()
     skillRegistry: '0xA84684261558f342d6871DD2CFef90A2117Aa20A',
-    skillRegistryImpl: '0x3Eec6BAF9FAc410B9C580d3Eb8c971a14298BC87',
+    skillRegistryImpl: '0x656B6520CE44Bb0Fb08552274Be3a9B11aaa3569', // Phase 14: O(1) domain lookup
     serviceRegistry: '0x62E1eeEa1A2Ab987004F35bDA430457Ed6077201',
-    serviceRegistryImpl: '0x04b07b8f57fb79971b1e9c96ee69e1d988a3cc21', // Phase 27: Blacklist enforcement
+    serviceRegistryImpl: '0xb75B02D4523171ABdB6f5bcB9D60903ed3e30fAD', // Phase 29e: blacklist recheck
     // Phase 29: V9 - Multi-token configurable minimum budgets
     agenticCommerce: '0x4c592510e4FAbbEEA8D7142dE1f38d548b500e7f',
-    agenticCommerceImpl: '0x1731A683461D379261887947A33126EA55Ee1816',
+  agenticCommerceImpl: '0x9634280fb2416061124aa6474F1BcF692473bEF4', // Phase 29e: commit-reveal + Pashov
     // Phase 11: BiddingSystem - Standalone commit-reveal bidding
     biddingSystem: '0x32c9d069a248a619d3EAc4D1FC76F2639AaBeF04',
-    biddingSystemImpl: '0x0A09e4Ff6DAa0eeA49526560e2c946Ea32a293Bb',
+  biddingSystemImpl: '0x0eE5E780bbbBA610D0B1926a3993A2aa0B1B9812', // Phase 29e: blacklist check
     agentReview: '0x5CDb592Fd37749bF87448FBf5725D1Cd986dd1Cb', // AgentReviewV5
-    agentReviewImpl: '0xFf4D6df8dDca340e2ff59615Dd00C325706019f7', // Phase 18
+  agentReviewImpl: '0xB93A8Ef6DBD364A4e936bE53061099864465B678', // Phase 29e: blacklist checks
     commitReveal: '0x85F193670fCb7B0c97D55E70Bf2a950b1065Fb3a',
     commitRevealImpl: '0xd9efa18c45357CC3d218E1FEC86E0C851270d33D',
     slashManager: '0x1B8373cDF4f2eD740c3478e0129f0B8494CE4Fa3',
@@ -190,7 +190,7 @@ export const CONTRACT_ADDRESSES = {
 
     // Phase 29: MilestoneEscrowV2 - Per-token arbiter fees + USDC staking
     milestoneEscrow: '0xd4Fdc345b1c6aF1B4Cc84339bcB251B33527Eb45',
-    milestoneEscrowImpl: '0x2f45DC6AA7c65C26cAD63d8BA33Bc13d263b3567',
+  milestoneEscrowImpl: '0xfb764A5c740aC47721bC9802596395CdF2DC4CdB', // Phase 29e: activeDisputeIds cleanup
 
     // Phase 29: PriceOracleV2 - UUPS upgradeable per-token feeds
     priceOracle: '0x32fD2A54B722D2048A052fD0456004483a683aFE',
@@ -233,7 +233,7 @@ const ENV_TO_FALLBACK: Record<keyof typeof CONTRACT_ENV_VARS, string> = {
   SERVICE_REGISTRY: CONTRACT_ADDRESSES.sepolia.serviceRegistry,
   AGENTIC_COMMERCE: CONTRACT_ADDRESSES.sepolia.agenticCommerce,
   BIDDING_SYSTEM: CONTRACT_ADDRESSES.sepolia.biddingSystem,
-  ADMIN_REGISTRY: CONTRACT_ADDRESSES.sepolia.adminRegistry,
+  ADMIN_REGISTRY: '0xC81C864CEAb6231ad764cf9867e031D8b6dee41d', // Phase 29e: UUPS proxy with Pashov fixes
   AGENT_REVIEW: CONTRACT_ADDRESSES.sepolia.agentReview,
   PRICE_ORACLE: CONTRACT_ADDRESSES.sepolia.priceOracle,
   COMMIT_REVEAL: CONTRACT_ADDRESSES.sepolia.commitReveal,

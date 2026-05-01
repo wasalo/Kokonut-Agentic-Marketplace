@@ -17,11 +17,8 @@ const AGENTIC_COMMERCE_ABI_WITH_NEW = AGENTIC_COMMERCE_ABI as typeof AGENTIC_COM
   | { name: 'getEvaluatorPoolSize' }
   | { name: 'isEvaluator' }
   | { name: 'setBudget' }
-  | { name: 'setProvider' }
   | { name: 'setPaymentToken' }
-  | { name: 'setMilestoneEscrow' }
   | { name: 'enableJobMilestones' }
-  | { name: 'createOpenJob' }
   | { name: 'approveByClient' }
   | { name: 'finalizeByEvaluator' }
   | { name: 'requiresClientReview' }
@@ -227,7 +224,7 @@ export function useActiveJobCount() {
 
 /**
  * @deprecated createJobFromService is disabled in V6.1 for size optimization.
- * Use useCreateJob + useSetProvider + useSetBudget instead.
+ * Use useCreateJob + useSetBudget instead.
  * This function will revert with "createJobFromService disabled".
  */
 export function useCreateJobFromService() {
@@ -420,24 +417,6 @@ export function useSetBudget() {
         abi: AGENTIC_COMMERCE_ABI_WITH_NEW as any,
         functionName: 'setBudget' as const,
         args: [jobId, amount],
-      }),
-    hash: data,
-    isPending,
-    error,
-    reset,
-  };
-}
-
-export function useSetProvider() {
-  const { writeContract, data, isPending, error, reset } = useWriteContract();
-
-  return {
-    setProvider: (jobId: bigint, provider: `0x${string}`) =>
-      writeContract({
-        address: AGENTIC_COMMERCE_ADDRESS,
-        abi: AGENTIC_COMMERCE_ABI_WITH_NEW as any,
-        functionName: 'setProvider' as const,
-        args: [jobId, provider],
       }),
     hash: data,
     isPending,
@@ -928,7 +907,7 @@ export function useCreateJobV8() {
         functionName: 'createJob' as 'createJob',
         args: [provider, budget, paymentToken, serviceId, expiredAt, description, evaluator, hook, evaluatorFee, clientReview, fundNow, fundAmount] as any,
         // Only send native ETH value if paying with ETH (address(0)) and fundNow is true
-        value: (fundNow && paymentToken === '0x0000000000000000000000000000000000000000000') ? fundAmount : 0n,
+        value: (fundNow && paymentToken === '0x0000000000000000000000000000000000000000') ? fundAmount : 0n,
       }),
     hash: data,
     isPending,
@@ -978,6 +957,7 @@ export function useRegisterAsEvaluator() {
         address: AGENTIC_COMMERCE_ADDRESS,
         abi: AGENTIC_COMMERCE_ABI_WITH_NEW,
         functionName: 'registerAsEvaluator' as 'registerAsEvaluator',
+        value: BigInt(0.01e18),
       }),
     hash: data,
     isPending,
@@ -1026,29 +1006,6 @@ export function useEvaluatorPoolSize() {
     isLoading,
     error,
     refetch,
-  };
-}
-
-/**
- * Set the MilestoneEscrow contract address (owner only).
- */
-export function useSetMilestoneEscrow() {
-  const { writeContract, data, isPending, error, reset } = useWriteContract();
-
-  return {
-    setMilestoneEscrow: (milestoneEscrow: `0x${string}`) =>
-      writeContract({
-        address: AGENTIC_COMMERCE_ADDRESS,
-        // eslint-disable-next-line @typescript-eslint/no-explicit-any
-        abi: AGENTIC_COMMERCE_ABI as any,
-        functionName: 'setMilestoneEscrow',
-        // eslint-disable-next-line @typescript-eslint/no-explicit-any
-        args: [milestoneEscrow] as any,
-      }),
-    hash: data,
-    isPending,
-    error,
-    reset,
   };
 }
 

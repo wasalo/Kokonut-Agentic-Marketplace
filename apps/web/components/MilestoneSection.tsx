@@ -21,7 +21,6 @@ import {
   useReleaseMilestone,
   useFlagDispute,
   useAddMilestone,
-  ARBITER_FEE_ETH,
 } from '@/lib/hooks/useMilestoneEscrow';
 import { useEnableJobMilestones } from '@/lib/hooks/useJobs';
 import { Address } from '@/components/Address';
@@ -58,6 +57,7 @@ export function MilestoneSection({
   const [newDescription, setNewDescription] = useState('');
   const [newAmount, setNewAmount] = useState('');
   const [newDueDate, setNewDueDate] = useState('');
+  const [disputeMilestoneIndex, setDisputeMilestoneIndex] = useState<number>(0);
 
   const { milestones, isLoading: loadingMilestones, refetch: refetchMilestones } = useJobMilestones(jobId);
   const { details } = useJobMilestonesDetails(jobId);
@@ -116,7 +116,7 @@ export function MilestoneSection({
     if (!newDescription || !newAmount) return;
     const amountUSDC = BigInt(Math.floor(parseFloat(newAmount) * 1e6));
     const dueDate = newDueDate ? BigInt(Math.floor(new Date(newDueDate).getTime() / 1000)) : 0n;
-    await addMilestone(jobId, newDescription, amountUSDC, dueDate);
+    await addMilestone(jobId, amountUSDC, newDescription, dueDate);
     setNewDescription('');
     setNewAmount('');
     setNewDueDate('');
@@ -165,7 +165,7 @@ export function MilestoneSection({
   };
 
   const handleFlagDispute = async () => {
-    await flagDispute(jobId);
+    await flagDispute(jobId, BigInt(disputeMilestoneIndex));
   };
 
   return (
@@ -372,17 +372,33 @@ export function MilestoneSection({
               <p className="text-xs text-default-500 mb-3">
                 Having an issue? Flag a dispute to engage an arbiter (0.001 ETH fee).
               </p>
+              {milestones && milestones.length > 0 && (
+                <div className="mb-3">
+                  <label className="text-xs text-default-600 block mb-1">Milestone to dispute:</label>
+                  <select
+                    value={disputeMilestoneIndex}
+                    onChange={(e) => setDisputeMilestoneIndex(Number(e.target.value))}
+                    className="w-full px-2 py-1.5 text-sm border border-divider rounded-lg bg-background"
+                  >
+                    {milestones.map((m, i) => (
+                      <option key={i} value={i}>
+                        Phase {i + 1}: {m.description.slice(0, 40)}{m.description.length > 40 ? '...' : ''} ({formatUnits(m.amount, 6)} USDC)
+                      </option>
+                    ))}
+                  </select>
+                </div>
+              )}
               <Button
                 size="sm"
                 variant="outline"
                 className="border-warning text-warning"
                 onPress={handleFlagDispute}
-                isDisabled={isFlagPending}
+                isDisabled={isFlagPending || !milestones || milestones.length === 0}
               >
                 {isFlagPending ? 'Flagging...' : 'Flag Dispute'}
               </Button>
               <p className="text-xs text-default-400 mt-2">
-                Fee: {ARBITER_FEE_ETH} ETH
+                Fee: paid in job payment token
               </p>
               {flagError && <ErrorDisplay error={flagError} />}
             </div>

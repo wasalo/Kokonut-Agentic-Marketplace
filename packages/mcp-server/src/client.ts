@@ -19,7 +19,7 @@ export const CONTRACTS: Record<string, ContractAddress> = {
   skillRegistry: '0xA84684261558f342d6871DD2CFef90A2117Aa20A',
   priceOracle: '0x32fD2A54B722D2048A052fD0456004483a683aFE', // PriceOracleV2
   milestoneEscrow: '0xd4Fdc345b1c6aF1B4Cc84339bcB251B33527Eb45', // MilestoneEscrowV2
-  adminRegistry: '0x8A8E3C9ffB8F25236c8152c8ac634336463f3Ab0', // AdminRegistry
+  adminRegistry: '0xC81C864CEAb6231ad764cf9867e031D8b6dee41d', // AdminRegistry Phase 29e UUPS proxy
   usdc: '0x1c7D4B196Cb0C7B01d743Fbc6116a902379C7238',
 };
 

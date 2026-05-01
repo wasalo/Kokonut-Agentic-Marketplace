@@ -5,8 +5,8 @@ import { parseEventLogs } from 'viem';
 
 const MILESTONE_ESCROW_ADDRESS = getContractAddress('MILESTONE_ESCROW');
 
-export const ARBITER_STAKE_ETH = 0.01;
-export const ARBITER_FEE_ETH = 0.001;
+// V2: Arbiter stake/fee are in ERC20 tokens, not ETH
+// Use getArbiterStake/getArbiterFee to check per-token requirements
 
 export interface Milestone {
   description: string;
@@ -32,21 +32,6 @@ export interface Dispute {
   flaggedAt: bigint;
   resolved: boolean;
   releaseToProvider: boolean;
-}
-
-// ============ Constants ============
-
-export function useMilestoneConstants() {
-  const { data, isLoading } = useReadContract({
-    address: MILESTONE_ESCROW_ADDRESS,
-    abi: MILESTONE_ESCROW_ABI,
-    functionName: 'ARBITER_STAKE',
-  });
-
-  return {
-    arbiterStake: data ?? BigInt(0),
-    isLoading,
-  };
 }
 
 // ============ Milestone Read Hooks ============
@@ -125,7 +110,7 @@ export function useArbiterCount() {
   const { data, isLoading, refetch } = useReadContract({
     address: MILESTONE_ESCROW_ADDRESS,
     abi: MILESTONE_ESCROW_ABI,
-    functionName: 'getArbiterCount',
+    functionName: 'getArbiters',
     query: {
       retry: 2,
       staleTime: 60 * 1000,
@@ -133,7 +118,7 @@ export function useArbiterCount() {
   });
 
   return {
-    count: data ? Number(data) : 0,
+    count: data ? (data as string[]).length : 0,
     isLoading,
     refetch,
   };
@@ -143,7 +128,7 @@ export function useIsArbiter(address: string | undefined) {
   const { data, isLoading, refetch } = useReadContract({
     address: MILESTONE_ESCROW_ADDRESS,
     abi: MILESTONE_ESCROW_ABI,
-    functionName: 'isArbiter',
+    functionName: 'isRegisteredArbiter',
     args: address ? [address as `0x${string}`] : undefined,
     query: {
       retry: 2,
@@ -231,14 +216,14 @@ export function useEnableMilestones() {
     hash,
   });
 
-  const enableMilestones = async (jobId: bigint, provider: `0x${string}`, paymentToken: `0x${string}`, totalBudget: bigint) => {
+  const enableMilestones = async (jobId: bigint, client: `0x${string}`, provider: `0x${string}`, paymentToken: `0x${string}`, totalBudget: bigint) => {
     debugLog('contracts', `useEnableMilestones: Enabling milestones for job ${Number(jobId)}`);
 
     writeContract({
       address: MILESTONE_ESCROW_ADDRESS,
       abi: MILESTONE_ESCROW_ABI,
       functionName: 'enableMilestones',
-      args: [jobId, provider, paymentToken, totalBudget],
+      args: [jobId, client, provider, paymentToken, totalBudget],
     });
   };
 
@@ -259,14 +244,14 @@ export function useAddMilestone() {
     hash,
   });
 
-  const addMilestone = async (jobId: bigint, description: string, amount: bigint, dueDate: bigint) => {
+  const addMilestone = async (jobId: bigint, amount: bigint, description: string, dueDate: bigint) => {
     debugLog('contracts', `useAddMilestone: Adding milestone to job ${Number(jobId)}`);
 
     writeContract({
       address: MILESTONE_ESCROW_ADDRESS,
       abi: MILESTONE_ESCROW_ABI,
       functionName: 'addMilestone',
-      args: [jobId, description, amount, dueDate],
+      args: [jobId, amount, description, dueDate],
     });
   };
 
@@ -288,12 +273,12 @@ export function useCompleteMilestone() {
   });
 
   const completeMilestone = async (jobId: bigint, milestoneIndex: bigint, proofHash: `0x${string}`) => {
-    debugLog('contracts', `useCompleteMilestone: Completing milestone ${Number(jobId)}-${Number(milestoneIndex)}`);
+    debugLog('contracts', `useCompleteMilestone: Submitting milestone ${Number(jobId)}-${Number(milestoneIndex)}`);
 
     writeContract({
       address: MILESTONE_ESCROW_ADDRESS,
       abi: MILESTONE_ESCROW_ABI,
-      functionName: 'completeMilestone',
+      functionName: 'submitMilestone',
       args: [jobId, milestoneIndex, proofHash],
     });
   };
@@ -343,14 +328,14 @@ export function useRegisterAsArbiter() {
     hash,
   });
 
-  const registerAsArbiter = async () => {
-    debugLog('contracts', 'useRegisterAsArbiter: Registering as arbiter with stake');
+  const registerAsArbiter = async (token: `0x${string}`, amount: bigint) => {
+    debugLog('contracts', `useRegisterAsArbiter: Registering as arbiter with ${amount} of token ${token}`);
 
     writeContract({
       address: MILESTONE_ESCROW_ADDRESS,
       abi: MILESTONE_ESCROW_ABI,
       functionName: 'registerAsArbiter',
-      value: BigInt(ARBITER_STAKE_ETH * 1e18),
+      args: [token, amount],
     });
   };
 
@@ -398,15 +383,14 @@ export function useFlagDispute() {
     hash,
   });
 
-  const flagDispute = async (jobId: bigint) => {
-    debugLog('contracts', `useFlagDispute: Flagging dispute for job ${Number(jobId)}`);
+  const flagDispute = async (jobId: bigint, milestoneIndex: bigint) => {
+    debugLog('contracts', `useFlagDispute: Flagging dispute for job ${Number(jobId)}, milestone ${Number(milestoneIndex)}`);
 
     writeContract({
       address: MILESTONE_ESCROW_ADDRESS,
       abi: MILESTONE_ESCROW_ABI,
       functionName: 'flagDispute',
-      args: [jobId],
-      value: BigInt(ARBITER_FEE_ETH * 1e18),
+      args: [jobId, milestoneIndex],
     });
   };
 

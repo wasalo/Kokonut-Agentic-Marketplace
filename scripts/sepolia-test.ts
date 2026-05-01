@@ -30,7 +30,7 @@ const CONTRACTS = {
   serviceRegistry: '0x62E1eeEa1A2Ab987004F35bDA430457Ed6077201', // ServiceRegistryV2 Proxy
   agenticCommerce: '0x8E5AD4C87262A1d758E12702DE830f83d1e8D4b5',
   agentReview: '0xb63bb35f5dbae2ff2d154fade900ef85735ba7d3',
-  priceOracle: '0x5C4AC3dAF76708DCd51911BA3B33027eAB1B4047', // NEW - deployed today
+  priceOracle: '0x32fD2A54B722D2048A052fD0456004483a683aFE', // PriceOracleV2 Proxy
   commitReveal: '0x6CEd1574A3dF7ec646e43DD8408300117c453Aa3',
   slashManager: '0x7Cf955900FD7a12680E90D834eAf19346f5DBcf9',
   usdc: '0x1c7D4B196Cb0C7B01d743Fbc6116a902379C7238',

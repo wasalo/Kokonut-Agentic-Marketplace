@@ -10,8 +10,8 @@ import {
   useArbiterStake,
   useRegisterAsArbiter,
   useUnregisterAsArbiter,
-  ARBITER_STAKE_ETH,
 } from '@/lib/hooks/useMilestoneEscrow';
+import { CONTRACTS } from '@/lib/wagmi';
 import { ErrorDisplay } from '@/components/ErrorDisplay';
 
 export function ArbiterSection(): JSX.Element {
@@ -21,6 +21,7 @@ export function ArbiterSection(): JSX.Element {
   const { stake, isLoading: isStakeLoading } = useArbiterStake(address);
 
   const { registerAsArbiter, isPending: isRegisterPending, writeError: registerError } = useRegisterAsArbiter();
+  const USDC_ADDRESS = CONTRACTS[11155111].usdc as `0x${string}`;
   const { unregisterAsArbiter, isPending: isUnregisterPending, writeError: unregisterError } = useUnregisterAsArbiter();
 
   if (!isConnected) {
@@ -102,21 +103,21 @@ export function ArbiterSection(): JSX.Element {
               <span className="text-sm font-medium text-warning">Become an Arbiter</span>
             </div>
             <p className="text-xs text-default-500 mb-2">
-              Resolve disputes and earn fees. You&apos;ll need to stake ETH to participate.
+              Resolve disputes and earn fees. You&apos;ll need to stake tokens to participate.
             </p>
             <div className="text-xs text-default-400">
-              <p>Stake required: {ARBITER_STAKE_ETH} ETH</p>
-              <p>Arbiter fee per dispute: 0.001 ETH</p>
+              <p>Stake token: USDC</p>
+              <p>Arbiter fee per dispute: varies by token</p>
             </div>
           </div>
 
           <Button
             size="sm"
             className="bg-[#009F4D] text-white"
-            onPress={registerAsArbiter}
+            onPress={() => registerAsArbiter(USDC_ADDRESS, 10000000n)} // 10 USDC default
             isDisabled={isRegisterPending}
           >
-            {isRegisterPending ? 'Registering...' : `Register as Arbiter (${ARBITER_STAKE_ETH} ETH)`}
+            {isRegisterPending ? 'Registering...' : 'Register as Arbiter (10 USDC)'}
           </Button>
 
           {registerError && <ErrorDisplay error={registerError} />}

@@ -8,6 +8,9 @@ const PRICE_ORACLE_ADDRESS = assertValidAddress(
   'PRICE_ORACLE_ADDRESS'
 );
 
+const USDC_ADDRESS = CONTRACTS[11155111].usdc as `0x${string}`;
+const ZERO_ADDRESS = '0x0000000000000000000000000000000000000000' as `0x${string}`;
+
 /**
  * Hook to get the current USDC price from the oracle
  * @returns USDC price with 8 decimals (1 USDC = 100000000)
@@ -16,7 +19,8 @@ export function useUSDCPrice() {
   const { data, isLoading, error, refetch } = useReadContract({
     address: PRICE_ORACLE_ADDRESS,
     abi: PRICE_ORACLE_ABI,
-    functionName: 'getUSDCPrice',
+    functionName: 'getUsdPriceOfToken',
+    args: [USDC_ADDRESS],
     query: {
       retry: 2,
       staleTime: 60 * 1000, // 1 minute
@@ -40,7 +44,8 @@ export function useETHRate() {
   const { data, isLoading, error, refetch } = useReadContract({
     address: PRICE_ORACLE_ADDRESS,
     abi: PRICE_ORACLE_ABI,
-    functionName: 'getETHRate',
+    functionName: 'getUsdPriceOfToken',
+    args: [ZERO_ADDRESS],
     query: {
       retry: 2,
       staleTime: 60 * 1000,
@@ -59,11 +64,12 @@ export function useETHRate() {
  * Hook to check if the price oracle data is stale
  * @returns boolean indicating if price data is stale (> 1 hour old)
  */
-export function usePriceOracleStale() {
+export function usePriceOracleStale(tokenAddress: `0x${string}` = ZERO_ADDRESS) {
   const { data, isLoading, error, refetch } = useReadContract({
     address: PRICE_ORACLE_ADDRESS,
     abi: PRICE_ORACLE_ABI,
     functionName: 'isStale',
+    args: [tokenAddress],
     query: {
       retry: 2,
       staleTime: 30 * 1000,

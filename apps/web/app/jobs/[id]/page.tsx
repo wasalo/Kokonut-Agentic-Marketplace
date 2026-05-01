@@ -34,7 +34,6 @@ import {
   useCompleteJob,
   useRejectJob,
   useClaimRefund,
-  useSetProvider,
   useSetBudget,
   useSetPaymentToken,
   useJobBidCount,
@@ -229,8 +228,6 @@ export default function JobDetailPage({
     error: refundError,
   } = useClaimRefund();
 
-  const { setProvider, hash: providerHash, isPending: isProviderPending } = useSetProvider();
-
   const { setBudget, hash: budgetHash, isPending: isBudgetPending } = useSetBudget();
 
   // Phase 14/15 - New hooks for permissionless operations
@@ -272,7 +269,7 @@ export default function JobDetailPage({
           args: [job.id, BigInt(i)],
         }));
 
-        const results = await publicClient.multicall({ contracts: calls });
+        const results = await publicClient.multicall({ contracts: calls } as any);
         const fetchedBids: Bid[] = [];
         for (const r of results) {
           if (r.status === 'success') {
@@ -297,7 +294,6 @@ export default function JobDetailPage({
     void void fetchBids();
   }, [publicClient, job?.id, bidCount, jobIsOpen]);
 
-  const [newProvider, setNewProvider] = useState('');
   const [newBudget, setNewBudget] = useState('');
 
   const txHash =
@@ -308,7 +304,6 @@ export default function JobDetailPage({
     rejectHash ||
     refundHash ||
     approveHash ||
-    providerHash ||
     budgetHash ||
     paymentTokenHash ||
     withdrawHash;
@@ -1090,30 +1085,6 @@ export default function JobDetailPage({
               Job Settings
             </h2>
             <div className="space-y-4">
-              <div>
-                <label className="text-sm font-medium">Update Provider</label>
-                <div className="flex gap-2 mt-1">
-                  <input
-                    type="text"
-                    placeholder="0x..."
-                    value={newProvider}
-                    onChange={e => setNewProvider(e.target.value)}
-                    className="flex-1 px-3 py-2 bg-content2 border border-divider rounded-lg focus:outline-none focus:ring-2 focus:ring-primary text-sm"
-                  />
-                  <button
-                    onClick={() =>
-                      handleAction('Updating provider', () =>
-                        setProvider(job.id, newProvider as `0x${string}`)
-                      )
-                    }
-                    disabled={!newProvider || isProviderPending}
-                    className="px-4 py-2 bg-primary text-white rounded-lg text-sm font-medium hover:opacity-90 disabled:opacity-50"
-                  >
-                    {isProviderPending ? <Loader2 className="w-4 h-4 animate-spin" /> : 'Update'}
-                  </button>
-                </div>
-              </div>
-
               <div>
                 <label className="text-sm font-medium">Update Budget (USDC)</label>
                 <div className="flex gap-2 mt-1">

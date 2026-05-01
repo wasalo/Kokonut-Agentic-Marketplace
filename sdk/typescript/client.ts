@@ -83,55 +83,82 @@ const SERVICE_REGISTRY_ABI = parseAbi([
 ] as const);
 
 const AGENTIC_COMMERCE_ABI = parseAbi([
-  // V6 Functions (using correct contract names)
-  'function createJob(address provider, address evaluator, uint256 expiredAt, string calldata description, address hook, bool evaluatorFee) external returns (uint256 jobId)',
-  // NOTE: createOpenJob is DISABLED in V6.1 - use BiddingSystem for bidding instead
-  'function setProvider(uint256 jobId, address provider) external',
+  // V9 Functions
+  'function createJob(address provider, uint256 budget, address paymentToken, uint256 serviceId, uint256 expiredAt, string calldata description, address evaluator, address hook, bool evaluatorFee, bool clientReview_, bool fundNow, uint256 fundAmount) external payable returns (uint256 jobId)',
+  'function createJobV7(address provider, address evaluator, uint256 expiredAt, string calldata description, address hook, bool evaluatorFee, bool clientReview) external returns (uint256 jobId)',
+  'function createJobWithRandomEvaluator(address provider, uint256 expiredAt, string calldata description, address hook, bool evaluatorFee, bool clientReview) external returns (uint256 jobId)',
   'function setBudget(uint256 jobId, uint256 amount) external',
   'function fund(uint256 jobId, uint256 expectedBudget) external payable',
   'function submit(uint256 jobId, bytes32 deliverable) external',
   'function complete(uint256 jobId, bytes32 reason) external',
   'function reject(uint256 jobId, bytes32 reason) external',
   'function claimRefund(uint256 jobId) external',
-  // V5: Timeout completion for unresponsive evaluators
+  'function refundExpired(uint256 jobId) external',
   'function completeAfterTimeout(uint256 jobId, bytes32 reason) external',
   'function setDisputeWindow(uint256 jobId, uint256 window) external',
   'function setNonResponsiveSlashBP(uint256 jobId, uint256 slashBP) external',
-  // Bidding Functions - DISABLED in V6.1 (moved to BiddingSystem)
-  // Use this.bidding.commitBid(), this.bidding.revealBid(), etc. instead
-  // 'function commitBid(uint256 jobId, bytes32 commitHash) external payable', // DISABLED
-  // 'function revealBid(uint256 jobId, uint256 amount, string calldata message, bytes32 salt) external', // DISABLED
-  // 'function acceptBid(uint256 jobId, uint256 bidId) external', // DISABLED
-  // 'function withdrawStake(uint256 jobId) external', // DISABLED
+  'function approveByClient(uint256 jobId) external',
+  'function finalizeByEvaluator(uint256 jobId, bytes32 reason) external',
+  'function setPaymentToken(uint256 jobId, address paymentToken) external',
+  // V9: Budget Limits
+  'function getMinBudget(address token, uint8 decimals) external view returns (uint256)',
+  'function setMinBudgetUsd(uint256 newMin) external',
+  'function setMaxBudgetUsd(uint256 newMax) external',
+  'function setMinBudgetOverride(address token, uint256 minAmount) external',
+  'function setStablecoin(address token, bool isStable) external',
+  'function setPriceOracle(address _priceOracle) external',
+  'function maxBudgetUsd() external view returns (uint256)',
+  // V9: Evaluator Pool
+  'function registerAsEvaluator() external payable',
+  'function unregisterAsEvaluator() external',
+  'function cleanupStaleEvaluators() external returns (uint256 removedCount)',
+  'function getEvaluatorPoolSize() external view returns (uint256)',
+  'function finalizeRandomEvaluator(uint256 jobId, bytes32 salt) external',
+  'function slashEvaluatorStake(address evaluator, string calldata reason) external',
   // View Functions
   'function getJob(uint256 jobId) external view returns ((uint256 id, address client, address provider, address evaluator, uint256 serviceId, address paymentToken, string description, uint256 budget, uint256 expiredAt, uint8 status, address hook, bytes32 deliverable))',
   'function jobCounter() external view returns (uint256)',
   'function getClientJobCount(address client) external view returns (uint256)',
-  // NOTE: getUserBid, jobBidCount are DISABLED in V6.1 - use BiddingSystem instead
   'function isEvaluatorFeeEnabled(uint256 jobId) external view returns (bool)',
+  'function isEvaluator(address account) external view returns (bool)',
+  'function evaluatorStakes(address evaluator) external view returns (uint256)',
+  'function evaluatorCommits(uint256 jobId) external view returns (bytes32 commitHash, uint256 commitBlock, bool revealed)',
+  'function jobCreationBlock(uint256 jobId) external view returns (uint256)',
+  'function hasClientApproved(uint256 jobId) external view returns (bool)',
+  'function isClientReviewRequired(uint256 jobId) external view returns (bool)',
+  'function minBudgetUsd() external view returns (uint256)',
+  'function minBudgetOverride(address token) external view returns (uint256)',
+  'function isStablecoin(address token) external view returns (bool)',
+  'function allowedTokens(address token) external view returns (bool)',
+  'function priceOracle() external view returns (address)',
+  'function paused() external view returns (bool)',
   // Admin Functions
   'function setPlatformTreasury(address treasury) external',
+  'function setAdminRegistry(address _adminRegistry) external',
+  'function setAllowedToken(address token, bool allowed) external',
+  'function pause() external',
+  'function unpause() external',
   // Events
-  'event JobCreated(uint256 indexed jobId, address indexed client, address indexed provider, address evaluator, uint256 serviceId, uint256 expiredAt)',
-  'event OpenJobCreated(uint256 indexed jobId, address indexed client, uint256 maxBudget, address evaluator, uint256 expiredAt)',
-  'event ProviderSet(uint256 indexed jobId, address indexed provider)',
+  'event JobCreated(uint256 indexed jobId, address indexed client, address indexed provider, address evaluator, uint256 serviceId, uint256 expiredAt, bool evaluatorFee, bool clientReview, bool randomEvaluator)',
   'event BudgetSet(uint256 indexed jobId, uint256 amount)',
   'event JobFunded(uint256 indexed jobId, address indexed client, uint256 amount)',
   'event JobSubmitted(uint256 indexed jobId, address indexed provider, bytes32 deliverable)',
-  'event JobCompleted(uint256 indexed jobId, address indexed evaluator, bytes32 reason, uint256 evaluatorFee)',
-  'event PaymentReleased(uint256 indexed jobId, address indexed provider, uint256 amount)',
+  'event JobCompleted(uint256 indexed jobId, address indexed by, address indexed provider, uint256 evaluatorFee)',
+  'event PaymentReleased(uint256 indexed jobId, uint256 providerAmount, uint256 platformFee, uint256 evaluatorFee)',
   'event JobRejected(uint256 indexed jobId, address indexed rejector, bytes32 reason)',
   'event Refunded(uint256 indexed jobId, address indexed client, uint256 amount)',
+  'event PermissionlessRefund(uint256 indexed jobId, address indexed client, address indexed caller, uint256 amount)',
   'event JobExpired(uint256 indexed jobId)',
-  'event JobStatusChanged(uint256 indexed jobId, uint8 indexed oldStatus, uint8 indexed newStatus, uint256 timestamp)',
+  'event JobStatusChanged(uint256 indexed jobId, uint8 oldStatus, uint8 newStatus, address changedBy, uint256 timestamp)',
   'event DisputeWindowSet(uint256 indexed jobId, uint256 window)',
   'event NonResponsiveSlashSet(uint256 indexed jobId, uint256 slashBP)',
   'event EvaluatorSlashedForInactivity(uint256 indexed jobId, address indexed evaluator, uint256 slashAmount)',
-  // Bidding Events
-  'event BidCommitted(uint256 indexed jobId, address indexed bidder, uint256 stakeAmount, bytes32 commitHash)',
-  'event BidRevealed(uint256 indexed jobId, address indexed bidder, uint256 proposedAmount, string message)',
-  'event BidAccepted(uint256 indexed jobId, address indexed bidder, uint256 bidId, uint256 acceptedAmount)',
-  'event BidWithdrawn(uint256 indexed jobId, address indexed bidder, uint256 stakeReturned)',
+  'event StaleEvaluatorsCleaned(uint256 removedCount)',
+  'event EvaluatorSlashed(address indexed evaluator, uint256 stake, string reason)',
+  'event PlatformTreasurySet(address indexed oldTreasury, address indexed newTreasury)',
+  'event AdminRegistrySet(address indexed oldRegistry, address indexed newRegistry)',
+  'event PriceOracleSet(address indexed oldOracle, address indexed newOracle)',
+  'event MaxBudgetChanged(uint256 oldMax, uint256 newMax)',
 ] as const);
 
 const AGENT_REVIEW_ABI = parseAbi([
@@ -146,8 +173,13 @@ const AGENT_REVIEW_ABI = parseAbi([
   'function getProposal(uint256 proposalId) external view returns ((uint256 id, address proposer, string title, string description, string criteriaURI, uint256 reward, uint8 status, uint256 createdAt, uint256 decisionDeadline, address winningEvaluator))',
   'function getEvaluation(uint256 proposalId, address evaluator) external view returns ((uint256 proposalId, address evaluator, int256 confidenceScore, string reasoningURI, uint256 stakeAmount, bool isFinal, bool rewardClaimed, bool stakeReleased, uint256 submittedAt, uint256 rewardAmount))',
   'function getProposalEvaluators(uint256 proposalId) external view returns (address[] memory)',
+  'function getEvaluatorCount(uint256 proposalId) external view returns (uint256)',
+  'function finalizeDecision(uint256 proposalId) external',
+  'function calculateMedianScore(uint256 proposalId) external view returns (int256)',
+  'function slashTreasury() external view returns (address)',
   // V5: Admin functions
   'function setSlashManager(address slashManager_) external',
+  'function setAdminRegistry(address _adminRegistry) external',
   'function withdrawETH(address payable to, uint256 amount) external',
   'function getTotalLockedETH() external view returns (uint256 totalLocked)',
   // Events
@@ -176,39 +208,55 @@ const MILESTONE_ESCROW_ABI = parseAbi([
   // Configuration
   'function setAgenticCommerce(address _agenticCommerce) external',
   'function agenticCommerce() external view returns (address)',
+  'function setArbiterFee(address token, uint256 fee) external',
+  'function setArbiterStake(address token, uint256 stake) external',
+  'function setSupportedToken(address token, bool supported) external',
   // Constants
-  'function ARBITER_STAKE() external view returns (uint256)',
-  'function ARBITER_FEE() external view returns (uint256)',
+  'function SLASH_PERCENT() external view returns (uint256)',
+  'function MAX_MILESTONES_PER_JOB() external view returns (uint256)',
+  'function ARBITER_RESPONSE_WINDOW() external view returns (uint256)',
   // Milestone Management
-  'function enableMilestones(uint256 jobId, address provider, address paymentToken, uint256 totalBudget) external',
-  'function addMilestone(uint256 jobId, string calldata description, uint256 amount, uint256 dueDate) external',
-  'function completeMilestone(uint256 jobId, uint256 milestoneIndex, bytes32 proofHash) external',
+  'function enableMilestones(uint256 jobId, address client, address provider, address paymentToken, uint256 totalBudget) external',
+  'function addMilestone(uint256 jobId, uint256 amount, string calldata description, uint256 dueDate) external',
+  'function submitMilestone(uint256 jobId, uint256 milestoneIndex, bytes32 proofHash) external',
   'function releaseMilestone(uint256 jobId, uint256 milestoneIndex) external',
   'function getJobMilestones(uint256 jobId) external view returns ((string description, uint256 amount, uint256 dueDate, bool completed, bool released, bytes32 proofHash)[] memory)',
   'function getMilestoneCount(uint256 jobId) external view returns (uint256)',
   'function jobMilestones(uint256) external view returns (address client, address provider, address paymentToken, uint256 totalBudget, bool usesMilestones)',
-  // Arbiter System
-  'function registerAsArbiter() external payable',
+  'function milestoneTotalAmount(uint256) external view returns (uint256)',
+  // Arbiter System (V2: ERC20 staking)
+  'function registerAsArbiter(address token, uint256 amount) external',
   'function unregisterAsArbiter() external',
   'function getArbiterStake(address arbiter) external view returns (uint256)',
-  'function isArbiter(address account) external view returns (bool)',
-  'function getArbiterCount() external view returns (uint256)',
-  // Dispute System
-  'function flagDispute(uint256 jobId) external payable',
+  'function getArbiterStakeToken(address arbiter) external view returns (address)',
+  'function getArbiters() external view returns (address[] memory)',
+  'function arbiterPool(uint256) external view returns (address)',
+  'function arbiterStakes(address) external view returns (uint256)',
+  'function isRegisteredArbiter(address) external view returns (bool)',
+  'function slashArbiter(address arbiter, string calldata reason) external',
+  // Dispute System (V2: ERC20 fee)
+  'function flagDispute(uint256 jobId, uint256 milestoneIndex) external',
   'function submitEvidence(uint256 jobId, bytes32 evidenceHash) external',
   'function resolveDispute(uint256 jobId, bool releaseToProvider) external',
-  'function getDispute(uint256 jobId) external view returns (uint256 jobId, address flaggler, address arbiter, uint256 flaggedAt, bool resolved, bool releaseToProvider)',
+  'function getDispute(uint256 jobId) external view returns (uint256 jobId, address flagger, address arbiter, uint256 flaggedAt, bool resolved, bool releaseToProvider, uint256 feePaid, uint256 milestoneIndex)',
   'function getActiveDisputes() external view returns (uint256[] memory)',
   // Events
   'event MilestoneEnabled(uint256 indexed jobId)',
   'event MilestoneAdded(uint256 indexed jobId, uint256 indexed milestoneIndex, string description, uint256 amount)',
   'event MilestoneCompleted(uint256 indexed jobId, uint256 indexed milestoneIndex, bytes32 proofHash)',
   'event MilestoneReleased(uint256 indexed jobId, uint256 indexed milestoneIndex, uint256 amount)',
-  'event ArbiterRegistered(address indexed arbiter, uint256 stake)',
-  'event ArbiterUnregistered(address indexed arbiter, uint256 refundedStake)',
-  'event DisputeFlagged(uint256 indexed jobId, address indexed flaggler, uint256 fee)',
+  'event MilestoneNotReleased(uint256 indexed jobId, uint256 indexed milestoneIndex, string reason)',
+  'event ArbiterRegistered(address indexed arbiter, address token, uint256 stake)',
+  'event ArbiterUnregistered(address indexed arbiter, address token, uint256 refundedStake)',
+  'event DisputeFlagged(uint256 indexed jobId, address indexed flagger, address token, uint256 fee)',
   'event EvidenceSubmitted(uint256 indexed jobId, address indexed submitter, bytes32 evidenceHash)',
-  'event DisputeResolved(uint256 indexed jobId, bool releasedToProvider, address indexed arbiter, uint256 arbiterFee)',
+  'event DisputeResolved(uint256 indexed jobId, bool releasedToProvider, address indexed arbiter, address token, uint256 arbiterFee)',
+  'event ArbiterSlashed(address indexed arbiter, uint256 slashedAmount, string reason)',
+  'event ArbiterAssigned(uint256 indexed jobId, address indexed arbiter)',
+  'event AgenticCommerceSet(address indexed oldAddress, address indexed newAddress)',
+  'event ArbiterFeeUpdated(address indexed token, uint256 newFee)',
+  'event ArbiterStakeUpdated(address indexed token, uint256 newStake)',
+  'event TokenSupportUpdated(address indexed token, bool supported)',
 ] as const);
 
 // ============================================================================
@@ -235,6 +283,7 @@ export class KokonutClient {
   public slashManager: SlashManagerModule;
   public bidding: BiddingSystemModule;
   public milestones: MilestoneModule;
+  public adminRegistry: AdminRegistryModule;
 
 
   constructor(config: SDKConfig) {
@@ -281,6 +330,7 @@ export class KokonutClient {
     this.slashManager = new SlashManagerModule(this.wallet, this.publicClient, this.contracts);
     this.bidding = new BiddingSystemModule(this.wallet, this.publicClient, this.contracts);
     this.milestones = new MilestoneModule(this.wallet, this.publicClient, this.contracts);
+    this.adminRegistry = new AdminRegistryModule(this.wallet, this.publicClient, this.contracts);
 
     this.setupEventListeners();
   }
@@ -854,63 +904,6 @@ class CommerceModule {
     };
   }
 
-  async createOpenJob(params: OpenJobParams): Promise<TransactionResult> {
-    const hash = await this.wallet.writeContract({
-      address: this.contracts.agenticCommerce as Address,
-      abi: AGENTIC_COMMERCE_ABI,
-      functionName: 'createOpenJob',
-      args: [
-        BigInt(params.maxBudget),
-        (params.evaluator || '0x0000000000000000000000000000000000000000') as Address,
-        BigInt(params.expiredAt || Math.floor(Date.now() / 1000) + 7 * 24 * 60 * 60),
-        params.description,
-        (params.paymentToken || this.contracts.usdc) as Address,
-        params.evaluatorFee || false,
-      ],
-    } as any);
-
-
-    return {
-      hash,
-      wait: () => this.publicClient.waitForTransactionReceipt({ hash }),
-    };
-  }
-
-  async createJobFromService(
-    serviceId: bigint,
-    evaluator: Address,
-    expiredAt: bigint,
-    description: string,
-    hook: Address,
-    evaluatorFee: boolean
-  ): Promise<TransactionResult> {
-    const hash = await this.wallet.writeContract({
-      address: this.contracts.agenticCommerce,
-      abi: AGENTIC_COMMERCE_ABI,
-      functionName: 'createJobFromService',
-      args: [serviceId, evaluator, expiredAt, description, hook, evaluatorFee],
-    } as any);
-
-    return {
-      hash,
-      wait: () => this.publicClient.waitForTransactionReceipt({ hash }),
-    };
-  }
-
-  async setProvider(jobId: bigint, provider: Address): Promise<TransactionResult> {
-    const hash = await this.wallet.writeContract({
-      address: this.contracts.agenticCommerce,
-      abi: AGENTIC_COMMERCE_ABI,
-      functionName: 'setProvider',
-      args: [jobId, provider],
-    } as any);
-
-    return {
-      hash,
-      wait: () => this.publicClient.waitForTransactionReceipt({ hash }),
-    };
-  }
-
   async setBudget(jobId: bigint, amount: bigint): Promise<TransactionResult> {
     const hash = await this.wallet.writeContract({
       address: this.contracts.agenticCommerce,
@@ -1015,6 +1008,84 @@ class CommerceModule {
     };
   }
 
+  async approveByClient(jobId: bigint): Promise<TransactionResult> {
+    const hash = await this.wallet.writeContract({
+      address: this.contracts.agenticCommerce,
+      abi: AGENTIC_COMMERCE_ABI,
+      functionName: 'approveByClient',
+      args: [jobId],
+    } as any);
+    return { hash, wait: () => this.publicClient.waitForTransactionReceipt({ hash }) };
+  }
+
+  async finalizeByEvaluator(jobId: bigint, reason: `0x${string}`): Promise<TransactionResult> {
+    const hash = await this.wallet.writeContract({
+      address: this.contracts.agenticCommerce,
+      abi: AGENTIC_COMMERCE_ABI,
+      functionName: 'finalizeByEvaluator',
+      args: [jobId, reason],
+    } as any);
+    return { hash, wait: () => this.publicClient.waitForTransactionReceipt({ hash }) };
+  }
+
+  async setPaymentToken(jobId: bigint, paymentToken: Address): Promise<TransactionResult> {
+    const hash = await this.wallet.writeContract({
+      address: this.contracts.agenticCommerce,
+      abi: AGENTIC_COMMERCE_ABI,
+      functionName: 'setPaymentToken',
+      args: [jobId, paymentToken],
+    } as any);
+    return { hash, wait: () => this.publicClient.waitForTransactionReceipt({ hash }) };
+  }
+
+  async registerAsEvaluator(): Promise<TransactionResult> {
+    const hash = await this.wallet.writeContract({
+      address: this.contracts.agenticCommerce,
+      abi: AGENTIC_COMMERCE_ABI,
+      functionName: 'registerAsEvaluator',
+      value: BigInt(0.01e18),
+    } as any);
+    return { hash, wait: () => this.publicClient.waitForTransactionReceipt({ hash }) };
+  }
+
+  async unregisterAsEvaluator(): Promise<TransactionResult> {
+    const hash = await this.wallet.writeContract({
+      address: this.contracts.agenticCommerce,
+      abi: AGENTIC_COMMERCE_ABI,
+      functionName: 'unregisterAsEvaluator',
+    } as any);
+    return { hash, wait: () => this.publicClient.waitForTransactionReceipt({ hash }) };
+  }
+
+  async cleanupStaleEvaluators(): Promise<TransactionResult> {
+    const hash = await this.wallet.writeContract({
+      address: this.contracts.agenticCommerce,
+      abi: AGENTIC_COMMERCE_ABI,
+      functionName: 'cleanupStaleEvaluators',
+    } as any);
+    return { hash, wait: () => this.publicClient.waitForTransactionReceipt({ hash }) };
+  }
+
+  async finalizeRandomEvaluator(jobId: bigint, salt: `0x${string}`): Promise<TransactionResult> {
+    const hash = await this.wallet.writeContract({
+      address: this.contracts.agenticCommerce,
+      abi: AGENTIC_COMMERCE_ABI,
+      functionName: 'finalizeRandomEvaluator',
+      args: [jobId, salt],
+    } as any);
+    return { hash, wait: () => this.publicClient.waitForTransactionReceipt({ hash }) };
+  }
+
+  async slashEvaluatorStake(evaluator: Address, reason: string): Promise<TransactionResult> {
+    const hash = await this.wallet.writeContract({
+      address: this.contracts.agenticCommerce,
+      abi: AGENTIC_COMMERCE_ABI,
+      functionName: 'slashEvaluatorStake',
+      args: [evaluator, reason],
+    } as any);
+    return { hash, wait: () => this.publicClient.waitForTransactionReceipt({ hash }) };
+  }
+
   async getJob(jobId: number | bigint): Promise<Job> {
     const job = (await this.publicClient.readContract({
       address: this.contracts.agenticCommerce as Address,
@@ -1098,6 +1169,131 @@ class CommerceModule {
       abi: AGENTIC_COMMERCE_ABI,
       functionName: 'isEvaluatorFeeEnabled',
       args: [jobId],
+    } as any);
+    return result as unknown as boolean;
+  }
+
+  async isEvaluator(address: Address): Promise<boolean> {
+    const result = await this.publicClient.readContract({
+      address: this.contracts.agenticCommerce,
+      abi: AGENTIC_COMMERCE_ABI,
+      functionName: 'isEvaluator',
+      args: [address],
+    } as any);
+    return result as unknown as boolean;
+  }
+
+  async getEvaluatorPoolSize(): Promise<number> {
+    const result = await this.publicClient.readContract({
+      address: this.contracts.agenticCommerce,
+      abi: AGENTIC_COMMERCE_ABI,
+      functionName: 'getEvaluatorPoolSize',
+    } as any);
+    return Number(result as unknown as bigint);
+  }
+
+  async evaluatorStakes(evaluator: Address): Promise<bigint> {
+    const result = await this.publicClient.readContract({
+      address: this.contracts.agenticCommerce,
+      abi: AGENTIC_COMMERCE_ABI,
+      functionName: 'evaluatorStakes',
+      args: [evaluator],
+    } as any);
+    return result as unknown as bigint;
+  }
+
+  async hasClientApproved(jobId: bigint): Promise<boolean> {
+    const result = await this.publicClient.readContract({
+      address: this.contracts.agenticCommerce,
+      abi: AGENTIC_COMMERCE_ABI,
+      functionName: 'hasClientApproved',
+      args: [jobId],
+    } as any);
+    return result as unknown as boolean;
+  }
+
+  async isClientReviewRequired(jobId: bigint): Promise<boolean> {
+    const result = await this.publicClient.readContract({
+      address: this.contracts.agenticCommerce,
+      abi: AGENTIC_COMMERCE_ABI,
+      functionName: 'isClientReviewRequired',
+      args: [jobId],
+    } as any);
+    return result as unknown as boolean;
+  }
+
+  async getMinBudget(token: Address, decimals: number): Promise<bigint> {
+    const result = await this.publicClient.readContract({
+      address: this.contracts.agenticCommerce,
+      abi: AGENTIC_COMMERCE_ABI,
+      functionName: 'getMinBudget',
+      args: [token, decimals],
+    } as any);
+    return result as unknown as bigint;
+  }
+
+  async minBudgetUsd(): Promise<bigint> {
+    const result = await this.publicClient.readContract({
+      address: this.contracts.agenticCommerce,
+      abi: AGENTIC_COMMERCE_ABI,
+      functionName: 'minBudgetUsd',
+    } as any);
+    return result as unknown as bigint;
+  }
+
+  async minBudgetOverride(token: Address): Promise<bigint> {
+    const result = await this.publicClient.readContract({
+      address: this.contracts.agenticCommerce,
+      abi: AGENTIC_COMMERCE_ABI,
+      functionName: 'minBudgetOverride',
+      args: [token],
+    } as any);
+    return result as unknown as bigint;
+  }
+
+  async isStablecoin(token: Address): Promise<boolean> {
+    const result = await this.publicClient.readContract({
+      address: this.contracts.agenticCommerce,
+      abi: AGENTIC_COMMERCE_ABI,
+      functionName: 'isStablecoin',
+      args: [token],
+    } as any);
+    return result as unknown as boolean;
+  }
+
+  async allowedTokens(token: Address): Promise<boolean> {
+    const result = await this.publicClient.readContract({
+      address: this.contracts.agenticCommerce,
+      abi: AGENTIC_COMMERCE_ABI,
+      functionName: 'allowedTokens',
+      args: [token],
+    } as any);
+    return result as unknown as boolean;
+  }
+
+  async priceOracle(): Promise<Address> {
+    const result = await this.publicClient.readContract({
+      address: this.contracts.agenticCommerce,
+      abi: AGENTIC_COMMERCE_ABI,
+      functionName: 'priceOracle',
+    } as any);
+    return result as unknown as Address;
+  }
+
+  async maxBudgetUsd(): Promise<bigint> {
+    const result = await this.publicClient.readContract({
+      address: this.contracts.agenticCommerce,
+      abi: AGENTIC_COMMERCE_ABI,
+      functionName: 'maxBudgetUsd',
+    } as any);
+    return result as unknown as bigint;
+  }
+
+  async paused(): Promise<boolean> {
+    const result = await this.publicClient.readContract({
+      address: this.contracts.agenticCommerce,
+      abi: AGENTIC_COMMERCE_ABI,
+      functionName: 'paused',
     } as any);
     return result as unknown as boolean;
   }
@@ -1677,9 +1873,14 @@ class SkillsModule {
 // ============================================================================
 
 const PRICE_ORACLE_ABI = parseAbi([
-  'function getUSDCPrice() external view returns (uint256)',
-  'function getETHRate() external view returns (uint256)',
-  'function isStale() external view returns (bool)',
+  'function getUsdPriceOfToken(address token) external view returns (int256)',
+  'function getTokenAmountForUsd(uint256 usdAmount, address token) external view returns (uint256)',
+  'function isStale(address token) external view returns (bool)',
+  'function priceFeeds(address token) external view returns (address)',
+  'function feedDecimals(address token) external view returns (uint8)',
+  'function isStablecoin(address token) external view returns (bool)',
+  'function ethPriceFeed() external view returns (address)',
+  'function ethFeedDecimals() external view returns (uint8)',
 ]);
 
 class PriceOracleModule {
@@ -1691,33 +1892,44 @@ class PriceOracleModule {
     this.contracts = contracts;
   }
 
-  async getUSDCPrice(): Promise<bigint> {
+  async getUsdPriceOfToken(token: Address): Promise<bigint> {
     const result = await this.publicClient.readContract({
       address: this.contracts.priceOracle as Address,
       abi: PRICE_ORACLE_ABI,
-      functionName: 'getUSDCPrice',
+      functionName: 'getUsdPriceOfToken',
+      args: [token],
     } as any);
     return BigInt(result as string);
   }
 
-
-  async getETHRate(): Promise<bigint> {
+  async getTokenAmountForUsd(usdAmount: bigint, token: Address): Promise<bigint> {
     const result = await this.publicClient.readContract({
       address: this.contracts.priceOracle as Address,
       abi: PRICE_ORACLE_ABI,
-      functionName: 'getETHRate',
+      functionName: 'getTokenAmountForUsd',
+      args: [usdAmount, token],
     } as any);
     return BigInt(result as string);
   }
 
-
-  async isStale(): Promise<boolean> {
+  async isStale(token: Address): Promise<boolean> {
     const result = await this.publicClient.readContract({
       address: this.contracts.priceOracle as Address,
       abi: PRICE_ORACLE_ABI,
       functionName: 'isStale',
+      args: [token],
     } as any);
     return result as boolean;
+  }
+
+  async getFeedDecimals(token: Address): Promise<number> {
+    const result = await this.publicClient.readContract({
+      address: this.contracts.priceOracle as Address,
+      abi: PRICE_ORACLE_ABI,
+      functionName: 'feedDecimals',
+      args: [token],
+    } as any);
+    return Number(result);
   }
 
 }
@@ -2349,15 +2561,14 @@ interface Dispute {
   flaggedAt: bigint;
   resolved: boolean;
   releaseToProvider: boolean;
+  feePaid: bigint;
+  milestoneIndex: bigint;
 }
 
 class MilestoneModule {
   private wallet: any;
   private publicClient: any;
   private contracts: ContractAddresses;
-
-  ARBITER_STAKE_ETH = 0.01e18 as const;
-  ARBITER_FEE_ETH = 0.001e18 as const;
 
   constructor(wallet: any, publicClient: any, contracts: ContractAddresses) {
     this.wallet = wallet;
@@ -2371,6 +2582,7 @@ class MilestoneModule {
 
   async enableMilestones(params: {
     jobId: bigint;
+    client: Address;
     provider: Address;
     paymentToken: Address;
     totalBudget: bigint;
@@ -2379,22 +2591,22 @@ class MilestoneModule {
       address: this.contracts.milestoneEscrow! as Address,
       abi: MILESTONE_ESCROW_ABI,
       functionName: 'enableMilestones',
-      args: [params.jobId, params.provider, params.paymentToken, params.totalBudget],
+      args: [params.jobId, params.client, params.provider, params.paymentToken, params.totalBudget],
     } as any);
     return { hash, wait: () => this.publicClient.waitForTransactionReceipt({ hash }) };
   }
 
   async addMilestone(params: {
     jobId: bigint;
-    description: string;
     amount: bigint;
+    description: string;
     dueDate: bigint;
   }): Promise<TransactionResult> {
     const hash = await this.wallet.writeContract({
       address: this.contracts.milestoneEscrow! as Address,
       abi: MILESTONE_ESCROW_ABI,
       functionName: 'addMilestone',
-      args: [params.jobId, params.description, params.amount, params.dueDate],
+      args: [params.jobId, params.amount, params.description, params.dueDate],
     } as any);
     return { hash, wait: () => this.publicClient.waitForTransactionReceipt({ hash }) };
   }
@@ -2445,12 +2657,12 @@ class MilestoneModule {
     }
   }
 
-  async registerAsArbiter(): Promise<TransactionResult> {
+  async registerAsArbiter(token: Address, amount: bigint): Promise<TransactionResult> {
     const hash = await this.wallet.writeContract({
       address: this.contracts.milestoneEscrow! as Address,
       abi: MILESTONE_ESCROW_ABI,
       functionName: 'registerAsArbiter',
-      value: this.ARBITER_STAKE_ETH,
+      args: [token, amount],
     } as any);
     return { hash, wait: () => this.publicClient.waitForTransactionReceipt({ hash }) };
   }
@@ -2490,13 +2702,12 @@ class MilestoneModule {
     } as unknown as object));
   }
 
-  async flagDispute(jobId: bigint): Promise<TransactionResult> {
+  async flagDispute(jobId: bigint, milestoneIndex: bigint): Promise<TransactionResult> {
     const hash = await this.wallet.writeContract({
       address: this.contracts.milestoneEscrow! as Address,
       abi: MILESTONE_ESCROW_ABI,
       functionName: 'flagDispute',
-      args: [jobId],
-      value: this.ARBITER_FEE_ETH,
+      args: [jobId, milestoneIndex],
     } as any);
     return { hash, wait: () => this.publicClient.waitForTransactionReceipt({ hash }) };
   }
@@ -2543,6 +2754,44 @@ class MilestoneModule {
   }
 }
 
+
+class AdminRegistryModule {
+  private wallet: any;
+  private publicClient: any;
+  private contracts: ContractAddresses;
+
+  constructor(wallet: any, publicClient: any, contracts: ContractAddresses) {
+    this.wallet = wallet;
+    this.publicClient = publicClient;
+    this.contracts = contracts;
+  }
+
+  private get address(): Address {
+    return this.wallet.account.address;
+  }
+
+  async setSlashManager(slashManager: Address): Promise<TransactionResult> {
+    const hash = await this.wallet.writeContract({
+      address: this.contracts.adminRegistry! as Address,
+      abi: parseAbi([
+        'function setSlashManager(address _slashManager) external',
+      ]),
+      functionName: 'setSlashManager',
+      args: [slashManager],
+    } as any);
+    return { hash, wait: () => this.publicClient.waitForTransactionReceipt({ hash }) };
+  }
+
+  async getSlashManager(): Promise<Address> {
+    return (await this.publicClient.readContract({
+      address: this.contracts.adminRegistry! as Address,
+      abi: parseAbi([
+        'function slashManager() external view returns (address)',
+      ]),
+      functionName: 'slashManager',
+    } as any)) as unknown as Address;
+  }
+}
 
 // ============================================================================
 // Exports

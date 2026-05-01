@@ -150,7 +150,7 @@ NEXT_PUBLIC_SERVICE_REGISTRY_ADDRESS=0x62E1eeEa1A2Ab987004F35bDA430457Ed6077201
 NEXT_PUBLIC_AGENT_REVIEW_ADDRESS=0x5CDb592Fd37749bF87448FBf5725D1Cd986dd1Cb
 NEXT_PUBLIC_AGENTIC_COMMERCE_ADDRESS=0x4c592510e4FAbbEEA8D7142dE1f38d548b500e7f
 NEXT_PUBLIC_BIDDING_SYSTEM_ADDRESS=0x32c9d069a248a619d3EAc4dFC76F2639AaBeF04
-NEXT_PUBLIC_ADMIN_REGISTRY_ADDRESS=0x8A8E3C9ffB8F25236c8152c8ac634336463f3Ab0
+NEXT_PUBLIC_ADMIN_REGISTRY_ADDRESS=0xC81C864CEAb6231ad764cf9867e031D8b6dee41d
 NEXT_PUBLIC_PRICE_ORACLE_ADDRESS=0x32fD2A54B722D2048A052fD0456004483a683aFE
 NEXT_PUBLIC_MILESTONE_ESCROW_ADDRESS=0xd4Fdc345b1c6aF1B4Cc84339bcB251B33527Eb45
 
@@ -190,19 +190,19 @@ The wildcard format (e.g., `10.108.1.*`) allows any IP in that subnet. Add expli
 
 | Contract                 | Address                                      | Purpose                    |
 | ------------------------ | -------------------------------------------- | -------------------------- |
-| **AdminRegistry**        | `0x8A8E3C9ffB8F25236c8152c8ac634336463f3Ab0` | Blacklist, featured agents (Phase 28) |
+| **AdminRegistry**        | `0xC81C864CEAb6231ad764cf9867e031D8b6dee41d` | UUPS Proxy — Phase 29e Pashov fixes + data migration |
 | **MilestoneEscrow**      | `0xd4Fdc345b1c6aF1B4Cc84339bcB251B33527Eb45` | MilestoneEscrowV2 - Per-token fees + USDC staking |
-| **MilestoneEscrow Impl** | `0x2f45DC6AA7c65C26cAD63d8BA33Bc13d263b3567` | Phase 29: Pausable + Per-Token Fees |
+| **MilestoneEscrow Impl** | `0xfb764A5c740aC47721bC9802596395CdF2DC4CdB` | Phase 29e: activeDisputeIds cleanup + Pashov fixes |
 | **AgentSkillRegistryV2** | `0xA84684261558f342d6871DD2CFef90A2117Aa20A` | Skills/capabilities (UUPS) |
 | **ServiceRegistryV2**    | `0x62E1eeEa1A2Ab987004F35bDA430457Ed6077201` | Service listings (UUPS)    |
-| **ServiceRegistryV2 Impl** | `0x218340e07bEd7fD15058414388F2C82E0f3B04f9` | Phase 28: ownerOf() fix + blacklist |
+| **ServiceRegistryV2 Impl** | `0xb75B02D4523171ABdB6f5bcB9D60903ed3e30fAD` | Phase 29e: blacklist recheck + Pashov fixes |
 | **AgenticCommerce**      | `0x4c592510e4FAbbEEA8D7142dE1f38d548b500e7f` | Job escrow (V9: Multi-Token Configurable Minimums) |
-| **AgenticCommerce Impl** | `0x1731A683461D379261887947A33126EA55Ee1816` | Multi-Token Minimums + Price Oracle Integration (April 28, 2026) |
+| **AgenticCommerce Impl** | `0x9634280fb2416061124aa6474F1BcF692473bEF4` | Phase 29e: commit-reveal + stake + Pashov fixes |
 | **PriceOracle**          | `0x32fD2A54B722D2048A052fD0456004483a683aFE` | PriceOracleV2 - UUPS upgradeable per-token feeds |
 | **PriceOracle Impl**     | `0xb4660AceBf93874fB6E945C312c5706093336Ef8` | UUPS upgradeable, ETH feed support |
 | **AgentReviewV5**        | `0x5CDb592Fd37749bF87448FBf5725D1Cd986dd1Cb` | A/B evaluation             |
 | **BiddingSystem**        | `0x32c9d069a248a619d3EAc4dFC76F2639AaBeF04`  | Commit-reveal bidding      |
-| **BiddingSystem Impl**    | `0xabb714ea5b9e98e503A94dBeBd0D2740f20f2E79` | Phase 26: Pausable added |
+| **BiddingSystem Impl**    | `0x0eE5E780bbbBA610D0B1926a3993A2aa0B1B9812` | Phase 29e: blacklist check on commitBid |
 | **ERC-8004 Identity**    | `0x8004A818BFB912233c491871b3d84c89A494BD9e` | Agent identities           |
 | **ERC-8004 Reputation**  | `0x8004B663056A597Dffe9eCcC1965A193B7388713` | Agent reputation           |
 

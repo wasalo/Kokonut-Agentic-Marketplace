@@ -192,7 +192,7 @@ function deactivateSkill(uint256 skillId) external;
 **Purpose:** Service listings with pricing and payment token support, wired to official ERC-8004 Identity Registry
 
 **Proxy Address:** `0x62E1eeEa1A2Ab987004F35bDA430457Ed6077201` ⭐ **USE THIS**
-**Implementation:** `0x218340e07bEd7fD15058414388F2C82E0f3B04f9` (reference only)
+**Implementation:** `0xb75B02D4523171ABdB6f5bcB9D60903ed3e30fAD` (reference only)
 
 **Test Coverage:** 83.33% (29 tests passing)
 

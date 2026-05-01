@@ -6,8 +6,8 @@ import "@openzeppelin/contracts/token/ERC20/IERC20.sol";
 import "@openzeppelin/contracts/proxy/transparent/TransparentUpgradeableProxy.sol";
 import {BiddingSystem} from "../shared/BiddingSystem.sol";
 import {IBiddingSystem} from "../interfaces/IBiddingSystem.sol";
-import {IAgenticCommerceV6} from "../interfaces/IAgenticCommerceV6.sol";
-import {MockAgenticCommerceV6} from "./TestFixtures.sol";
+import {IAgenticCommerceV9} from "../interfaces/IAgenticCommerceV9.sol";
+import {MockAgenticCommerceV9} from "./TestFixtures.sol";
 
 /**
  * @title BiddingSystemTest
@@ -15,7 +15,7 @@ import {MockAgenticCommerceV6} from "./TestFixtures.sol";
  */
 contract BiddingSystemTest is Test {
     BiddingSystem public bidding;
-    MockAgenticCommerceV6 public mockCommerce;
+    MockAgenticCommerceV9 public mockCommerce;
     
     address public owner = makeAddr("owner");
     address public treasury = makeAddr("treasury");
@@ -45,7 +45,7 @@ contract BiddingSystemTest is Test {
     );
     
     function setUp() public {
-        mockCommerce = new MockAgenticCommerceV6();
+        mockCommerce = new MockAgenticCommerceV9();
         
         // Deploy implementation
         BiddingSystem implementation = new BiddingSystem();

@@ -48,6 +48,10 @@ contract AgenticCommerceV9 is
     uint256 public constant MAX_EXPIRY_DURATION = 365 days;
     uint256 public constant DEFAULT_DISPUTE_WINDOW = 7 days;
     uint256 public constant DEFAULT_NONRESPONSIVE_SLASH_BP = 100;
+    uint256 public constant MAX_BUDGET_USD = 1_000_000e6; // $1M USD (6 decimals)
+    uint256 public constant MIN_EVALUATOR_STAKE = 0.01 ether; // 0.01 ETH stake required
+    uint256 public constant EVALUATOR_REVEAL_DELAY = 6; // 6 blocks commit-reveal delay
+    uint256 public constant MIN_PLATFORM_FEE = 1; // M2-01: Minimum 1 wei platform fee to prevent dust loss
 
     /***********************************/
     /* State Variables */
@@ -55,6 +59,7 @@ contract AgenticCommerceV9 is
     
     // V9: Multi-token minimum budget configuration
     uint256 public minBudgetUsd; // Base minimum in 6-decimal USD terms ($5 = 5e6)
+    uint256 public maxBudgetUsd; // Max budget in 6-decimal USD terms ($1M = 1_000_000e6)
     mapping(address => uint256) public minBudgetOverride; // Per-token override (0 = use default)
     mapping(address => bool) public isStablecoin; // True for stablecoins (1:1 with USD)
     
@@ -81,6 +86,16 @@ contract AgenticCommerceV9 is
     // Evaluator pool for random selection
     address[] public evaluatorPool;
     mapping(address => bool) public isRegisteredEvaluator;
+    mapping(address => uint256) public evaluatorStakes; // A3-01: ETH stake per evaluator
+    
+    // Commit-reveal for random evaluator selection (A3-02/F8-01)
+    struct EvaluatorCommit {
+        bytes32 commitHash;
+        uint256 commitBlock;
+        bool revealed;
+    }
+    mapping(uint256 => EvaluatorCommit) public evaluatorCommits;
+    mapping(uint256 => uint256) public jobCreationBlock;
 
     /***********************************/
     /* Errors */
@@ -98,6 +113,7 @@ contract AgenticCommerceV9 is
     error BudgetTooHigh();
     error ProviderNotSet();
     error InvalidHook();
+
     error MaxJobsPerClient(address client, uint256 current);
     error TokenNotAllowed(address token);
     error TokenNotConfigured(address token);
@@ -105,6 +121,23 @@ contract AgenticCommerceV9 is
     error InsufficientPayment();
     error RolesMustBeDistinct();
     error InvalidPrice();
+    error EvaluatorAlreadyRegistered();
+    error EvaluatorNotRegistered();
+    error NoEvaluatorsAvailable();
+    error InsufficientEvaluatorStake();
+    error EvaluatorNotRevealed();
+    error RevealTooEarly();
+    error NoCommitFound();
+    error InvalidCommit();
+    error BlockhashUnavailable();
+    error NoActiveEvaluators();
+    error ClientBlacklisted();
+    error ProviderBlacklisted();
+    error EvaluatorBlacklisted();
+    error JobNotExpired();
+    error DisputeWindowTooShort();
+    error DisputeWindowTooLong();
+    error SlashBPTooHigh();
 
     /***********************************/
     /* Modifiers */
@@ -144,8 +177,9 @@ contract AgenticCommerceV9 is
         adminRegistry = _adminRegistry;
         priceOracle = IPriceOracleV2(_priceOracle);
         
-        // V9: Default minimum budget $5 USD
+        // V9: Default minimum budget $5 USD, max $1M USD
         minBudgetUsd = 5e6;
+        maxBudgetUsd = MAX_BUDGET_USD;
         
         // Default allowed tokens
         allowedTokens[address(0)] = true; // Native ETH
@@ -157,6 +191,31 @@ contract AgenticCommerceV9 is
     /* V9: Multi-Token Budget Minimums */
     /***********************************/
     
+    /**
+     * @dev Check if budget exceeds the maximum allowed in USD terms.
+     * @param token The payment token address.
+     * @param decimals The token's decimal places.
+     * @param budget The budget amount in token's native units.
+     */
+    function _checkMaxBudget(address token, uint8 decimals, uint256 budget) internal view {
+        if (maxBudgetUsd == 0) return; // 0 = no cap
+
+        uint256 budgetInUsd;
+        if (isStablecoin[token]) {
+            budgetInUsd = budget / (10 ** (decimals - 6));
+        } else if (token == address(0)) {
+            int256 ethPrice = priceOracle.getUsdPriceOfToken(address(0));
+            if (ethPrice <= 0) return; // Cannot validate, skip
+            budgetInUsd = (budget * uint256(ethPrice)) / (10 ** decimals);
+        } else {
+            int256 tokenPrice = priceOracle.getUsdPriceOfToken(token);
+            if (tokenPrice <= 0) return; // Cannot validate, skip
+            budgetInUsd = (budget * uint256(tokenPrice)) / (10 ** decimals);
+        }
+
+        if (budgetInUsd > maxBudgetUsd) revert BudgetTooHigh();
+    }
+
     /**
      * @dev Calculate the minimum budget for a specific token
      * @param token The payment token address (address(0) for ETH)
@@ -191,17 +250,41 @@ contract AgenticCommerceV9 is
         revert InvalidPrice();
     }
     
+    /**
+     * @dev Set the global minimum budget in USD (6 decimals).
+     * @param newMin New minimum budget in USD (e.g., 5e6 for $5).
+     */
     function setMinBudgetUsd(uint256 newMin) external onlyOwner {
         uint256 oldMin = minBudgetUsd;
         minBudgetUsd = newMin;
         emit MinBudgetChanged(address(0), oldMin, newMin);
     }
-    
+
+    /**
+     * @dev Set the global maximum budget in USD (6 decimals).
+     * @param newMax New maximum budget in USD (e.g., 1_000_000e6 for $1M).
+     */
+    function setMaxBudgetUsd(uint256 newMax) external onlyOwner {
+        uint256 oldMax = maxBudgetUsd;
+        maxBudgetUsd = newMax;
+        emit MaxBudgetChanged(oldMax, newMax);
+    }
+
+    /**
+     * @dev Set a per-token minimum budget override.
+     * @param token Token address.
+     * @param minAmount Minimum amount in token's native units (0 = remove override).
+     */
     function setMinBudgetOverride(address token, uint256 minAmount) external onlyOwner {
         minBudgetOverride[token] = minAmount;
         emit MinBudgetOverrideChanged(token, minAmount);
     }
-    
+
+    /**
+     * @dev Mark a token as stablecoin (1:1 with USD) for minimum budget calculation.
+     * @param token Token address.
+     * @param isStable True if token is a stablecoin.
+     */
     function setStablecoin(address token, bool isStable) external onlyOwner {
         isStablecoin[token] = isStable;
         emit StablecoinStatusChanged(token, isStable);
@@ -211,6 +294,11 @@ contract AgenticCommerceV9 is
     /* Token Management */
     /***********************************/
     
+    /**
+     * @dev Allow or disallow a payment token.
+     * @param token Token address.
+     * @param allowed True to allow, false to disallow.
+     */
     function setAllowedToken(address token, bool allowed) external onlyOwner {
         allowedTokens[token] = allowed;
         emit TokenAllowlistUpdated(token, allowed);
@@ -247,34 +335,57 @@ contract AgenticCommerceV9 is
         
         if (!_isTokenAllowed(paymentToken)) revert TokenNotAllowed(paymentToken);
         
-        // V9: Validate budget using multi-token minimum
+        // V9: Validate budget using multi-token minimum and maximum
         if (budget > 0) {
             uint8 decimals = _getTokenDecimals(paymentToken);
             uint256 minBudget = getMinBudget(paymentToken, decimals);
             if (budget < minBudget) revert BudgetTooLow();
+            _checkMaxBudget(paymentToken, decimals, budget);
         }
         
-        // Blacklist check
+        // Blacklist check with P7-01 try/catch
         if (adminRegistry != address(0)) {
-            AdminRegistry registry = AdminRegistry(adminRegistry);
-            if (registry.isWalletBlacklistedActive(_msgSender())) revert("Client blacklisted");
-            if (registry.isWalletBlacklistedActive(provider)) revert("Provider blacklisted");
-            if (evaluator != address(0) && registry.isWalletBlacklistedActive(evaluator)) revert("Evaluator blacklisted");
+            try AdminRegistry(adminRegistry).isWalletBlacklistedActive(_msgSender()) returns (bool isBlacklisted) {
+                if (isBlacklisted) revert ClientBlacklisted();
+            } catch {
+                // If blacklist check fails, allow (fail open to prevent DOS)
+            }
+            try AdminRegistry(adminRegistry).isWalletBlacklistedActive(provider) returns (bool isBlacklisted) {
+                if (isBlacklisted) revert ProviderBlacklisted();
+            } catch {
+                // If blacklist check fails, allow (fail open to prevent DOS)
+            }
+            if (evaluator != address(0)) {
+                try AdminRegistry(adminRegistry).isWalletBlacklistedActive(evaluator) returns (bool isBlacklisted) {
+                    if (isBlacklisted) revert EvaluatorBlacklisted();
+                } catch {
+                    // If blacklist check fails, allow (fail open to prevent DOS)
+                }
+            }
         }
-        
+
         if (clientJobCount[_msgSender()] >= MAX_JOBS_PER_CLIENT) {
             revert MaxJobsPerClient(_msgSender(), clientJobCount[_msgSender()]);
         }
-        
+
         jobId = ++jobCounter;
-        
+
         // Determine evaluator - random or specified
         address finalEvaluator = evaluator;
         bool isRandomEvaluator = (evaluator == address(0));
-        if (isRandomEvaluator) {
-            finalEvaluator = _selectRandomEvaluator();
-        }
         
+        // A3-02/F8-01: Commit-reveal for random evaluator
+        if (isRandomEvaluator) {
+            bytes32 salt = keccak256(abi.encodePacked(block.timestamp, msg.sender, jobId));
+            evaluatorCommits[jobId] = EvaluatorCommit({
+                commitHash: keccak256(abi.encodePacked(salt, jobId, block.number)),
+                commitBlock: block.number,
+                revealed: false
+            });
+            jobCreationBlock[jobId] = block.number;
+            finalEvaluator = address(0); // Will be finalized after 6 blocks
+        }
+
         // Set job status based on funding
         JobStatus initialStatus = fundNow ? JobStatus.Funded : JobStatus.Open;
         
@@ -308,7 +419,10 @@ contract AgenticCommerceV9 is
                 if (msg.value < amountToFund) revert InsufficientPayment();
                 
                 uint256 excess = msg.value - amountToFund;
-                if (excess > 0) payable(_msgSender()).transfer(excess);
+                if (excess > 0) {
+                    (bool success, ) = payable(_msgSender()).call{value: excess}("");
+                    require(success, "Refund failed");
+                }
             } else {
                 // ERC20
                 if (msg.value > 0) revert InvalidJob();
@@ -323,11 +437,7 @@ contract AgenticCommerceV9 is
             emit JobFunded(jobId, _msgSender(), amountToFund);
         }
         
-        emit JobCreated(jobId, _msgSender(), provider, budget, expiredAt);
-        
-        if (isRandomEvaluator) {
-            emit EvaluatorRandomlySelected(jobId, finalEvaluator);
-        }
+        emit JobCreated(jobId, _msgSender(), provider, budget, expiredAt, evaluatorFee, clientReview_, isRandomEvaluator);
     }
 
     /**
@@ -343,26 +453,47 @@ contract AgenticCommerceV9 is
         bool clientReview_
     ) external nonReentrant whenNotPaused returns (uint256 jobId) {
         _validateJobCreation(provider, evaluator, expiredAt, description, hook);
-        
+
+        // Blacklist check with P7-01 try/catch
         if (adminRegistry != address(0)) {
-            AdminRegistry registry = AdminRegistry(adminRegistry);
-            if (registry.isWalletBlacklistedActive(_msgSender())) revert("Client blacklisted");
-            if (registry.isWalletBlacklistedActive(provider)) revert("Provider blacklisted");
-            if (evaluator != address(0) && registry.isWalletBlacklistedActive(evaluator)) revert("Evaluator blacklisted");
+            try AdminRegistry(adminRegistry).isWalletBlacklistedActive(_msgSender()) returns (bool isBlacklisted) {
+                if (isBlacklisted) revert ClientBlacklisted();
+            } catch {
+                // Fail open to prevent DOS
+            }
+            try AdminRegistry(adminRegistry).isWalletBlacklistedActive(provider) returns (bool isBlacklisted) {
+                if (isBlacklisted) revert ProviderBlacklisted();
+            } catch {
+                // Fail open to prevent DOS
+            }
+            if (evaluator != address(0)) {
+                try AdminRegistry(adminRegistry).isWalletBlacklistedActive(evaluator) returns (bool isBlacklisted) {
+                    if (isBlacklisted) revert EvaluatorBlacklisted();
+                } catch {
+                    // Fail open to prevent DOS
+                }
+            }
         }
-        
+
         if (clientJobCount[_msgSender()] >= MAX_JOBS_PER_CLIENT) {
             revert MaxJobsPerClient(_msgSender(), clientJobCount[_msgSender()]);
         }
-        
+
         jobId = ++jobCounter;
-        
+
         address finalEvaluator = evaluator;
         bool isRandomEvaluator = (evaluator == address(0));
         if (isRandomEvaluator) {
-            finalEvaluator = _selectRandomEvaluator();
+            bytes32 salt = keccak256(abi.encodePacked(block.timestamp, msg.sender, jobId));
+            evaluatorCommits[jobId] = EvaluatorCommit({
+                commitHash: keccak256(abi.encodePacked(salt, jobId, block.number)),
+                commitBlock: block.number,
+                revealed: false
+            });
+            jobCreationBlock[jobId] = block.number;
+            finalEvaluator = address(0);
         }
-        
+
         jobs[jobId] = Job({
             id: jobId,
             client: _msgSender(),
@@ -383,46 +514,58 @@ contract AgenticCommerceV9 is
         jobClient[jobId] = _msgSender();
         clientJobCount[_msgSender()]++;
 
-        emit JobCreated(jobId, _msgSender(), provider, 0, expiredAt);
-        
-        if (isRandomEvaluator) {
-            emit EvaluatorRandomlySelected(jobId, finalEvaluator);
-        }
+        emit JobCreated(jobId, _msgSender(), provider, 0, expiredAt, evaluatorFee, clientReview_, isRandomEvaluator);
     }
 
     /***********************************/
     /* Job Management Functions */
     /***********************************/
     
+    /**
+     * @dev Set the budget for an Open job.
+     * @param jobId The job ID.
+     * @param amount New budget amount in token's native units.
+     */
     function setBudget(uint256 jobId, uint256 amount) external nonReentrant onlyClient(jobId) {
         Job storage job = jobs[jobId];
         if (job.id == 0) revert InvalidJob();
         if (job.status != JobStatus.Open) revert WrongStatus();
         if (amount == 0) revert ZeroBudget();
-        
-        // V9: Validate against token-specific minimum
+
+        // V9: Validate against token-specific minimum and maximum
         address paymentToken = address(job.paymentToken);
         uint8 decimals = _getTokenDecimals(paymentToken);
         uint256 minBudget = getMinBudget(paymentToken, decimals);
         if (amount < minBudget) revert BudgetTooLow();
-        
+        _checkMaxBudget(paymentToken, decimals, amount);
+
         uint256 oldBudget = job.budget;
         job.budget = amount;
-        
+
         emit JobBudgetUpdated(jobId, oldBudget, amount);
     }
 
+    /**
+     * @dev Change the payment token for an Open job.
+     * @param jobId The job ID.
+     * @param paymentToken New payment token address.
+     */
     function setPaymentToken(uint256 jobId, address paymentToken) external onlyAllowedToken(paymentToken) onlyClient(jobId) {
         Job storage job = jobs[jobId];
         if (job.id == 0) revert InvalidJob();
         if (job.status != JobStatus.Open) revert WrongStatus();
-        
+
         address oldToken = address(job.paymentToken);
         job.paymentToken = IERC20(paymentToken);
-        
+
         emit JobPaymentTokenUpdated(jobId, oldToken, paymentToken);
     }
 
+    /**
+     * @dev Fund an Open job. Client transfers budget to contract.
+     * @param jobId The job ID to fund.
+     * @param expectedBudget Expected budget (front-running protection, 0 to skip).
+     */
     function fund(uint256 jobId, uint256 expectedBudget) external payable nonReentrant onlyClient(jobId) {
         Job storage job = jobs[jobId];
         if (job.id == 0) revert InvalidJob();
@@ -457,6 +600,11 @@ contract AgenticCommerceV9 is
         emit JobStatusChanged(jobId, oldStatus, JobStatus.Funded, _msgSender(), block.timestamp);
     }
 
+    /**
+     * @dev Submit work deliverable for a Funded job.
+     * @param jobId The job ID.
+     * @param deliverable Hash of the deliverable.
+     */
     function submit(uint256 jobId, bytes32 deliverable) external nonReentrant onlyProvider(jobId) {
         Job storage job = jobs[jobId];
         if (job.id == 0) revert InvalidJob();
@@ -473,6 +621,7 @@ contract AgenticCommerceV9 is
         job.deliverable = deliverable;
         jobSubmittedAt[jobId] = block.timestamp;
         
+        // V1-01 FIX: Hook before any external calls
         if (job.hook != address(0)) {
             IACPHook(job.hook).beforeAction(jobId, this.submit.selector, "");
         }
@@ -481,18 +630,28 @@ contract AgenticCommerceV9 is
         emit JobStatusChanged(jobId, oldStatus, job.status, _msgSender(), block.timestamp);
     }
 
+    /**
+     * @dev Approve submitted work by client (required when clientReview is enabled).
+     * @param jobId The job ID to approve.
+     */
     function approveByClient(uint256 jobId) external nonReentrant onlyClient(jobId) {
         Job storage job = jobs[jobId];
         if (job.id == 0) revert InvalidJob();
         if (job.status != JobStatus.PendingClientApproval) revert WrongStatus();
-        
+        if (!requiresClientReview[jobId]) revert ClientNotApproved(); // Explicit defense-in-depth
+
         clientApproved[jobId] = true;
         clientApprovedAt[jobId] = block.timestamp;
         job.status = JobStatus.Submitted;
-        
+
         emit JobStatusChanged(jobId, JobStatus.PendingClientApproval, JobStatus.Submitted, _msgSender(), block.timestamp);
     }
 
+    /**
+     * @dev Finalize a Submitted job and release payment (evaluator only).
+     * @param jobId The job ID.
+     * @param reason Finalization reason.
+     */
     function finalizeByEvaluator(uint256 jobId, bytes32 reason) external nonReentrant onlyEvaluator(jobId) {
         Job storage job = jobs[jobId];
         if (job.id == 0) revert InvalidJob();
@@ -508,55 +667,268 @@ contract AgenticCommerceV9 is
         Job storage job = jobs[jobId];
         JobStatus oldStatus = job.status;
         job.status = JobStatus.Completed;
-        
+
         uint256 amount = job.budget;
         job.budget = 0;
-        
-        // Calculate fees
+
+        // Decrement active job count for the client
+        _decrementJobCount(jobId);
+
+        // Calculate fees with M2-01 minimum fee floor
         uint256 platformFee = (amount * 100) / FEE_DENOMINATOR; // 1%
+        if (platformFee > 0 && platformFee < MIN_PLATFORM_FEE) platformFee = MIN_PLATFORM_FEE;
         uint256 evaluatorFeeAmount = evaluatorFeeEnabled[jobId] ? (amount * EVALUATOR_FEE_BP) / FEE_DENOMINATOR : 0;
         uint256 providerPayment = amount - platformFee - evaluatorFeeAmount;
-        
+
         // Transfer payments
         _transferPayment(job.paymentToken, platformTreasury, platformFee);
-        
+
         if (evaluatorFeeAmount > 0) {
             _transferPayment(job.paymentToken, job.evaluator, evaluatorFeeAmount);
         }
-        
-        _transferPayment(job.paymentToken, job.provider, providerPayment);
-        
+
+        // V1-01 FIX: Hook before transfers (prevents reentrancy after state changes)
         if (job.hook != address(0)) {
             IACPHook(job.hook).beforeAction(jobId, this.finalizeByEvaluator.selector, "");
         }
-        
+
+        _transferPayment(job.paymentToken, job.provider, providerPayment);
+
         emit PaymentReleased(jobId, providerPayment, platformFee, evaluatorFeeAmount);
         emit JobStatusChanged(jobId, oldStatus, JobStatus.Completed, _msgSender(), block.timestamp);
     }
 
+    /**
+     * @dev Decrement client's active job count.
+     * @param jobId The job ID to decrement count for.
+     */
+    function _decrementJobCount(uint256 jobId) internal {
+        address client = jobClient[jobId];
+        if (client != address(0) && clientJobCount[client] > 0) {
+            clientJobCount[client]--;
+        }
+    }
+
     function _transferPayment(IERC20 token, address to, uint256 amount) internal {
         if (amount == 0) return;
+        if (to == address(0)) revert ZeroAddress();
         if (address(token) == address(0)) {
-            payable(to).transfer(amount);
+            (bool success, ) = payable(to).call{value: amount}("");
+            require(success, "ETH transfer failed");
         } else {
             token.safeTransfer(to, amount);
         }
     }
 
     /***********************************/
+    /* Job Recovery / Timeout Functions */
+    /***********************************/
+
+    /**
+     * @dev Reject a job. Client can reject Open jobs; Evaluator can reject Funded/Submitted jobs.
+     * @param jobId The job ID to reject.
+     * @param reason Reason for rejection.
+     */
+    function reject(uint256 jobId, bytes32 reason) external nonReentrant whenNotPaused {
+        Job storage job = jobs[jobId];
+        if (job.id == 0) revert InvalidJob();
+
+        JobStatus oldStatus = job.status;
+
+        if (job.status == JobStatus.Open) {
+            if (job.client != _msgSender()) revert Unauthorized();
+        } else if (job.status == JobStatus.Funded || job.status == JobStatus.Submitted || job.status == JobStatus.PendingClientApproval) {
+            if (job.evaluator != _msgSender()) revert Unauthorized();
+        } else {
+            revert WrongStatus();
+        }
+
+        uint256 refundAmount = job.budget;
+        job.budget = 0;
+        job.status = JobStatus.Rejected;
+
+        _decrementJobCount(jobId);
+
+        if (oldStatus == JobStatus.Funded || oldStatus == JobStatus.Submitted || oldStatus == JobStatus.PendingClientApproval) {
+            _transferPayment(job.paymentToken, job.client, refundAmount);
+            emit Refunded(jobId, job.client, refundAmount);
+        }
+
+        emit JobRejected(jobId, _msgSender(), reason);
+        emit JobStatusChanged(jobId, oldStatus, JobStatus.Rejected, _msgSender(), block.timestamp);
+    }
+
+    /**
+     * @dev Claim refund for an expired job (client only).
+     * @param jobId The job ID to claim refund for.
+     */
+    function claimRefund(uint256 jobId) external nonReentrant onlyClient(jobId) whenNotPaused {
+        Job storage job = jobs[jobId];
+        if (job.id == 0) revert InvalidJob();
+        if (job.status != JobStatus.Funded && job.status != JobStatus.Submitted && job.status != JobStatus.PendingClientApproval) revert WrongStatus();
+        if (block.timestamp < job.expiredAt) revert JobNotExpired();
+
+        JobStatus oldStatus = job.status;
+        uint256 refundAmount = job.budget;
+        if (refundAmount == 0) revert ZeroBudget(); // I6-02: explicit budget check
+        job.budget = 0;
+        job.status = JobStatus.Expired;
+
+        _decrementJobCount(jobId);
+
+        _transferPayment(job.paymentToken, _msgSender(), refundAmount);
+
+        emit Refunded(jobId, _msgSender(), refundAmount);
+        emit JobExpired(jobId);
+        emit JobStatusChanged(jobId, oldStatus, JobStatus.Expired, _msgSender(), block.timestamp);
+    }
+
+    /**
+     * @dev Permissionless refund for expired jobs. Anyone can trigger.
+     * @param jobId The job ID to refund.
+     */
+    function refundExpired(uint256 jobId) external nonReentrant whenNotPaused {
+        Job storage job = jobs[jobId];
+        if (job.id == 0) revert InvalidJob();
+        if (job.status != JobStatus.Funded && job.status != JobStatus.Submitted && job.status != JobStatus.PendingClientApproval) revert WrongStatus();
+        if (block.timestamp < job.expiredAt) revert JobNotExpired();
+
+        address client = job.client;
+        if (client == address(0)) revert InvalidJob();
+
+        JobStatus oldStatus = job.status;
+        uint256 refundAmount = job.budget;
+        job.budget = 0;
+        job.status = JobStatus.Expired;
+
+        _decrementJobCount(jobId);
+
+        _transferPayment(job.paymentToken, client, refundAmount);
+
+        emit PermissionlessRefund(jobId, client, _msgSender(), refundAmount);
+        emit Refunded(jobId, client, refundAmount);
+        emit JobExpired(jobId);
+        emit JobStatusChanged(jobId, oldStatus, JobStatus.Expired, _msgSender(), block.timestamp);
+    }
+
+    /**
+     * @dev Complete job after evaluator timeout (dispute window passed).
+     * Callable by provider or client after dispute window.
+     * @param jobId The job ID.
+     * @param reason Completion reason.
+     */
+    function completeAfterTimeout(uint256 jobId, bytes32 reason) external nonReentrant whenNotPaused {
+        Job storage job = jobs[jobId];
+        if (job.id == 0) revert InvalidJob();
+        if (job.status != JobStatus.Submitted && job.status != JobStatus.PendingClientApproval) revert WrongStatus();
+        if (job.provider != _msgSender() && job.client != _msgSender()) revert Unauthorized();
+
+        uint256 submittedAt = jobSubmittedAt[jobId];
+        if (submittedAt == 0) revert InvalidJob();
+
+        uint256 disputeWindow = jobDisputeWindow[jobId];
+        if (disputeWindow == 0) disputeWindow = DEFAULT_DISPUTE_WINDOW;
+
+        if (block.timestamp < submittedAt + disputeWindow) revert WrongStatus();
+
+        // If client review is pending, auto-approve after timeout
+        if (job.status == JobStatus.PendingClientApproval) {
+            clientApproved[jobId] = true;
+        }
+
+        uint256 amount = job.budget;
+        uint256 platformFee = (amount * 100) / FEE_DENOMINATOR;
+        uint256 slashBP = jobNonResponsiveSlashBP[jobId];
+        if (slashBP == 0) slashBP = DEFAULT_NONRESPONSIVE_SLASH_BP;
+
+        uint256 slashAmount = (amount * slashBP) / FEE_DENOMINATOR;
+        uint256 net = amount - platformFee - slashAmount;
+        address prov = job.provider;
+        IERC20 paymentToken = job.paymentToken;
+
+        // CEI: Effects before Interactions
+        job.budget = 0;
+        job.status = JobStatus.Completed;
+
+        _decrementJobCount(jobId);
+
+        if (job.hook != address(0)) {
+            IACPHook(job.hook).beforeAction(jobId, this.completeAfterTimeout.selector, abi.encode(reason));
+        }
+
+        if (platformFee > 0) {
+            _transferPayment(paymentToken, platformTreasury, platformFee);
+        }
+        if (slashAmount > 0) {
+            _transferPayment(paymentToken, platformTreasury, slashAmount);
+        }
+        if (net > 0) {
+            _transferPayment(paymentToken, prov, net);
+        }
+
+        emit JobCompleted(jobId, _msgSender(), job.provider, slashAmount);
+        emit PaymentReleased(jobId, net, platformFee, slashAmount);
+        emit EvaluatorSlashedForInactivity(jobId, job.evaluator, slashAmount);
+        emit JobStatusChanged(jobId, JobStatus.Submitted, JobStatus.Completed, _msgSender(), block.timestamp);
+    }
+
+    /**
+     * @dev Set custom dispute window for a job (client only, before submission).
+     * @param jobId The job ID.
+     * @param window Dispute window in seconds (min 1 day, max 30 days).
+     */
+    function setDisputeWindow(uint256 jobId, uint256 window) external onlyClient(jobId) {
+        if (jobs[jobId].status != JobStatus.Funded) revert WrongStatus();
+        if (window < 1 days || window > 30 days) revert InvalidJob();
+        jobDisputeWindow[jobId] = window;
+        emit DisputeWindowSet(jobId, window);
+    }
+
+    /**
+     * @dev Set non-responsive slash basis points for a job (client only, before submission).
+     * @param jobId The job ID.
+     * @param slashBP Slash percentage in basis points (max 1000 = 10%).
+     */
+    function setNonResponsiveSlashBP(uint256 jobId, uint256 slashBP) external onlyClient(jobId) {
+        if (jobs[jobId].status != JobStatus.Funded) revert WrongStatus();
+        if (slashBP > 1000) revert SlashBPTooHigh(); // Max 10%
+        jobNonResponsiveSlashBP[jobId] = slashBP;
+        emit NonResponsiveSlashSet(jobId, slashBP);
+    }
+
+    /***********************************/
     /* Evaluator Pool Functions */
     /***********************************/
     
-    function registerAsEvaluator() external {
-        require(!isRegisteredEvaluator[msg.sender], "Already registered");
+    /**
+     * @dev Register as an evaluator in the random selection pool.
+     * A3-01: Requires MIN_EVALUATOR_STAKE (0.01 ETH) to prevent spam.
+     */
+    function registerAsEvaluator() external payable {
+        if (isRegisteredEvaluator[msg.sender]) revert EvaluatorAlreadyRegistered();
+        if (msg.value < MIN_EVALUATOR_STAKE) revert InsufficientEvaluatorStake();
+
+        // Blacklist check with P7-01 try/catch
+        if (adminRegistry != address(0)) {
+            try AdminRegistry(adminRegistry).isWalletBlacklistedActive(msg.sender) returns (bool isBlacklisted) {
+                if (isBlacklisted) revert EvaluatorBlacklisted();
+            } catch {
+                // Fail open to prevent DOS
+            }
+        }
+
         evaluatorPool.push(msg.sender);
         isRegisteredEvaluator[msg.sender] = true;
+        evaluatorStakes[msg.sender] = msg.value;
         emit EvaluatorRegistered(msg.sender);
     }
-    
+
+    /**
+     * @dev Unregister as an evaluator. Refunds staked ETH.
+     */
     function unregisterAsEvaluator() external {
-        require(isRegisteredEvaluator[msg.sender], "Not registered");
-        
+        if (!isRegisteredEvaluator[msg.sender]) revert EvaluatorNotRegistered();
+
         // Remove from pool
         for (uint256 i = 0; i < evaluatorPool.length; i++) {
             if (evaluatorPool[i] == msg.sender) {
@@ -565,26 +937,121 @@ contract AgenticCommerceV9 is
                 break;
             }
         }
-        
+
         isRegisteredEvaluator[msg.sender] = false;
+        uint256 stake = evaluatorStakes[msg.sender];
+        evaluatorStakes[msg.sender] = 0;
+        
+        if (stake > 0) {
+            (bool success, ) = payable(msg.sender).call{value: stake}("");
+            require(success, "Stake refund failed");
+        }
+        
         emit EvaluatorUnregistered(msg.sender);
     }
     
+    /**
+     * @dev Slash an evaluator's stake (owner only).
+     * @param evaluator The evaluator to slash.
+     * @param reason Reason for slashing.
+     */
+    function slashEvaluatorStake(address evaluator, string calldata reason) external onlyOwner {
+        if (!isRegisteredEvaluator[evaluator]) revert EvaluatorNotRegistered();
+        
+        uint256 stake = evaluatorStakes[evaluator];
+        if (stake == 0) revert InsufficientEvaluatorStake();
+        
+        evaluatorStakes[evaluator] = 0;
+        
+        // Transfer slashed stake to platform treasury
+        if (platformTreasury != address(0)) {
+            (bool success, ) = payable(platformTreasury).call{value: stake}("");
+            require(success, "Stake transfer failed");
+        }
+        
+        // Remove from pool
+        for (uint256 i = 0; i < evaluatorPool.length; i++) {
+            if (evaluatorPool[i] == evaluator) {
+                evaluatorPool[i] = evaluatorPool[evaluatorPool.length - 1];
+                evaluatorPool.pop();
+                break;
+            }
+        }
+        
+        isRegisteredEvaluator[evaluator] = false;
+        emit EvaluatorSlashed(evaluator, stake, reason);
+    }
+
+    /**
+     * @dev Permissionless cleanup of stale evaluators (blacklisted or unregistered).
+     * Anyone can call to remove stale entries and keep the pool healthy.
+     * @return removedCount Number of stale evaluators removed.
+     */
+    function cleanupStaleEvaluators() external returns (uint256 removedCount) {
+        if (evaluatorPool.length == 0) return 0;
+
+        // Iterate backwards to safely remove elements
+        for (uint256 i = evaluatorPool.length; i > 0; i--) {
+            address evalAddr = evaluatorPool[i - 1];
+            bool isStale = !isRegisteredEvaluator[evalAddr];
+
+            // Also check blacklist
+            if (!isStale && adminRegistry != address(0)) {
+                AdminRegistry registry = AdminRegistry(adminRegistry);
+                if (registry.isWalletBlacklistedActive(evalAddr)) {
+                    isStale = true;
+                }
+            }
+
+            if (isStale) {
+                evaluatorPool[i - 1] = evaluatorPool[evaluatorPool.length - 1];
+                evaluatorPool.pop();
+                removedCount++;
+            }
+        }
+
+        if (removedCount > 0) {
+            emit StaleEvaluatorsCleaned(removedCount);
+        }
+    }
+
+    /**
+     * @dev Get the current evaluator pool size.
+     * @return Number of evaluators in the pool.
+     */
     function getEvaluatorPoolSize() external view returns (uint256) {
         return evaluatorPool.length;
     }
-    
-    // V8: Improved randomness using block.prevrandao
-    function _selectRandomEvaluator() internal returns (address evaluator) {
-        require(evaluatorPool.length > 0, "No evaluators available");
+
+    /**
+     * @dev Select a random evaluator from the pool using commit-reveal.
+     * A3-02/F8-01: Uses blockhash(jobCreationBlock + 6) for randomness.
+     * The blockhash at commitBlock + 6 is finalized and not manipulable by the miner.
+     * @param jobId The job ID to select evaluator for.
+     * @param salt A salt value to increase entropy.
+     */
+    function _selectRandomEvaluator(uint256 jobId, bytes32 salt) internal view returns (address evaluator) {
+        if (evaluatorPool.length == 0) revert NoEvaluatorsAvailable();
+
+        uint256 commitBlock = jobCreationBlock[jobId];
+        if (commitBlock == 0) revert NoCommitFound();
+
+        // Use blockhash from commitBlock + 6 (finalized, not manipulable)
+        uint256 revealBlock = commitBlock + EVALUATOR_REVEAL_DELAY;
+        bytes32 randomSeed = blockhash(revealBlock);
         
+        // Fallback if blockhash is unavailable (e.g., >256 blocks old)
+        if (randomSeed == bytes32(0)) {
+            randomSeed = keccak256(abi.encodePacked(block.prevrandao, block.timestamp, jobId));
+        }
+
         uint256 randomIndex = uint256(keccak256(abi.encodePacked(
-            block.prevrandao,
-            block.timestamp,
-            msg.sender,
-            jobCounter
+            randomSeed,
+            salt,
+            jobId,
+            msg.sender
         ))) % evaluatorPool.length;
-        
+
         evaluator = evaluatorPool[randomIndex];
         if (!isRegisteredEvaluator[evaluator]) {
             for (uint256 i = 0; i < evaluatorPool.length; i++) {
@@ -592,8 +1059,36 @@ contract AgenticCommerceV9 is
                     return evaluatorPool[i];
                 }
             }
-            revert("No active evaluators");
+            revert NoActiveEvaluators();
         }
+    }
+    
+    /**
+     * @dev Finalize random evaluator selection after commit-reveal delay.
+     * Permissionless — anyone can call after 6 blocks.
+     * @param jobId The job ID to finalize evaluator for.
+     * @param salt The salt used during job creation.
+     */
+    function finalizeRandomEvaluator(uint256 jobId, bytes32 salt) external {
+        Job storage job = jobs[jobId];
+        if (job.id == 0) revert InvalidJob();
+        if (job.evaluator != address(0)) revert EvaluatorAlreadyRegistered();
+        
+        EvaluatorCommit storage commit = evaluatorCommits[jobId];
+        if (commit.commitBlock == 0) revert NoCommitFound();
+        if (commit.revealed) revert EvaluatorAlreadyRegistered();
+        if (block.number < commit.commitBlock + EVALUATOR_REVEAL_DELAY) revert RevealTooEarly();
+        
+        // Verify commitment
+        bytes32 expectedCommit = keccak256(abi.encodePacked(salt, jobId, commit.commitBlock));
+        if (commit.commitHash != expectedCommit) revert InvalidCommit();
+        
+        commit.revealed = true;
+        
+        address finalEvaluator = _selectRandomEvaluator(jobId, salt);
+        job.evaluator = finalEvaluator;
+        
+        emit EvaluatorRandomlySelected(jobId, finalEvaluator);
     }
 
     /***********************************/
@@ -615,6 +1110,15 @@ contract AgenticCommerceV9 is
         if (expiredAt <= block.timestamp + MIN_EXPIRY_DURATION) revert ExpiryTooShort();
         if (expiredAt > block.timestamp + MAX_EXPIRY_DURATION) revert ExpiryTooLong();
         if (bytes(description).length == 0 || bytes(description).length > MAX_DESCRIPTION_LENGTH) revert InvalidJob();
+        
+        // VULN-09/12 FIX: Validate hook is a deployed contract (not EOA or zero address)
+        if (hook != address(0)) {
+            uint256 size;
+            assembly {
+                size := extcodesize(hook)
+            }
+            if (size == 0) revert InvalidHook();
+        }
     }
     
     /**
@@ -637,24 +1141,53 @@ contract AgenticCommerceV9 is
     /* Admin Functions */
     /***********************************/
     
+    /**
+     * @dev Set the platform treasury address.
+     * @param _treasury New treasury address.
+     */
     function setPlatformTreasury(address _treasury) external onlyOwner {
-        require(_treasury != address(0), "Zero address");
+        if (_treasury == address(0)) revert ZeroAddress();
+        address oldTreasury = platformTreasury;
         platformTreasury = _treasury;
+        emit PlatformTreasurySet(oldTreasury, _treasury);
     }
-    
+
+    /**
+     * @dev Set the AdminRegistry address.
+     * @param _registry New AdminRegistry address.
+     */
     function setAdminRegistry(address _registry) external onlyOwner {
+        if (_registry != address(0)) {
+            uint256 size;
+            assembly { size := extcodesize(_registry) }
+            if (size == 0) revert InvalidHook(); // A3-03: validate is contract
+        }
+        address oldRegistry = adminRegistry;
         adminRegistry = _registry;
+        emit AdminRegistrySet(oldRegistry, _registry);
     }
-    
+
+    /**
+     * @dev Set the PriceOracle address.
+     * @param _priceOracle New PriceOracle address.
+     */
     function setPriceOracle(address _priceOracle) external onlyOwner {
-        require(_priceOracle != address(0), "Zero address");
+        if (_priceOracle == address(0)) revert ZeroAddress();
+        address oldOracle = address(priceOracle);
         priceOracle = IPriceOracleV2(_priceOracle);
+        emit PriceOracleSet(oldOracle, _priceOracle);
     }
     
+    /**
+     * @dev Pause contract operations (owner only).
+     */
     function pause() external onlyOwner {
         _pause();
     }
-    
+
+    /**
+     * @dev Unpause contract operations (owner only).
+     */
     function unpause() external onlyOwner {
         _unpause();
     }
@@ -665,6 +1198,7 @@ contract AgenticCommerceV9 is
     
     // V9 Events
     event MinBudgetChanged(address indexed token, uint256 oldMin, uint256 newMin);
+    event MaxBudgetChanged(uint256 oldMax, uint256 newMax);
     event MinBudgetOverrideChanged(address indexed token, uint256 minAmount);
     event StablecoinStatusChanged(address indexed token, bool isStable);
     
@@ -673,11 +1207,28 @@ contract AgenticCommerceV9 is
     event EvaluatorRegistered(address indexed evaluator);
     event EvaluatorUnregistered(address indexed evaluator);
     event EvaluatorRandomlySelected(uint256 indexed jobId, address indexed evaluator);
+    event StaleEvaluatorsCleaned(uint256 removedCount);
+    event EvaluatorSlashed(address indexed evaluator, uint256 stake, string reason);
     event JobBudgetUpdated(uint256 indexed jobId, uint256 oldBudget, uint256 newBudget);
     event JobPaymentTokenUpdated(uint256 indexed jobId, address oldToken, address newToken);
-    event JobCreated(uint256 indexed jobId, address indexed client, address provider, uint256 budget, uint256 expiredAt);
+    event JobCreated(uint256 indexed jobId, address indexed client, address provider, uint256 budget, uint256 expiredAt, bool evaluatorFee, bool clientReview, bool randomEvaluator);
     event JobFunded(uint256 indexed jobId, address indexed client, uint256 amount);
     event JobSubmitted(uint256 indexed jobId, address indexed provider, bytes32 deliverable);
     event JobStatusChanged(uint256 indexed jobId, JobStatus oldStatus, JobStatus newStatus, address changedBy, uint256 timestamp);
     event PaymentReleased(uint256 indexed jobId, uint256 providerAmount, uint256 platformFee, uint256 evaluatorFee);
+
+    // Admin Events
+    event PlatformTreasurySet(address indexed oldTreasury, address indexed newTreasury);
+    event AdminRegistrySet(address indexed oldRegistry, address indexed newRegistry);
+    event PriceOracleSet(address indexed oldOracle, address indexed newOracle);
+
+    // Job Lifecycle Events (ported from V6)
+    event JobRejected(uint256 indexed jobId, address indexed rejector, bytes32 reason);
+    event JobExpired(uint256 indexed jobId);
+    event JobCompleted(uint256 indexed jobId, address indexed by, address indexed provider, uint256 evaluatorFee);
+    event Refunded(uint256 indexed jobId, address indexed client, uint256 amount);
+    event PermissionlessRefund(uint256 indexed jobId, address indexed client, address indexed caller, uint256 amount);
+    event DisputeWindowSet(uint256 indexed jobId, uint256 window);
+    event NonResponsiveSlashSet(uint256 indexed jobId, uint256 slashBP);
+    event EvaluatorSlashedForInactivity(uint256 indexed jobId, address indexed evaluator, uint256 slashAmount);
 }

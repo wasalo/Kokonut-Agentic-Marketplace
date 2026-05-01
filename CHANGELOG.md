@@ -5,6 +5,126 @@ All notable changes to the Kokonut Agent Economy Stack are documented in this fi
 The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.0.0/),
 and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0.html).
 
+## [2026-04-29] - AdminRegistry UUPS Proxy Deployed + Data Migration
+
+### 🔄 AdminRegistry UUPS Proxy Deployment
+
+**Problem:** Old AdminRegistry (`0x9b4a7479...`) was a direct deployment, not UUPS upgradeable. Phase 29e improvements (custom errors, agent existence checks, array cleanup) could not be applied.
+
+**Solution:** Deployed new UUPS proxy with full data migration:
+
+| Contract | Address | Status |
+|----------|---------|--------|
+| **AdminRegistry Proxy** | `0xC81C864CEAb6231ad764cf9867e031D8b6dee41d` | ✅ Live |
+| **AdminRegistry Impl** | `0x5Ea686514c3eEf533cfeC1f34d69582FA4850136` | ✅ Live |
+| **Old AdminRegistry** | `0x9b4a7479E2609D1E6Dfc4232aD4CA493adF82c6e` | ❌ Deprecated |
+
+**Migrated Data:**
+- All blacklisted agents and wallets (with original reasons)
+- Featured agents
+- Verification providers (`self.xyz`)
+- `slashManager` reference
+- `halfLifeDays` setting
+
+**Updated Consumer Contracts:**
+- `AgenticCommerceV9.setAdminRegistry()` → new proxy
+- `ServiceRegistryV2.setAdminRegistry()` → new proxy
+- `BiddingSystem.setAdminRegistry()` → new proxy
+- `AgentReviewV5.setAdminRegistry()` → new proxy
+
+---
+
+## [2026-04-29] - Security Audit Follow-Up: Cross-Stack Blacklist Hardening + Invariant Fixes
+
+### 🛡️ Security Audit Follow-Up (Phase 29e)
+
+**9 additional hardening issues resolved across 5 contracts:**
+
+| Issue | Severity | Contract | Fix |
+|-------|----------|----------|-----|
+| **Budget Ceiling** | HIGH | AgenticCommerceV9 | Added `MAX_BUDGET_USD = $1M` with `_checkMaxBudget()` oracle validation in `createJob()` and `setBudget()` |
+| **slashAndBlacklistAgent duplicate** | HIGH | AdminRegistry | Added `AgentAlreadySlashed()` guard — prevents duplicate array entries and grace-period reset attacks |
+| **Evaluator pool blacklist gate** | HIGH | AgenticCommerceV9 | `registerAsEvaluator()` now checks `isWalletBlacklistedActive()` before allowing registration |
+| **Stale evaluator accumulation** | MEDIUM | AgenticCommerceV9 | Added permissionless `cleanupStaleEvaluators()` — removes blacklisted/unregistered evaluators from pool |
+| **Blacklist gap: BiddingSystem** | MEDIUM | BiddingSystem | `commitBid()` now checks `isWalletBlacklistedActive(msg.sender)` |
+| **Blacklist gap: AgentReviewV5** | MEDIUM | AgentReviewV5 | `createProposal()` and `submitEvaluation()` now check blacklist via new `setAdminRegistry()` integration |
+| **Blacklist gap: ServiceRegistryV2** | MEDIUM | ServiceRegistryV2 | `activateService()` now rechecks `isWalletBlacklistedActive()` on reactivation |
+| **activeDisputeIds unbounded growth** | MEDIUM | MilestoneEscrowV2 | `resolveDispute()` now immediately removes resolved disputes via `_removeActiveDispute()` swap-and-pop |
+| **Silent milestone path** | LOW | MilestoneEscrowV2 | Added `MilestoneNotReleased` event when dispute resolves with incomplete milestone |
+| **Misleading event data** | LOW | AgenticCommerceV9 | `completeAfterTimeout()` now emits actual `slashAmount` in `JobCompleted` event (was hardcoded 0) |
+| **Custom errors** | LOW | AdminRegistry | Replaced 5 remaining `require(string)` statements with custom errors |
+
+**New Functions:**
+
+```solidity
+// AgenticCommerceV9
+function maxBudgetUsd() external view returns (uint256)
+function setMaxBudgetUsd(uint256 newMax) external onlyOwner
+function cleanupStaleEvaluators() external returns (uint256 removedCount)
+
+// AgentReviewV5
+function setAdminRegistry(address _adminRegistry) external onlyOwner
+
+// MilestoneEscrowV2 (internal)
+function _removeActiveDispute(uint256 jobId) internal
+```
+
+**New Events:**
+
+```solidity
+event MaxBudgetChanged(uint256 oldMax, uint256 newMax)
+event StaleEvaluatorsCleaned(uint256 removedCount)
+event MilestoneNotReleased(uint256 indexed jobId, uint256 indexed milestoneIndex, string reason)
+event AdminRegistrySet(address indexed adminRegistry) // AgentReviewV5
+```
+
+**New Errors:**
+
+```solidity
+error BudgetTooHigh()
+error AgentAlreadySlashed()
+error ProposerBlacklisted()
+error EvaluatorBlacklisted()
+error HalfLifeMustBePositive()
+error ZeroAddress()
+```
+
+---
+
+## [2026-04-29] - Security Audit Fix: 12 Vulnerabilities Patched + Lifecycle Recovery
+
+### 🛡️ Security Audit Fixes (Phase 29d)
+
+**12 issues resolved across 3 contracts:**
+
+| Vuln | Severity | Fix |
+|------|----------|-----|
+| **VULN-01** | HIGH | `slashAndBlacklistAgent()` now requires `onlySlashManager` modifier |
+| **VULN-03** | HIGH | `_selectRandomEvaluator()` documented with NatSpec security warning |
+| **VULN-05** | HIGH | Removed dead `MilestoneAutoReleased` event |
+| **VULN-08** | HIGH | `unblacklistAgent()` / `unblacklistWallet()` use swap-and-pop cleanup |
+| **VULN-09/12** | MEDIUM | `createJob()` validates `hook` is a deployed contract (not EOA) |
+| **VULN-11** | MEDIUM | `resolveDispute()` releases only the disputed milestone |
+| **CRITICAL** | HIGH | `clientJobCount` now decrements on completion/rejection/refund/expiration |
+| **Lifecycle** | HIGH | Restored `reject()`, `claimRefund()`, `refundExpired()`, `completeAfterTimeout()` |
+| **Custom Errors** | MEDIUM | Replaced all `require()` / string reverts with custom errors |
+| **Events** | MEDIUM | `setPlatformTreasury()`, `setAdminRegistry()`, `setPriceOracle()` now emit events |
+| **AdminRegistry** | HIGH | Re-deployed with UUPS upgradeability at `0xC81C864CEAb6231ad764cf9867e031D8b6dee41d` |
+| **SDK/CLI** | LOW | Added `setSlashManager()` support |
+
+**Contract Deployments (Phase 29e):**
+
+| Contract | Proxy | Implementation |
+|----------|-------|----------------|
+| AgenticCommerceV9 | `0x4c592510e4FAbbEEA8D7142dE1f38d548b500e7f` | `0x9634280fb2416061124aa6474F1BcF692473bEF4` |
+| MilestoneEscrowV2 | `0xd4Fdc345b1c6aF1B4Cc84339bcB251B33527Eb45` | `0xfb764A5c740aC47721bC9802596395CdF2DC4CdB` |
+| AdminRegistry | `0xC81C864CEAb6231ad764cf9867e031D8b6dee41d` | `0x5Ea686514c3eEf533cfeC1f34d69582FA4850136` |
+| AgentReviewV5 | `0x5CDb592Fd37749bF87448FBf5725D1Cd986dd1Cb` | `0xB93A8Ef6DBD364A4e936bE53061099864465B678` |
+| ServiceRegistryV2 | `0x62E1eeEa1A2Ab987004F35bDA430457Ed6077201` | `0xb75B02D4523171ABdB6f5bcB9D60903ed3e30fAD` |
+| BiddingSystem | `0x32c9d069a248a619d3EAc4D1FC76F2639AaBeF04` | `0x0eE5E780bbbBA610D0B1926a3993A2aa0B1B9812` |
+
+---
+
 ## [2026-04-28] - AgenticCommerceV9: Multi-Token Configurable Minimums + Dynamic Oracle Integration
 
 ### 🎯 V9 Contract: Multi-Token Architecture
@@ -56,8 +176,8 @@ return (minBudgetUsd * 10^(decimals-6) * 10^8) / oraclePrice;
 
 | Contract | Proxy | Implementation |
 |----------|-------|----------------|
-| AgenticCommerceV9 | `0x4c592510e4FAbbEEA8D7142dE1f38d548b500e7f` | `0x1731A683461D379261887947A33126EA55Ee1816` |
-| MilestoneEscrowV2 | `0xd4Fdc345b1c6aF1B4Cc84339bcB251B33527Eb45` | `0x2f45DC6AA7c65C26cAD63d8BA33Bc13d263b3567` |
+| AgenticCommerceV9 | `0x4c592510e4FAbbEEA8D7142dE1f38d548b500e7f` | `0x9634280fb2416061124aa6474F1BcF692473bEF4` |
+| MilestoneEscrowV2 | `0xd4Fdc345b1c6aF1B4Cc84339bcB251B33527Eb45` | `0xfb764A5c740aC47721bC9802596395CdF2DC4CdB` |
 | PriceOracleV2 | `0x32fD2A54B722D2048A052fD0456004483a683aFE` | `0xb4660AceBf93874fB6E945C312c5706093336Ef8` |
 
 **MilestoneEscrowV2 Critical Fix:**
@@ -2080,7 +2200,7 @@ Fixed critical git repository corruption issues:
 - **Removed dead interface**: Deleted `contracts/interfaces/IAgenticCommerceV5.sol` (V5 doesn't exist)
 - **Updated contract config**: Added Phase 18 implementation addresses to `lib/contracts/config.ts`:
   - `agenticCommerceImpl`: `0xEecC615310f6A6144eeA0F235E83b7BD391EC251`
-  - `agentReviewImpl`: `0xFf4D6df8dDca340e2ff59615Dd00C325706019f7`
+  - `agentReviewImpl`: `0xB93A8Ef6DBD364A4e936bE53061099864465B678`
 - **Fixed package.json**: Fixed duplicate `devDependencies` keys (invalid JSON), aligned versions across packages
 
 **Phase 3 - Medium Priority:**
@@ -2752,7 +2872,7 @@ Added the following hooks to bridge parity gaps between smart contract functions
 | Contract               | Address                                      | Purpose        |
 | ---------------------- | -------------------------------------------- | -------------- |
 | `BiddingSystem`        | `0x32c9d069a248a619d3EAc4D1FC76F2639AaBeF04` | UUPS Proxy     |
-| `BiddingSystem` (Impl) | `0x0A09e4Ff6DAa0eeA49526560e2c946Ea32a293Bb` | Implementation |
+| `BiddingSystem` (Impl) | `0x0eE5E780bbbBA610D0B1926a3993A2aa0B1B9812` | Implementation |
 
 ### Files Created
 

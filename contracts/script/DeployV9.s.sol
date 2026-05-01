@@ -21,7 +21,7 @@ contract DeployV9 is Script {
     
     // Admin
     address constant TREASURY = 0x3394C45b5938127EB56603A6051dF26CFAF08C26;
-    address constant ADMIN_REGISTRY = 0x8A8E3C9ffB8F25236c8152c8ac634336463f3Ab0;
+    address constant ADMIN_REGISTRY = 0xC81C864CEAb6231ad764cf9867e031D8b6dee41d; // Phase 29e UUPS proxy
     
     function run() external {
         uint256 deployerPrivateKey = vm.envUint("PRIVATE_KEY");

@@ -60,26 +60,37 @@ interface IAgenticCommerceV9 {
     function submit(uint256 jobId, bytes32 deliverable) external;
     function approveByClient(uint256 jobId) external;
     function finalizeByEvaluator(uint256 jobId, bytes32 reason) external;
-    
+
+    // V6 Lifecycle Recovery Functions
+    function reject(uint256 jobId, bytes32 reason) external;
+    function claimRefund(uint256 jobId) external;
+    function refundExpired(uint256 jobId) external;
+    function completeAfterTimeout(uint256 jobId, bytes32 reason) external;
+    function setDisputeWindow(uint256 jobId, uint256 window) external;
+    function setNonResponsiveSlashBP(uint256 jobId, uint256 slashBP) external;
+
     // V9: Multi-token minimum budget
     function minBudgetUsd() external view returns (uint256);
+    function maxBudgetUsd() external view returns (uint256);
     function minBudgetOverride(address token) external view returns (uint256);
     function isStablecoin(address token) external view returns (bool);
     function getMinBudget(address token, uint8 decimals) external view returns (uint256);
     function setMinBudgetUsd(uint256 newMin) external;
+    function setMaxBudgetUsd(uint256 newMax) external;
     function setMinBudgetOverride(address token, uint256 minAmount) external;
     function setStablecoin(address token, bool isStable) external;
-    
+
     // Admin
     function setAllowedToken(address token, bool allowed) external;
     function setPlatformTreasury(address _treasury) external;
     function setAdminRegistry(address _registry) external;
     function pause() external;
     function unpause() external;
-    
+
     // Evaluator pool
-    function registerAsEvaluator() external;
+    function registerAsEvaluator() external payable;
     function unregisterAsEvaluator() external;
+    function cleanupStaleEvaluators() external returns (uint256 removedCount);
     function getEvaluatorPoolSize() external view returns (uint256);
     
     // Views (public state variables auto-generate getters)

@@ -204,46 +204,161 @@ async function promptQuestion(rl: readline.Interface, question: string): Promise
   });
 }
 
+// ═══════════════════════════════════════════════════════════════════════════════
+// 🌴  COCONUT PALM ASCII ART & ONBOARDING UX
+// ═══════════════════════════════════════════════════════════════════════════════
+
+const COCONUT_PALM = `
+           |
+          /|\
+         / | \
+        /  |  \
+       /   |   \
+      /    |    \
+     /_____|_____\
+        \\ | /
+         \\|/
+          |
+         / \
+        /   \
+       /_____\
+`;
+
+const KOKONUT_BANNER = `
+ _  __           _                     _   
+| |/ /___   ___ | | ___   _ _   _ ___ | |_ 
+| ' // _ \\ / _ \\| |/ / | | | | | / _ \\| __|
+| . \\ (_) | (_) |   <| |_| | |_| | (_) | |_ 
+|_|\\_\\___/ \\___/|_|\\_\\__, |\\__, |\\___/ \\__|
+                        |___/ |___/         
+`;
+
+async function typewriter(text: string, delay = 15, newline = true) {
+  for (const char of text) {
+    process.stdout.write(char);
+    await new Promise(r => setTimeout(r, delay));
+  }
+  if (newline) process.stdout.write('\n');
+}
+
+async function sleep(ms: number) {
+  return new Promise(r => setTimeout(r, ms));
+}
+
+function clearScreen() {
+  process.stdout.write('\x1B[2J\x1B[0f');
+}
+
 program
   .command('init')
   .description('Interactive configuration wizard for first-time setup')
   .action(async () => {
-    console.log(chalk.bold('\n🌴 Kokonut CLI Configuration Wizard\n'));
-    console.log(chalk.dim("Let's set up your environment...\n"));
+    // Guard: init requires an interactive terminal
+    if (!process.stdin.isTTY) {
+      console.log(chalk.cyan(COCONUT_PALM));
+      console.log(chalk.cyan.bold(KOKONUT_BANNER));
+      console.log('');
+      console.log(chalk.yellow('⚠️  kokonut init requires an interactive terminal.'));
+      console.log(chalk.dim('To set up non-interactively, create a .env.kokonut file:'));
+      console.log('');
+      console.log(chalk.dim('  cat > .env.kokonut << EOF'));
+      console.log(chalk.dim('  NETWORK=sepolia'));
+      console.log(chalk.dim('  PRIVATE_KEY=0x...'));
+      console.log(chalk.dim('  EOF'));
+      console.log('');
+      console.log(chalk.dim('Then run: source .env.kokonut'));
+      process.exit(0);
+    }
 
+    clearScreen();
+
+    // ── Stage 1: The Reveal ───────────────────────────────────────────────
+    await typewriter(COCONUT_PALM, 1, false);
+    await sleep(400);
+
+    await typewriter(chalk.cyan.bold(KOKONUT_BANNER), 2, false);
+    await sleep(200);
+
+    await typewriter(chalk.dim('┌─────────────────────────────────────────────────────────┐'), 5);
+    await typewriter(chalk.dim('│  ') + chalk.cyan('Kokonut Agent Economy Stack CLI') + chalk.dim('                          │'), 5);
+    await typewriter(chalk.dim('│  ') + chalk.green('Onchain Economy for AI Agents') + chalk.dim('                            │'), 5);
+    await typewriter(chalk.dim('│  ') + chalk.yellow('Version 0.1.0  •  Sepolia Testnet') + chalk.dim('                      │'), 5);
+    await typewriter(chalk.dim('└─────────────────────────────────────────────────────────┘'), 5);
+    console.log('');
+    await sleep(300);
+
+    await typewriter(chalk.dim('Welcome, agent. Let\'s get you connected to the onchain economy...\n'), 20);
+    await sleep(400);
+
+    // ── Stage 2: The Wizard ───────────────────────────────────────────────
     const rl = createInterface();
+    const steps = 3;
+    let currentStep = 1;
 
     try {
-      // Network selection
-      console.log(chalk.cyan('1. Select Network:'));
-      console.log('   1) sepolia (Testnet - recommended for development)');
-      console.log('   2) mainnet (Ethereum mainnet)\n');
+      // Step 1: Network
+      console.log(chalk.cyan(`┌─ Step [${currentStep}/${steps}] ─────────────────────────────────────────┐`));
+      console.log(chalk.cyan('│  ') + chalk.bold('Select your network') + chalk.cyan('                                │'));
+      console.log(chalk.cyan('│') + chalk.dim('                                                     │'));
+      console.log(chalk.cyan('│') + '  [1] Sepolia Testnet  (recommended for agents)   ' + chalk.cyan('│'));
+      console.log(chalk.cyan('│') + '  [2] Ethereum Mainnet  (production economy)       ' + chalk.cyan('│'));
+      console.log(chalk.cyan('└─────────────────────────────────────────────────────────┘'));
 
-      const networkChoice = await promptQuestion(rl, 'Enter choice (1-2) [1]: ');
+      const networkChoice = await promptQuestion(rl, chalk.dim('  → Enter choice (1-2) [1]: '));
       const network = networkChoice === '2' ? 'mainnet' : 'sepolia';
+      console.log(chalk.green(`  ✓ Network: ${network}\n`));
+      currentStep++;
+      await sleep(200);
 
-      // Private key
-      console.log(chalk.cyan('\n2. Private Key:'));
-      const privateKey = await promptQuestion(
-        rl,
-        'Enter your wallet private key (starts with 0x): '
-      );
+      // Step 2: Wallet
+      console.log(chalk.cyan(`┌─ Step [${currentStep}/${steps}] ─────────────────────────────────────────┐`));
+      console.log(chalk.cyan('│  ') + chalk.bold('Configure your wallet') + chalk.cyan('                              │'));
+      console.log(chalk.cyan('│') + chalk.dim('                                                     │'));
+      console.log(chalk.cyan('│') + chalk.dim('  Your private key never leaves this machine.       │'));
+      console.log(chalk.cyan('│') + chalk.dim('  It will be stored in a local .env.kokonut file.   │'));
+      console.log(chalk.cyan('└─────────────────────────────────────────────────────────┘'));
+
+      const privateKey = await promptQuestion(rl, chalk.dim('  → Enter private key (0x...): '));
 
       if (!privateKey.startsWith('0x') || privateKey.length !== 66) {
-        console.log(chalk.red('❌ Invalid private key format'));
+        console.log(chalk.red('\n  ✗ Invalid private key format. Expected 64 hex chars prefixed with 0x.\n'));
         rl.close();
         process.exit(1);
       }
 
-      // Optional: Custom RPC
-      console.log(chalk.cyan('\n3. RPC URL (optional):'));
-      console.log('   Default: Use network default RPC');
-      const customRpc = await promptQuestion(
-        rl,
-        'Enter custom RPC or press Enter to use default: '
-      );
+      let walletAddress: string;
+      try {
+        const wallet = privateKeyToAccount(privateKey as `0x${string}`);
+        walletAddress = wallet.address;
+        console.log(chalk.green(`  ✓ Wallet: ${walletAddress}\n`));
+      } catch (e) {
+        console.log(chalk.red('\n  ✗ Could not derive wallet from private key.\n'));
+        rl.close();
+        process.exit(1);
+      }
+      currentStep++;
+      await sleep(200);
 
-      // Create .env file
+      // Step 3: RPC (optional)
+      console.log(chalk.cyan(`┌─ Step [${currentStep}/${steps}] ─────────────────────────────────────────┐`));
+      console.log(chalk.cyan('│  ') + chalk.bold('Advanced: Custom RPC (optional)') + chalk.cyan('                  │'));
+      console.log(chalk.cyan('│') + chalk.dim('                                                     │'));
+      console.log(chalk.cyan('│') + chalk.dim('  Press Enter to use the default public RPC.        │'));
+      console.log(chalk.cyan('│') + chalk.dim('  Or enter your own Infura/Alchemy/QuickNode URL.   │'));
+      console.log(chalk.cyan('└─────────────────────────────────────────────────────────┘'));
+
+      const customRpc = await promptQuestion(rl, chalk.dim('  → Custom RPC (optional): '));
+      if (customRpc) {
+        console.log(chalk.green(`  ✓ Custom RPC configured\n`));
+      } else {
+        console.log(chalk.dim(`  → Using default ${network} RPC\n`));
+      }
+      await sleep(200);
+
+      // ── Stage 3: The Commit ───────────────────────────────────────────────
+      console.log(chalk.dim('─'.repeat(59)));
+      await typewriter(chalk.cyan.bold('  Writing configuration...'), 30);
+
       const envContent = `# Kokonut CLI Configuration
 # Generated by 'kokonut init'
 
@@ -259,25 +374,38 @@ ${customRpc ? `RPC_URL=${customRpc}` : '# RPC_URL=custom_rpc_here'}
       const envPath = join(process.cwd(), '.env.kokonut');
       fs.writeFileSync(envPath, envContent);
 
-      console.log(chalk.green('\n✅ Configuration saved to:'), envPath);
-      console.log(chalk.dim('\nTo use this configuration, run:'));
-      console.log(chalk.cyan('  source .env.kokonut'));
-      console.log(chalk.cyan('  pnpm run cli -- <command>'));
+      await sleep(300);
+      console.log(chalk.green('  ✓ Saved to .env.kokonut'));
+      console.log(chalk.dim('─'.repeat(59)));
+      await sleep(200);
 
-      // Validate by checking address
-      try {
-        const wallet = privateKeyToAccount(privateKey as `0x${string}`);
-        console.log(chalk.green('\n✅ Wallet validated:'), wallet.address);
-      } catch (e) {
-        console.log(
-          chalk.yellow('\n⚠️  Warning: Could not validate wallet. Please check your private key.')
-        );
-      }
+      // ── Stage 4: The Celebration ──────────────────────────────────────────
+      console.log('');
+      await typewriter(chalk.green.bold('  🎉  Setup complete!  🎉'), 20);
+      console.log('');
 
-      console.log(chalk.bold('\n🎉 Setup complete! Try:'));
-      console.log(chalk.cyan('  pnpm run cli -- help'));
+      console.log(chalk.cyan('  Your Agent Wallet'));
+      console.log(chalk.dim('  ───────────────────────────────────────────────────'));
+      console.log(`  ${chalk.dim('Address:')} ${chalk.white(walletAddress)}`);
+      console.log(`  ${chalk.dim('Network:')} ${chalk.white(network === 'sepolia' ? 'Sepolia Testnet' : 'Ethereum Mainnet')}`);
+      console.log(`  ${chalk.dim('RPC:')}     ${chalk.white(customRpc || `Default ${network} RPC`)}`);
+      console.log(chalk.dim('  ───────────────────────────────────────────────────'));
+      console.log('');
+
+      console.log(chalk.cyan('  Quick Start Commands'));
+      console.log(chalk.dim('  ───────────────────────────────────────────────────'));
+      console.log(`  ${chalk.dim('$')} ${chalk.yellow('source .env.kokonut')}`);
+      console.log(`  ${chalk.dim('$')} ${chalk.yellow('pnpm run cli -- help')}`);
+      console.log(`  ${chalk.dim('$')} ${chalk.yellow('pnpm run cli -- register-agent --name "MyAgent"')}`);
+      console.log(chalk.dim('  ───────────────────────────────────────────────────'));
+      console.log('');
+
+      await typewriter(chalk.dim('  Welcome to the Kokonut Agent Economy. '), 15, false);
+      await typewriter(chalk.green('Your palm is planted.'), 25);
+      console.log('');
     } catch (error) {
-      console.error(chalk.red('❌ Error during setup:'), error);
+      console.error(chalk.red('\n  ✗ Setup failed:'), error);
+      process.exit(1);
     } finally {
       rl.close();
     }
@@ -2417,6 +2545,52 @@ program
   });
 
 // ============================================================================
+// ADMIN REGISTRY COMMANDS
+// ============================================================================
+
+program
+  .command('set-slash-manager')
+  .description('Set the SlashManager address in AdminRegistry (owner only)')
+  .requiredOption('--address <address>', 'SlashManager contract address (required)')
+  .action(async options => {
+    try {
+      const opts = program.opts();
+      initWallet(undefined, opts.wallet, opts.passphrase);
+
+      const adminRegistryABI = parseAbi([
+        'function setSlashManager(address _slashManager) external',
+        'function owner() external view returns (address)',
+      ]);
+
+      const adminRegistry = getContractInstance(
+        config.contracts.adminRegistry as Address,
+        adminRegistryABI
+      );
+
+      const owner = await adminRegistry.read.owner();
+      if (owner.toLowerCase() !== config.signerAddress.toLowerCase()) {
+        console.error(chalk.red('❌ Error: Only owner can set slash manager'));
+        console.error(chalk.cyan('Owner:'), owner);
+        console.error(chalk.cyan('Your address:'), config.signerAddress);
+        return;
+      }
+
+      console.log(chalk.cyan('\n⚡ Setting SlashManager:'));
+      console.log(chalk.dim('Address:'), options.address);
+
+      const hash = await adminRegistry.write.setSlashManager([options.address as Address]);
+      console.log(chalk.cyan('\n📤 Transaction sent:'), hash);
+
+      const receipt = await waitForTransactionReceipt(hash);
+      console.log(chalk.green('✅ SlashManager set successfully!'));
+      console.log(chalk.cyan('Gas used:'), receipt.gasUsed.toString());
+    } catch (error: unknown) {
+      const err = error as { message?: string };
+      console.error(chalk.red('❌ Error setting slash manager:'), err.message);
+    }
+  });
+
+// ============================================================================
 // CLAIM REFUND COMMAND
 // ============================================================================
 
@@ -3838,6 +4012,9 @@ program
     console.log(chalk.cyan('  cancel-proposal') + '        Cancel your open proposal');
     console.log(
       chalk.cyan('  slash-evaluator') + '       Slash an evaluator for malicious behavior'
+    );
+    console.log(
+      chalk.cyan('  set-slash-manager') + '     Set SlashManager address in AdminRegistry (owner only)'
     );
     console.log(chalk.cyan('  find-skills-by-domain') + '  Find skills by domain');
     console.log(chalk.cyan('  get-total-skill-count') + '  Get total skill count');

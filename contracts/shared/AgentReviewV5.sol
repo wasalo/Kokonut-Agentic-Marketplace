@@ -6,6 +6,7 @@ import "@openzeppelin/contracts-upgradeable/proxy/utils/UUPSUpgradeable.sol";
 import "@openzeppelin/contracts-upgradeable/utils/ContextUpgradeable.sol";
 import "@openzeppelin/contracts-upgradeable/utils/PausableUpgradeable.sol";
 import "@openzeppelin/contracts/utils/ReentrancyGuard.sol";
+import {AdminRegistry} from "./AdminRegistry.sol";
 
 /**
  * @title IAgentReviewV5
@@ -103,6 +104,7 @@ interface IAgentReviewV5 {
     
     // V5: SlashManager & Locked Funds Events
     event SlashManagerSet(address indexed slashManager);
+    event AdminRegistrySet(address indexed adminRegistry);
     event ETHWithdrawn(address indexed to, uint256 amount);
     event RewardAmountSet(uint256 indexed proposalId, address indexed evaluator, uint256 amount);
     event SlashTreasuryUpdated(address indexed oldTreasury, address indexed newTreasury);
@@ -115,6 +117,8 @@ interface IAgentReviewV5 {
     error InvalidSlashManager();
     error InsufficientBalance();
     error ExceedsAvailableBalance();
+    error ProposerBlacklisted();
+    error EvaluatorBlacklisted();
 
     function createProposal(
         string calldata title,
@@ -186,9 +190,12 @@ contract AgentReviewV5 is IAgentReviewV5, ContextUpgradeable, OwnableUpgradeable
 
     // V5: SlashManager role for governance
     address public slashManager;
-    
+
     // M2 Fix: Configurable treasury for slashed funds
     address public slashTreasury;
+
+    // Bad Actor: AdminRegistry for blacklist checks
+    address public adminRegistry;
     
     // Storage gap for upgradeability
     uint256[49] private __gap;
@@ -236,6 +243,12 @@ contract AgentReviewV5 is IAgentReviewV5, ContextUpgradeable, OwnableUpgradeable
         uint256 reward,
         uint256 decisionDeadline
     ) external payable whenNotPaused returns (uint256 proposalId) {
+        // Bad Actor: Check if proposer is blacklisted
+        if (adminRegistry != address(0)) {
+            AdminRegistry registry = AdminRegistry(adminRegistry);
+            if (registry.isWalletBlacklistedActive(_msgSender())) revert ProposerBlacklisted();
+        }
+
         // L1 Fix: Check maximum reward limit
         require(reward <= MAX_REWARD, "Reward too high");
         require(msg.value == reward, "Exact ETH required");
@@ -267,6 +280,12 @@ contract AgentReviewV5 is IAgentReviewV5, ContextUpgradeable, OwnableUpgradeable
         int256 confidenceScore,
         string calldata reasoningURI
     ) external payable whenNotPaused {
+        // Bad Actor: Check if evaluator is blacklisted
+        if (adminRegistry != address(0)) {
+            AdminRegistry registry = AdminRegistry(adminRegistry);
+            if (registry.isWalletBlacklistedActive(_msgSender())) revert EvaluatorBlacklisted();
+        }
+
         Proposal storage proposal = proposals[proposalId];
         require(proposal.id == proposalId, "Invalid proposal");
         require(proposal.status == ProposalStatus.Open, "Not open");
@@ -553,9 +572,14 @@ contract AgentReviewV5 is IAgentReviewV5, ContextUpgradeable, OwnableUpgradeable
     // V5: Admin Functions
     
     function setSlashManager(address slashManager_) external onlyOwner {
-        require(slashManager_ != address(0), "Zero address");
+        if (slashManager_ == address(0)) revert InvalidSlashManager();
         slashManager = slashManager_;
         emit SlashManagerSet(slashManager_);
+    }
+
+    function setAdminRegistry(address _adminRegistry) external onlyOwner {
+        adminRegistry = _adminRegistry;
+        emit AdminRegistrySet(_adminRegistry);
     }
     
     // M2 Fix: Set slash treasury for slashed funds

@@ -7,7 +7,7 @@ import "@openzeppelin/contracts-upgradeable/access/OwnableUpgradeable.sol";
 import "@openzeppelin/contracts-upgradeable/utils/PausableUpgradeable.sol";
 import "@openzeppelin/contracts/utils/ReentrancyGuard.sol";
 import "@openzeppelin/contracts/token/ERC20/IERC20.sol";
-import {IAgenticCommerceV6} from "../interfaces/IAgenticCommerceV6.sol";
+import {IAgenticCommerceV9} from "../interfaces/IAgenticCommerceV9.sol";
 import {IBiddingSystem} from "../interfaces/IBiddingSystem.sol";
 import {AdminRegistry} from "./AdminRegistry.sol";
 
@@ -66,7 +66,7 @@ contract BiddingSystem is
     mapping(uint256 => uint256) public totalPlatformFees;
     
     // Integration addresses
-    address public commerce;           // AgenticCommerceV6.1
+    address public commerce;           // AgenticCommerceV9
     address public treasury;          // Platform treasury
     address public adminRegistry;     // Bad actor blacklist
     
@@ -215,20 +215,33 @@ contract BiddingSystem is
         );
     }
     
-function commitBid(uint256 sessionId, bytes32 commitHash)
+    function commitBid(uint256 sessionId, bytes32 commitHash)
         external
         payable
         whenNotPaused
         nonReentrant
     {
         require(commitHash != bytes32(0), "Zero commitment");
-        
+
+        Session storage session = sessions[sessionId];
+        require(session.id != 0, "Invalid session");
+        require(
+            session.status == SessionStatus.Active,
+            "Session not active"
+        );
+        require(block.timestamp < session.deadline, "Bidding closed");
+
+        // Bad Actor: Check if bidder is blacklisted
+        if (adminRegistry != address(0)) {
+            AdminRegistry registry = AdminRegistry(adminRegistry);
+            require(!registry.isWalletBlacklistedActive(msg.sender), "Wallet blacklisted");
+        }
+
         // Check if bidder already has a bid
         if (bidderToBidIndex[sessionId][msg.sender] != 0) {
             revert AlreadyCommitted();
         }
-        
-        Session storage session = sessions[sessionId];
+
         uint256 stakeAmount = calculateStake(session.maxBudget);
         
         require(msg.value >= stakeAmount, "Insufficient stake");
@@ -296,13 +309,14 @@ function commitBid(uint256 sessionId, bytes32 commitHash)
         emit BidRevealed(sessionId, msg.sender, amount, message);
     }
     
-function acceptBid(uint256 sessionId, uint256 bidId)
+    function acceptBid(uint256 sessionId, uint256 bidId)
         external
         whenNotPaused
         nonReentrant
     {
         Session storage session = sessions[sessionId];
-        
+
+        require(session.creator == msg.sender, "Not session creator");
         require(session.status == SessionStatus.Active || session.status == SessionStatus.BiddingClosed, "Wrong status");
         require(session.winner == address(0), "Winner already selected");
         require(!session.jobCreated, "Job already created");
@@ -432,19 +446,21 @@ function acceptBid(uint256 sessionId, uint256 bidId)
         
         require(msg.value >= totalPayment, "Insufficient payment");
         
-        // Create job in AgenticCommerceV6.1
-        jobId = IAgenticCommerceV6(commerce).createJob(
-            session.winner,      // provider
-            session.evaluator,   // evaluator
-            jobExpiredAt,
-            description,
-            address(0),           // no hook
-            false                // no evaluator fee
+        // Create job in AgenticCommerceV9 with budget at creation
+        jobId = IAgenticCommerceV9(commerce).createJob{value: bidAmount}(
+            session.winner,       // provider
+            bidAmount,            // budget
+            address(0),           // paymentToken: ETH
+            session.serviceId,    // serviceId
+            jobExpiredAt,         // expiredAt
+            description,          // description
+            session.evaluator,    // evaluator
+            address(0),           // hook: none
+            false,                // evaluatorFee: no
+            false,                // clientReview_: no
+            true,                 // fundNow: yes
+            bidAmount             // fundAmount
         );
-        
-        // Set budget and fund
-        IAgenticCommerceV6(commerce).setBudget(jobId, bidAmount);
-        IAgenticCommerceV6(commerce).fund{value: bidAmount}(jobId, bidAmount);
         
         // Pay platform fee
         uint256 fee = (bidAmount * platformFeeBP) / FEE_DENOMINATOR;

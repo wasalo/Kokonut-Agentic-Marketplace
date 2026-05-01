@@ -58,6 +58,7 @@ contract MilestoneEscrowV2 is
         bool resolved;
         bool releaseToProvider;
         uint256 feePaid; // Amount of fee paid in paymentToken
+        uint256 milestoneIndex; // Index of the disputed milestone (VULN-11 fix)
     }
     
     struct JobMilestones {
@@ -80,7 +81,7 @@ contract MilestoneEscrowV2 is
     
     // Job milestone data
     mapping(uint256 => JobMilestones) public jobMilestones;
-    uint256 public jobCounter;
+    mapping(uint256 => uint256) public milestoneTotalAmount; // I6-04: Running total for O(1) budget checks
     
     // Arbiter system
     address[] public arbiterPool;
@@ -131,7 +132,7 @@ contract MilestoneEscrowV2 is
     event MilestoneAdded(uint256 indexed jobId, uint256 indexed milestoneIndex, string description, uint256 amount);
     event MilestoneCompleted(uint256 indexed jobId, uint256 indexed milestoneIndex, bytes32 proofHash);
     event MilestoneReleased(uint256 indexed jobId, uint256 indexed milestoneIndex, uint256 amount);
-    event MilestoneAutoReleased(uint256 indexed jobId, uint256 indexed milestoneIndex, uint256 amount);
+    event MilestoneNotReleased(uint256 indexed jobId, uint256 indexed milestoneIndex, string reason);
     
     event ArbiterRegistered(address indexed arbiter, address token, uint256 stake);
     event ArbiterUnregistered(address indexed arbiter, address token, uint256 refundedStake);
@@ -156,6 +157,13 @@ contract MilestoneEscrowV2 is
         __UUPSUpgradeable_init();
         __Pausable_init();
 
+        // P7-04 FIX: Validate agenticCommerce is a contract
+        if (_agenticCommerce != address(0)) {
+            uint256 size;
+            assembly { size := extcodesize(_agenticCommerce) }
+            if (size == 0) revert InvalidJob();
+        }
+
         agenticCommerce = _agenticCommerce;
 
         emit AgenticCommerceSet(address(0), _agenticCommerce);
@@ -172,6 +180,12 @@ contract MilestoneEscrowV2 is
     /***********************************/
 
     function setAgenticCommerce(address _agenticCommerce) external onlyOwner {
+        // A3-04 FIX: Validate is contract
+        if (_agenticCommerce != address(0)) {
+            uint256 size;
+            assembly { size := extcodesize(_agenticCommerce) }
+            if (size == 0) revert InvalidJob();
+        }
         emit AgenticCommerceSet(agenticCommerce, _agenticCommerce);
         agenticCommerce = _agenticCommerce;
     }
@@ -219,7 +233,10 @@ contract MilestoneEscrowV2 is
     /***********************************/
     
     /**
-     * @dev Enable milestones for a job
+     * @dev Enable milestones for a job.
+     * A3-06 NOTE: Both agenticCommerce AND client can enable milestones.
+     * This allows clients to self-enable milestones for direct jobs,
+     * but agenticCommerce can also enable them as part of job creation flow.
      */
     function enableMilestones(
         uint256 jobId,
@@ -256,10 +273,8 @@ contract MilestoneEscrowV2 is
         if (jm.milestones.length >= MAX_MILESTONES_PER_JOB) revert TooManyMilestones();
         if (amount == 0) revert InvalidTokenAmount();
         
-        uint256 currentTotal = 0;
-        for (uint256 i = 0; i < jm.milestones.length; i++) {
-            currentTotal += jm.milestones[i].amount;
-        }
+        // I6-04 FIX: Use running total for O(1) budget check
+        uint256 currentTotal = milestoneTotalAmount[jobId];
         if (currentTotal + amount > jm.totalBudget) revert MilestoneAmountExceedsBudget();
         
         jm.milestones.push(Milestone({
@@ -270,6 +285,9 @@ contract MilestoneEscrowV2 is
             released: false,
             proofHash: bytes32(0)
         }));
+        
+        // I6-04 FIX: Update running total
+        milestoneTotalAmount[jobId] = currentTotal + amount;
         
         emit MilestoneAdded(jobId, jm.milestones.length - 1, description, amount);
     }
@@ -328,10 +346,11 @@ contract MilestoneEscrowV2 is
      * @dev Flag a dispute for a job. Fee is paid in the job's paymentToken.
      * @param jobId The job ID
      */
-    function flagDispute(uint256 jobId) external nonReentrant {
+    function flagDispute(uint256 jobId, uint256 milestoneIndex) external nonReentrant {
         JobMilestones storage jm = jobMilestones[jobId];
         if (jm.client == address(0)) revert InvalidJob();
         if (_msgSender() != jm.client && _msgSender() != jm.provider) revert Unauthorized();
+        if (milestoneIndex >= jm.milestones.length) revert MilestoneIndexOutOfBounds();
         if (disputes[jobId].flaggedAt != 0) revert DisputeAlreadyExists();
         if (arbiterPool.length == 0) revert NotRegisteredArbiter();
         
@@ -360,7 +379,8 @@ contract MilestoneEscrowV2 is
             flaggedAt: block.timestamp,
             resolved: false,
             releaseToProvider: false,
-            feePaid: fee
+            feePaid: fee,
+            milestoneIndex: milestoneIndex
         });
         
         activeDisputeIds.push(jobId);
@@ -385,6 +405,7 @@ contract MilestoneEscrowV2 is
     
     /**
      * @dev Resolve a dispute. Arbiter fee is paid from the fee collected during flagging.
+     * Removes the dispute from activeDisputeIds immediately.
      */
     function resolveDispute(uint256 jobId, bool releaseToProvider)
         external
@@ -394,38 +415,59 @@ contract MilestoneEscrowV2 is
         Dispute storage dispute = disputes[jobId];
         if (dispute.arbiter != _msgSender()) revert OnlyArbiterOrParty();
         if (dispute.resolved) revert DisputeAlreadyResolved();
-        
+
         dispute.resolved = true;
         dispute.releaseToProvider = releaseToProvider;
-        
+
         JobMilestones storage jm = jobMilestones[jobId];
-        
-        if (releaseToProvider) {
-            // Release all unreleased milestones to provider
-            for (uint256 i = 0; i < jm.milestones.length; i++) {
-                if (!jm.milestones[i].released) {
-                    jm.milestones[i].released = true;
-                    IERC20(jm.paymentToken).safeTransfer(jm.provider, jm.milestones[i].amount);
-                    emit MilestoneReleased(jobId, i, jm.milestones[i].amount);
-                }
-            }
-        } else {
-            // Refund all to client
-            for (uint256 i = 0; i < jm.milestones.length; i++) {
-                if (!jm.milestones[i].released && jm.milestones[i].completed) {
-                    jm.milestones[i].released = true;
-                    IERC20(jm.paymentToken).safeTransfer(jm.client, jm.milestones[i].amount);
+        uint256 mi = dispute.milestoneIndex;
+
+        // VULN-11 FIX: Only resolve the specific disputed milestone, not all milestones
+        if (mi < jm.milestones.length && !jm.milestones[mi].released) {
+            if (releaseToProvider) {
+                jm.milestones[mi].released = true;
+                IERC20(jm.paymentToken).safeTransfer(jm.provider, jm.milestones[mi].amount);
+                emit MilestoneReleased(jobId, mi, jm.milestones[mi].amount);
+            } else {
+                // Only refund completed milestones to client
+                if (jm.milestones[mi].completed) {
+                    jm.milestones[mi].released = true;
+                    IERC20(jm.paymentToken).safeTransfer(jm.client, jm.milestones[mi].amount);
+                    emit MilestoneReleased(jobId, mi, jm.milestones[mi].amount);
+                } else {
+                    emit MilestoneNotReleased(jobId, mi, "Milestone not completed");
                 }
             }
         }
-        
-        // V2: Pay arbiter the fee that was collected during flagging
+
+        // Remove from activeDisputeIds immediately (swap-and-pop)
+        _removeActiveDispute(jobId);
+
+        // E4-06 FIX: Ensure contract holds enough payment token before transfer
         uint256 arbiterFee = dispute.feePaid;
         if (arbiterFee > 0) {
+            uint256 contractBalance = IERC20(jm.paymentToken).balanceOf(address(this));
+            if (contractBalance < arbiterFee) revert InsufficientArbiterFee();
             IERC20(jm.paymentToken).safeTransfer(dispute.arbiter, arbiterFee);
         }
-        
+
         emit DisputeResolved(jobId, releaseToProvider, dispute.arbiter, jm.paymentToken, arbiterFee);
+    }
+
+    /**
+     * @dev Remove a resolved dispute from activeDisputeIds using swap-and-pop.
+     */
+    function _removeActiveDispute(uint256 jobId) internal {
+        uint256 length = activeDisputeIds.length;
+        for (uint256 i = 0; i < length; i++) {
+            if (activeDisputeIds[i] == jobId) {
+                if (i != length - 1) {
+                    activeDisputeIds[i] = activeDisputeIds[length - 1];
+                }
+                activeDisputeIds.pop();
+                break;
+            }
+        }
     }
     
     /**

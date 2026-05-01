@@ -78,6 +78,15 @@ contract AdminRegistry is OwnableUpgradeable, UUPSUpgradeable, PausableUpgradeab
     // Wallet blacklist tracking
     mapping(address => uint256) public walletBlacklistIndex; // wallet -> index in array
 
+    // Agent blacklist tracking
+    mapping(uint256 => uint256) public agentBlacklistIndex; // agentId -> index in array
+
+    // SlashManager address (only SlashManager can call slashAndBlacklistAgent)
+    address public slashManager;
+    
+    // Optional: ERC-8004 Identity Registry for agent existence validation (A3-10)
+    address public identityRegistry;
+
     // Lists of all blacklisted
     address[] public blacklistedWalletsList;
 
@@ -106,6 +115,15 @@ contract AdminRegistry is OwnableUpgradeable, UUPSUpgradeable, PausableUpgradeab
     error WalletNotBlacklisted();
     error BlacklistNotYetActive();
     error GracePeriodNotPassed();
+    error NotSlashManager();
+    error ZeroAddress();
+    error HalfLifeMustBePositive();
+    error AgentAlreadySlashed();
+
+    modifier onlySlashManager() {
+        if (msg.sender != slashManager) revert NotSlashManager();
+        _;
+    }
 
     /**
      * @dev Initialize the contract (called once during deployment)
@@ -117,6 +135,7 @@ contract AdminRegistry is OwnableUpgradeable, UUPSUpgradeable, PausableUpgradeab
         
         // Set default verification providers
         verificationProviders["self.xyz"] = true;
+        _addProviderName("self.xyz");
         
         // Set default half-life
         halfLifeDays = 30;
@@ -130,19 +149,33 @@ contract AdminRegistry is OwnableUpgradeable, UUPSUpgradeable, PausableUpgradeab
         return halfLifeDays;
     }
 
-    /**
-     * @dev Get all verification providers mapping
-     * @return Array of provider names that are active
-     */
+    // F8-06 FIX: Track active providers properly
+    string[] private _providerNames;
+    mapping(string => uint256) private _providerIndex;
+
     function getVerificationProviders() public view returns (string[] memory) {
-        uint256 count = 0;
-        for (uint256 i = 0; i < 100; i++) { // Check max 100 providers
-            // This is simplified - in practice you'd maintain a list of provider names
-            // For now, we'll return a placeholder
+        return _providerNames;
+    }
+    
+    function _addProviderName(string memory provider) internal {
+        if (_providerIndex[provider] == 0) {
+            _providerNames.push(provider);
+            _providerIndex[provider] = _providerNames.length;
         }
-        string[] memory providers = new string[](1);
-        providers[0] = "self.xyz";
-        return providers;
+    }
+    
+    function _removeProviderName(string memory provider) internal {
+        uint256 idx = _providerIndex[provider];
+        if (idx > 0) {
+            uint256 lastIdx = _providerNames.length;
+            if (idx != lastIdx) {
+                string memory last = _providerNames[lastIdx - 1];
+                _providerNames[idx - 1] = last;
+                _providerIndex[last] = idx;
+            }
+            _providerNames.pop();
+            delete _providerIndex[provider];
+        }
     }
 
     /**
@@ -184,20 +217,25 @@ contract AdminRegistry is OwnableUpgradeable, UUPSUpgradeable, PausableUpgradeab
      * @param _halfLifeDays Number of days for half-life decay
      */
     function setHalfLifeDays(uint256 _halfLifeDays) public onlyOwner {
-        require(_halfLifeDays > 0, "Half-life must be positive");
+        if (_halfLifeDays == 0) revert HalfLifeMustBePositive();
         halfLifeDays = _halfLifeDays;
         emit HalfLifeDaysUpdated(_halfLifeDays);
     }
 
     /**
-     * @dev Update featured agent status
-     * @param agentId Agent ID to update
-     * @param isFeatured Whether the agent should be featured
+     * @dev Set the SlashManager address (only SlashManager can auto-blacklist)
+     * @param _slashManager Address of the SlashManager contract
      */
-    function setFeaturedAgent(uint256 agentId, bool isFeatured) public onlyOwner {
-        featuredAgents[agentId].isFeatured = isFeatured;
-        featuredAgents[agentId].updatedAt = block.timestamp;
-        emit FeaturedAgentUpdated(agentId, isFeatured);
+    function setSlashManager(address _slashManager) public onlyOwner {
+        slashManager = _slashManager;
+    }
+
+    /**
+     * @dev Set the IdentityRegistry address for agent existence validation (A3-10)
+     * @param _identityRegistry Address of the ERC-8004 IdentityRegistry
+     */
+    function setIdentityRegistry(address _identityRegistry) public onlyOwner {
+        identityRegistry = _identityRegistry;
     }
 
     /**
@@ -206,7 +244,16 @@ contract AdminRegistry is OwnableUpgradeable, UUPSUpgradeable, PausableUpgradeab
      * @param isActive Whether provider is active
      */
     function setVerificationProvider(string memory provider, bool isActive) public onlyOwner {
+        bool wasActive = verificationProviders[provider];
         verificationProviders[provider] = isActive;
+        
+        // F8-06 FIX: Track active providers properly
+        if (isActive && !wasActive) {
+            _addProviderName(provider);
+        } else if (!isActive && wasActive) {
+            _removeProviderName(provider);
+        }
+        
         emit VerificationProviderUpdated(provider, isActive);
     }
 
@@ -229,29 +276,35 @@ contract AdminRegistry is OwnableUpgradeable, UUPSUpgradeable, PausableUpgradeab
         emit SkillRuleUpdated(skillName, minRating, isActive);
     }
 
-    /**
-     * @dev Get featured agents list
-     * @return Array of featured agent IDs
-     */
+    // F8-06 FIX: Track featured agents properly
+    uint256[] private _featuredAgentIds;
+    mapping(uint256 => uint256) private _featuredAgentIndex;
+    
     function getFeaturedAgents() public view returns (uint256[] memory) {
-        // This is a simplified implementation - in practice you'd maintain a list
-        // For now, we return a dynamic array that would need to be populated
-        uint256 count = 0;
-        for (uint256 i = 0; i < 100; i++) { // Assume max 100 featured agents
-            if (featuredAgents[i].isFeatured) {
-                count++;
+        return _featuredAgentIds;
+    }
+    
+    function setFeaturedAgent(uint256 agentId, bool isFeatured) public onlyOwner {
+        featuredAgents[agentId].isFeatured = isFeatured;
+        featuredAgents[agentId].updatedAt = block.timestamp;
+        
+        // F8-06 FIX: Track featured agents properly
+        if (isFeatured && _featuredAgentIndex[agentId] == 0) {
+            _featuredAgentIds.push(agentId);
+            _featuredAgentIndex[agentId] = _featuredAgentIds.length;
+        } else if (!isFeatured && _featuredAgentIndex[agentId] > 0) {
+            uint256 idx = _featuredAgentIndex[agentId] - 1;
+            uint256 lastIdx = _featuredAgentIds.length - 1;
+            if (idx != lastIdx) {
+                uint256 lastId = _featuredAgentIds[lastIdx];
+                _featuredAgentIds[idx] = lastId;
+                _featuredAgentIndex[lastId] = idx + 1;
             }
+            _featuredAgentIds.pop();
+            delete _featuredAgentIndex[agentId];
         }
         
-        uint256[] memory result = new uint256[](count);
-        uint256 index = 0;
-        for (uint256 i = 0; i < 100; i++) {
-            if (featuredAgents[i].isFeatured) {
-                result[index] = i;
-                index++;
-            }
-        }
-        return result;
+        emit FeaturedAgentUpdated(agentId, isFeatured);
     }
 
     /**
@@ -337,7 +390,17 @@ contract AdminRegistry is OwnableUpgradeable, UUPSUpgradeable, PausableUpgradeab
      * @param reason Reason for blacklisting
      */
     function blacklistAgent(uint256 agentId, string calldata reason) public onlyOwner {
-        require(!blacklistedAgents[agentId].isBlacklisted, "Agent already blacklisted");
+        if (blacklistedAgents[agentId].isBlacklisted) revert AgentAlreadyBlacklisted();
+        
+        // A3-10 FIX: Check agent exists in identity registry (if configured)
+        if (identityRegistry != address(0)) {
+            (bool success, bytes memory data) = identityRegistry.staticcall(
+                abi.encodeWithSignature("ownerOf(uint256)", agentId)
+            );
+            if (!success || data.length == 0) revert AgentNotFound();
+            address owner = abi.decode(data, (address));
+            if (owner == address(0)) revert AgentNotFound();
+        }
         
         uint256 activationAt = block.timestamp + BLACKLIST_GRACE_PERIOD;
         
@@ -350,6 +413,7 @@ contract AdminRegistry is OwnableUpgradeable, UUPSUpgradeable, PausableUpgradeab
             autoSlashed: false
         });
         
+        agentBlacklistIndex[agentId] = blacklistedAgentIds.length;
         blacklistedAgentIds.push(agentId);
         
         emit AgentBlacklisted(agentId, msg.sender, reason, activationAt);
@@ -360,9 +424,20 @@ contract AdminRegistry is OwnableUpgradeable, UUPSUpgradeable, PausableUpgradeab
      * @param agentId Agent ID to unblacklist
      */
     function unblacklistAgent(uint256 agentId) public onlyOwner {
-        require(blacklistedAgents[agentId].isBlacklisted, "Agent not blacklisted");
+        if (!blacklistedAgents[agentId].isBlacklisted) revert AgentNotBlacklisted();
         
         delete blacklistedAgents[agentId];
+        
+        // Remove from array using swap-and-pop to prevent unbounded growth
+        uint256 index = agentBlacklistIndex[agentId];
+        uint256 lastIndex = blacklistedAgentIds.length - 1;
+        if (index != lastIndex) {
+            uint256 lastAgentId = blacklistedAgentIds[lastIndex];
+            blacklistedAgentIds[index] = lastAgentId;
+            agentBlacklistIndex[lastAgentId] = index;
+        }
+        blacklistedAgentIds.pop();
+        delete agentBlacklistIndex[agentId];
         
         emit AgentUnblacklisted(agentId, msg.sender);
     }
@@ -373,8 +448,8 @@ contract AdminRegistry is OwnableUpgradeable, UUPSUpgradeable, PausableUpgradeab
      * @param reason Reason for blacklisting
      */
     function blacklistWallet(address wallet, string calldata reason) public onlyOwner {
-        require(wallet != address(0), "Cannot blacklist zero address");
-        require(!blacklistedWallets[wallet].isBlacklisted, "Wallet already blacklisted");
+        if (wallet == address(0)) revert ZeroAddress();
+        if (blacklistedWallets[wallet].isBlacklisted) revert WalletAlreadyBlacklisted();
         
         uint256 activationAt = block.timestamp + BLACKLIST_GRACE_PERIOD;
         
@@ -398,9 +473,20 @@ contract AdminRegistry is OwnableUpgradeable, UUPSUpgradeable, PausableUpgradeab
      * @param wallet Wallet address to unblacklist
      */
     function unblacklistWallet(address wallet) public onlyOwner {
-        require(blacklistedWallets[wallet].isBlacklisted, "Wallet not blacklisted");
+        if (!blacklistedWallets[wallet].isBlacklisted) revert WalletNotBlacklisted();
         
         delete blacklistedWallets[wallet];
+        
+        // Remove from array using swap-and-pop to prevent unbounded growth
+        uint256 index = walletBlacklistIndex[wallet];
+        uint256 lastIndex = blacklistedWalletsList.length - 1;
+        if (index != lastIndex) {
+            address lastWallet = blacklistedWalletsList[lastIndex];
+            blacklistedWalletsList[index] = lastWallet;
+            walletBlacklistIndex[lastWallet] = index;
+        }
+        blacklistedWalletsList.pop();
+        delete walletBlacklistIndex[wallet];
         
         emit WalletUnblacklisted(wallet, msg.sender);
     }
@@ -410,9 +496,9 @@ contract AdminRegistry is OwnableUpgradeable, UUPSUpgradeable, PausableUpgradeab
      * @param agentId Agent ID to blacklist
      * @param reason Reason for blacklisting (from slash proposal)
      */
-    function slashAndBlacklistAgent(uint256 agentId, string calldata reason) external {
-        // Only SlashManager can call this (simplified - in production use proper access control)
-        // For now, allow anyone to trigger - the blacklist is logged on-chain
+    function slashAndBlacklistAgent(uint256 agentId, string calldata reason) external onlySlashManager {
+        if (blacklistedAgents[agentId].isBlacklisted) revert AgentAlreadySlashed();
+
         uint256 activationAt = block.timestamp + BLACKLIST_GRACE_PERIOD;
         
         blacklistedAgents[agentId] = BlacklistEntry({
@@ -424,6 +510,7 @@ contract AdminRegistry is OwnableUpgradeable, UUPSUpgradeable, PausableUpgradeab
             autoSlashed: true
         });
         
+        agentBlacklistIndex[agentId] = blacklistedAgentIds.length;
         blacklistedAgentIds.push(agentId);
         
         emit AgentBlacklisted(agentId, msg.sender, reason, activationAt);
