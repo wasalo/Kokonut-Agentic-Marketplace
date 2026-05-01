@@ -119,7 +119,7 @@ export function useX402Payment(options: UseX402PaymentOptions = {}): UseX402Paym
       setState((s) => ({ ...s, isProcessing: false, error: message }));
       return null;
     }
-  }, [walletClient, state.paymentRequired]);
+  }, [walletClient, state.paymentRequired, options]);
 
   const payAndRetry = useCallback(
     async (originalRequest: Request) => {

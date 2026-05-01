@@ -34,11 +34,11 @@ jobs:
         run: forge test -vvv --via-ir
 
       - name: Coverage report
-        run: forge coverage --report summary --via-ir
+        run: forge coverage --report summary --ir-minimum
 
       - name: Check coverage threshold
         run: |
-          SUMMARY=$(forge coverage --report summary)
+          SUMMARY=$(forge coverage --report summary --ir-minimum)
           echo "$SUMMARY"
           # Extract total coverage percentage using grep and awk
           TOTAL_LINE=$(echo "$SUMMARY" | grep "^Total" || echo "")
@@ -221,7 +221,7 @@ jobs:
         run: pnpm install --frozen-lockfile
 
       - name: Install Playwright
-        run: npx playwright install chromium
+        run: npx playwright install chromium webkit
 
       - name: Build application
         run: pnpm --filter @kokonut/web build

@@ -1,6 +1,7 @@
 'use client';
 
 import { memo } from 'react';
+import Image from 'next/image';
 import { Card, Chip } from '@heroui/react';
 import { Star, ExternalLink, Shield } from 'lucide-react';
 import { useRouter } from 'next/navigation';
@@ -47,10 +48,13 @@ export const AgentCard = memo(function AgentCard({
         <div className="flex gap-4 p-4">
           <div className="relative shrink-0">
             {agentURI ? (
-              <img
+              <Image
                 src={agentURI}
                 alt={name}
+                width={48}
+                height={48}
                 className="w-12 h-12 rounded-full object-cover bg-content2"
+                unoptimized
                 onError={e => {
                   e.currentTarget.style.display = 'none';
                   const fallback = e.currentTarget.nextElementSibling as HTMLElement;

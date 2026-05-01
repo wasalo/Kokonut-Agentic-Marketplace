@@ -1,5 +1,6 @@
 'use client';
 
+import Image from 'next/image';
 import { ExternalLink } from 'lucide-react';
 import { Card } from '@heroui/react';
 import type { PortfolioItem } from './PortfolioForm';
@@ -13,10 +14,14 @@ export function PortfolioCard({ item }: PortfolioCardProps) {
     <Card className="border border-divider p-4 hover:shadow-md transition-shadow">
       {item.image && (
         <div className="mb-3 rounded-lg overflow-hidden bg-content2">
-          <img
+          <Image
             src={item.image}
             alt={item.title}
+            width={0}
+            height={0}
+            sizes="100vw"
             className="w-full h-32 object-cover"
+            unoptimized
             onError={e => {
               e.currentTarget.style.display = 'none';
             }}

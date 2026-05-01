@@ -2,8 +2,6 @@ import { useReadContract, useWriteContract } from 'wagmi';
 import { getContractAddress } from '@/lib/contracts/config';
 import { ERC20_ABI } from '@/lib/contracts/abis';
 
-/* eslint-disable @typescript-eslint/no-explicit-any */
-
 const USDC_ADDRESS = getContractAddress('USDC');
 
 /**

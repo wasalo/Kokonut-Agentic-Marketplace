@@ -95,7 +95,7 @@ export default function CreateBiddingSessionPage(): JSX.Element {
         serviceId: sid,
       });
     },
-    [validate, evaluator, maxBudget, deadline, metadata, serviceId, calculatedStake, createSession]
+    [validate, evaluator, maxBudget, deadline, metadata, serviceId, createSession]
   );
 
   useEffect(() => {

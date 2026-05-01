@@ -2,8 +2,6 @@ import { useReadContract, useWriteContract } from 'wagmi';
 import { AGENT_SKILL_REGISTRY_ABI } from '@/lib/contracts/abis';
 import { getContractAddress } from '@/lib/contracts/config';
 
-/* eslint-disable @typescript-eslint/no-explicit-any */
-
 const SKILL_REGISTRY_ADDRESS = getContractAddress('SKILL_REGISTRY');
 
 export interface Skill {

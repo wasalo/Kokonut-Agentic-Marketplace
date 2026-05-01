@@ -69,7 +69,6 @@ export async function GET(request: NextRequest) {
     const fromBlock = lastBlock + 1n;
     const toBlock = currentBlock > lastBlock + 100n ? lastBlock + 100n : currentBlock;
 
-    // eslint-disable-next-line @typescript-eslint/no-explicit-any
     const logs: any[] = await client.getContractEvents({
       address: AGENTIC_COMMERCE_ADDRESS as `0x${string}`,
       abi: AGENTIC_COMMERCE_ABI,
@@ -81,7 +80,6 @@ export async function GET(request: NextRequest) {
     let webhookTriggered = 0;
 
     for (const log of logs) {
-      // eslint-disable-next-line @typescript-eslint/no-explicit-any
       const eventName = log.eventName as ContractEvent;
 
       if (!CONTRACT_EVENTS.includes(eventName as ContractEvent)) {
@@ -104,7 +102,6 @@ export async function GET(request: NextRequest) {
         txHash,
         blockNumber: Number(blockNum),
         blockHash: log.blockHash || '',
-        // eslint-disable-next-line @typescript-eslint/no-explicit-any
         data: (log.args || {}) as Record<string, unknown>,
       });
 
@@ -117,7 +114,6 @@ export async function GET(request: NextRequest) {
           data: {
             txHash,
             blockNumber: String(blockNum),
-            // eslint-disable-next-line @typescript-eslint/no-explicit-any
             ...((log.args || {}) as Record<string, unknown>),
           },
           chainId: CHAIN_ID,

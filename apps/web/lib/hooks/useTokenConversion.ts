@@ -125,11 +125,11 @@ export function useJobBudgetConversion(paymentToken: Token, budget: bigint) {
 
   const budgetFormatted = useMemo(() => {
     return conversion.formatAmount(budget, paymentToken);
-  }, [conversion.formatAmount, budget, paymentToken]);
+  }, [conversion, budget, paymentToken]);
 
   const budgetInUsd = useMemo(() => {
     return conversion.formatUsdValue(budget, paymentToken);
-  }, [conversion.formatUsdValue, budget, paymentToken]);
+  }, [conversion, budget, paymentToken]);
 
   return {
     budgetFormatted,

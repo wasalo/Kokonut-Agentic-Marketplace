@@ -4,7 +4,6 @@ import { getContractAddress, debugLog } from '@/lib/contracts/config';
 import type { Job, JobStatusType, JobTypeType, Bid } from '@/lib/types/contracts';
 import { JobStatus, JobType } from '@/lib/types/contracts';
 
-/* eslint-disable @typescript-eslint/no-explicit-any */
 // Add new function names to the ABI type
 const AGENTIC_COMMERCE_ABI_WITH_NEW = AGENTIC_COMMERCE_ABI as typeof AGENTIC_COMMERCE_ABI & readonly (
   | { name: 'completeAfterTimeout' }
@@ -992,7 +991,6 @@ export function useUnregisterAsEvaluator() {
 export function useEvaluatorPoolSize() {
   const { data, isLoading, error, refetch } = useReadContract({
     address: AGENTIC_COMMERCE_ADDRESS,
-    // eslint-disable-next-line @typescript-eslint/no-explicit-any
     abi: AGENTIC_COMMERCE_ABI as any,
     functionName: 'getEvaluatorPoolSize',
     query: {
@@ -1025,10 +1023,8 @@ export function useEnableJobMilestones() {
     ) =>
       writeContract({
         address: AGENTIC_COMMERCE_ADDRESS,
-        // eslint-disable-next-line @typescript-eslint/no-explicit-any
         abi: AGENTIC_COMMERCE_ABI as any,
         functionName: 'enableJobMilestones',
-        // eslint-disable-next-line @typescript-eslint/no-explicit-any
         args: [jobId, client, provider, paymentToken, totalBudget] as any,
       }),
     hash: data,
@@ -1044,7 +1040,6 @@ export function useEnableJobMilestones() {
 export function useEvaluatorStatus(address: `0x${string}` | undefined) {
   const { data, isLoading, error, refetch } = useReadContract({
     address: AGENTIC_COMMERCE_ADDRESS,
-    // eslint-disable-next-line @typescript-eslint/no-explicit-any
     abi: AGENTIC_COMMERCE_ABI as any,
     functionName: 'isEvaluator',
     args: address ? [address] : undefined,

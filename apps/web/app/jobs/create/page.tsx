@@ -411,9 +411,7 @@ function CreateJobContent() {
       provider,
       budget,
       paymentToken,
-      validateProvider,
       validateDeadlineField,
-      validateDescriptionField,
       validateBudgetField,
       createJobFromService,
       createJobV8,
@@ -421,6 +419,7 @@ function CreateJobContent() {
       fundJobNow,
       publicClient,
       writeContractAsync,
+      AGENTIC_COMMERCE_PROXY,
     ]
   );
 

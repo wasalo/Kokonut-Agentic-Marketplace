@@ -292,7 +292,7 @@ export default function JobDetailPage({
     };
 
     void void fetchBids();
-  }, [publicClient, job?.id, bidCount, jobIsOpen]);
+  }, [publicClient, job?.id, bidCount, jobIsOpen, AGENTIC_COMMERCE_ADDRESS]);
 
   const [newBudget, setNewBudget] = useState('');
 
@@ -340,7 +340,7 @@ export default function JobDetailPage({
       setTxStep(null);
       void refetch();
     }
-  }, [isTxConfirmed, txStep, refetch, queryClient]);
+  }, [isTxConfirmed, txStep, refetch, queryClient, USDC_ADDRESS]);
 
   // Moved after isUSDC is defined (line ~457)
 

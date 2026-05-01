@@ -1,8 +1,6 @@
 // Centralized contract types for the Kokonut Agent Economy Stack
 // This file contains all shared type definitions used across hooks
 
-/* eslint-disable @typescript-eslint/no-explicit-any */
-
 // ============================================================================
 // SERVICE TYPES
 // ============================================================================

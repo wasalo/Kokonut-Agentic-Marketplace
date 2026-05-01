@@ -40,11 +40,11 @@ jobs:
         run: forge test -vvv --via-ir
 
       - name: Coverage report
-        run: forge coverage --report summary --via-ir
+        run: forge coverage --report summary --ir-minimum
 
       - name: Check coverage threshold
         run: |
-          SUMMARY=$(forge coverage --report summary)
+          SUMMARY=$(forge coverage --report summary --ir-minimum)
           TOTAL_LINE=$(echo "$SUMMARY" | grep "^Total" || echo "")
           if [ -n "$TOTAL_LINE" ]; then
             COVERAGE=$(echo "$TOTAL_LINE" | awk '{print $4}' | tr -d '%')

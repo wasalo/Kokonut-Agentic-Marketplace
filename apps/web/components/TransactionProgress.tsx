@@ -67,7 +67,7 @@ export function useTransactionProgress({
       setToastId(id);
       setPhase('pending');
     }
-  }, [hash, description]);
+  }, [hash, toastId, description]);
 
   // Phase 2: Confirming (waiting for first confirmation)
   useEffect(() => {

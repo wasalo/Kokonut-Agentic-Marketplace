@@ -474,7 +474,7 @@ const publicClient = usePublicClient();
 
       return toBlock;
     },
-    [publicClient, address, addNotification, notifyAndEmail]
+    [publicClient, address, notifyAndEmail]
   );
 
   const processServiceRegistryEvents = useCallback(
@@ -595,7 +595,7 @@ const publicClient = usePublicClient();
 
       return toBlock;
     },
-    [publicClient, address, addNotification, notifyAndEmail]
+    [publicClient, address, notifyAndEmail]
   );
 
   const processMilestoneEscrowEvents = useCallback(
@@ -775,7 +775,7 @@ const publicClient = usePublicClient();
 
       return toBlock;
     },
-    [publicClient, address, addNotification, notifyAndEmail]
+    [publicClient, address, notifyAndEmail]
   );
 
   const processAgentReviewEvents = useCallback(
@@ -916,7 +916,7 @@ const publicClient = usePublicClient();
 
       return toBlock;
     },
-    [publicClient, address, addNotification, notifyAndEmail]
+    [publicClient, address, notifyAndEmail]
   );
 
   useEffect(() => {

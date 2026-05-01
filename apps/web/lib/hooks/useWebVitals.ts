@@ -53,7 +53,7 @@ export function reportWebVitals(options: WebVitalsOptions = {}): void {
 export function useWebVitals(options: WebVitalsOptions = {}): void {
   useEffect(() => {
     reportWebVitals(options);
-  }, []);
+  }, [options]);
 }
 
 export default useWebVitals;

@@ -1,8 +1,6 @@
 import { createPublicClient, http, PublicClient } from 'viem';
 import { sepolia } from 'viem/chains';
 
-/* eslint-disable @typescript-eslint/no-explicit-any */
-
 export const ERC8004_ADDRESSES = {
   sepolia: '0x8004A818BFB912233c491871b3d84c89A494BD9e',
   mainnet: '0x80048705E3D51c3A7B3A8cB5b4E8F7D2a5B9C3E1',

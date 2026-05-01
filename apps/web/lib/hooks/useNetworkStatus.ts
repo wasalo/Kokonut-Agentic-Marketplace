@@ -63,7 +63,7 @@ export function useNetworkStatusWithCallback<T>(
 
   useEffect(() => {
     callback(isOnline);
-  }, [isOnline, ...deps]);
+  }, [isOnline, callback, ...deps]);
 }
 
 export default useNetworkStatus;

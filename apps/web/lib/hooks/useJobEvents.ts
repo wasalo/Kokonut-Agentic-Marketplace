@@ -5,8 +5,6 @@ import { AGENTIC_COMMERCE_ABI } from '@/lib/contracts/abis';
 import { CONTRACT_ADDRESSES } from '@/lib/contracts/config';
 import { debugLog } from '@/lib/debug';
 
-/* eslint-disable @typescript-eslint/no-explicit-any */
-
 const AGENTIC_COMMERCE_ADDRESS = CONTRACT_ADDRESSES.sepolia.agenticCommerce;
 
 function invalidateJobQueries(queryClient: any, jobId: bigint) {
