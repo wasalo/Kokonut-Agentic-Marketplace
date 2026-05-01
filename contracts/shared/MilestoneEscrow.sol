@@ -142,7 +142,6 @@ contract MilestoneEscrow is
     function initialize(address initialOwner, address _agenticCommerce) public initializer {
         __Context_init();
         __Ownable_init(initialOwner);
-        __UUPSUpgradeable_init();
         __Pausable_init();
 
         agenticCommerce = _agenticCommerce;

@@ -55,7 +55,6 @@ contract PriceOracleV2 is OwnableUpgradeable, UUPSUpgradeable {
 
     function initialize(address initialOwner) external initializer {
         __Ownable_init(initialOwner);
-        __UUPSUpgradeable_init();
     }
     
     function _authorizeUpgrade(address newImplementation) internal override onlyOwner {}

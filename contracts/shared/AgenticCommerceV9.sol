@@ -170,7 +170,6 @@ contract AgenticCommerceV9 is
     function initialize(address _platformTreasury, address _adminRegistry, address _priceOracle) external initializer {
         __Context_init();
         __Ownable_init(_msgSender());
-        __UUPSUpgradeable_init();
         __Pausable_init();
         
         platformTreasury = _platformTreasury;

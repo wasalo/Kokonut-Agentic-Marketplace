@@ -168,7 +168,6 @@ contract AgenticCommerceV6 is
         if (treasury_ == address(0)) revert ZeroAddress();
         __Context_init();
         __Ownable_init(initialOwner);
-        __UUPSUpgradeable_init();
         __Pausable_init();
         platformTreasury = treasury_;
         

@@ -130,7 +130,6 @@ contract AdminRegistry is OwnableUpgradeable, UUPSUpgradeable, PausableUpgradeab
      */
     function initialize() public initializer {
         __Ownable_init(msg.sender);
-        __UUPSUpgradeable_init();
         __Pausable_init();
         
         // Set default verification providers

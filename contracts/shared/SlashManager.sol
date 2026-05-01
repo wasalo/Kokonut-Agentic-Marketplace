@@ -95,7 +95,6 @@ contract SlashManager is ReentrancyGuard, OwnableUpgradeable, UUPSUpgradeable, P
 
     function initialize(address _owner, address[] memory _signers) public initializer {
         __Ownable_init(_owner);
-        __UUPSUpgradeable_init();
         __Pausable_init();
 
         require(_signers.length >= REQUIRED_SIGNATURES, "Not enough signers");

@@ -52,7 +52,6 @@ contract CommitReveal is ReentrancyGuard, OwnableUpgradeable, UUPSUpgradeable {
 
     function initialize(address _serviceRegistry, address initialOwner) public initializer {
         __Ownable_init(initialOwner);
-        __UUPSUpgradeable_init();
 
         require(_serviceRegistry != address(0), "Zero service registry");
         serviceRegistry = _serviceRegistry;

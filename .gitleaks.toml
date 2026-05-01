@@ -36,10 +36,11 @@ ignore-paths = [
   description = "Ethereum Private Key"
   regex = '0x[a-fA-F0-9]{64}'
   tags = ["key", "Ethereum", "critical"]
-  allowlist = [
-    "0x0000000000000000000000000000000000000000",
-    "0x0000000000000000000000000000000000000001",
-  ]
+  [rules.allowlist]
+    regexes = [
+      '''0x0000000000000000000000000000000000000000''',
+      '''0x0000000000000000000000000000000000000001''',
+    ]
 
 [[rules]]
   description = "Alchemy API Key"

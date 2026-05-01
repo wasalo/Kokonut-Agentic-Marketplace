@@ -208,7 +208,6 @@ contract AgentReviewV5 is IAgentReviewV5, ContextUpgradeable, OwnableUpgradeable
     function initialize(address initialOwner) public initializer {
         __Context_init();
         __Ownable_init(initialOwner);
-        __UUPSUpgradeable_init();
         __Pausable_init();
         
         // M2 Fix: Initialize slash treasury to owner

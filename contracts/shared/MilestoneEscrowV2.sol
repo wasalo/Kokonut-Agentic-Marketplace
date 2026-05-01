@@ -154,7 +154,6 @@ contract MilestoneEscrowV2 is
     function initialize(address initialOwner, address _agenticCommerce) public initializer {
         __Context_init();
         __Ownable_init(initialOwner);
-        __UUPSUpgradeable_init();
         __Pausable_init();
 
         // P7-04 FIX: Validate agenticCommerce is a contract
