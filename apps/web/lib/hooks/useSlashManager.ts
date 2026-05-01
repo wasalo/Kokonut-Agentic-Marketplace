@@ -101,9 +101,10 @@ export function useSlashProposal(proposalId: `0x${string}` | undefined) {
           proposalId: bigint;
           amount: bigint;
           reason: string;
+          createdAt: bigint;
+          executeAfter: bigint;
           confirmations: bigint;
-          execAfter: bigint;
-          isExecuted: boolean;
+          executed: boolean;
         }
       | undefined,
     isLoading,
@@ -173,7 +174,7 @@ export function useExecuteSlashProposal() {
       writeContract({
         address: SLASH_MANAGER_ADDRESS,
         abi: SLASH_MANAGER_ABI,
-        functionName: 'executeProposal',
+        functionName: 'executeSlash',
         args: [proposalId],
       }),
     hash,

@@ -1731,7 +1731,7 @@ program
 
       const agentReviewABI = parseAbi([
         'function getProposal(uint256 proposalId) external view returns ((uint256 id, address proposer, string title, string description, string criteriaURI, uint256 reward, uint8 status, uint256 createdAt, uint256 decisionDeadline, address winningEvaluator))',
-        'function getProposalEvaluations(uint256 proposalId) external view returns (address[])',
+        'function getProposalEvaluators(uint256 proposalId) external view returns (address[])',
         'function getEvaluation(uint256 proposalId, address evaluator) external view returns ((uint256 proposalId, address evaluator, int256 confidenceScore, string reasoningURI, uint256 stakeAmount, bool isFinal, uint256 submittedAt))',
       ]);
 
@@ -1742,7 +1742,7 @@ program
       const statusNames = ['Open', 'UnderReview', 'Decided', 'Cancelled'];
       const status = statusNames[proposal.status] || 'Unknown';
 
-      const evaluators = await review.read.getProposalEvaluations([BigInt(proposalId)]);
+      const evaluators = await review.read.getProposalEvaluators([BigInt(proposalId)]);
       const evaluations = [];
 
       for (const evaluator of evaluators) {

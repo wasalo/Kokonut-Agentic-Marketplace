@@ -11,7 +11,6 @@ const AGENTIC_COMMERCE_ABI_TYPED = AGENTIC_COMMERCE_ABI as typeof AGENTIC_COMMER
     | { name: 'platformTreasury' }
     | { name: 'owner' }
     | { name: 'setPlatformTreasury' }
-    | { name: 'setPlatformFee' }
   )[];
 
 /**
@@ -88,21 +87,19 @@ export function useSetPlatformTreasury() {
  * @param treasury - Treasury address to receive fees
  * @returns Write action result
  */
+/**
+ * @deprecated V9 has no setPlatformFee function. Platform fee is hardcoded at 100 bps in _releasePayment().
+ */
 export function useSetPlatformFee() {
-  const { writeContract, ...rest } = useWriteContract();
-
-  const setFee = (feeBP: bigint, treasury: `0x${string}`) => {
-    writeContract({
-      address: AGENTIC_COMMERCE_ADDRESS,
-      abi: AGENTIC_COMMERCE_ABI_TYPED,
-      functionName: 'setPlatformFee',
-      args: [feeBP, treasury] as const,
-    });
+  const setFee = (_feeBP: bigint, _treasury: `0x${string}`) => {
+    console.warn('useSetPlatformFee is deprecated - V9 has no setPlatformFee function. Fee is hardcoded at 100 bps.');
   };
 
   return {
     setFee,
-    ...rest,
+    isPending: false,
+    error: null,
+    reset: () => {},
   };
 }
 
@@ -110,23 +107,16 @@ export function useSetPlatformFee() {
  * Hook to get the current platform fee
  * @returns Platform fee in basis points
  */
+/**
+ * @deprecated V9 has no platformFeeBP function. Fee is hardcoded at 100 bps in _releasePayment().
+ */
 export function usePlatformFee() {
-  const { data, isLoading, error, refetch } = useReadContract({
-    address: AGENTIC_COMMERCE_ADDRESS,
-    abi: AGENTIC_COMMERCE_ABI as unknown as readonly { name: 'platformFeeBP' }[],
-    functionName: 'platformFeeBP' as const,
-    query: {
-      retry: 2,
-      staleTime: 60 * 1000,
-    },
-  });
-
   return {
-    feeBP: data,
-    feePercent: data ? Number(data) / 100 : undefined,
-    isLoading,
-    error,
-    refetch,
+    feeBP: BigInt(100),
+    feePercent: 1,
+    isLoading: false,
+    error: null,
+    refetch: () => {},
   };
 }
 

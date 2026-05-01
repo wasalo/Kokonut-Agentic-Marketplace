@@ -36,7 +36,6 @@ export const SERVICE_REGISTRY_ABI = parseAbi([
  
 
 export const ADMIN_REGISTRY_ABI = parseAbi([
-  'function initialize() external',
   'function setHalfLifeDays(uint256 halfLifeDays) external',
   'function getHalfLifeDays() external view returns (uint256)',
   'function setFeaturedAgent(uint256 agentId, bool isFeatured) external',
@@ -96,8 +95,6 @@ export const AGENTIC_COMMERCE_ABI = parseAbi([
   'function DEFAULT_DISPUTE_WINDOW() external view returns (uint256)',
   'function jobCounter() external view returns (uint256)',
   'function initialize(address treasury_) external',
-  'function createJob(address provider, address evaluator, uint256 expiredAt, string description, address hook, bool evaluatorFee) external returns (uint256 jobId)',
-  'function createJobFromService(uint256 serviceId, address evaluator, uint256 expiredAt, string description, address hook, bool evaluatorFee) external returns (uint256 jobId)',
   // V7: createJob with client review flag (6 params)
   'function createJobWithRandomEvaluator(address provider, uint256 expiredAt, string description, address hook, bool evaluatorFee, bool clientReview) external returns (uint256 jobId)',
   // V8: createJob with budget, paymentToken, serviceId, and optional immediate funding
@@ -106,7 +103,6 @@ export const AGENTIC_COMMERCE_ABI = parseAbi([
   'function createJobV7(address provider, address evaluator, uint256 expiredAt, string description, address hook, bool evaluatorFee, bool clientReview) external returns (uint256 jobId)',
   'function fund(uint256 jobId, uint256 expectedBudget) external payable',
   'function submit(uint256 jobId, bytes32 deliverable) external',
-  'function complete(uint256 jobId, bytes32 reason) external',
   'function completeAfterTimeout(uint256 jobId, bytes32 reason) external',
   'function reject(uint256 jobId, bytes32 reason) external',
   'function claimRefund(uint256 jobId) external',
@@ -153,14 +149,13 @@ export const AGENT_REVIEW_ABI = parseAbi([
   'function getProposal(uint256 proposalId) external view returns ((uint256 id, address proposer, string title, string description, string criteriaURI, uint256 reward, uint8 status, uint256 createdAt, uint256 decisionDeadline, address winningEvaluator))',
   'function submitEvaluation(uint256 proposalId, int256 confidenceScore, string reasoningURI) external payable',
   'function attestDecision(uint256 proposalId, address winningEvaluator) external',
-  'function getProposalEvaluations(uint256 proposalId) external view returns (address[] memory)',
+  'function getProposalEvaluators(uint256 proposalId) external view returns (address[] memory)',
   'function getEvaluation(uint256 proposalId, address evaluator) external view returns ((uint256 proposalId, address evaluator, int256 confidenceScore, string reasoningURI, uint256 stakeAmount, bool isFinal, bool rewardClaimed, bool stakeReleased, uint256 submittedAt, uint256 rewardAmount))',
   'function getProposalCount() external view returns (uint256)',
-  'function getEvaluatorCount(uint256 proposalId) external view returns (uint256)',
   'function claimReward(uint256 proposalId) external',
   'function releaseStake(uint256 proposalId) external',
   'function cancelProposal(uint256 proposalId) external',
-  'function slashEvaluator(address evaluator, uint256 proposalId, string reason) external',
+  'function slashEvaluator(address evaluator, uint256 proposalId, uint256 slashBP, string reason) external',
   'function finalizeDecision(uint256 proposalId) external',
   'function calculateMedianScore(uint256 proposalId) external view returns (int256)',
   'function slashTreasury() external view returns (address)',
@@ -242,7 +237,7 @@ export const COMMIT_REVEAL_ABI = parseAbi([
   'function commit(bytes32 commitmentHash) external',
   'function reveal(string data, uint256 nonce, uint256 serviceId) external',
   'function cancel(bytes32 commitmentHash) external',
-  'function getCommitment(address user, bytes32 commitmentHash) external view returns ((uint256 blockNumber, bool exists))',
+  'function getCommitment(address user, bytes32 commitmentHash) external view returns ((bytes32 commitmentHash, address user, uint256 commitBlock, uint256 serviceId, bool revealed, bool executed, bool cancelled))',
   'function isCommitmentValid(bytes32 commitmentHash) external view returns (bool)',
   'function REVEAL_DELAY() external view returns (uint256)',
 ]);
@@ -253,10 +248,10 @@ export const SLASH_MANAGER_ABI = parseAbi([
   'function isSigner(address) external view returns (bool)',
   'function getSigners() external view returns (address[] memory)',
   'function requiredConfirmations() external view returns (uint256)',
-  'function getProposal(bytes32) external view returns ((address evaluator, uint256 proposalId, uint256 amount, string reason, uint256 confirmations, uint256 execAfter, bool isExecuted))',
+  'function getProposal(bytes32) external view returns ((address evaluator, uint256 proposalId, uint256 amount, string reason, uint256 createdAt, uint256 executeAfter, uint256 confirmations, bool executed))',
   'function createProposal(address evaluator, uint256 proposalId, uint256 amount, string reason) external returns (bytes32)',
   'function confirmProposal(bytes32 proposalId) external',
-  'function executeProposal(bytes32 proposalId) external',
+  'function executeSlash(bytes32 proposalId) external',
   'function cancelProposal(bytes32 proposalId) external',
   'function executionDelay() external view returns (uint256)',
   'function maxSlashAmount() external view returns (uint256)',
@@ -278,7 +273,6 @@ export const CHAINLINK_AGGREGATOR_ABI = parseAbi([
 // =============================================================================
 
 export const BIDDING_SYSTEM_ABI = parseAbi([
-  'function SessionStatus() external view returns (uint8 Active, uint8 BiddingClosed, uint8 WinnerSelected, uint8 JobCreated, uint8 Completed, uint8 Cancelled)',
   'function owner() external view returns (address)',
   'function commerce() external view returns (address)',
   'function treasury() external view returns (address)',
@@ -288,7 +282,7 @@ export const BIDDING_SYSTEM_ABI = parseAbi([
   'function getSession(uint256 sessionId) external view returns ((uint256 id, address creator, address evaluator, uint256 maxBudget, uint256 deadline, uint256 revealWindowEnd, bytes metadata, uint256 serviceId, uint256 jobId, address winner, uint256 winningBidId, bool jobCreated, uint8 status))',
   'function getBid(uint256 sessionId, uint256 bidId) external view returns ((uint256 bidId, address bidder, uint256 proposedAmount, uint256 stake, string message, bytes32 commitHash, bool revealed, bool accepted, bool stakeWithdrawn, uint256 timestamp))',
   'function getUserBid(uint256 sessionId, address user) external view returns ((uint256 bidId, address bidder, uint256 proposedAmount, uint256 stake, string message, bytes32 commitHash, bool revealed, bool accepted, bool stakeWithdrawn, uint256 timestamp))',
-  'function getSessionCount(uint256 sessionId) external view returns (uint256)',
+  'function getSessionCount() external view returns (uint256)',
   'function calculateStake(uint256 maxBudget) external pure returns (uint256)',
   'function createBiddingSession(address evaluator, uint256 maxBudget, uint256 deadline, bytes metadata, uint256 serviceId) external payable returns (uint256 sessionId)',
   'function commitBid(uint256 sessionId, bytes32 commitHash) external payable',

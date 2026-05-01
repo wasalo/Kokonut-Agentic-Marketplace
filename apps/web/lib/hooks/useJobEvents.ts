@@ -36,20 +36,6 @@ export function useJobEvents(_jobId?: bigint) {
     },
   });
 
-  // Watch OpenJobCreated events
-  useWatchContractEvent({
-    address: AGENTIC_COMMERCE_ADDRESS,
-    abi: AGENTIC_COMMERCE_ABI,
-    eventName: 'OpenJobCreated',
-    onLogs: logs => {
-      logs.forEach((log: any) => {
-        const jobId = log.args?.jobId;
-        debugLog('hooks', 'Open job created:', jobId?.toString());
-        invalidateJobQueries(queryClient, jobId);
-      });
-    },
-  });
-
   // Watch JobStatusChanged events
   useWatchContractEvent({
     address: AGENTIC_COMMERCE_ADDRESS,
@@ -165,90 +151,6 @@ export function useJobEvents(_jobId?: bigint) {
       logs.forEach((log: any) => {
         const jobId = log.args?.jobId;
         debugLog('[Events] Job refunded:', jobId?.toString());
-        invalidateJobQueries(queryClient, jobId);
-      });
-    },
-  });
-
-  // Watch ProviderSet events
-  useWatchContractEvent({
-    address: AGENTIC_COMMERCE_ADDRESS,
-    abi: AGENTIC_COMMERCE_ABI,
-    eventName: 'ProviderSet',
-    onLogs: logs => {
-      logs.forEach((log: any) => {
-        const jobId = log.args?.jobId;
-        debugLog('[Events] Provider set:', jobId?.toString());
-        invalidateJobQueries(queryClient, jobId);
-      });
-    },
-  });
-
-  // Watch BudgetSet events
-  useWatchContractEvent({
-    address: AGENTIC_COMMERCE_ADDRESS,
-    abi: AGENTIC_COMMERCE_ABI,
-    eventName: 'BudgetSet',
-    onLogs: logs => {
-      logs.forEach((log: any) => {
-        const jobId = log.args?.jobId;
-        debugLog('[Events] Budget set:', jobId?.toString());
-        invalidateJobQueries(queryClient, jobId);
-      });
-    },
-  });
-
-  // Watch BidCommitted events
-  useWatchContractEvent({
-    address: AGENTIC_COMMERCE_ADDRESS,
-    abi: AGENTIC_COMMERCE_ABI,
-    eventName: 'BidCommitted',
-    onLogs: logs => {
-      logs.forEach((log: any) => {
-        const jobId = log.args?.jobId;
-        debugLog('[Events] Bid committed:', jobId?.toString());
-        invalidateJobQueries(queryClient, jobId);
-      });
-    },
-  });
-
-  // Watch BidRevealed events
-  useWatchContractEvent({
-    address: AGENTIC_COMMERCE_ADDRESS,
-    abi: AGENTIC_COMMERCE_ABI,
-    eventName: 'BidRevealed',
-    onLogs: logs => {
-      logs.forEach((log: any) => {
-        const jobId = log.args?.jobId;
-        debugLog('[Events] Bid revealed:', jobId?.toString());
-        invalidateJobQueries(queryClient, jobId);
-      });
-    },
-  });
-
-  // Watch BidAccepted events
-  useWatchContractEvent({
-    address: AGENTIC_COMMERCE_ADDRESS,
-    abi: AGENTIC_COMMERCE_ABI,
-    eventName: 'BidAccepted',
-    onLogs: logs => {
-      logs.forEach((log: any) => {
-        const jobId = log.args?.jobId;
-        debugLog('[Events] Bid accepted:', jobId?.toString());
-        invalidateJobQueries(queryClient, jobId);
-      });
-    },
-  });
-
-  // Watch StakesReturned events
-  useWatchContractEvent({
-    address: AGENTIC_COMMERCE_ADDRESS,
-    abi: AGENTIC_COMMERCE_ABI,
-    eventName: 'StakesReturned',
-    onLogs: logs => {
-      logs.forEach((log: any) => {
-        const jobId = log.args?.jobId;
-        debugLog('[Events] Stakes returned:', jobId?.toString());
         invalidateJobQueries(queryClient, jobId);
       });
     },

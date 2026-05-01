@@ -42,24 +42,24 @@ const sepoliaContracts = {
   serviceRegistryImpl: '0xb75B02D4523171ABdB6f5bcB9D60903ed3e30fAD', // Phase 29e: blacklist recheck
   // Phase 29: V9 - Multi-token configurable minimum budgets
   agenticCommerce: '0x4c592510e4FAbbEEA8D7142dE1f38d548b500e7f',
-  agenticCommerceImpl: '0x9634280fb2416061124aa6474F1BcF692473bEF4', // Phase 29e: commit-reveal + Pashov
+  agenticCommerceImpl: '0xAFC89ae02843D041f2704f33FFf2e0d567859D58', // Phase 29f: OZ v5 compat
   // Phase 11: BiddingSystem - Standalone commit-reveal bidding
   biddingSystem: '0x32c9d069a248a619d3EAc4D1FC76F2639AaBeF04',
   biddingSystemImpl: '0x0eE5E780bbbBA610D0B1926a3993A2aa0B1B9812', // Phase 29e: blacklist check
   agentReview: '0x5CDb592Fd37749bF87448FBf5725D1Cd986dd1Cb', // AgentReviewV5
-  agentReviewImpl: '0xB93A8Ef6DBD364A4e936bE53061099864465B678', // Phase 29e: blacklist checks
+  agentReviewImpl: '0x1c3513BC838059e2Fa71e60e92317Eef51688B6e', // Phase 29f: OZ v5 compat
   commitReveal: '0x85F193670fCb7B0c97D55E70Bf2a950b1065Fb3a',
-  commitRevealImpl: '0xd9efa18c45357CC3d218E1FEC86E0C851270d33D',
+  commitRevealImpl: '0x0456fb2B6ef68B9133B22809D48D4f3748bEf87C', // Phase 29f: OZ v5 compat
   slashManager: '0x1B8373cDF4f2eD740c3478e0129f0B8494CE4Fa3',
-  slashManagerImpl: '0x240eeC04F12d11eE6e4d03B00FB2148bFD4887F9',
+  slashManagerImpl: '0x865ebF8EaC43FE343985058e56E08aAB4E605214', // Phase 29f: OZ v5 compat
 
   // Phase 29: MilestoneEscrowV2 - Per-token arbiter fees + USDC staking
   milestoneEscrow: '0xd4Fdc345b1c6aF1B4Cc84339bcB251B33527Eb45',
-  milestoneEscrowImpl: '0xfb764A5c740aC47721bC9802596395CdF2DC4CdB', // Phase 29e: activeDisputeIds cleanup
+  milestoneEscrowImpl: '0xdE0EB59a35c6FD8d0eEF5f1F1F1884E46a4fe652', // Phase 29f: OZ v5 compat
 
   // Phase 29: PriceOracleV2 - UUPS upgradeable per-token feeds
   priceOracle: '0x32fD2A54B722D2048A052fD0456004483a683aFE',
-  priceOracleImpl: '0xb4660AceBf93874fB6E945C312c5706093336Ef8',
+  priceOracleImpl: '0x34344702fe257aEB4FdD73F5c51f5DdE0168a652', // Phase 29f: OZ v5 compat
 
   // Tokens
   usdc: '0x1c7D4B196Cb0C7B01d743Fbc6116a902379C7238',
@@ -176,24 +176,24 @@ export const CONTRACT_ADDRESSES = {
     serviceRegistryImpl: '0xb75B02D4523171ABdB6f5bcB9D60903ed3e30fAD', // Phase 29e: blacklist recheck
     // Phase 29: V9 - Multi-token configurable minimum budgets
     agenticCommerce: '0x4c592510e4FAbbEEA8D7142dE1f38d548b500e7f',
-  agenticCommerceImpl: '0x9634280fb2416061124aa6474F1BcF692473bEF4', // Phase 29e: commit-reveal + Pashov
+  agenticCommerceImpl: '0xAFC89ae02843D041f2704f33FFf2e0d567859D58', // Phase 29f: OZ v5 compat
     // Phase 11: BiddingSystem - Standalone commit-reveal bidding
     biddingSystem: '0x32c9d069a248a619d3EAc4D1FC76F2639AaBeF04',
   biddingSystemImpl: '0x0eE5E780bbbBA610D0B1926a3993A2aa0B1B9812', // Phase 29e: blacklist check
     agentReview: '0x5CDb592Fd37749bF87448FBf5725D1Cd986dd1Cb', // AgentReviewV5
-  agentReviewImpl: '0xB93A8Ef6DBD364A4e936bE53061099864465B678', // Phase 29e: blacklist checks
+  agentReviewImpl: '0x1c3513BC838059e2Fa71e60e92317Eef51688B6e', // Phase 29f: OZ v5 compat
     commitReveal: '0x85F193670fCb7B0c97D55E70Bf2a950b1065Fb3a',
-    commitRevealImpl: '0xd9efa18c45357CC3d218E1FEC86E0C851270d33D',
+  commitRevealImpl: '0x0456fb2B6ef68B9133B22809D48D4f3748bEf87C', // Phase 29f: OZ v5 compat
     slashManager: '0x1B8373cDF4f2eD740c3478e0129f0B8494CE4Fa3',
-    slashManagerImpl: '0x240eeC04F12d11eE6e4d03B00FB2148bFD4887F9',
+  slashManagerImpl: '0x865ebF8EaC43FE343985058e56E08aAB4E605214', // Phase 29f: OZ v5 compat
 
     // Phase 29: MilestoneEscrowV2 - Per-token arbiter fees + USDC staking
     milestoneEscrow: '0xd4Fdc345b1c6aF1B4Cc84339bcB251B33527Eb45',
-  milestoneEscrowImpl: '0xfb764A5c740aC47721bC9802596395CdF2DC4CdB', // Phase 29e: activeDisputeIds cleanup
+  milestoneEscrowImpl: '0xdE0EB59a35c6FD8d0eEF5f1F1F1884E46a4fe652', // Phase 29f: OZ v5 compat
 
     // Phase 29: PriceOracleV2 - UUPS upgradeable per-token feeds
     priceOracle: '0x32fD2A54B722D2048A052fD0456004483a683aFE',
-    priceOracleImpl: '0xb4660AceBf93874fB6E945C312c5706093336Ef8',
+  priceOracleImpl: '0x34344702fe257aEB4FdD73F5c51f5DdE0168a652', // Phase 29f: OZ v5 compat
 
     // Tokens
     usdc: '0x1c7D4B196Cb0C7B01d743Fbc6116a902379C7238',

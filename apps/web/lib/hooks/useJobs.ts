@@ -1,5 +1,5 @@
 import { useReadContract, useReadContracts, useWriteContract } from 'wagmi';
-import { AGENTIC_COMMERCE_ABI, BIDDING_SYSTEM_ABI } from '@/lib/contracts/abis';
+import { AGENTIC_COMMERCE_ABI, BIDDING_SYSTEM_ABI, MILESTONE_ESCROW_ABI } from '@/lib/contracts/abis';
 import { getContractAddress, debugLog } from '@/lib/contracts/config';
 import type { Job, JobStatusType, JobTypeType, Bid } from '@/lib/types/contracts';
 import { JobStatus, JobType } from '@/lib/types/contracts';
@@ -15,9 +15,6 @@ const AGENTIC_COMMERCE_ABI_WITH_NEW = AGENTIC_COMMERCE_ABI as typeof AGENTIC_COM
   | { name: 'unregisterAsEvaluator' }
   | { name: 'getEvaluatorPoolSize' }
   | { name: 'isEvaluator' }
-  | { name: 'setBudget' }
-  | { name: 'setPaymentToken' }
-  | { name: 'enableJobMilestones' }
   | { name: 'approveByClient' }
   | { name: 'finalizeByEvaluator' }
   | { name: 'requiresClientReview' }
@@ -26,7 +23,6 @@ const AGENTIC_COMMERCE_ABI_WITH_NEW = AGENTIC_COMMERCE_ABI as typeof AGENTIC_COM
 )[];
 
 const BIDDING_SYSTEM_ABI_TYPED = BIDDING_SYSTEM_ABI as typeof BIDDING_SYSTEM_ABI & readonly (
-  | { name: 'REVEAL_WINDOW' }
   | { name: 'calculateStake' }
   | { name: 'getUserBid' }
   | { name: 'jobBidCount' }
@@ -229,24 +225,8 @@ export function useActiveJobCount() {
 export function useCreateJobFromService() {
   const { writeContract, data, isPending, error, reset } = useWriteContract();
   return {
-    createJobFromService: (
-      serviceId: bigint,
-      evaluator: `0x${string}`,
-      expiredAt: bigint,
-      description: string,
-      hook: `0x${string}` = '0x0000000000000000000000000000000000000000',
-      evaluatorFee: boolean = false
-    ) => {
-      debugLog(
-        'hooks',
-        'useCreateJobFromService is deprecated - createJobFromService disabled in V6.1. Use createJob + setProvider + setBudget instead.'
-      );
-      writeContract({
-        address: AGENTIC_COMMERCE_ADDRESS,
-        abi: AGENTIC_COMMERCE_ABI,
-        functionName: 'createJobFromService',
-        args: [serviceId, evaluator, expiredAt, description, hook, evaluatorFee],
-      });
+    createJobFromService: () => {
+      console.warn('useCreateJobFromService is deprecated - createJobFromService was removed in V6.1. Use useCreateJob instead.');
     },
     hash: data,
     isPending,
@@ -263,22 +243,23 @@ export function useCreateJob() {
       evaluator: `0x${string}`,
       expiredAt: bigint,
       description: string,
+      hook: `0x${string}` = '0x0000000000000000000000000000000000000000',
       evaluatorFee: boolean = false,
       clientReview: boolean = true
     ) =>
       writeContract({
         address: AGENTIC_COMMERCE_ADDRESS,
         abi: AGENTIC_COMMERCE_ABI,
-        functionName: 'createJob',
-args: [
+        functionName: 'createJobV7',
+        args: [
           provider,
           evaluator,
           expiredAt,
           description,
-          '0x0000000000000000000000000000000000',
+          hook,
           evaluatorFee,
           clientReview,
-        ] as any,
+        ],
       }),
     hash: data,
     isPending,
@@ -324,13 +305,9 @@ export function useSubmitJob() {
 export function useCompleteJob() {
   const { writeContract, data, isPending, error, reset } = useWriteContract();
   return {
-    completeJob: (jobId: bigint, reason: `0x${string}`) =>
-      writeContract({
-        address: AGENTIC_COMMERCE_ADDRESS,
-        abi: AGENTIC_COMMERCE_ABI,
-        functionName: 'complete',
-        args: [jobId, reason],
-      }),
+    completeJob: (jobId: bigint, reason: `0x${string}`) => {
+      console.warn('useCompleteJob is deprecated - use useFinalizeByEvaluator instead. V9 has no standalone complete() function.');
+    },
     hash: data,
     isPending,
     error,
@@ -496,7 +473,7 @@ export function useJobConstants() {
   const { data: revealWindow, isLoading: isRevealLoading } = useReadContract({
     address: BIDDING_SYSTEM_ADDRESS,
     abi: BIDDING_SYSTEM_ABI_TYPED as any,
-    functionName: 'REVEAL_WINDOW' as const,
+    functionName: 'revealWindow' as const,
     query: { staleTime: 60 * 60 * 1000 },
   });
 
@@ -1022,10 +999,10 @@ export function useEnableJobMilestones() {
       totalBudget: bigint
     ) =>
       writeContract({
-        address: AGENTIC_COMMERCE_ADDRESS,
-        abi: AGENTIC_COMMERCE_ABI as any,
-        functionName: 'enableJobMilestones',
-        args: [jobId, client, provider, paymentToken, totalBudget] as any,
+        address: getContractAddress('MILESTONE_ESCROW'),
+        abi: MILESTONE_ESCROW_ABI,
+        functionName: 'enableMilestones',
+        args: [jobId, client, provider, paymentToken, totalBudget],
       }),
     hash: data,
     isPending,

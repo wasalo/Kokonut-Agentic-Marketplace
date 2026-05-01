@@ -6,19 +6,18 @@ import {AdminRegistry} from "../shared/AdminRegistry.sol";
 
 /**
  * @title UpgradeAdminRegistry
- * @dev DEPRECATED: Old AdminRegistry (0x8A8E...) was not UUPS upgradeable.
- *      Re-deployed directly at 0x9b4a7479E2609D1E6Dfc4232aD4CA493adF82c6e.
- *      This script is kept for reference only.
+ * @dev Upgrades AdminRegistry to remove __UUPSUpgradeable_init() for OZ v5 compatibility.
+ *      Current proxy: 0xC81C864CEAb6231ad764cf9867e031D8b6dee41d (Phase 29e UUPS deploy)
  */
 contract UpgradeAdminRegistry is Script {
-    address public constant PROXY_ADDRESS = 0x8A8E3C9ffB8F25236c8152c8ac634336463f3Ab0;
+    address public constant PROXY_ADDRESS = 0xC81C864CEAb6231ad764cf9867e031D8b6dee41d;
     
     function run() external {
         uint256 deployerPrivateKey = vm.envUint("PRIVATE_KEY");
         address deployer = vm.addr(deployerPrivateKey);
         
         console.log("=============================================");
-        console.log("AdminRegistry Upgrade - VULN-01 + VULN-08");
+        console.log("AdminRegistry Upgrade - OZ v5 __UUPSUpgradeable_init() removal");
         console.log("=============================================");
         console.log("Deployer:", deployer);
         console.log("Proxy Address:", PROXY_ADDRESS);
@@ -43,7 +42,7 @@ contract UpgradeAdminRegistry is Script {
         
         console.log("");
         console.log("NEXT STEPS:");
-        console.log("1. Verify on Etherscan");
-        console.log("2. Call setSlashManager() with SlashManager address");
+        console.log("1. Verify on Etherscan: forge verify-contract <IMPL_ADDR> contracts/shared/AdminRegistry.sol:AdminRegistry --chain 11155111");
+        console.log("2. Confirm proxy upgraded: cast implementation 0xC81C864CEAb6231ad764cf9867e031D8b6dee41d --rpc-url sepolia");
     }
 }

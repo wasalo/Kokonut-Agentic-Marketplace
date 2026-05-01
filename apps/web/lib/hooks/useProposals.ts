@@ -176,7 +176,7 @@ export function useEvaluatorCount(proposalId: bigint | undefined) {
   const { data, isLoading, error, refetch } = useReadContract({
     address: AGENT_REVIEW_ADDRESS,
     abi: AGENT_REVIEW_ABI,
-    functionName: 'getEvaluatorCount',
+    functionName: 'getProposalEvaluators',
     args: proposalId ? [proposalId] : undefined,
     query: {
       enabled: !!proposalId,
@@ -186,7 +186,7 @@ export function useEvaluatorCount(proposalId: bigint | undefined) {
   });
 
   return {
-    count: data ? Number(data) : 0,
+    count: data ? (data as `0x${string}`[]).length : 0,
     isLoading,
     error,
     refetch,
@@ -260,7 +260,7 @@ export function useReviewStats() {
       const evaluationCalls = Array.from({ length: Math.min(totalProposals, 100) }, (_, i) => ({
         address: AGENT_REVIEW_ADDRESS,
         abi: AGENT_REVIEW_ABI,
-        functionName: 'getProposalEvaluations' as const,
+        functionName: 'getProposalEvaluators' as const,
         args: [BigInt(i + 1)],
       }));
 
@@ -344,7 +344,7 @@ export function useProposals(offset: number = 0, limit: number = 20) {
         evaluatorCountCalls.push({
           address: AGENT_REVIEW_ADDRESS,
           abi: AGENT_REVIEW_ABI,
-          functionName: 'getEvaluatorCount' as const,
+          functionName: 'getProposalEvaluators' as const,
           args: [BigInt(i)],
         });
       }
@@ -360,10 +360,9 @@ export function useProposals(offset: number = 0, limit: number = 20) {
           const proposalId = BigInt(startId - index);
           const proposal = mapProposalData(proposalId, result.result);
           if (proposal) {
-            // Add evaluator count if available
             const evaluatorResult = evaluatorResults[index];
             if (evaluatorResult.status === 'success' && evaluatorResult.result) {
-              proposal.evaluatorCount = Number(evaluatorResult.result);
+              proposal.evaluatorCount = (evaluatorResult.result as `0x${string}`[]).length;
             }
             mappedProposals.push(proposal);
           }
@@ -577,7 +576,7 @@ export function useProposalEvaluations(proposalId: bigint | undefined) {
   const { data, isLoading, error, refetch } = useReadContract({
     address: AGENT_REVIEW_ADDRESS,
     abi: AGENT_REVIEW_ABI,
-    functionName: 'getProposalEvaluations',
+    functionName: 'getProposalEvaluators',
     args: proposalId ? [proposalId] : undefined,
     query: {
       enabled: !!proposalId,
@@ -652,12 +651,12 @@ export function useSlashEvaluator() {
   const { writeContract, data, isPending, error, reset } = useWriteContract();
 
   return {
-    slashEvaluator: (evaluator: `0x${string}`, proposalId: bigint, reason: string) =>
+    slashEvaluator: (evaluator: `0x${string}`, proposalId: bigint, slashBP: bigint, reason: string) =>
       writeContract({
         address: AGENT_REVIEW_ADDRESS,
         abi: AGENT_REVIEW_ABI,
         functionName: 'slashEvaluator',
-        args: [evaluator, proposalId, reason],
+        args: [evaluator, proposalId, slashBP, reason],
       }),
     hash: data,
     isPending,

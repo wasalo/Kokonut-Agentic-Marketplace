@@ -8,7 +8,7 @@ import { ArrowLeft, Loader2, ShieldCheck, AlertTriangle, Coins } from 'lucide-re
 import NextLink from 'next/link';
 import { Card } from '@heroui/react';
 import { useService } from '@/lib/hooks/useServices';
-import { useCreateJobFromService, useCreateJobWithRandomEvaluator, useCreateJobV8, useJobCount, useSetBudget } from '@/lib/hooks/useJobs';
+import { useCreateJobWithRandomEvaluator, useCreateJobV8, useJobCount, useSetBudget } from '@/lib/hooks/useJobs';
 import { CONTRACT_ADDRESSES, getContractAddress } from '@/lib/contracts/config';
 
 import { validateAddress, validateDeadline, validateStringLength } from '@/lib/hooks/useValidation';
@@ -133,13 +133,6 @@ function CreateJobContent() {
   const [budgetError, setBudgetError] = useState<string | null>(null);
 
   const {
-    createJobFromService,
-    hash: serviceHash,
-    isPending: isServicePending,
-    error: serviceError,
-  } = useCreateJobFromService();
-
-  const {
     hash: randomHash,
     isPending: isRandomPending,
     error: randomError,
@@ -155,7 +148,7 @@ function CreateJobContent() {
   const { setBudget: setJobBudget } = useSetBudget();
   const jobCounter = useJobCount();
 
-  const txHash = serviceHash || randomHash || v8Hash;
+  const txHash = randomHash || v8Hash;
   const { isLoading: isConfirming, isSuccess: isConfirmed } = useWaitForTransactionReceipt({
     hash: txHash,
   });
@@ -297,13 +290,21 @@ function CreateJobContent() {
         : BigInt(Math.floor(Date.now() / 1000) + 86400 * 7);
 
       if (serviceId && service) {
-        createJobFromService(
+        // Service-based job: use service provider + V8 API
+        const serviceProvider = (service as any).provider as `0x${string}`;
+        createJobV8(
+          serviceProvider,
+          0n,                         // budget will be set after creation
+          paymentToken.address as `0x${string}`,
           serviceId,
-          '0x0000000000000000000000000000000000000000',
           deadlineTs,
           description || `Job for ${service.name}`,
-          '0x0000000000000000000000000000000000000000',
-          true // evaluatorFee always 1%
+          '0x0000000000000000000000000000000000000000', // evaluator (random)
+          '0x0000000000000000000000000000000000000000', // hook
+          true,                       // evaluatorFee 1%
+          clientReview,
+          false,                      // fundNow (budget is 0, can't fund)
+          0n                          // fundAmount
         );
       } else {
         // Direct job - use V8 with budget at creation! (fixes $0 budget issue)
@@ -413,7 +414,6 @@ function CreateJobContent() {
       paymentToken,
       validateDeadlineField,
       validateBudgetField,
-      createJobFromService,
       createJobV8,
       clientReview,
       fundJobNow,
@@ -425,8 +425,8 @@ function CreateJobContent() {
 
 const { handleSubmit, isSubmitting, timeUntilNextSubmit } = useFormSubmit(performSubmit, 2000);
 
-const isFormLoading = isServicePending || isRandomPending || isV8Pending || isConfirming || submitPhase !== 'idle';
-const error = serviceError || randomError || v8Error;
+const isFormLoading = isRandomPending || isV8Pending || isConfirming || submitPhase !== 'idle';
+const error = randomError || v8Error;
 
 // Reset submit phase on transaction errors
 useEffect(() => {
