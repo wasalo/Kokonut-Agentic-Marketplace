@@ -1,0 +1,40 @@
+{
+  "name": "solskill",
+  "owner": {
+    "name": "Cyfrin"
+  },
+  "metadata": {
+    "description": "Solidity smart contract development and BattleChain tools",
+    "version": "3.0.0"
+  },
+  "plugins": [
+    {
+      "name": "solidity",
+      "description": "Production-grade Solidity development standards covering code quality, testing patterns, security practices, and Foundry workflows",
+      "source": "./",
+      "strict": false,
+      "skills": [
+        "./skills/solidity"
+      ]
+    },
+    {
+      "name": "battlechain",
+      "description": "Reference for BattleChain, the pre-mainnet L2 for battle-testing smart contracts with real funds. Covers deploying contracts, Safe Harbor agreements, whitehat attack workflows, and contract lifecycle management",
+      "source": "./",
+      "strict": false,
+      "skills": [
+        "./skills/battlechain"
+      ]
+    },
+    {
+      "name": "battlechain-tutorial",
+      "description": "Interactive deployment wizard that walks you through preparing your Foundry project for BattleChain. Generates deployment scripts and Safe Harbor agreements",
+      "source": "./",
+      "strict": false,
+      "skills": [
+        "./skills/battlechain",
+        "./skills/battlechain-tutorial"
+      ]
+    }
+  ]
+}

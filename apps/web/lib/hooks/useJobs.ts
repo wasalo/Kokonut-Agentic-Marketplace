@@ -223,7 +223,7 @@ export function useActiveJobCount() {
  * This function will revert with "createJobFromService disabled".
  */
 export function useCreateJobFromService() {
-  const { writeContract, data, isPending, error, reset } = useWriteContract();
+  const { data, isPending, error, reset } = useWriteContract();
   return {
     createJobFromService: () => {
       console.warn('useCreateJobFromService is deprecated - createJobFromService was removed in V6.1. Use useCreateJob instead.');
@@ -303,9 +303,9 @@ export function useSubmitJob() {
 }
 
 export function useCompleteJob() {
-  const { writeContract, data, isPending, error, reset } = useWriteContract();
+  const { data, isPending, error, reset } = useWriteContract();
   return {
-    completeJob: (jobId: bigint, reason: `0x${string}`) => {
+    completeJob: (_jobId: bigint, _reason: `0x${string}`) => {
       console.warn('useCompleteJob is deprecated - use useFinalizeByEvaluator instead. V9 has no standalone complete() function.');
     },
     hash: data,
