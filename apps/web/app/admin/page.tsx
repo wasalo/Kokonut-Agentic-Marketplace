@@ -1,17 +1,16 @@
 'use client';
 
-import { useState, useEffect } from 'react';
+import { useState } from 'react';
 import { useAccount, useReadContract } from 'wagmi';
 import { Settings, AlertCircle, ShieldAlert, Wallet, XCircle, Loader } from 'lucide-react';
-import { Card, Input, Button } from '@heroui/react';
+import { Card, Input } from '@heroui/react';
 import { CONTRACTS } from '@/lib/wagmi';
-import { AGENTIC_COMMERCE_ABI, ADMIN_REGISTRY_BLACKLIST_ABI } from '@/lib/contracts/abis';
-import { getContractAddress } from '@/lib/contracts/config';
+import { AGENTIC_COMMERCE_ABI } from '@/lib/contracts/abis';
 import { useAdminBlacklist } from '@/lib/hooks/useAdminBlacklist';
 import { toast } from 'sonner';
 
 const AGENTIC_COMMERCE_ADDRESS = CONTRACTS[11155111].agenticCommerce as `0x${string}`;
-const ADMIN_REGISTRY_ADDRESS = getContractAddress('ADMIN_REGISTRY');
+
 
 export default function AdminPage(): JSX.Element {
   const { isConnected } = useAccount();

@@ -5,7 +5,7 @@
  * Testnet: Sepolia, Base Sepolia
  */
 
-import type { Chain } from 'viem';
+
 
 export interface X402ChainConfig {
   caip: string;

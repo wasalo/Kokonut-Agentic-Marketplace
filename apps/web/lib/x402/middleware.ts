@@ -12,14 +12,11 @@ import {
   type SettlementResponse,
   X402_ERROR_CODES,
   encodePaymentRequired,
-  decodePaymentRequired,
-  encodePaymentPayload,
   decodePaymentPayload,
-  encodeSettlementResponse,
   type X402SchemeV2,
 } from './types';
 import { getChainConfig, getDefaultChain, DEFAULT_CAIP, type X402ChainConfig } from './chains';
-import { getTierFromApiKey, type ApiKeyTier, API_KEY_TIERS } from '../api-keys';
+import { getTierFromApiKey, type ApiKeyTier } from '../api-keys';
 
 export interface X402RouteConfig {
   path: string;
@@ -138,7 +135,6 @@ export async function verifyPayment(
 
 export async function settlePayment(
   payload: PaymentPayload,
-  config: X402RouteConfig,
   chainConfig: X402ChainConfig
 ): Promise<SettlementResponse> {
   const facilitatorUrl = `${chainConfig.facilitator}/pay`;
@@ -311,7 +307,7 @@ export async function handleX402Payment(
     };
   }
 
-  const settlement = await settlePayment(verification.payload!, config, chainConfig);
+  const settlement = await settlePayment(verification.payload!, chainConfig);
 
   if (settlement.status === 'failed') {
     return {

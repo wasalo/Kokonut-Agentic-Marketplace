@@ -11,7 +11,7 @@ import {
   ExternalLink,
 } from 'lucide-react';
 import { Card, Button } from '@heroui/react';
-import { SUPPORTED_CHAINS, PRODUCTION_CHAINS, ChainConfig } from '@/lib/chains';
+import { PRODUCTION_CHAINS, ChainConfig } from '@/lib/chains';
 import { useNetworkStats } from '@/lib/hooks/useNetworkStats';
 
 interface NetworkCardProps {

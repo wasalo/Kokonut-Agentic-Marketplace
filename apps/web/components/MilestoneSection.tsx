@@ -8,7 +8,6 @@ import {
   Clock,
   AlertTriangle,
   Loader2,
-  Unlock,
   Gavel,
   Plus,
 } from 'lucide-react';
@@ -46,11 +45,9 @@ export function MilestoneSection({
   budget,
   isClient,
   isProvider,
-  onRefetch,
 }: MilestoneSectionProps): JSX.Element {
-  const { address } = useAccount();
+  useAccount();
   const [proofHash, setProofHash] = useState('');
-  const [evidenceHash, setEvidenceHash] = useState('');
   
   // Add milestone form state
   const [showAddForm, setShowAddForm] = useState(false);
@@ -59,7 +56,7 @@ export function MilestoneSection({
   const [newDueDate, setNewDueDate] = useState('');
   const [disputeMilestoneIndex, setDisputeMilestoneIndex] = useState<number>(0);
 
-  const { milestones, isLoading: loadingMilestones, refetch: refetchMilestones } = useJobMilestones(jobId);
+  const { milestones, isLoading: loadingMilestones } = useJobMilestones(jobId);
   const { details } = useJobMilestonesDetails(jobId);
   const { dispute } = useDispute(jobId);
 
@@ -72,32 +69,26 @@ export function MilestoneSection({
   const {
     completeMilestone,
     isPending: isCompletePending,
-    isSuccess: isCompleteSuccess,
     writeError: completeError,
   } = useCompleteMilestone();
 
   const {
     releaseMilestone,
     isPending: isReleasePending,
-    isSuccess: isReleaseSuccess,
     writeError: releaseError,
   } = useReleaseMilestone();
 
   const {
     addMilestone,
     isPending: isAddMilestonePending,
-    isSuccess: isAddMilestoneSuccess,
     writeError: addMilestoneError,
   } = useAddMilestone();
 
   const {
     flagDispute,
     isPending: isFlagPending,
-    isSuccess: isFlagSuccess,
     writeError: flagError,
   } = useFlagDispute();
-
-  const hasMilestones = details?.usesMilestones && milestones && milestones.length > 0;
 
   const [enableSuccess, setEnableSuccess] = useState(false);
 

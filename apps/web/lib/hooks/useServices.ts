@@ -1,11 +1,9 @@
 import { useReadContract, useReadContracts, useWriteContract, usePublicClient } from 'wagmi';
-import { useQuery } from '@tanstack/react-query';
 import { useState, useEffect, useCallback } from 'react';
 import { parseEther } from 'viem';
 import { SERVICE_REGISTRY_ABI } from '@/lib/contracts/abis';
 import { getContractAddress } from '@/lib/contracts/config';
-import { getQueryConfig } from '@/lib/queryConfig';
-import { debugLog, debugError } from '@/lib/debug';
+import { debugLog } from '@/lib/debug';
 import type { Service } from '@/lib/types/contracts';
 
 const SERVICE_REGISTRY_ADDRESS = getContractAddress('SERVICE_REGISTRY');
@@ -37,7 +35,7 @@ function mapServiceData(id: bigint, data: unknown): Service | null {
 
   // Legacy array format (includes paymentAddress at index 10)
   if (Array.isArray(data) && data.length >= 11) {
-    const [serviceId, provider, agentId, name, description, metadataURI, price, paymentToken, paymentAddress, isActive, createdAt] = data;
+    const [, provider, agentId, name, description, metadataURI, price, paymentToken, paymentAddress, isActive, createdAt] = data;
     return {
       id,
       provider: (provider as `0x${string}`) || '0x',
@@ -84,7 +82,7 @@ export function useActiveServiceCount() {
       debugLog('hooks', `useActiveServiceCount: Retrieved count: ${countValue}`);
       setCount(countValue);
     } catch (err) {
-      debugError('hooks', 'useActiveServiceCount: Error fetching count', err);
+      console.error('useActiveServiceCount: Error fetching count', err);
       setError(err instanceof Error ? err : new Error('Failed to fetch count'));
       setCount(0);
     } finally {
@@ -231,11 +229,7 @@ export function useProviderServices(providerAddress: `0x${string}` | undefined) 
   };
 }
 
-export function useAgentServices(agentId: bigint | number | undefined) {
-  const id = agentId !== undefined
-    ? (typeof agentId === 'bigint' ? agentId : BigInt(agentId))
-    : undefined;
-
+export function useAgentServices(_agentId?: number) {
   return useProviderServices(undefined); // Simplified - would need contract query
 }
 

@@ -24,5 +24,3 @@ export {
 } from './middleware';
 export type { X402RouteConfig } from './middleware';
 
-const _schemesCreatePaymentRequired = {}; // Prevent unused export warning
-const _typesRouteConfig = {}; // Prevent unused export warning

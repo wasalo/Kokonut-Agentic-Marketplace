@@ -28,7 +28,7 @@ export default function FeaturedAgentsPage() {
 }
 
 function AgentCard({ agentId }: { agentId: number }) {
-  const { score, isLoading, decayFactor, halfLifeDays, daysElapsed } = useAgentReputation(`0x${agentId.toString(16)}`, 1000);
+  const { score, isLoading, decayFactor, daysElapsed } = useAgentReputation(`0x${agentId.toString(16)}`, 1000);
   
   if (isLoading) {
     return <div className="border rounded-lg p-6 bg-white shadow-sm">Loading...</div>;

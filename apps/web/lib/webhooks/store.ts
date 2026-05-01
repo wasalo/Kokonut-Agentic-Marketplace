@@ -11,8 +11,6 @@ import type {
 } from './types';
 import { generateWebhookId, generateSecret, MAX_WEBHOOKS_PER_AGENT } from './types';
 
-const MAX_DELIVERIES = 1000;
-
 interface WebhookState {
   webhooks: Webhook[];
   deliveries: WebhookDelivery[];

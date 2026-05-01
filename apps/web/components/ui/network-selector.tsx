@@ -2,7 +2,7 @@
 
 import { useCallback, useMemo, useState, useEffect, useRef } from 'react';
 import { usePathname, useRouter, useSearchParams } from 'next/navigation';
-import { ChevronDown, Check, Globe } from 'lucide-react';
+import { ChevronDown, Check } from 'lucide-react';
 import { SUPPORTED_CHAINS, getChainById, getDefaultChain } from '@/lib/chains';
 import { isChainDeployed } from '@/lib/contracts/config';
 import { cn } from '@/lib/utils';

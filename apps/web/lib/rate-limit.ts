@@ -1,5 +1,5 @@
 import { NextRequest, NextResponse } from 'next/server';
-import { checkApiKeyRateLimit, incrementApiKeyUsage, getTierConfig, type ApiKeyTier } from './api-keys';
+import { checkApiKeyRateLimit, incrementApiKeyUsage, type ApiKeyTier } from './api-keys';
 
 interface RateLimitEntry {
   count: number;

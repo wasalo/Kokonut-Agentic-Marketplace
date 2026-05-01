@@ -6,7 +6,6 @@ import {
   useWebhookStore,
   type WebhookRegistration,
   type WebhookUpdate,
-  type WebhookEventType,
 } from '@/lib/webhooks';
 
 export function useWebhooks() {

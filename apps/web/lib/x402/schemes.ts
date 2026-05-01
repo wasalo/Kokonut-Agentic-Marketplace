@@ -12,8 +12,8 @@ import {
   type PaymentRequired,
   type SettlementResponse,
 } from './types';
-import { getChainConfig, type X402ChainConfig } from './chains';
-import { createPublicClient, createWalletClient, http, parseAbi } from 'viem';
+import { type X402ChainConfig } from './chains';
+import { createWalletClient, http, parseAbi } from 'viem';
 import { privateKeyToAccount } from 'viem/accounts';
 
 const USDC_ABI = parseAbi([

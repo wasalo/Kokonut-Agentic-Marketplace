@@ -12,7 +12,7 @@ export default function IdentityPage(): JSX.Element {
   const { isConnected } = useAccount();
   const [searchQuery, setSearchQuery] = useState('');
   const [resolvedAddress, setResolvedAddress] = useState<string | null>(null);
-  const [isResolving, setIsResolving] = useState(false);
+  const [, setIsResolving] = useState(false);
 
   // ENS forward resolution (ENS name -> address)
   const { data: ensAddress, isLoading: ensLoading } = useEnsAddress({

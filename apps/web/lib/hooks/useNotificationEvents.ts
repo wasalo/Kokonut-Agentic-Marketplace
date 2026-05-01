@@ -7,34 +7,8 @@ import { getContractAddress, debugLog, DEFAULT_FROM_BLOCK } from '@/lib/contract
 import { useNotifications } from '@/lib/hooks/useNotifications';
 import { triggerWebhooks } from '@/lib/webhooks/trigger';
 import { sendNotificationEmail } from '@/lib/emails/notification-bridge';
-import { validateJobData, commonRules } from '@/lib/utils/validation';
 import { withRetry } from '@/lib/utils/retry';
 import { useNetworkStatus } from '@/lib/hooks/useNetworkStatus';
-
-function isValidAddress(value: unknown): value is string {
-  return commonRules.isAddress(value);
-}
-
-function isValidBigInt(value: unknown): value is bigint {
-  return typeof value === 'bigint';
-}
-
-function safeGetAddress(args: Record<string, unknown>, key: string): string | undefined {
-  const value = args[key];
-  return isValidAddress(value) ? value : undefined;
-}
-
-function safeGetBigInt(args: Record<string, unknown>, key: string): bigint | undefined {
-  const value = args[key];
-  return isValidBigInt(value) ? value : undefined;
-}
-
-function safeGetNumber(args: Record<string, unknown>, key: string): number | undefined {
-  const value = args[key];
-  if (typeof value === 'number') return value;
-  if (typeof value === 'bigint') return Number(value);
-  return undefined;
-}
 
 const AGENTIC_COMMERCE_ADDRESS = getContractAddress('AGENTIC_COMMERCE');
 const SERVICE_REGISTRY_ADDRESS = getContractAddress('SERVICE_REGISTRY');

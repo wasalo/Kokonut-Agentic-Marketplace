@@ -197,7 +197,7 @@ export interface AgentStats {
   isLoading: boolean;
 }
 
-export function useAgentStats(agentId: bigint | undefined): AgentStats {
+export function useAgentStats(_agentId: bigint | undefined): AgentStats {
   // Simplified stats - would need events indexing for accurate data
   return {
     jobsCompleted: 0,

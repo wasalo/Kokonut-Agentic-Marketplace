@@ -1,7 +1,6 @@
 import { test, expect } from '@playwright/test';
 
 const MIN_USDC = '0.01';
-const MIN_ETH = '0.01';
 
 test.describe('Form View Tests - No Wallet Required', () => {
   test('Job Creation form loads with all fields', async ({ page }) => {

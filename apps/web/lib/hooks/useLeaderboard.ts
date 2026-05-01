@@ -1,10 +1,10 @@
 'use client';
 
 import { useState, useEffect, useCallback, useMemo } from 'react';
-import { usePublicClient } from 'wagmi';
-import { ERC8004_ABI } from '@/lib/8004contracts';
+
+
 import { debugLog, debugError } from '@/lib/debug';
-import { getContractAddress, CONTRACT_ADDRESSES } from '@/lib/contracts/config';
+
 import { calculateHealthScore, HealthScore } from '@/lib/healthScore';
 import { KokonutAgent } from './useKokonutAgents';
 
@@ -112,13 +112,6 @@ export function useLeaderboard(
   const [period, setPeriod] = useState<LeaderboardPeriod>('all');
   const [lastUpdated, setLastUpdated] = useState<Date | null>(null);
 
-  const publicClient = usePublicClient();
-
-  const REGISTRY_ADDRESS = getContractAddress(
-    process.env.NEXT_PUBLIC_ERC8004_REGISTRY,
-    CONTRACT_ADDRESSES.sepolia.erc8004Registry
-  );
-
   const refresh = useCallback(async () => {
     if (kokonutAgents.length === 0) {
       setEntries([]);
@@ -190,7 +183,7 @@ export function useLeaderboard(
     } finally {
       setIsLoading(false);
     }
-  }, [publicClient, kokonutAgents, chainId]);
+  }, [kokonutAgents, chainId]);
 
   useEffect(() => {
     refresh();

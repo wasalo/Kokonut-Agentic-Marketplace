@@ -1,6 +1,6 @@
 'use client';
 
-import { ExternalLink, ImageIcon } from 'lucide-react';
+import { ExternalLink } from 'lucide-react';
 import { Card } from '@heroui/react';
 import type { PortfolioItem } from './PortfolioForm';
 

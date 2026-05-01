@@ -160,7 +160,7 @@ export default function CreateServicePage() {
   const [formData, setFormData] = useState<FormData>(initialFormData);
   const [formErrors, setFormErrors] = useState<FormErrors>(initialFormErrors);
   const [selectedAgentId, setSelectedAgentId] = useState<number | null>(null);
-  const [hasAttemptedSubmit, setHasAttemptedSubmit] = useState(false);
+
 
   // Step 1: Check wallet agents with full details
   const {
@@ -312,9 +312,6 @@ export default function CreateServicePage() {
         return;
       }
 
-      // Mark as attempted submit to show validation errors
-      setHasAttemptedSubmit(true);
-
       // Validate all fields
       const errors: FormErrors = {
         name: validateName(formData.name),
@@ -382,17 +379,8 @@ export default function CreateServicePage() {
   // Apply form submission debouncing (500ms cooldown for better UX)
   const { handleSubmit, isSubmitting, timeUntilNextSubmit } = useFormSubmit(performSubmit, 500);
 
-  // Check if form is valid - fields filled correctly (Option A: form is initially valid if filled)
-  const formPrice = parseFloat(formData.price);
-  const isFormValid =
-    hasAttemptedSubmit &&  // Option B: Shows errors on first attempt
-    Object.values(formErrors).every(error => error === null) &&
-    formData.name.trim().length > 0 &&
-    formData.description.trim().length > 0 &&
-    !isNaN(formPrice) &&
-    formPrice > 0;
-
   // Simple validity check for button enabled state (Option A: allow clicking if fields have content)
+  const formPrice = parseFloat(formData.price);
   const canSubmit =
     formData.name.trim().length > 0 &&
     formData.description.trim().length > 0 &&

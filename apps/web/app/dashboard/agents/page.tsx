@@ -6,7 +6,7 @@ import { Wallet, Plus, ArrowLeft, ExternalLink, Settings, Package, Star } from '
 import NextLink from 'next/link';
 import { useWalletAgentsWithDetails } from '@/lib/hooks/useWalletAgentsWithDetails';
 import { useProviderServices } from '@/lib/hooks/useServices';
-import { useJobs } from '@/lib/hooks/useJobs';
+
 import { useAgentReputation } from '@/lib/hooks/useAgentReputation';
 
 function WalletConnectPrompt() {
@@ -31,7 +31,7 @@ function AgentCard({
   owner: `0x${string}` | undefined;
 }) {
   const { services, isLoading: isLoadingServices } = useProviderServices(owner);
-  const { normalizedRating, initialScore } = useAgentReputation(owner);
+  const { normalizedRating } = useAgentReputation(owner);
   const capabilities = agent.metadata?.capabilities || [];
 
   return (

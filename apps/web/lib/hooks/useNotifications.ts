@@ -7,7 +7,7 @@ import {
   type NotificationType,
   type NotificationAction,
 } from '@/lib/notifications';
-import { formatAddress } from '@/lib/utils';
+
 
 export function useNotifications() {
   const {
@@ -82,7 +82,7 @@ export function useNotificationActions() {
         type: 'job',
         action: 'job.created',
         title: 'New Job Available',
-        message: `A new job has been created${client ? ` by ${formatAddress(client)}` : ''}`,
+        message: `A new job has been created${client ? ` by ${client.slice(0, 6)}...${client.slice(-4)}` : ''}`,
         link: `/jobs/${jobId}`,
         metadata: { jobId: jobId.toString() },
       });

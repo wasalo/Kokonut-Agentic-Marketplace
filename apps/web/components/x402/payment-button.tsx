@@ -5,7 +5,6 @@ import { useWalletClient } from 'wagmi';
 import {
   type PaymentRequired,
   formatX402Amount,
-  X402Client,
   getChainConfig,
 } from '@/lib/x402';
 

@@ -64,7 +64,7 @@ export default function AgentSettingsPage(): JSX.Element {
     }
   }, [agents.length, selectedAgentIndex]);
 
-  const { jobsCompleted, rating, feedbackCount, isLoading: isLoadingStats } = useAgentStats(agentId);
+  const { jobsCompleted, rating, feedbackCount } = useAgentStats(agentId);
 
   const [metadataKey, setMetadataKey] = useState('');
   const [metadataValue, setMetadataValue] = useState('');
@@ -84,6 +84,7 @@ export default function AgentSettingsPage(): JSX.Element {
   const { setAgentURI, hash: uriHash, isPending: isUriPending } = useSetAgentURI();
   const { setMetadata, hash: metaHash, isPending: isMetaPending } = useSetAgentMetadata();
 
+  const { isSuccess: uriSuccess } = useWaitForTransactionReceipt({ hash: uriHash });
   const { isSuccess: metaSuccess } = useWaitForTransactionReceipt({ hash: metaHash });
 
   const handleSetMetadata = useCallback(
@@ -318,8 +319,8 @@ export default function AgentSettingsPage(): JSX.Element {
         <PortfolioForm
           portfolio={portfolio}
           onChange={handlePortfolioChange}
-          isSaving={isSavingPortfolio}
-          saveSuccess={portfolioSuccess}
+          isSaving={isSavingPortfolio || isUriPending}
+          saveSuccess={portfolioSuccess || uriSuccess}
         />
 
         {/* Email Preferences */}

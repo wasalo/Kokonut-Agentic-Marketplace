@@ -27,7 +27,7 @@ export function useNetworkStatus(): NetworkStatus {
 
   const handleOffline = useCallback(() => {
     debugLog('network', 'Network: Offline');
-    setStatus(prev => ({
+    setStatus(_prev => ({
       isOnline: false,
       isOffline: true,
       wasOffline: true,

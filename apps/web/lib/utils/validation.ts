@@ -1,8 +1,8 @@
 'use client';
 
-import { debugLog, debugError } from '@/lib/debug';
+import { debugError } from '@/lib/debug';
 
-export interface ValidationRule<T> {
+export interface ValidationRule<_T = unknown> {
   field: string;
   validate: (value: unknown) => boolean;
   message: string;

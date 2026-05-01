@@ -1,8 +1,7 @@
 import { http, createConfig, fallback } from 'wagmi';
-import { sepolia, mainnet, base, arbitrum, optimism, polygon, gnosis, celo, scroll, linea } from 'wagmi/chains';
+import { sepolia, mainnet } from 'wagmi/chains';
 import { injected, walletConnect } from 'wagmi/connectors';
 import { getContractAddress, getContractsByCAIP } from '@/lib/contracts/config';
-import { chainIdToCAIP } from '@/lib/caip';
 
 const projectId = process.env.NEXT_PUBLIC_WALLETCONNECT_PROJECT_ID || 'demo';
 const alchemyApiKey = process.env.NEXT_PUBLIC_ALCHEMY_API_KEY || '';

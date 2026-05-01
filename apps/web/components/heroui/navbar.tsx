@@ -1,6 +1,6 @@
 'use client';
 
-import { Menu, X, ChevronDown, Wallet, Sun, Moon } from 'lucide-react';
+import { Menu, X, Wallet, Sun, Moon } from 'lucide-react';
 import { useState, useCallback, useEffect } from 'react';
 import { useTheme } from '@/contexts/ThemeContext';
 import NextLink from 'next/link';

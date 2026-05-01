@@ -1,4 +1,4 @@
-import { useMemo, useCallback } from 'react';
+import { useMemo } from 'react';
 import { useChainlinkEthUsdPrice } from './useChainlinkPrice';
 import { CONTRACT_ADDRESSES } from '@/lib/contracts/config';
 

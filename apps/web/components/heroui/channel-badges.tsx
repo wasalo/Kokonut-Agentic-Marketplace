@@ -13,7 +13,6 @@ export function ChannelBadges({
   channels,
   maxDisplay = 4,
   showLabels = true,
-  size = 'sm',
 }: ChannelBadgesProps) {
   const activeChannels = Object.entries(channels).filter(([, value]) =>
     value ? Object.keys(value).length > 0 : false

@@ -3,7 +3,7 @@ import { useWatchContractEvent } from 'wagmi';
 import { useQueryClient } from '@tanstack/react-query';
 import { AGENTIC_COMMERCE_ABI } from '@/lib/contracts/abis';
 import { CONTRACT_ADDRESSES } from '@/lib/contracts/config';
-import { debugLog, debugError } from '@/lib/debug';
+import { debugLog } from '@/lib/debug';
 
 /* eslint-disable @typescript-eslint/no-explicit-any */
 

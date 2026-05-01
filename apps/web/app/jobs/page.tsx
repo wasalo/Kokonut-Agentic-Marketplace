@@ -27,7 +27,7 @@ import { useDebounce } from '@/lib/hooks/useDebounce';
 import { EmptyStateJobs } from '@/components/ui/empty-state';
 import { Pagination } from '@/components/ui/pagination';
 
-function JobCard({ job, isConnected }: { job: any; isConnected: boolean }) {
+function JobCard({ job }: { job: any }) {
   const { service } = useService(job.serviceId ?? BigInt(0));
   const { isBookmarked, toggleBookmark } = useJobBookmarks();
   const { getJobCount } = useBookmarkCounts();
@@ -362,7 +362,7 @@ export default function JobsPage(): JSX.Element {
         <>
           <div className="space-y-3">
             {paginatedJobs.map(job => (
-              <JobCard key={job.id.toString()} job={job} isConnected={isConnected} />
+              <JobCard key={job.id.toString()} job={job} />
             ))}
           </div>
 

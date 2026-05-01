@@ -1,7 +1,7 @@
 "use client";
 
 import { useReadContract, useWriteContract, useWaitForTransactionReceipt } from 'wagmi';
-import { parseAbiItem } from 'viem';
+
 import { getContractAddress } from '@/lib/contracts/config';
 import { ADMIN_REGISTRY_ABI } from '@/lib/contracts/abis';
 

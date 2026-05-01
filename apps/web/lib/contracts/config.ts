@@ -4,7 +4,6 @@
 // CAIP-2 based contract addresses for multi-chain support
 // Format: eip155:<chainId> - matching CAIP-2 standard
 import { chainIdToCAIP } from '@/lib/caip';
-import { isValidCAIP, CAIP_NAMESPACE } from '@/lib/caip';
 
 const SEPOLIA_CAIP = chainIdToCAIP(11155111);
 

@@ -25,7 +25,7 @@ import {
   CircleDot,
   Link,
 } from 'lucide-react';
-import { Card, Chip } from '@heroui/react';
+import { Card } from '@heroui/react';
 import { formatUnits, toHex, keccak256 } from 'viem';
 import {
   useJob,
@@ -146,7 +146,7 @@ export default function JobDetailPage({
   // Milestone enable state
   const { enableJobMilestones, hash: milestoneHash, isPending: isMilestonePending } = useEnableJobMilestones();
   const [showMilestonePrompt, setShowMilestonePrompt] = useState(false);
-  const [milestoneSetupDone, setMilestoneSetupDone] = useState(false);
+  const [, setMilestoneSetupDone] = useState(false);
 
   // Check for pending milestone job on mount
   // Note: isClient derived inline since it's defined later in component
@@ -702,6 +702,11 @@ export default function JobDetailPage({
           <div className="space-y-3">
             {job.status === JobStatus.Open && isClient && (
               <>
+                {needsApproval && isUSDC && (
+                  <div className="p-3 bg-warning/10 border border-warning/20 rounded-lg text-sm text-warning">
+                    USDC approval required before funding
+                  </div>
+                )}
                 {/* Unified Fund Job Button - handles approval + funding */}
                 <button
                   onClick={() => {

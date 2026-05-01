@@ -13,13 +13,10 @@ import {
   decodePaymentRequired,
   encodePaymentPayload,
   decodePaymentPayload,
-  encodeSettlementResponse,
-  decodeSettlementResponse,
   type X402Headers,
 } from './types';
 import { getChainConfig, getDefaultChain, type X402ChainConfig } from './chains';
-import { privateKeyToAccount, signTypedData } from 'viem/accounts';
-import { createWalletClient, http } from 'viem';
+import { privateKeyToAccount } from 'viem/accounts';
 
 export interface X402ClientConfig {
   privateKey: string;
@@ -143,35 +140,6 @@ export class X402Client {
   }
 
   async createPaymentPayload(paymentRequired: PaymentRequired): Promise<PaymentPayload> {
-    const domain = {
-      name: 'Kokonut',
-      version: '1',
-      chainId: this.chainConfig.chainId,
-      verifyingContract: paymentRequired.token as `0x${string}`,
-    };
-
-    const types = {
-      Payment: [
-        { name: 'scheme', type: 'string' },
-        { name: 'amount', type: 'uint256' },
-        { name: 'network', type: 'string' },
-        { name: 'token', type: 'address' },
-        { name: 'recipient', type: 'address' },
-        { name: 'max', type: 'uint256' },
-        { name: 'validUntil', type: 'uint256' },
-      ],
-    };
-
-    const message = {
-      scheme: paymentRequired.scheme,
-      amount: paymentRequired.amount,
-      network: paymentRequired.network,
-      token: paymentRequired.token,
-      recipient: paymentRequired.recipient,
-      max: paymentRequired.max || '0',
-      validUntil: Math.floor((paymentRequired.expires || Date.now() + 15 * 60 * 1000) / 1000).toString(),
-    };
-
     // Sign via facilitator - client just provides requirement, facilitator handles signing
     return {
       scheme: paymentRequired.scheme,

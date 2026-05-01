@@ -8,10 +8,8 @@ import { useState, useCallback } from 'react';
 import { useWalletClient } from 'wagmi';
 import {
   type PaymentRequired,
-  type PaymentPayload,
   type SettlementResponse,
   decodePaymentRequired,
-  encodePaymentPayload,
   getChainConfig,
 } from '@/lib/x402';
 
@@ -70,12 +68,17 @@ export function useX402Payment(options: UseX402PaymentOptions = {}): UseX402Paym
     setState((s) => ({ ...s, isProcessing: true, error: null }));
 
     try {
-      const chainConfig = getChainConfig(state.paymentRequired.network);
+      const network = state.paymentRequired.network || options?.chain;
+      if (!network) {
+        throw new Error('No network specified in payment requirement or options');
+      }
+      const chainConfig = getChainConfig(network);
       if (!chainConfig) {
-        throw new Error(`Unsupported network: ${state.paymentRequired.network}`);
+        throw new Error(`Unsupported network: ${network}`);
       }
 
-      const response = await fetch(`${chainConfig.facilitator}/pay`, {
+      const facilitator = options?.facilitator || chainConfig.facilitator;
+      const response = await fetch(`${facilitator}/pay`, {
         method: 'POST',
         headers: {
           'Content-Type': 'application/json',

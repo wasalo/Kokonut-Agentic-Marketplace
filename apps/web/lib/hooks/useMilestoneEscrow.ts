@@ -1,7 +1,7 @@
 import { useReadContract, useWriteContract, useWaitForTransactionReceipt } from 'wagmi';
-import { MILESTONE_ESCROW_ABI, MILESTONE_ESCROW_EVENTS } from '@/lib/contracts/abis';
+import { MILESTONE_ESCROW_ABI } from '@/lib/contracts/abis';
 import { getContractAddress, debugLog } from '@/lib/contracts/config';
-import { parseEventLogs } from 'viem';
+
 
 const MILESTONE_ESCROW_ADDRESS = getContractAddress('MILESTONE_ESCROW');
 

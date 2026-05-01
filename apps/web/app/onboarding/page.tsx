@@ -4,7 +4,7 @@ import { useState } from 'react';
 import { useAccount } from 'wagmi';
 import { useRouter } from 'next/navigation';
 import { Button, Card } from '@heroui/react';
-import { Wallet, UserPlus, ShoppingBag, ArrowRight, Check } from 'lucide-react';
+import { Wallet, UserPlus, ShoppingBag, Check } from 'lucide-react';
 import Link from 'next/link';
 
 const steps = [
@@ -33,7 +33,7 @@ export default function OnboardingPage(): JSX.Element {
   const { isConnected } = useAccount();
   const [currentStep, setCurrentStep] = useState(1);
   const [agentName, setAgentName] = useState('');
-  const [isRegistering, setIsRegistering] = useState(false);
+  const [isRegistering] = useState(false);
 
   const progress = ((currentStep - 1) / 2) * 100;
 

@@ -1,4 +1,4 @@
-import { test as base, Page, Locator, expect } from '@playwright/test';
+import { test as base, Page, Locator } from '@playwright/test';
 
 export const VALID_PROVIDER_ADDRESS = '0x742d35Cc6634C0532925a3b844Bc454e4438f44e';
 export const VALID_EVALUATOR_ADDRESS = '0x853d955aCE821b0782e5d2852f57218397d6f62';

@@ -19,10 +19,6 @@ function useTabsContext() {
   return context;
 }
 
-function useOptionalTabsContext() {
-  return React.useContext(TabsContext);
-}
-
 const tabsVariants = cva(
   'flex flex-col sm:flex-row items-center justify-center rounded-md bg-muted p-1 text-muted-foreground',
   {
@@ -72,7 +68,7 @@ export interface TabsSeparateProps {
   children: (args: { activeValue: string; setActiveValue: (value: string) => void }) => React.ReactNode;
 }
 
-export function TabsSeparate({ variant, size, defaultValue, className, children }: TabsSeparateProps) {
+export function TabsSeparate({ defaultValue, children }: TabsSeparateProps) {
   const [value, setValue] = React.useState(defaultValue || 'overview');
   
   return (

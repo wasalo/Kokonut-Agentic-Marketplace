@@ -3,20 +3,19 @@
 import { use, Suspense } from 'react';
 import { useState } from 'react';
 import Link from 'next/link';
-import { Card, Button, Badge, Skeleton } from '@heroui/react';
+import { Card, Badge, Skeleton } from '@heroui/react';
 import { useAgentReputation } from '@/lib/hooks/useAgentReputation';
 import { useAgentOwner, useAgentTokenURI } from '@/lib/hooks/useAgents';
 import { useAgentServices } from '@/lib/hooks/useServices';
 import { useJobs } from '@/lib/hooks/useJobs';
 import { useAgentSkills } from '@/lib/hooks/useSkills';
-import { useAccount } from 'wagmi';
+
 import { formatAddress } from '@/lib/utils';
 import { 
   Wallet, 
   Package, 
   Briefcase, 
   Star,
-  Folder,
   Plug,
   ExternalLink,
   Copy,
@@ -43,8 +42,6 @@ function AgentHeader({
   metadata: any;
 }) {
   const [copied, setCopied] = useState(false);
-  const { isConnected } = useAccount();
-  
   const agentName = metadata?.name || `Agent #${agentId}`;
   const agentDescription = metadata?.description || '';
   const capabilities = metadata?.capabilities || [];
@@ -158,14 +155,12 @@ function StatsGrid({
   score, 
   servicesCount, 
   providerJobsCount,
-  clientJobsCount,
   skillsCount,
   isLoading 
 }: { 
   score: number;
   servicesCount: number;
   providerJobsCount: number;
-  clientJobsCount: number;
   skillsCount: number;
   isLoading: boolean;
 }) {
@@ -223,7 +218,6 @@ function OverviewTab({
   halfLifeDays,
   servicesCount,
   providerJobsCount,
-  clientJobsCount,
   skillsCount
 }: { 
   score: number;
@@ -232,7 +226,6 @@ function OverviewTab({
   halfLifeDays: number;
   servicesCount: number;
   providerJobsCount: number;
-  clientJobsCount: number;
   skillsCount: number;
 }) {
   return (
@@ -241,7 +234,6 @@ function OverviewTab({
         score={score}
         servicesCount={servicesCount}
         providerJobsCount={providerJobsCount}
-        clientJobsCount={clientJobsCount}
         skillsCount={skillsCount}
         isLoading={false}
       />
@@ -270,7 +262,7 @@ function OverviewTab({
             </h3>
             <div className="space-y-0">
               <StatRow label="Jobs as Provider" value={providerJobsCount} />
-              <StatRow label="Jobs as Client" value={clientJobsCount} />
+              <StatRow label="Jobs as Client" value={clientJobs.length} />
               <StatRow label="Services Listed" value={servicesCount} />
               <StatRow label="Skills Registered" value={skillsCount} />
             </div>
@@ -413,7 +405,7 @@ function PortfolioTab({ metadata }: { metadata: any }) {
   return <PortfolioGrid items={portfolio} />;
 }
 
-function ConnectionsTab({ metadata, owner }: { metadata: any; owner: `0x${string}` | undefined }) {
+function ConnectionsTab({ metadata }: { metadata: any }) {
   const endpoints = metadata?.endpoints || {};
   const channels = metadata?.channels || {};
   
@@ -587,10 +579,10 @@ export default function AgentDetailPage({ params }: AgentDetailPageProps) {
   const agentId = BigInt(id);
   const agentAddress = `0x${id}` as `0x${string}`;
   
-  const { owner, isLoading: isLoadingOwner } = useAgentOwner(agentId);
+  const { owner } = useAgentOwner(agentId);
   const { metadata } = useAgentTokenURI(agentId);
-  const { score, initialScore, decayFactor, halfLifeDays, isLoading: isLoadingReputation } = useAgentReputation(agentAddress);
-  const { services, isLoading: isLoadingServices } = useAgentServices(agentId);
+  const { score, initialScore, decayFactor, halfLifeDays } = useAgentReputation(agentAddress);
+  const { services, isLoading: isLoadingServices } = useAgentServices();
   const { jobs: allJobs } = useJobs(0, 100);
   const { skillIds, isLoading: isLoadingSkills } = useAgentSkills(agentId);
   
@@ -603,8 +595,6 @@ export default function AgentDetailPage({ params }: AgentDetailPageProps) {
     j.client && j.client.toLowerCase() === agentAddress.toLowerCase()
   ) || [];
   
-  const isLoading = isLoadingOwner || isLoadingReputation;
-
   const tabs = [
     { id: 'overview', label: 'Overview' },
     { id: 'services', label: `Services (${services?.length || 0})` },
@@ -648,7 +638,6 @@ export default function AgentDetailPage({ params }: AgentDetailPageProps) {
               halfLifeDays={halfLifeDays}
               servicesCount={services?.length || 0}
               providerJobsCount={providerJobs.length}
-              clientJobsCount={clientJobs.length}
               skillsCount={skillIds?.length || 0}
             />
           </Suspense>
@@ -671,7 +660,7 @@ export default function AgentDetailPage({ params }: AgentDetailPageProps) {
         )}
         
         {activeTab === 'connections' && (
-          <ConnectionsTab metadata={metadata} owner={owner} />
+          <ConnectionsTab metadata={metadata} />
         )}
       </div>
     </div>

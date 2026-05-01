@@ -1,7 +1,7 @@
 'use client';
 
-import { useState, useCallback, Suspense, useEffect, useRef, useMemo } from 'react';
-import { useAccount, useReadContract, useWaitForTransactionReceipt, usePublicClient, useWriteContract } from 'wagmi';
+import { useState, useCallback, Suspense, useEffect } from 'react';
+import { useAccount, useWaitForTransactionReceipt, usePublicClient, useWriteContract } from 'wagmi';
 import { erc20Abi } from 'viem';
 import { useRouter, useSearchParams } from 'next/navigation';
 import { ArrowLeft, Loader2, ShieldCheck, AlertTriangle, Coins } from 'lucide-react';
@@ -10,7 +10,7 @@ import { Card } from '@heroui/react';
 import { useService } from '@/lib/hooks/useServices';
 import { useCreateJobFromService, useCreateJobWithRandomEvaluator, useCreateJobV8, useJobCount, useSetBudget } from '@/lib/hooks/useJobs';
 import { CONTRACT_ADDRESSES, getContractAddress } from '@/lib/contracts/config';
-import { AGENTIC_COMMERCE_ABI } from '@/lib/contracts/abis';
+
 import { validateAddress, validateDeadline, validateStringLength } from '@/lib/hooks/useValidation';
 import { TransactionError } from '@/components/TransactionError';
 import { useFormSubmit, formatTimeRemaining } from '@/lib/hooks/useDebounce';
@@ -92,7 +92,7 @@ function CreateJobContent() {
   const serviceId = serviceIdParam ? BigInt(serviceIdParam) : undefined;
   const { service } = useService(serviceId ?? BigInt(0));
 
-  const { formatUsdValue, ethToUsdcRate } = useTokenPriceConversion();
+  const { formatUsdValue } = useTokenPriceConversion();
 
   const {
     count: jobCount,
@@ -101,11 +101,6 @@ function CreateJobContent() {
     percentageUsed,
     remainingJobs,
   } = useClientJobCount(address);
-
-  const AGENTIC_COMMERCE_ADDRESS = getContractAddress(
-    process.env.NEXT_PUBLIC_AGENTIC_COMMERCE_ADDRESS,
-    CONTRACT_ADDRESSES.sepolia.agenticCommerce
-  );
 
   // V9 has hardcoded 1% platform fee (100 basis points)
   const platformFeePercent = 1;
@@ -116,10 +111,10 @@ function CreateJobContent() {
   const [budget, setBudget] = useState('');
   const [paymentToken, setPaymentToken] = useState<Token>(USDC_TOKEN);
   const [useMilestones, setUseMilestones] = useState(false);
-  const [clientReview, setClientReview] = useState(true);
+  const [clientReview] = useState(true);
   const [fundJobNow, setFundJobNow] = useState(false);
 
-  const { minBudget: minBudgetInToken, isLoading: isMinBudgetLoading } = useMinBudget(
+  const { minBudget: minBudgetInToken } = useMinBudget(
     paymentToken.address as `0x${string}`,
     paymentToken.decimals
   );
@@ -145,7 +140,6 @@ function CreateJobContent() {
   } = useCreateJobFromService();
 
   const {
-    createJobWithRandomEvaluator,
     hash: randomHash,
     isPending: isRandomPending,
     error: randomError,
@@ -158,7 +152,7 @@ function CreateJobContent() {
     error: v8Error,
   } = useCreateJobV8();
 
-  const { setBudget: setJobBudget, isPending: isSetBudgetPending } = useSetBudget();
+  const { setBudget: setJobBudget } = useSetBudget();
   const jobCounter = useJobCount();
 
   const txHash = serviceHash || randomHash || v8Hash;
