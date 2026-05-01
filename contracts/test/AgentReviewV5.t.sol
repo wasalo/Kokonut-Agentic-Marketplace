@@ -21,8 +21,8 @@ contract AgentReviewV5Test is Test {
     uint256 public constant SLASH_PERCENTAGE = 5000;
     uint256 public constant FEE_DENOMINATOR = 10000;
 
-    event ProposalCreated(uint256 indexed proposalId, address indexed proposer, string title, uint256 reward);
-    event EvaluationSubmitted(uint256 indexed proposalId, address indexed evaluator, int256 confidenceScore, uint256 stakeAmount);
+    event ProposalCreated(uint256 indexed proposalId, address indexed proposer, string title, uint256 indexed reward);
+    event EvaluationSubmitted(uint256 indexed proposalId, address indexed evaluator, int256 indexed confidenceScore, uint256 stakeAmount);
     event DecisionAttested(uint256 indexed proposalId, address indexed attestor, address indexed winningEvaluator);
     event SlashManagerSet(address indexed slashManager);
 

@@ -3,7 +3,6 @@
 import { useCallback, useMemo } from 'react';
 import {
   useNotificationStore,
-  type Notification,
   type NotificationType,
   type NotificationAction,
 } from '@/lib/notifications';

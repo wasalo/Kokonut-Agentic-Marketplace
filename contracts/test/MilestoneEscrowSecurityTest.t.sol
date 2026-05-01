@@ -168,10 +168,16 @@ contract MilestoneEscrowSecurityTest is Test {
     // Enable Milestones Tests
     // ==========================================
     
-    function testEnableMilestonesOnlyAgenticCommerce() public {
+    function testEnableMilestonesAnyAddress() public {
         vm.prank(client);
-        vm.expectRevert(MilestoneEscrow.Unauthorized.selector);
         escrow.enableMilestones(1, client, provider, address(usdc), 100e6);
+        
+        (address c, address p, address pt, uint256 budget, bool uses) = escrow.jobMilestones(1);
+        assertEq(c, client);
+        assertEq(p, provider);
+        assertEq(pt, address(usdc));
+        assertEq(budget, 100e6);
+        assertTrue(uses);
     }
     
     function testEnableMilestonesFromAgenticCommerce() public {

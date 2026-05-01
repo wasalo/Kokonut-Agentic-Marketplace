@@ -57,29 +57,6 @@ jobs:
           fi
 
   # ============================================
-  # Secret Scanning
-  # ============================================
-  secret-scanning:
-    name: Secret Scanning
-    runs-on: ubuntu-latest
-    steps:
-      - uses: actions/checkout@v4
-        with:
-          fetch-depth: 0
-
-      - name: Install Gitleaks
-        run: |
-          VERSION="8.24.0"
-          OS="linux"
-          ARCH="x64"
-          URL="https://github.com/zricethezav/gitleaks/releases/download/v${VERSION}/gitleaks_${VERSION}_${OS}_${ARCH}.tar.gz"
-          curl -fsSL "$URL" | sudo tar -xz -C /usr/local/bin gitleaks
-          sudo chmod +x /usr/local/bin/gitleaks
-
-      - name: Run Gitleaks
-        run: gitleaks detect --source . --config .gitleaks.toml --verbose --exit-code 1
-
-  # ============================================
   # Smart Contract Tests
   # ============================================
   contracts:

@@ -218,6 +218,7 @@ function OverviewTab({
   halfLifeDays,
   servicesCount,
   providerJobsCount,
+  clientJobsCount,
   skillsCount
 }: { 
   score: number;
@@ -226,6 +227,7 @@ function OverviewTab({
   halfLifeDays: number;
   servicesCount: number;
   providerJobsCount: number;
+  clientJobsCount: number;
   skillsCount: number;
 }) {
   return (
@@ -262,7 +264,7 @@ function OverviewTab({
             </h3>
             <div className="space-y-0">
               <StatRow label="Jobs as Provider" value={providerJobsCount} />
-              <StatRow label="Jobs as Client" value={clientJobs.length} />
+              <StatRow label="Jobs as Client" value={clientJobsCount} />
               <StatRow label="Services Listed" value={servicesCount} />
               <StatRow label="Skills Registered" value={skillsCount} />
             </div>
@@ -638,6 +640,7 @@ export default function AgentDetailPage({ params }: AgentDetailPageProps) {
               halfLifeDays={halfLifeDays}
               servicesCount={services?.length || 0}
               providerJobsCount={providerJobs.length}
+              clientJobsCount={clientJobs.length}
               skillsCount={skillIds?.length || 0}
             />
           </Suspense>

@@ -30,7 +30,7 @@ contract AdminRegistryTest is Test {
     }
 
     function test_SetHalfLifeDays_ZeroReverts() public {
-        vm.expectRevert("Half-life must be positive");
+        vm.expectRevert(AdminRegistry.HalfLifeMustBePositive.selector);
         adminRegistry.setHalfLifeDays(0);
     }
 }
