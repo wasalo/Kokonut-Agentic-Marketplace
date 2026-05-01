@@ -221,7 +221,9 @@ jobs:
         run: pnpm install --frozen-lockfile
 
       - name: Install Playwright
-        run: npx playwright install chromium webkit
+        run: |
+          npx playwright install chromium webkit
+          npx playwright install-deps webkit
 
       - name: Build application
         run: pnpm --filter @kokonut/web build

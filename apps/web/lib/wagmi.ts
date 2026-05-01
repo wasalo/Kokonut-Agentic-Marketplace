@@ -108,6 +108,7 @@ const mainnetRpcs = getChainRPCs(1);
 
 export const config = createConfig({
   chains: [sepolia, mainnet] as const,
+  ssr: true,
   connectors: [
     injected(),
     walletConnect({

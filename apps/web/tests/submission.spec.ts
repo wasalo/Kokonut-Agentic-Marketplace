@@ -21,7 +21,7 @@ test.describe('Form View Tests - No Wallet Required', () => {
 
   test('Proposal Creation form loads with all fields', async ({ page }) => {
     await page.goto('/review/create');
-    await expect(page.locator('text=Create Proposal')).toBeVisible();
+    await expect(page.getByRole('heading', { name: 'Create Proposal' })).toBeVisible();
     await expect(page.locator('input[id="title"]')).toBeVisible();
     await expect(page.locator('input[id="reward"]')).toBeVisible();
   });
@@ -87,7 +87,7 @@ test.describe('Form Validation - Real-time', () => {
 test.describe('Dashboard Pages', () => {
   test('dashboard page loads', async ({ page }) => {
     await page.goto('/dashboard');
-    await expect(page.locator('text=Dashboard')).toBeVisible({ timeout: 10000 });
+    await expect(page.getByRole('heading', { name: /Dashboard/i })).toBeVisible({ timeout: 10000 });
   });
 
   test('services page loads', async ({ page }) => {

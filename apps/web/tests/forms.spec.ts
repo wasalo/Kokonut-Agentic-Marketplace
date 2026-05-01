@@ -150,7 +150,7 @@ test.describe('Form Validation - Agent Registration', () => {
   });
 
   test('shows portfolio section', async ({ page }) => {
-    await expect(page.locator('text=Portfolio')).toBeVisible();
+    await expect(page.getByRole('heading', { name: /Portfolio/i })).toBeVisible();
   });
 });
 
@@ -250,7 +250,7 @@ test.describe('Form Validation - Webhook Creation', () => {
   });
 
   test('shows webhook form', async ({ page }) => {
-    await expect(page.locator('text=Webhooks')).toBeVisible();
+    await expect(page.getByRole('heading', { name: /Webhooks/i })).toBeVisible();
   });
 
   test('shows validation error for HTTP URL', async ({ page }) => {

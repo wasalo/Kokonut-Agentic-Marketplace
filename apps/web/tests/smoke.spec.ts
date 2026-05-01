@@ -24,7 +24,7 @@ test.describe('Basic Page Loading', () => {
   // Skipped - requires wallet connection which causes timeout in CI
   test.skip('dashboard page loads', async ({ page }) => {
     await page.goto('/dashboard', { waitUntil: 'domcontentloaded' });
-    await expect(page.locator('text=Dashboard')).toBeVisible();
+    await expect(page.getByRole('heading', { name: /Dashboard/i })).toBeVisible();
   });
 
   test('about page loads', async ({ page }) => {

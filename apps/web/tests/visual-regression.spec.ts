@@ -29,7 +29,7 @@ test.describe('Visual Regression Tests', () => {
 
     await page.screenshot({ path: 'tests/snapshots/jobs.png', fullPage: true });
 
-    await expect(page.getByRole('heading', { name: /jobs/i })).toBeVisible();
+    await expect(page.getByRole('heading', { name: 'Jobs Directory' })).toBeVisible();
   });
 
   test('identity page loads', async ({ page }) => {
