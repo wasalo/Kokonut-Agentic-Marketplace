@@ -66,5 +66,4 @@ cli/.kokonut-wallets.json
 *.pid
 server.pid
 cache/*.json
-lib/openzeppelin-contracts-upgradeable/
 PRD.md

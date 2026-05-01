@@ -19,7 +19,7 @@ ignore-paths = [
 
 [[rules]]
   description = "AWS Secret Key"
-  regex = '(?i)aws(.{0,20})?(?-i)secret(.{0,20})?[''\"][0-9a-zA-Z/+]{40}[''\"]'
+  regex = '''(?i)aws(.{0,20})?(?-i)secret(.{0,20})?['"][0-9a-zA-Z/+]{40}['"]'''
   tags = ["key", "AWS"]
 
 [[rules]]
@@ -58,7 +58,7 @@ ignore-paths = [
 
 [[rules]]
   description = "Generic API Key"
-  regex = '(?i)(api[_-]?key|apikey|secret[_-]?key)[=\s:][''\"][0-9a-zA-Z]{16,64}[''\"]'
+  regex = '''(?i)(api[_-]?key|apikey|secret[_-]?key)[=\s:]['"][0-9a-zA-Z]{16,64}['"]'''
   tags = ["key", "generic"]
 
 [[rules]]
