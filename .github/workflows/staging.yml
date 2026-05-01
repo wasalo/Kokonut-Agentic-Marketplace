@@ -30,7 +30,14 @@ jobs:
 
       - name: Install Gitleaks
         run: |
-          curl -sL https://github.com/zricethezav/gitleaks/releases/latest/download/gitleaks_$(uname -s)_$(uname -m).tar.gz | tar -xz gitleaks
+          OS=$(uname -s | tr '[:upper:]' '[:lower:]')
+          ARCH=$(uname -m)
+          case "$ARCH" in
+            x86_64) ARCH="x64" ;;
+            aarch64) ARCH="arm64" ;;
+          esac
+          URL=$(curl -sL https://api.github.com/repos/zricethezav/gitleaks/releases/latest | grep -o "\"browser_download_url\": \"[^\"]*${OS}_${ARCH}\.tar\.gz\"" | grep -o 'https://[^"]*')
+          curl -sL "$URL" | tar -xz gitleaks
           chmod +x gitleaks
           sudo mv gitleaks /usr/local/bin/
 
@@ -51,7 +58,7 @@ jobs:
       - name: Install Foundry
         uses: foundry-rs/foundry-toolchain@v1
         with:
-          version: nightly-2026-03-22
+          version: nightly
 
       - name: Forge build
         run: forge build --sizes
@@ -89,7 +96,7 @@ jobs:
       - name: Install Foundry
         uses: foundry-rs/foundry-toolchain@v1
         with:
-          version: nightly-2026-03-22
+          version: nightly
 
       - name: Run gas benchmarks
         run: forge test --match-contract GasBenchmark -vvv
@@ -108,7 +115,7 @@ jobs:
       - name: Install Foundry
         uses: foundry-rs/foundry-toolchain@v1
         with:
-          version: nightly-2026-03-22
+          version: nightly
 
       - name: Run fuzz tests
         run: forge test --match-contract Fuzz -vvv --fuzz-runs 5000
