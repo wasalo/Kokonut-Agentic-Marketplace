@@ -83,25 +83,25 @@ contract ServiceRegistryV2Test is TestFixtures {
     
     function test_CreateService_NotAgentOwner_Reverts() public {
         vm.prank(client); // client doesn't own agent 1
-        vm.expectRevert("Not agent owner");
+        vm.expectRevert(abi.encodeWithSelector(ServiceRegistryV2.ServiceRegistryV2__Not_agent_owner.selector));
         serviceRegistry.createService{value: 0.01 ether}(1, "Service", "Desc", "", 100, address(usdc), address(0));
     }
     
     function test_CreateService_EmptyName_Reverts() public {
         vm.prank(provider);
-        vm.expectRevert("Name required");
+        vm.expectRevert(abi.encodeWithSelector(ServiceRegistryV2.ServiceRegistryV2__Name_required.selector));
         serviceRegistry.createService{value: 0.01 ether}(1, "", "Desc", "", 100, address(usdc), address(0));
     }
 
     function test_CreateService_ZeroPrice_Reverts() public {
         vm.prank(provider);
-        vm.expectRevert("Price must be greater than 0");
+        vm.expectRevert(abi.encodeWithSelector(ServiceRegistryV2.ServiceRegistryV2__Price_must_be_greater_than_0.selector));
         serviceRegistry.createService{value: 0.01 ether}(1, "Service", "Desc", "", 0, address(usdc), address(0));
     }
 
     function test_CreateService_ZeroPaymentToken_Reverts() public {
         vm.prank(provider);
-        vm.expectRevert("Invalid payment token");
+        vm.expectRevert(abi.encodeWithSelector(ServiceRegistryV2.ServiceRegistryV2__Invalid_payment_token.selector));
         serviceRegistry.createService{value: 0.01 ether}(1, "Service", "Desc", "", 100, address(0), address(0));
     }
     
@@ -138,7 +138,7 @@ contract ServiceRegistryV2Test is TestFixtures {
         uint256 serviceId = serviceRegistry.createService{value: 0.01 ether}(1, "Service", "Desc", "", 100, address(usdc), address(0));
 
         vm.prank(client);
-        vm.expectRevert("Not owner");
+        vm.expectRevert(abi.encodeWithSelector(ServiceRegistryV2.ServiceRegistryV2__Not_owner.selector));
         serviceRegistry.updateService(serviceId, "Updated", "Desc", "", 200);
     }
 
@@ -150,7 +150,7 @@ contract ServiceRegistryV2Test is TestFixtures {
         serviceRegistry.deactivateService(serviceId);
 
         vm.prank(provider);
-        vm.expectRevert("Service inactive");
+        vm.expectRevert(abi.encodeWithSelector(ServiceRegistryV2.ServiceRegistryV2__Service_inactive.selector));
         serviceRegistry.updateService(serviceId, "Updated", "Desc", "", 200);
     }
 
@@ -159,7 +159,7 @@ contract ServiceRegistryV2Test is TestFixtures {
         uint256 serviceId = serviceRegistry.createService{value: 0.01 ether}(1, "Service", "Desc", "", 100, address(usdc), address(0));
 
         vm.prank(provider);
-        vm.expectRevert("Name required");
+        vm.expectRevert(abi.encodeWithSelector(ServiceRegistryV2.ServiceRegistryV2__Name_required.selector));
         serviceRegistry.updateService(serviceId, "", "Desc", "", 200);
     }
 
@@ -168,7 +168,7 @@ contract ServiceRegistryV2Test is TestFixtures {
         uint256 serviceId = serviceRegistry.createService{value: 0.01 ether}(1, "Service", "Desc", "", 100, address(usdc), address(0));
 
         vm.prank(provider);
-        vm.expectRevert("Price required");
+        vm.expectRevert(abi.encodeWithSelector(ServiceRegistryV2.ServiceRegistryV2__Price_required.selector));
         serviceRegistry.updateService(serviceId, "Updated", "Desc", "", 0);
     }
     
@@ -205,7 +205,7 @@ contract ServiceRegistryV2Test is TestFixtures {
         uint256 serviceId = serviceRegistry.createService{value: 0.01 ether}(1, "Service", "Desc", "", 100, address(usdc), address(0));
 
         vm.prank(client);
-        vm.expectRevert("Not owner");
+        vm.expectRevert(abi.encodeWithSelector(ServiceRegistryV2.ServiceRegistryV2__Not_owner.selector));
         serviceRegistry.deactivateService(serviceId);
     }
     
@@ -217,7 +217,7 @@ contract ServiceRegistryV2Test is TestFixtures {
         serviceRegistry.deactivateService(serviceId);
         
         vm.prank(provider);
-        vm.expectRevert("Already inactive");
+        vm.expectRevert(abi.encodeWithSelector(ServiceRegistryV2.ServiceRegistryV2__Already_inactive.selector));
         serviceRegistry.deactivateService(serviceId);
     }
     
@@ -284,7 +284,7 @@ contract ServiceRegistryV2Test is TestFixtures {
         serviceRegistry.deactivateService(serviceId);
         
         vm.prank(client);
-        vm.expectRevert("Not owner");
+        vm.expectRevert(abi.encodeWithSelector(ServiceRegistryV2.ServiceRegistryV2__Not_owner.selector));
         serviceRegistry.activateService(serviceId);
     }
     
@@ -293,7 +293,7 @@ contract ServiceRegistryV2Test is TestFixtures {
         uint256 serviceId = serviceRegistry.createService{value: 0.01 ether}(1, "Service", "Desc", "", 100, address(usdc), address(0));
         
         vm.prank(provider);
-        vm.expectRevert("Already active");
+        vm.expectRevert(abi.encodeWithSelector(ServiceRegistryV2.ServiceRegistryV2__Already_active.selector));
         serviceRegistry.activateService(serviceId);
     }
     

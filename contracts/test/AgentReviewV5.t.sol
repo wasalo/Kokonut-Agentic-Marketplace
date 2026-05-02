@@ -75,7 +75,7 @@ contract AgentReviewV5Test is Test {
 
         vm.deal(proposer, 0.5 ether);
         vm.prank(proposer);
-        vm.expectRevert("Exact ETH required");
+        vm.expectRevert(abi.encodeWithSelector(AgentReviewV5.AgentReviewV5_Exact_ETH_required.selector));
         agentReview.createProposal{value: 0.5 ether}(
             "Test Proposal",
             "Test Description",
@@ -91,7 +91,7 @@ contract AgentReviewV5Test is Test {
 
         vm.deal(proposer, 2 ether);
         vm.prank(proposer);
-        vm.expectRevert("Exact ETH required");
+        vm.expectRevert(abi.encodeWithSelector(AgentReviewV5.AgentReviewV5_Exact_ETH_required.selector));
         agentReview.createProposal{value: 2 ether}(
             "Test Proposal",
             "Test Description",
@@ -125,7 +125,7 @@ contract AgentReviewV5Test is Test {
 
         vm.deal(proposer, 2 ether);
         vm.prank(proposer);
-        vm.expectRevert("Deadline in past");
+        vm.expectRevert(abi.encodeWithSelector(AgentReviewV5.AgentReviewV5_Deadline_in_past.selector));
         agentReview.createProposal{value: reward}(
             "Test Proposal",
             "Test Description",
@@ -182,7 +182,7 @@ contract AgentReviewV5Test is Test {
 
         vm.deal(evaluator2, 1 ether);
         vm.prank(evaluator2);
-        vm.expectRevert("Deadline passed");
+        vm.expectRevert(abi.encodeWithSelector(AgentReviewV5.AgentReviewV5_Deadline_passed.selector));
         agentReview.submitEvaluation{value: MIN_STAKE}(proposalId, 90, "ipfs://reasoning");
     }
 
@@ -202,7 +202,7 @@ contract AgentReviewV5Test is Test {
 
         vm.deal(proposer, 1 ether);
         vm.prank(proposer);
-        vm.expectRevert("Cannot evaluate own proposal");
+        vm.expectRevert(abi.encodeWithSelector(AgentReviewV5.AgentReviewV5_Cannot_evaluate_own_proposal.selector));
         agentReview.submitEvaluation{value: MIN_STAKE}(proposalId, 80, "ipfs://reasoning");
     }
 
@@ -235,7 +235,7 @@ contract AgentReviewV5Test is Test {
 
         vm.deal(evaluator1, 1 ether);
         vm.prank(evaluator1);
-        vm.expectRevert("Max evaluators reached");
+        vm.expectRevert(abi.encodeWithSelector(AgentReviewV5.AgentReviewV5_Max_evaluators_reached.selector));
         agentReview.submitEvaluation{value: MIN_STAKE}(proposalId, 90, "ipfs://reasoning");
     }
 
@@ -300,7 +300,7 @@ contract AgentReviewV5Test is Test {
         vm.warp(deadline + 1);
 
         vm.prank(evaluator1);
-        vm.expectRevert("Not proposer");
+        vm.expectRevert(abi.encodeWithSelector(AgentReviewV5.AgentReviewV5_Not_proposer.selector));
         agentReview.attestDecision(proposalId, evaluator1);
     }
 
@@ -326,7 +326,7 @@ contract AgentReviewV5Test is Test {
         agentReview.setUnderReview(proposalId);
 
         vm.prank(proposer);
-        vm.expectRevert("Deadline not passed");
+        vm.expectRevert(abi.encodeWithSelector(AgentReviewV5.AgentReviewV5_Deadline_not_passed.selector));
         agentReview.attestDecision(proposalId, evaluator1);
     }
 
@@ -406,7 +406,7 @@ contract AgentReviewV5Test is Test {
         agentReview.attestDecision(proposalId, evaluator2);
 
         vm.prank(evaluator1);
-        vm.expectRevert("Not winner");
+        vm.expectRevert(abi.encodeWithSelector(AgentReviewV5.AgentReviewV5_Not_winner.selector));
         agentReview.claimReward(proposalId);
     }
 
@@ -445,7 +445,7 @@ contract AgentReviewV5Test is Test {
         agentReview.claimReward(proposalId);
 
         vm.prank(evaluator2);
-        vm.expectRevert("Already claimed");
+        vm.expectRevert(abi.encodeWithSelector(AgentReviewV5.AgentReviewV5_Already_claimed.selector));
         agentReview.claimReward(proposalId);
     }
 
@@ -523,7 +523,7 @@ contract AgentReviewV5Test is Test {
         agentReview.releaseStake(proposalId);
 
         vm.prank(evaluator1);
-        vm.expectRevert("Already released");
+        vm.expectRevert(abi.encodeWithSelector(AgentReviewV5.AgentReviewV5_Already_released.selector));
         agentReview.releaseStake(proposalId);
     }
 
@@ -603,7 +603,7 @@ contract AgentReviewV5Test is Test {
         agentReview.setSlashManager(slashManager);
 
         vm.prank(proposer);
-        vm.expectRevert("Not slashManager");
+        vm.expectRevert(abi.encodeWithSelector(AgentReviewV5.AgentReviewV5_Not_slashManager.selector));
         agentReview.slashEvaluator(evaluator1, proposalId, 5000, "Bad evaluation");
     }
 
@@ -680,7 +680,7 @@ contract AgentReviewV5Test is Test {
         uint256 available = balance - locked;
 
         vm.prank(owner);
-        vm.expectRevert("Exceeds available balance");
+        vm.expectRevert(abi.encodeWithSelector(AgentReviewV5.AgentReviewV5_Exceeds_available_balance.selector));
         agentReview.withdrawETH(payable(owner), available + 1);
     }
 
@@ -731,7 +731,7 @@ contract AgentReviewV5Test is Test {
 
         vm.deal(evaluator1, 1 ether);
         vm.prank(evaluator1);
-        vm.expectRevert("Not proposer");
+        vm.expectRevert(abi.encodeWithSelector(AgentReviewV5.AgentReviewV5_Not_proposer.selector));
         agentReview.cancelProposal(proposalId);
     }
 
@@ -762,7 +762,7 @@ contract AgentReviewV5Test is Test {
         agentReview.attestDecision(proposalId, evaluator1);
 
         vm.prank(proposer);
-        vm.expectRevert("Not open");
+        vm.expectRevert(abi.encodeWithSelector(AgentReviewV5.AgentReviewV5_Not_open.selector));
         agentReview.cancelProposal(proposalId);
     }
 
@@ -920,7 +920,7 @@ contract AgentReviewV5Test is Test {
         vm.warp(deadline + 1);
 
         vm.prank(makeAddr("stranger"));
-        vm.expectRevert("Grace period not passed");
+        vm.expectRevert(abi.encodeWithSelector(AgentReviewV5.AgentReviewV5_Grace_period_not_passed.selector));
         agentReview.finalizeDecision(proposalId);
     }
     
@@ -944,7 +944,7 @@ contract AgentReviewV5Test is Test {
         vm.warp(deadline + 7 days + 1);
 
         vm.prank(makeAddr("stranger"));
-        vm.expectRevert("No evaluators");
+        vm.expectRevert(abi.encodeWithSelector(AgentReviewV5.AgentReviewV5_No_evaluators.selector));
         agentReview.finalizeDecision(proposalId);
     }
 }

@@ -191,7 +191,7 @@ contract SecurityFixesTest is Test {
         vm.startPrank(owner);
         serviceRegistryV2.initializeActiveServiceCount();
         
-        vm.expectRevert("Already initialized");
+        vm.expectRevert(abi.encodeWithSelector(ServiceRegistryV2.ServiceRegistryV2__Already_initialized.selector));
         serviceRegistryV2.initializeActiveServiceCount();
         vm.stopPrank();
     }
@@ -321,7 +321,7 @@ contract SecurityFixesTest is Test {
         
         vm.prank(client);
         vm.deal(client, 101 ether);
-        vm.expectRevert("Reward too high");
+        vm.expectRevert(abi.encodeWithSelector(AgentReviewV5.AgentReviewV5_Reward_too_high.selector));
         agentReview.createProposal{value: excessiveReward}(
             "Test",
             "Test",
@@ -600,7 +600,7 @@ contract SecurityFixesTest is Test {
         toClean[0] = commitment;
         
         // Should fail - not expired yet
-        vm.expectRevert("No expired commitments");
+        vm.expectRevert(abi.encodeWithSelector(CommitReveal.CommitReveal_No_expired_commitments.selector));
         commitReveal.cleanupExpiredCommitments(toClean);
     }
     
@@ -626,7 +626,7 @@ contract SecurityFixesTest is Test {
         toClean[0] = commitmentHash;
         
         // Should fail - already revealed
-        vm.expectRevert("No expired commitments");
+        vm.expectRevert(abi.encodeWithSelector(CommitReveal.CommitReveal_No_expired_commitments.selector));
         commitReveal.cleanupExpiredCommitments(toClean);
     }
     
@@ -647,7 +647,7 @@ contract SecurityFixesTest is Test {
         toClean[0] = commitment;
         
         // Should fail - already cancelled
-        vm.expectRevert("No expired commitments");
+        vm.expectRevert(abi.encodeWithSelector(CommitReveal.CommitReveal_No_expired_commitments.selector));
         commitReveal.cleanupExpiredCommitments(toClean);
     }
     
@@ -743,7 +743,7 @@ contract SecurityFixesTest is Test {
         
         // Non-signer tries to create proposal
         vm.prank(client);
-        vm.expectRevert("Not owner or signer");
+        vm.expectRevert(abi.encodeWithSelector(SlashManager.SlashManager__Not_owner_or_signer.selector));
         slashManager.createProposal(
             evaluator,
             1,

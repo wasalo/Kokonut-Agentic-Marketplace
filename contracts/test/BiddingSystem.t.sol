@@ -94,7 +94,7 @@ contract BiddingSystemTest is Test {
             address(mockCommerce),
             treasury
         );
-        vm.expectRevert("Zero owner");
+        vm.expectRevert(abi.encodeWithSelector(BiddingSystem.BiddingSystem__Zero_owner.selector));
         new TransparentUpgradeableProxy(address(impl), owner, initData);
     }
     
@@ -106,7 +106,7 @@ contract BiddingSystemTest is Test {
             address(0),
             treasury
         );
-        vm.expectRevert("Zero commerce");
+        vm.expectRevert(abi.encodeWithSelector(BiddingSystem.BiddingSystem__Zero_commerce.selector));
         new TransparentUpgradeableProxy(address(impl), owner, initData);
     }
     
@@ -118,7 +118,7 @@ contract BiddingSystemTest is Test {
             address(mockCommerce),
             address(0)
         );
-        vm.expectRevert("Zero treasury");
+        vm.expectRevert(abi.encodeWithSelector(BiddingSystem.BiddingSystem__Zero_treasury.selector));
         new TransparentUpgradeableProxy(address(impl), owner, initData);
     }
     
@@ -171,7 +171,7 @@ contract BiddingSystemTest is Test {
     function testCreateBiddingSessionRevertZeroEvaluator() public {
         uint256 stake = bidding.calculateStake(10 ether);
         vm.prank(creator);
-        vm.expectRevert("Zero evaluator");
+        vm.expectRevert(abi.encodeWithSelector(BiddingSystem.BiddingSystem__Zero_evaluator.selector));
         bidding.createBiddingSession{value: stake}(address(0), 10 ether, block.timestamp + 7 days, "", 0);
     }
     
@@ -184,20 +184,20 @@ contract BiddingSystemTest is Test {
     function testCreateBiddingSessionRevertDurationTooShort() public {
         uint256 stake = bidding.calculateStake(10 ether);
         vm.prank(creator);
-        vm.expectRevert("Duration too short");
+        vm.expectRevert(abi.encodeWithSelector(BiddingSystem.BiddingSystem__Duration_too_short.selector));
         bidding.createBiddingSession{value: stake}(evaluator, 10 ether, block.timestamp + 1 minutes, "", 0);
     }
     
     function testCreateBiddingSessionRevertDurationTooLong() public {
         uint256 stake = bidding.calculateStake(10 ether);
         vm.prank(creator);
-        vm.expectRevert("Duration too long");
+        vm.expectRevert(abi.encodeWithSelector(BiddingSystem.BiddingSystem__Duration_too_long.selector));
         bidding.createBiddingSession{value: stake}(evaluator, 10 ether, block.timestamp + 31 days, "", 0);
     }
     
     function testCreateBiddingSessionRevertInsufficientStake() public {
         vm.prank(creator);
-        vm.expectRevert("Insufficient stake for session");
+        vm.expectRevert(abi.encodeWithSelector(BiddingSystem.BiddingSystem__Insufficient_stake_for_session.selector));
         bidding.createBiddingSession{value: 0.001 ether}(evaluator, 10 ether, block.timestamp + 7 days, "", 0);
     }
     
@@ -238,7 +238,7 @@ contract BiddingSystemTest is Test {
         bytes32 commitHash = keccak256(abi.encode(5 ether, "My bid", bytes32(uint256(0x1234))));
         
         vm.prank(bidder1);
-        vm.expectRevert("Invalid session");
+        vm.expectRevert(abi.encodeWithSelector(BiddingSystem.BiddingSystem__Invalid_session.selector));
         bidding.commitBid{value: stake}(999, commitHash);
     }
     
@@ -251,7 +251,7 @@ contract BiddingSystemTest is Test {
         vm.warp(block.timestamp + 8 days);
         
         vm.prank(bidder1);
-        vm.expectRevert("Bidding closed");
+        vm.expectRevert(abi.encodeWithSelector(BiddingSystem.BiddingSystem__Bidding_closed.selector));
         bidding.commitBid{value: stake}(sessionId, commitHash);
     }
     
@@ -265,7 +265,7 @@ contract BiddingSystemTest is Test {
         
         bytes32 secondHash = keccak256(abi.encode(6 ether, "My other bid", bytes32(uint256(0x5678))));
         vm.prank(bidder1);
-        vm.expectRevert(IBiddingSystem.AlreadyCommitted.selector);
+        vm.expectRevert(abi.encodeWithSelector(BiddingSystem.BiddingSystem__Already_committed.selector));
         bidding.commitBid{value: stake}(sessionId, secondHash);
     }
     
@@ -274,7 +274,7 @@ contract BiddingSystemTest is Test {
         uint256 stake = bidding.calculateStake(10 ether);
         
         vm.prank(bidder1);
-        vm.expectRevert("Zero commitment");
+        vm.expectRevert(abi.encodeWithSelector(BiddingSystem.BiddingSystem__Zero_commitment.selector));
         bidding.commitBid{value: stake}(sessionId, bytes32(0));
     }
     
@@ -283,7 +283,7 @@ contract BiddingSystemTest is Test {
         bytes32 commitHash = keccak256(abi.encode(5 ether, "My bid", bytes32(uint256(0x1234))));
         
         vm.prank(bidder1);
-        vm.expectRevert("Insufficient stake");
+        vm.expectRevert(abi.encodeWithSelector(BiddingSystem.BiddingSystem__Insufficient_stake.selector));
         bidding.commitBid{value: 0.001 ether}(sessionId, commitHash);
     }
     
@@ -313,7 +313,7 @@ contract BiddingSystemTest is Test {
         
         // Don't skip past deadline
         vm.prank(bidder1);
-        vm.expectRevert("Deadline not passed");
+        vm.expectRevert(abi.encodeWithSelector(BiddingSystem.BiddingSystem__Deadline_not_passed.selector));
         bidding.revealBid(sessionId, 5 ether, "Great proposal", bytes32(uint256(0x1234)));
     }
     
@@ -325,7 +325,7 @@ contract BiddingSystemTest is Test {
         vm.warp(block.timestamp + 7 days + REVEAL_WINDOW + 1);
         
         vm.prank(bidder1);
-        vm.expectRevert(IBiddingSystem.RevealWindowClosed.selector);
+        vm.expectRevert(abi.encodeWithSelector(BiddingSystem.BiddingSystem__Reveal_window_closed.selector));
         bidding.revealBid(sessionId, 5 ether, "Great proposal", bytes32(uint256(0x1234)));
     }
     
@@ -337,7 +337,7 @@ contract BiddingSystemTest is Test {
         
         // Wrong salt
         vm.prank(bidder1);
-        vm.expectRevert("Invalid commitment");
+        vm.expectRevert(abi.encodeWithSelector(BiddingSystem.BiddingSystem__Invalid_commitment.selector));
         bidding.revealBid(sessionId, 5 ether, "Great proposal", bytes32(uint256(0xABCD)));
     }
     
@@ -349,7 +349,7 @@ contract BiddingSystemTest is Test {
         
         // Amount exceeds max budget - commitment verification happens first
         vm.prank(bidder1);
-        vm.expectRevert("Invalid commitment");
+        vm.expectRevert(abi.encodeWithSelector(BiddingSystem.BiddingSystem__Invalid_commitment.selector));
         bidding.revealBid(sessionId, 15 ether, "Too expensive", bytes32(uint256(0x1234)));
     }
     
@@ -363,7 +363,7 @@ contract BiddingSystemTest is Test {
         bidding.revealBid(sessionId, 5 ether, "Great proposal", bytes32(uint256(0x1234)));
         
         vm.prank(bidder1);
-        vm.expectRevert("Already revealed");
+        vm.expectRevert(abi.encodeWithSelector(BiddingSystem.BiddingSystem__Already_revealed.selector));
         bidding.revealBid(sessionId, 5 ether, "Changed mind", bytes32(uint256(0x1234)));
     }
     
@@ -409,7 +409,7 @@ contract BiddingSystemTest is Test {
         bidding.revealBid(sessionId, 5 ether, "Proposal", bytes32(uint256(0x1111)));
         
         vm.prank(bidder2);
-        vm.expectRevert("Not session creator");
+        vm.expectRevert(abi.encodeWithSelector(BiddingSystem.BiddingSystem__Not_session_creator.selector));
         bidding.acceptBid(sessionId, 1);
     }
     
@@ -421,7 +421,7 @@ contract BiddingSystemTest is Test {
         
         // Don't reveal, try to accept
         vm.prank(creator);
-        vm.expectRevert("Bid not revealed");
+        vm.expectRevert(abi.encodeWithSelector(BiddingSystem.BiddingSystem__Bid_not_revealed.selector));
         bidding.acceptBid(sessionId, 1);
     }
     
@@ -463,7 +463,7 @@ contract BiddingSystemTest is Test {
         
         // Session is still active, cannot withdraw
         vm.prank(bidder1);
-        vm.expectRevert("Session still active");
+        vm.expectRevert(abi.encodeWithSelector(BiddingSystem.BiddingSystem__Session_still_active.selector));
         bidding.withdrawStake(sessionId);
     }
     
@@ -472,7 +472,7 @@ contract BiddingSystemTest is Test {
         
         // Session is still active, cannot withdraw
         vm.prank(bidder1);
-        vm.expectRevert("Session still active");
+        vm.expectRevert(abi.encodeWithSelector(BiddingSystem.BiddingSystem__Session_still_active.selector));
         bidding.withdrawStake(sessionId);
     }
     
@@ -516,7 +516,7 @@ contract BiddingSystemTest is Test {
         
         // Winner cannot claim stake because it was already returned in acceptBid
         vm.prank(bidder1);
-        vm.expectRevert("No stake to claim");
+        vm.expectRevert(abi.encodeWithSelector(BiddingSystem.BiddingSystem__No_stake_to_claim.selector));
         bidding.claimStake(sessionId);
     }
     
@@ -533,7 +533,7 @@ contract BiddingSystemTest is Test {
         
         // Non-winner tries to claim
         vm.prank(bidder2);
-        vm.expectRevert("Not the winner");
+        vm.expectRevert(abi.encodeWithSelector(BiddingSystem.BiddingSystem__Not_the_winner.selector));
         bidding.claimStake(sessionId);
     }
     
@@ -577,7 +577,7 @@ contract BiddingSystemTest is Test {
         uint256 sessionId = _createSession(creator, 10 ether, 7 days);
         
         vm.prank(creator);
-        vm.expectRevert("No winner selected");
+        vm.expectRevert(abi.encodeWithSelector(BiddingSystem.BiddingSystem__No_winner_selected.selector));
         bidding.createJobAndFund{value: 5 ether}(
             sessionId,
             block.timestamp + 30 days,
@@ -613,7 +613,7 @@ contract BiddingSystemTest is Test {
         bidding.revealBid(sessionId, 5 ether, "Proposal", bytes32(uint256(0x1111)));
         
         vm.prank(creator);
-        vm.expectRevert("Cannot cancel: bids revealed");
+        vm.expectRevert(abi.encodeWithSelector(BiddingSystem.BiddingSystem__Cannot_cancel_bids_revealed.selector));
         bidding.cancelSession(sessionId);
     }
     
@@ -621,7 +621,7 @@ contract BiddingSystemTest is Test {
         uint256 sessionId = _createSession(creator, 10 ether, 7 days);
         
         vm.prank(bidder1);
-        vm.expectRevert("Not session creator");
+        vm.expectRevert(abi.encodeWithSelector(BiddingSystem.BiddingSystem__Not_session_creator.selector));
         bidding.cancelSession(sessionId);
     }
     
@@ -638,13 +638,13 @@ contract BiddingSystemTest is Test {
     
     function testSetRevealWindowRevertTooSmall() public {
         vm.prank(owner);
-        vm.expectRevert("Invalid window");
+        vm.expectRevert(abi.encodeWithSelector(BiddingSystem.BiddingSystem__Invalid_window.selector));
         bidding.setRevealWindow(10 minutes); // Min is 15 minutes
     }
     
     function testSetRevealWindowRevertTooLarge() public {
         vm.prank(owner);
-        vm.expectRevert("Invalid window");
+        vm.expectRevert(abi.encodeWithSelector(BiddingSystem.BiddingSystem__Invalid_window.selector));
         bidding.setRevealWindow(25 hours);
     }
     
@@ -657,21 +657,37 @@ contract BiddingSystemTest is Test {
     
     function testSetPlatformFeeBPRevertTooHigh() public {
         vm.prank(owner);
-        vm.expectRevert("Max 10% fee");
+        vm.expectRevert(abi.encodeWithSelector(BiddingSystem.BiddingSystem__Max_10_fee.selector));
         bidding.setPlatformFeeBP(2000); // 20%
     }
     
+    function _createSessionWithWinnerAndFund() internal returns (uint256 jobId) {
+        uint256 sessionId = _createSession(creator, 10 ether, 7 days);
+        _commitBid(sessionId, bidder1, 5 ether, "Great work", bytes32(uint256(0x1111)));
+        vm.warp(block.timestamp + 7 days + 30 minutes);
+        vm.prank(bidder1);
+        bidding.revealBid(sessionId, 5 ether, "Great work", bytes32(uint256(0x1111)));
+        vm.prank(creator);
+        bidding.acceptBid(sessionId, 1);
+        uint256 totalPayment = 5 ether + (5 ether * 100) / 10000;
+        vm.prank(creator);
+        jobId = bidding.createJobAndFund{value: totalPayment}(
+            sessionId,
+            block.timestamp + 30 days,
+            "Build a dApp"
+        );
+    }
+
     function testWithdrawPlatformFees() public {
-        // Fund contract
-        vm.deal(address(bidding), 10 ether);
+        _createSessionWithWinnerAndFund();
         
         uint256 balanceBefore = treasury.balance;
         vm.prank(owner);
-        bidding.withdrawPlatformFees(payable(treasury), 5 ether);
+        bidding.withdrawPlatformFees(payable(treasury), 0.01 ether);
         
-        assertEq(treasury.balance, balanceBefore + 5 ether);
+        assertEq(treasury.balance, balanceBefore + 0.01 ether);
     }
-    
+
     function testWithdrawPlatformFeesRevertNotOwner() public {
         vm.prank(bidder1);
         vm.expectRevert();

@@ -25,7 +25,7 @@ contract CommitRevealTest is Test {
     }
 
     function test_commit_ZeroCommitment() public {
-        vm.expectRevert("Zero commitment");
+        vm.expectRevert(abi.encodeWithSelector(CommitReveal.CommitReveal_Zero_commitment.selector));
         commitReveal.commit(bytes32(0));
     }
 

@@ -3,6 +3,7 @@ pragma solidity ^0.8.22;
 
 import "forge-std/Test.sol";
 import {MilestoneEscrow} from "../shared/MilestoneEscrow.sol";
+import {ERC1967Proxy} from "@openzeppelin/contracts/proxy/ERC1967/ERC1967Proxy.sol";
 
 /**
  * @title MockERC20
@@ -77,8 +78,12 @@ contract MilestoneEscrowSecurityTest is Test {
         usdc.mint(client, 1000e6);
         
         vm.prank(owner);
-        escrow = new MilestoneEscrow();
-        escrow.initialize(owner, agenticCommerce);
+        MilestoneEscrow impl = new MilestoneEscrow();
+        ERC1967Proxy proxy = new ERC1967Proxy(
+            address(impl),
+            abi.encodeWithSelector(MilestoneEscrow.initialize.selector, owner, agenticCommerce)
+        );
+        escrow = MilestoneEscrow(address(proxy));
     }
     
     // ==========================================
