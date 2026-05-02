@@ -303,7 +303,7 @@ contract AgenticCommerceV6 is
         address evaluator,
         uint256 expiredAt,
         string calldata description,
-        address hook
+        address /* hook */
     ) internal view {
         if (provider == address(0)) revert ZeroAddress();
         if (evaluator == address(0)) revert ZeroAddress();

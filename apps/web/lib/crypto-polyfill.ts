@@ -59,7 +59,7 @@ if (typeof window !== 'undefined') {
       deriveKey: async () => {
         throw new Error('crypto.subtle.deriveKey not available in non-secure context');
       },
-      digest: async (_algorithm: string, data: BufferSource) => {
+      digest: async (_algorithm: string, _data: BufferSource) => {
         throw new Error('crypto.subtle.digest not available in non-secure context. Access via HTTPS.');
       },
       encrypt: async () => {

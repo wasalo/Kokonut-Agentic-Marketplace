@@ -245,7 +245,7 @@ contract FuzzAgentReviewV5 is TestFixtures {
         
         if (score < -100 || score > 100) {
             vm.prank(evaluator1);
-            vm.expectRevert("Invalid score");
+            vm.expectRevert(abi.encodeWithSelector(AgentReviewV5.AgentReviewV5_Invalid_score.selector));
             agentReview.submitEvaluation{value: MIN_STAKE}(proposalId, score, "reasoning");
         } else {
             vm.prank(evaluator1);
@@ -267,7 +267,7 @@ contract FuzzAgentReviewV5 is TestFixtures {
         
         if (stake < 0.001 ether) {
             vm.prank(evaluator1);
-            vm.expectRevert("Stake too low");
+            vm.expectRevert(abi.encodeWithSelector(AgentReviewV5.AgentReviewV5_Stake_too_low.selector));
             agentReview.submitEvaluation{value: stake}(proposalId, 50, "reasoning");
         } else {
             vm.prank(evaluator1);

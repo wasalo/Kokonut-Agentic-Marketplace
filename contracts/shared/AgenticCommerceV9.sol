@@ -694,7 +694,7 @@ contract AgenticCommerceV9 is
         _releasePayment(jobId, reason);
     }
 
-    function _releasePayment(uint256 jobId, bytes32 reason) internal {
+    function _releasePayment(uint256 jobId, bytes32 /* reason */) internal {
         Job storage job = jobs[jobId];
         JobStatus oldStatus = job.status;
         job.status = JobStatus.Completed;
