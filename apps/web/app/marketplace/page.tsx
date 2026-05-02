@@ -1,6 +1,6 @@
 'use client';
 
-import { useState, useCallback, useEffect } from 'react';
+import { useState, useCallback, useEffect, Suspense } from 'react';
 import { useAccount } from 'wagmi';
 import { useSearchParams, useRouter } from 'next/navigation';
 import NextLink from 'next/link';
@@ -107,6 +107,14 @@ function FilterSection({
 }
 
 export default function MarketplacePage(): JSX.Element {
+  return (
+    <Suspense fallback={<div className="container mx-auto px-4 py-8"><div className="animate-pulse h-48 bg-content2 rounded" /></div>}>
+      <MarketplaceContent />
+    </Suspense>
+  );
+}
+
+function MarketplaceContent(): JSX.Element {
   const { isConnected } = useAccount();
   const router = useRouter();
   const searchParams = useSearchParams();

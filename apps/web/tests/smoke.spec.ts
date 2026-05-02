@@ -33,8 +33,8 @@ test.describe('Basic Page Loading', () => {
   });
 
   test('skills page loads', async ({ page }) => {
-    await page.goto('/skills', { waitUntil: 'domcontentloaded' });
-    await expect(page.locator('text=Agent Skills')).toBeVisible();
+    await page.goto('/marketplace/skills', { waitUntil: 'domcontentloaded' });
+    await expect(page.locator('text=Browse Skills')).toBeVisible();
   });
 });
 
@@ -55,14 +55,14 @@ test.describe('Navigation', () => {
 test.describe('UI Elements', () => {
   test('stat cards render on identity page', async ({ page }) => {
     await page.goto('/identity', { waitUntil: 'domcontentloaded' });
-    await expect(page.locator('text=Total Agents')).toBeVisible();
+    await expect(page.locator('text=Kokonut Agents')).toBeVisible();
     await expect(page.locator('text=Active')).toBeVisible();
   });
 
   test('stat cards render on marketplace page', async ({ page }) => {
     await page.goto('/marketplace', { waitUntil: 'domcontentloaded' });
     await expect(page.locator('text=Total Services')).toBeVisible();
-    await expect(page.locator('text=Volume')).toBeVisible();
+    await expect(page.locator('text=Active Services')).toBeVisible();
   });
 
   test('stat cards render on review page', async ({ page }) => {

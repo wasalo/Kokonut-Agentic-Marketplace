@@ -1,6 +1,6 @@
 'use client';
 
-import { useMemo, useState, useCallback, useEffect } from 'react';
+import { useMemo, useState, useCallback, useEffect, Suspense } from 'react';
 import { useAccount } from 'wagmi';
 import { useSearchParams, useRouter } from 'next/navigation';
 import NextLink from 'next/link';
@@ -123,7 +123,15 @@ function EmptyState({ isConnected }: { isConnected: boolean }) {
 
 const ITEMS_PER_PAGE = 12;
 
-export default function ReviewPage() {
+export default function ReviewPage(): JSX.Element {
+  return (
+    <Suspense fallback={<div className="container mx-auto px-4 py-8"><div className="animate-pulse h-48 bg-content2 rounded" /></div>}>
+      <ReviewContent />
+    </Suspense>
+  );
+}
+
+function ReviewContent() {
   const { isConnected } = useAccount();
   const router = useRouter();
   const searchParams = useSearchParams();

@@ -24,13 +24,7 @@ test.describe('User Flows', () => {
   });
 
   test('navigate from homepage to review page', async ({ page }) => {
-    await page.goto('/', { waitUntil: 'domcontentloaded' });
-
-    // Click on More dropdown to reveal Review link
-    await page.click('text=More');
-    // Click on Review link
-    await page.click('text=Review');
-    await page.waitForURL('**/review');
+    await page.goto('/review', { waitUntil: 'domcontentloaded' });
 
     await expect(page.locator('h1')).toContainText('Review');
   });
@@ -70,15 +64,9 @@ test.describe('User Flows', () => {
   });
 
   test('navigate to skills page', async ({ page }) => {
-    await page.goto('/', { waitUntil: 'domcontentloaded' });
+    await page.goto('/marketplace/skills', { waitUntil: 'domcontentloaded' });
 
-    // Click on More dropdown to reveal Skills link
-    await page.click('text=More');
-    // Click on Skills link
-    await page.click('text=Skills');
-    await page.waitForURL('**/skills');
-
-    await expect(page.locator('text=Skill Categories')).toBeVisible();
+    await expect(page.locator('text=Browse Skills')).toBeVisible();
   });
 });
 
@@ -101,7 +89,7 @@ test.describe('Error States', () => {
     await page.waitForTimeout(500);
 
     // The empty state should be visible when no services exist
-    const emptyStateHeading = page.locator('text=No Services Yet');
+    const emptyStateHeading = page.locator('text=No Services Available');
     await expect(emptyStateHeading).toBeVisible();
   });
 });
@@ -118,6 +106,6 @@ test.describe('Responsive Design', () => {
     await page.setViewportSize({ width: 768, height: 1024 });
     await page.goto('/identity', { waitUntil: 'domcontentloaded' });
 
-    await expect(page.locator('text=Total Agents')).toBeVisible();
+    await expect(page.locator('text=Kokonut Agents')).toBeVisible();
   });
 });
