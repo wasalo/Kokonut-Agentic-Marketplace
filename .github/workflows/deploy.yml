@@ -46,10 +46,12 @@ jobs:
       - id: version
         run: |
           if [[ "${{ github.event.inputs.version }}" != "" ]]; then
-            echo "version=${{ github.event.inputs.version }}" >> $GITHUB_OUTPUT
+            SAFE_VERSION=$(echo "${{ github.event.inputs.version }}" | sed 's/[^a-zA-Z0-9._-]//g')
+            echo "version=$SAFE_VERSION" >> $GITHUB_OUTPUT
             echo "is_tag=false" >> $GITHUB_OUTPUT
           elif [[ "${{ github.ref }}" == refs/tags/v* ]]; then
-            echo "version=${{ github.ref_name }}" >> $GITHUB_OUTPUT
+            SAFE_VERSION=$(echo "${{ github.ref_name }}" | sed 's/[^a-zA-Z0-9._-]//g')
+            echo "version=$SAFE_VERSION" >> $GITHUB_OUTPUT
             echo "is_tag=true" >> $GITHUB_OUTPUT
           else
             echo "version=main-${{ github.sha }}" >> $GITHUB_OUTPUT

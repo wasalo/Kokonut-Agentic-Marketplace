@@ -1,7 +1,7 @@
 // SPDX-License-Identifier: MIT
-pragma solidity ^0.8.20;
+pragma solidity 0.8.22;
 
-import "@openzeppelin/contracts-upgradeable/access/OwnableUpgradeable.sol";
+import "@openzeppelin/contracts-upgradeable/access/Ownable2StepUpgradeable.sol";
 import "@openzeppelin/contracts-upgradeable/proxy/utils/UUPSUpgradeable.sol";
 import "@openzeppelin/contracts-upgradeable/utils/PausableUpgradeable.sol";
 import {ERC1967Utils} from "@openzeppelin/contracts/proxy/ERC1967/ERC1967Utils.sol";
@@ -83,10 +83,33 @@ interface IServiceRegistryV2 {
  */
 contract ServiceRegistryV2 is
     IServiceRegistryV2,
-    OwnableUpgradeable,
+    Ownable2StepUpgradeable,
     UUPSUpgradeable,
     PausableUpgradeable
 {
+    error ServiceRegistryV2__Agent_blacklisted();
+    error ServiceRegistryV2__Already_active();
+    error ServiceRegistryV2__Already_inactive();
+    error ServiceRegistryV2__Already_initialized();
+    error ServiceRegistryV2__Bond_refund_failed();
+    error ServiceRegistryV2__Bond_required();
+    error ServiceRegistryV2__Description_required();
+    error ServiceRegistryV2__Invalid_address();
+    error ServiceRegistryV2__Invalid_agent();
+    error ServiceRegistryV2__Invalid_identity_registry();
+    error ServiceRegistryV2__Invalid_payment_address();
+    error ServiceRegistryV2__Invalid_payment_token();
+    error ServiceRegistryV2__Invalid_serviceId();
+    error ServiceRegistryV2__Name_required();
+    error ServiceRegistryV2__No_bond();
+    error ServiceRegistryV2__Not_agent_owner();
+    error ServiceRegistryV2__Not_agentic_commerce();
+    error ServiceRegistryV2__Not_identity_registry();
+    error ServiceRegistryV2__Not_owner();
+    error ServiceRegistryV2__Price_must_be_greater_than_0();
+    error ServiceRegistryV2__Price_required();
+    error ServiceRegistryV2__Service_inactive();
+    error ServiceRegistryV2__Wallet_blacklisted();
     
     struct ServiceData {
         address provider;
@@ -145,7 +168,7 @@ contract ServiceRegistryV2 is
      * @param initialOwner Owner address for Ownable
      */
     function initialize(address _identityRegistry, address initialOwner) public initializer {
-        require(_identityRegistry != address(0), "Invalid identity registry");
+        if (!(_identityRegistry != address(0))) revert ServiceRegistryV2__Invalid_identity_registry();
 
         __Ownable_init(initialOwner);
         __Pausable_init();
@@ -176,7 +199,7 @@ contract ServiceRegistryV2 is
     function _verifyAgentOwnership(uint256 agentId) internal view returns (address) {
         // Use ownerOf() instead of getAgent() for compatibility with ERC-721 registry
         address owner = identityRegistry.ownerOf(agentId);
-        require(owner != address(0), "Invalid agent");
+        if (!(owner != address(0))) revert ServiceRegistryV2__Invalid_agent();
         return owner;
     }
     
@@ -193,21 +216,22 @@ contract ServiceRegistryV2 is
         address paymentToken,
         address paymentAddress
     ) external payable whenNotPaused returns (uint256 serviceId) {
-        require(bytes(name).length > 0, "Name required");
-        require(bytes(description).length > 0, "Description required");
-        require(price > 0, "Price must be greater than 0");
-        require(paymentToken != address(0), "Invalid payment token");
-        require(msg.value >= SERVICE_BOND_AMOUNT, "Bond required"); // M3 Fix
+        if (!(bytes(name).length > 0)) revert ServiceRegistryV2__Name_required();
+        if (!(bytes(description).length > 0)) revert ServiceRegistryV2__Description_required();
+        if (!(price > 0)) revert ServiceRegistryV2__Price_must_be_greater_than_0();
+        if (!(paymentToken != address(0))) revert ServiceRegistryV2__Invalid_payment_token();
+        if (!(paymentAddress != paymentToken)) revert ServiceRegistryV2__Invalid_payment_address();
+        if (!(msg.value >= SERVICE_BOND_AMOUNT)) revert ServiceRegistryV2__Bond_required(); // M3 Fix
 
         // Bad Actor: Check if agent or wallet is blacklisted
         if (adminRegistry != address(0)) {
             AdminRegistry registry = AdminRegistry(adminRegistry);
-            require(!registry.isAgentBlacklistedActive(agentId), "Agent blacklisted");
-            require(!registry.isWalletBlacklistedActive(msg.sender), "Wallet blacklisted");
+            if (!(!registry.isAgentBlacklistedActive(agentId))) revert ServiceRegistryV2__Agent_blacklisted();
+            if (!(!registry.isWalletBlacklistedActive(msg.sender))) revert ServiceRegistryV2__Wallet_blacklisted();
         }
 
         address agentOwner = _verifyAgentOwnership(agentId);
-        require(agentOwner == msg.sender, "Not agent owner");
+        if (!(agentOwner == msg.sender)) revert ServiceRegistryV2__Not_agent_owner();
 
         // paymentAddress defaults to provider if not set
         if (paymentAddress == address(0)) {
@@ -252,11 +276,11 @@ contract ServiceRegistryV2 is
         string calldata metadataURI,
         uint256 price
     ) external whenNotPaused {
-        require(serviceId < _serviceCounter, "Invalid serviceId");
-        require(_services[serviceId].provider == msg.sender, "Not owner");
-        require(_services[serviceId].isActive, "Service inactive");
-        require(bytes(name).length > 0, "Name required");
-        require(price > 0, "Price required");
+        if (!(serviceId < _serviceCounter)) revert ServiceRegistryV2__Invalid_serviceId();
+        if (!(_services[serviceId].provider == msg.sender)) revert ServiceRegistryV2__Not_owner();
+        if (!(_services[serviceId].isActive)) revert ServiceRegistryV2__Service_inactive();
+        if (!(bytes(name).length > 0)) revert ServiceRegistryV2__Name_required();
+        if (!(price > 0)) revert ServiceRegistryV2__Price_required();
 
         _services[serviceId].name = name;
         _services[serviceId].description = description;
@@ -270,9 +294,9 @@ contract ServiceRegistryV2 is
      * @dev Deactivate service (soft delete)
      */
     function deactivateService(uint256 serviceId) external whenNotPaused {
-        require(serviceId < _serviceCounter, "Invalid serviceId");
-        require(_services[serviceId].provider == msg.sender, "Not owner");
-        require(_services[serviceId].isActive, "Already inactive");
+        if (!(serviceId < _serviceCounter)) revert ServiceRegistryV2__Invalid_serviceId();
+        if (!(_services[serviceId].provider == msg.sender)) revert ServiceRegistryV2__Not_owner();
+        if (!(_services[serviceId].isActive)) revert ServiceRegistryV2__Already_inactive();
 
         _services[serviceId].isActive = false;
         
@@ -286,14 +310,14 @@ contract ServiceRegistryV2 is
      * @dev Activate a previously deactivated service
      */
     function activateService(uint256 serviceId) external whenNotPaused {
-        require(serviceId < _serviceCounter, "Invalid serviceId");
-        require(_services[serviceId].provider == msg.sender, "Not owner");
-        require(!_services[serviceId].isActive, "Already active");
+        if (!(serviceId < _serviceCounter)) revert ServiceRegistryV2__Invalid_serviceId();
+        if (!(_services[serviceId].provider == msg.sender)) revert ServiceRegistryV2__Not_owner();
+        if (!(!_services[serviceId].isActive)) revert ServiceRegistryV2__Already_active();
 
         // Bad Actor: Re-check blacklist on reactivation
         if (adminRegistry != address(0)) {
             AdminRegistry registry = AdminRegistry(adminRegistry);
-            require(!registry.isWalletBlacklistedActive(msg.sender), "Wallet blacklisted");
+            if (!(!registry.isWalletBlacklistedActive(msg.sender))) revert ServiceRegistryV2__Wallet_blacklisted();
         }
 
         _services[serviceId].isActive = true;
@@ -310,9 +334,9 @@ contract ServiceRegistryV2 is
      * @param paymentAddress The address to receive payments
      */
     function setPaymentAddress(uint256 serviceId, address paymentAddress) external whenNotPaused {
-        require(serviceId < _serviceCounter, "Invalid serviceId");
-        require(_services[serviceId].provider == msg.sender, "Not owner");
-        require(paymentAddress != address(0), "Invalid payment address");
+        if (!(serviceId < _serviceCounter)) revert ServiceRegistryV2__Invalid_serviceId();
+        if (!(_services[serviceId].provider == msg.sender)) revert ServiceRegistryV2__Not_owner();
+        if (!(paymentAddress != address(0))) revert ServiceRegistryV2__Invalid_payment_address();
 
         _services[serviceId].paymentAddress = paymentAddress;
 
@@ -324,7 +348,7 @@ contract ServiceRegistryV2 is
      * M2 Fix: Called when agent's identity is deactivated
      */
     function deactivateAgentServices(uint256 agentId) external {
-        require(msg.sender == address(identityRegistry), "Not identity registry");
+        if (!(msg.sender == address(identityRegistry))) revert ServiceRegistryV2__Not_identity_registry();
         
         uint256[] storage services = _agentServices[agentId];
         uint256[] memory deactivatedIds = new uint256[](services.length);
@@ -347,16 +371,15 @@ contract ServiceRegistryV2 is
      * M3 Fix: Returns bond to provider after successful job completion
      */
     function refundServiceBond(uint256 serviceId) external {
-        require(msg.sender == agenticCommerce, "Not agentic commerce");
-        require(serviceId < _serviceCounter, "Invalid serviceId");
-        require(_serviceBonds[serviceId] > 0, "No bond");
+        if (!(msg.sender == agenticCommerce)) revert ServiceRegistryV2__Not_agentic_commerce();
+        if (!(serviceId < _serviceCounter)) revert ServiceRegistryV2__Invalid_serviceId();
+        if (!(_serviceBonds[serviceId] > 0)) revert ServiceRegistryV2__No_bond();
         
         address provider = _services[serviceId].provider;
         uint256 bondAmount = _serviceBonds[serviceId];
         _serviceBonds[serviceId] = 0;
         
-        (bool success, ) = provider.call{value: bondAmount}("");
-        require(success, "Bond refund failed");
+        _sendEth(provider, bondAmount);
         
         emit ServiceBondRefunded(serviceId, provider, bondAmount);
     }
@@ -364,7 +387,7 @@ contract ServiceRegistryV2 is
     // ============ View Functions ============
     
     function getService(uint256 serviceId) external view override returns (Service memory) {
-        require(serviceId < _serviceCounter, "Invalid serviceId");
+        if (!(serviceId < _serviceCounter)) revert ServiceRegistryV2__Invalid_serviceId();
         ServiceData storage data = _services[serviceId];
         return Service({
             id: serviceId,
@@ -415,25 +438,28 @@ contract ServiceRegistryV2 is
      * @dev Update IdentityRegistry address (in case it changes)
      */
     function setIdentityRegistry(address _identityRegistry) external onlyOwner {
-        require(_identityRegistry != address(0), "Invalid address");
+        if (!(_identityRegistry != address(0))) revert ServiceRegistryV2__Invalid_address();
         identityRegistry = IIdentityRegistry(_identityRegistry);
         emit IdentityRegistryUpdated(_identityRegistry);
     }
     
     function setAgenticCommerce(address _agenticCommerce) external onlyOwner {
-        require(_agenticCommerce != address(0), "Invalid address");
+        if (!(_agenticCommerce != address(0))) revert ServiceRegistryV2__Invalid_address();
         agenticCommerce = _agenticCommerce;
         emit DependencyUpdated("agenticCommerce", _agenticCommerce);
     }
     
     function setSlashManager(address _slashManager) external onlyOwner {
-        require(_slashManager != address(0), "Invalid address");
+        if (!(_slashManager != address(0))) revert ServiceRegistryV2__Invalid_address();
         slashManager = _slashManager;
         emit DependencyUpdated("slashManager", _slashManager);
     }
 
     function setAdminRegistry(address _adminRegistry) external onlyOwner {
-        require(_adminRegistry != address(0), "Invalid address");
+        if (!(_adminRegistry != address(0))) revert ServiceRegistryV2__Invalid_address();
+        uint256 size;
+        assembly { size := extcodesize(_adminRegistry) }
+        if (size == 0) revert ServiceRegistryV2__Invalid_address();
         adminRegistry = _adminRegistry;
         emit DependencyUpdated("adminRegistry", _adminRegistry);
     }
@@ -460,7 +486,7 @@ contract ServiceRegistryV2 is
      * M1 Fix: Can only be called once by the owner
      */
     function initializeActiveServiceCount() external onlyOwner {
-        require(!_activeCountInitialized, "Already initialized");
+        if (!(!_activeCountInitialized)) revert ServiceRegistryV2__Already_initialized();
         
         uint256 count = 0;
         for (uint256 i = 1; i <= _serviceCounter; i++) {
@@ -477,5 +503,15 @@ contract ServiceRegistryV2 is
     event ActiveServiceCountInitialized(uint256 count);
 
     /// @dev Storage gap for upgrade safety
-    uint256[49] private __gap;
+    uint256[50] private __gap;
+
+    /***********************************/
+    /* Internal Helpers */
+    /***********************************/
+    
+    function _sendEth(address to, uint256 amount) internal {
+        if (amount == 0) return;
+        (bool success, ) = payable(to).call{value: amount}("");
+        require(success, "ETH transfer failed");
+    }
 }

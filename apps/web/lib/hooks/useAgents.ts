@@ -249,8 +249,7 @@ export function useUnsetAgentWallet() {
 
 // ============ Aggregate Hooks ============
 
-const API_KEY = process.env.NEXT_PUBLIC_8004_API_KEY || '';
-const API_BASE = 'https://8004scan.io/api/v1/public';
+const API_PROXY = '/api/8004/proxy';
 const MAX_RETRIES = 3;
 const CACHE_KEY = 'kokonut_all_agents_cache_v1';
 const CACHE_DURATION = 5 * 60 * 1000; // 5 minutes
@@ -328,13 +327,8 @@ async function fetchAllAgentsFromAPI(
 ): Promise<{ agents: AgentResponse[]; hasMore: boolean; total: number }> {
   try {
     const response = await fetchWithBackoff(
-      `${API_BASE}/agents?chainId=11155111&page=${page}&limit=${limit}`,
-      {
-        headers: {
-          'X-API-Key': API_KEY,
-          'Content-Type': 'application/json',
-        },
-      }
+      `${API_PROXY}?chainId=11155111&page=${page}&limit=${limit}`,
+      {}
     );
 
     const data: AgentListResponse = await response.json();

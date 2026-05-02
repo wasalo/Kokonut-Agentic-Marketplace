@@ -1,8 +1,8 @@
 // SPDX-License-Identifier: MIT
-pragma solidity ^0.8.20;
+pragma solidity 0.8.22;
 
 import "@openzeppelin/contracts-upgradeable/proxy/utils/Initializable.sol";
-import "@openzeppelin/contracts-upgradeable/access/OwnableUpgradeable.sol";
+import "@openzeppelin/contracts-upgradeable/access/Ownable2StepUpgradeable.sol";
 import "@openzeppelin/contracts-upgradeable/proxy/utils/UUPSUpgradeable.sol";
 import "@openzeppelin/contracts-upgradeable/utils/PausableUpgradeable.sol";
 import {ERC1967Utils} from "@openzeppelin/contracts/proxy/ERC1967/ERC1967Utils.sol";
@@ -12,7 +12,7 @@ import {ERC1967Utils} from "@openzeppelin/contracts/proxy/ERC1967/ERC1967Utils.s
  * @dev Owner-managed registry for curated state including featured agents,
  *      verification providers, skill rules, and reputation decay configuration.
  */
-contract AdminRegistry is OwnableUpgradeable, UUPSUpgradeable, PausableUpgradeable {
+contract AdminRegistry is Ownable2StepUpgradeable, UUPSUpgradeable, PausableUpgradeable {
     struct VerificationConfig {
         string provider;      // e.g., "self.xyz"
         uint256 verifiedAt;   // timestamp
@@ -123,6 +123,11 @@ contract AdminRegistry is OwnableUpgradeable, UUPSUpgradeable, PausableUpgradeab
     modifier onlySlashManager() {
         if (msg.sender != slashManager) revert NotSlashManager();
         _;
+    }
+
+    /// @custom:oz-upgrades-unsafe-allow constructor
+    constructor() {
+        _disableInitializers();
     }
 
     /**
@@ -334,6 +339,7 @@ contract AdminRegistry is OwnableUpgradeable, UUPSUpgradeable, PausableUpgradeab
         returns (uint256) 
     {
         if (initialRating == 0) return 0;
+        if (timestamp > block.timestamp) return initialRating;
         
         uint256 daysElapsed = (block.timestamp - timestamp) / 1 days;
         uint256 decayFactor = daysElapsed * 100 / halfLifeDays; // percentage
@@ -584,4 +590,7 @@ contract AdminRegistry is OwnableUpgradeable, UUPSUpgradeable, PausableUpgradeab
     function getBlacklistedWalletCount() public view returns (uint256) {
         return blacklistedWalletsList.length;
     }
+
+    /// @dev Storage gap for upgrade safety
+    uint256[50] private __gap;
 }

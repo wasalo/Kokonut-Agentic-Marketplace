@@ -1,7 +1,7 @@
 // SPDX-License-Identifier: MIT
-pragma solidity ^0.8.20;
+pragma solidity 0.8.22;
 
-import "@openzeppelin/contracts-upgradeable/access/OwnableUpgradeable.sol";
+import "@openzeppelin/contracts-upgradeable/access/Ownable2StepUpgradeable.sol";
 import "@openzeppelin/contracts-upgradeable/proxy/utils/UUPSUpgradeable.sol";
 
 /**
@@ -30,7 +30,19 @@ interface AggregatorV3Interface {
  * - Support for arbitrary ERC20 tokens
  * - Removed hardcoded Sepolia addresses
  */
-contract PriceOracleV2 is OwnableUpgradeable, UUPSUpgradeable {
+contract PriceOracleV2 is Ownable2StepUpgradeable, UUPSUpgradeable {
+    error PriceOracleV2_Decimals_query_failed();
+    error PriceOracleV2_Feed_not_a_contract();
+    error PriceOracleV2_Invalid_decimals();
+    error PriceOracleV2_Invalid_price();
+    error PriceOracleV2_Length_mismatch();
+    error PriceOracleV2_Round_not_complete();
+    error PriceOracleV2_Stale_price();
+    error PriceOracleV2_Stale_round();
+    error PriceOracleV2_Zero_amount();
+    error PriceOracleV2_Zero_token_address();
+    error PriceOracleV2_Invalid_token_feed();
+
     
     // Max staleness period (1 hour)
     uint256 public constant MAX_STALENESS = 1 hours;
@@ -53,6 +65,11 @@ contract PriceOracleV2 is OwnableUpgradeable, UUPSUpgradeable {
     event StablecoinStatusChanged(address indexed token, bool isStable);
     event FallbackPriceUsed(address indexed token, int256 price);
 
+    /// @custom:oz-upgrades-unsafe-allow constructor
+    constructor() {
+        _disableInitializers();
+    }
+
     function initialize(address initialOwner) external initializer {
         __Ownable_init(initialOwner);
     }
@@ -66,7 +83,9 @@ contract PriceOracleV2 is OwnableUpgradeable, UUPSUpgradeable {
      * @param decimals The token's decimal places
      */
     function setPriceFeed(address token, address feed, uint8 decimals) external onlyOwner {
-        require(token != address(0), "Zero token address");
+        if (!(token != address(0))) revert PriceOracleV2_Zero_token_address();
+        if (!(feed.code.length > 0)) revert PriceOracleV2_Feed_not_a_contract();
+        if (!(token != feed)) revert PriceOracleV2_Invalid_token_feed();
         priceFeeds[token] = feed;
         feedDecimals[token] = decimals;
         emit PriceFeedRegistered(token, feed, decimals);
@@ -95,6 +114,7 @@ contract PriceOracleV2 is OwnableUpgradeable, UUPSUpgradeable {
      * @param decimals The ETH decimal places (18)
      */
     function setEthPriceFeed(address feed, uint8 decimals) external onlyOwner {
+        if (!(feed.code.length > 0)) revert PriceOracleV2_Feed_not_a_contract();
         ethPriceFeed = feed;
         ethFeedDecimals = decimals;
         emit PriceFeedRegistered(address(0), feed, decimals);
@@ -134,14 +154,12 @@ contract PriceOracleV2 is OwnableUpgradeable, UUPSUpgradeable {
      */
     function _getChainlinkPrice(address feed) internal view returns (int256) {
         AggregatorV3Interface aggregator = AggregatorV3Interface(feed);
-        (, int256 answer,, uint256 updatedAt,) = aggregator.latestRoundData();
+        (uint80 roundId, int256 answer,, uint256 updatedAt, uint80 answeredInRound) = aggregator.latestRoundData();
         
-        // Check staleness
-        if (block.timestamp - updatedAt > MAX_STALENESS) {
-            return ONE_USD; // Fallback to $1 if stale
-        }
-        
-        require(answer > 0, "Invalid price");
+        if (!(answeredInRound >= roundId)) revert PriceOracleV2_Stale_round();
+        if (!(updatedAt > 0)) revert PriceOracleV2_Round_not_complete();
+        if (!(block.timestamp - updatedAt <= MAX_STALENESS)) revert PriceOracleV2_Stale_price();
+        if (!(answer > 0)) revert PriceOracleV2_Invalid_price();
         return answer;
     }
 
@@ -152,11 +170,10 @@ contract PriceOracleV2 is OwnableUpgradeable, UUPSUpgradeable {
      * @return tokenAmount Token amount in token's native units
      */
     function getTokenAmountForUsd(uint256 usdAmount, address token) external view returns (uint256 tokenAmount) {
-        require(token != address(0), "Zero address");
-        require(usdAmount > 0, "Zero amount");
+        if (!(usdAmount > 0)) revert PriceOracleV2_Zero_amount();
 
         int256 price = this.getUsdPriceOfToken(token);
-        require(price > 0, "Invalid price");
+        if (!(price > 0)) revert PriceOracleV2_Invalid_price();
 
         uint8 decimals = _getTokenDecimals(token);
         
@@ -173,11 +190,10 @@ contract PriceOracleV2 is OwnableUpgradeable, UUPSUpgradeable {
      * @return usdAmount USD amount (with 6 decimals)
      */
     function getUsdAmountForTokens(uint256 tokenAmount, address token) external view returns (uint256 usdAmount) {
-        require(token != address(0), "Zero address");
-        require(tokenAmount > 0, "Zero amount");
+        if (!(tokenAmount > 0)) revert PriceOracleV2_Zero_amount();
 
         int256 price = this.getUsdPriceOfToken(token);
-        require(price > 0, "Invalid price");
+        if (!(price > 0)) revert PriceOracleV2_Invalid_price();
 
         uint8 decimals = _getTokenDecimals(token);
         
@@ -199,12 +215,10 @@ contract PriceOracleV2 is OwnableUpgradeable, UUPSUpgradeable {
         
         // Try to call decimals() on the token
         (bool success, bytes memory data) = token.staticcall(abi.encodeWithSignature("decimals()"));
-        if (success && data.length >= 32) {
-            return abi.decode(data, (uint8));
-        }
-        
-        // Default to 18
-        return 18;
+        if (!(success && data.length >= 32)) revert PriceOracleV2_Decimals_query_failed();
+        uint8 decimals = abi.decode(data, (uint8));
+        if (!(decimals > 0)) revert PriceOracleV2_Invalid_decimals();
+        return decimals;
     }
     
     /**
@@ -229,12 +243,19 @@ contract PriceOracleV2 is OwnableUpgradeable, UUPSUpgradeable {
      * @dev Check if price is stale for a specific token
      */
     function isStale(address token) external view returns (bool) {
-        address feed = priceFeeds[token];
-        if (feed == address(0)) return false; // No feed = no staleness
+        address feed;
+        if (token == address(0)) {
+            feed = ethPriceFeed;
+        } else {
+            feed = priceFeeds[token];
+        }
+        if (feed == address(0)) return false;
         
         AggregatorV3Interface aggregator = AggregatorV3Interface(feed);
-        (, int256 answer,, uint256 updatedAt,) = aggregator.latestRoundData();
+        (uint80 roundId, int256 answer,, uint256 updatedAt, uint80 answeredInRound) = aggregator.latestRoundData();
         
+        if (answeredInRound < roundId) return true;
+        if (updatedAt == 0) return true;
         if (answer <= 0) return true;
         return (block.timestamp - updatedAt) > MAX_STALENESS;
     }
@@ -247,11 +268,15 @@ contract PriceOracleV2 is OwnableUpgradeable, UUPSUpgradeable {
         address[] calldata feeds,
         uint8[] calldata decimals_
     ) external onlyOwner {
-        require(tokens.length == feeds.length && feeds.length == decimals_.length, "Length mismatch");
+        if (!(tokens.length == feeds.length && feeds.length == decimals_.length)) revert PriceOracleV2_Length_mismatch();
         for (uint256 i = 0; i < tokens.length; i++) {
+            if (!(feeds[i].code.length > 0)) revert PriceOracleV2_Feed_not_a_contract();
             priceFeeds[tokens[i]] = feeds[i];
             feedDecimals[tokens[i]] = decimals_[i];
             emit PriceFeedRegistered(tokens[i], feeds[i], decimals_[i]);
         }
     }
+
+    /// @dev Storage gap for upgrade safety
+    uint256[50] private __gap;
 }

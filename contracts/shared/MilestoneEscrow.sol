@@ -1,7 +1,7 @@
 // SPDX-License-Identifier: MIT
-pragma solidity ^0.8.20;
+pragma solidity 0.8.22;
 
-import "@openzeppelin/contracts-upgradeable/access/OwnableUpgradeable.sol";
+import "@openzeppelin/contracts-upgradeable/access/Ownable2StepUpgradeable.sol";
 import "@openzeppelin/contracts-upgradeable/proxy/utils/UUPSUpgradeable.sol";
 import "@openzeppelin/contracts-upgradeable/utils/ContextUpgradeable.sol";
 import "@openzeppelin/contracts-upgradeable/utils/PausableUpgradeable.sol";
@@ -21,12 +21,17 @@ import "@openzeppelin/contracts/utils/ReentrancyGuard.sol";
  */
 contract MilestoneEscrow is 
     ContextUpgradeable,
-    OwnableUpgradeable, 
+    Ownable2StepUpgradeable, 
     UUPSUpgradeable, 
     ReentrancyGuard,
     PausableUpgradeable
 {
     using SafeERC20 for IERC20;
+
+    /// @custom:oz-upgrades-unsafe-allow constructor
+    constructor() {
+        _disableInitializers();
+    }
 
     /***********************************/
     /* Constants */
@@ -277,8 +282,8 @@ contract MilestoneEscrow is
      */
     function releaseMilestone(uint256 jobId, uint256 milestoneIndex)
         external
-        whenNotPaused
         nonReentrant
+        whenNotPaused
     {
         JobMilestones storage jm = jobMilestones[jobId];
         if (jm.provider == address(0)) revert InvalidJob();
@@ -461,8 +466,8 @@ contract MilestoneEscrow is
      */
     function resolveDispute(uint256 jobId, bool releaseToProvider)
         external
-        whenNotPaused
         nonReentrant
+        whenNotPaused
     {
         Dispute storage dispute = disputes[jobId];
         if (dispute.arbiter != _msgSender()) revert OnlyArbiterOrParty();
@@ -522,4 +527,7 @@ contract MilestoneEscrow is
     function getArbiterCount() external view returns (uint256) {
         return arbiterPool.length;
     }
+
+    /// @dev Storage gap for upgrade safety
+    uint256[50] private __gap;
 }

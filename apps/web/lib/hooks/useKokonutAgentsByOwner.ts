@@ -8,8 +8,7 @@ import { getContractAddress } from '@/lib/contracts/config';
 import { debugLog } from '@/lib/debug';
 import { ERC8004_ABI } from '@/lib/8004contracts';
 
-const API_KEY = process.env.NEXT_PUBLIC_8004_API_KEY || '';
-const API_BASE = 'https://8004scan.io/api/v1/public';
+const API_PROXY = '/api/8004/proxy';
 const ERC8004_ADDRESS = getContractAddress('ERC8004_REGISTRY');
 
 const STALE_TIME = 5 * 60 * 1000; // 5 minutes
@@ -78,13 +77,8 @@ async function fetchAgentsByOwner(
 
   // Step 1: Fetch agents from API filtered by owner
   const response = await fetchWithBackoff(
-    `${API_BASE}/agents?chainId=11155111&ownerAddress=${ownerAddress}&limit=100`,
-    {
-      headers: {
-        'X-API-Key': API_KEY,
-        'Content-Type': 'application/json',
-      },
-    }
+    `${API_PROXY}?chainId=11155111&ownerAddress=${ownerAddress}&limit=100`,
+    {}
   );
 
   const data = await response.json();

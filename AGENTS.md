@@ -13,13 +13,13 @@
 >   - **Storage Safety**: Zero storage layout change — function was a no-op in OZ v4.x
 >   - **New Impl Addresses**: See table below
 >   - **Contracts**:
->     - AgenticCommerceV9 Impl: `0xAFC89ae02843D041f2704f33FFf2e0d567859D58`
->     - MilestoneEscrowV2 Impl: `0xdE0EB59a35c6FD8d0eEF5f1F1F1884E46a4fe652`
->     - AgentReviewV5 Impl: `0x1c3513BC838059e2Fa71e60e92317Eef51688B6e`
->     - AdminRegistry Impl: `0xc34b9F78bDB6d4812B85752867772cF25c0405e3`
->     - PriceOracleV2 Impl: `0x34344702fe257aEB4FdD73F5c51f5DdE0168a652`
->     - SlashManager Impl: `0x865ebF8EaC43FE343985058e56E08aAB4E605214`
->     - CommitReveal Impl: `0x0456fb2B6ef68B9133B22809D48D4f3748bEf87C`
+>     - AgenticCommerceV9 Impl | `0xAFC89ae02843D041f2704f33FFf2e0d567859D58`
+>     - MilestoneEscrowV2 Impl | `0xdE0EB59a35c6FD8d0eEF5f1F1F1884E46a4fe652`
+>     - AgentReviewV5 Impl | `0x1c3513BC838059e2Fa71e60e92317Eef51688B6e`
+>     - AdminRegistry Impl | `0xc34b9F78bDB6d4812B85752867772cF25c0405e3`
+>     - PriceOracleV2 Impl | `0x34344702fe257aEB4FdD73F5c51f5DdE0168a652`
+>     - SlashManager Impl | `0x865ebF8EaC43FE343985058e56E08aAB4E605214`
+>     - CommitReveal Impl | `0x0456fb2B6ef68B9133B22809D48D4f3748bEf87C`
 
 > - **Phase 29c: AgenticCommerceV9 - Multi-Token Architecture (April 28, 2026) [COMPLETE]**:
 >   - **Multi-Token Minimum Budgets**: Owner-changeable `minBudgetUsd` (default $5) with per-token overrides
@@ -32,11 +32,11 @@
 >   - **PriceOracleV2**: UUPS upgradeable with per-token Chainlink feed mapping + dedicated ETH feed support
 >   - **Contracts**:
 >     - AgenticCommerceV9 Proxy: `0x4c592510e4FAbbEEA8D7142dE1f38d548b500e7f`
->     - AgenticCommerceV9 Impl: `0x9634280fb2416061124aa6474F1BcF692473bEF4`
+>     - AgenticCommerceV9 Impl | `0xAFC89ae02843D041f2704f33FFf2e0d567859D58`
 >     - MilestoneEscrowV2 Proxy: `0xd4Fdc345b1c6aF1B4Cc84339bcB251B33527Eb45`
->     - MilestoneEscrowV2 Impl: `0xfb764A5c740aC47721bC9802596395CdF2DC4CdB`
+>     - MilestoneEscrowV2 Impl | `0xdE0EB59a35c6FD8d0eEF5f1F1F1884E46a4fe652`
 >     - PriceOracleV2 Proxy: `0x32fD2A54B722D2048A052fD0456004483a683aFE`
->     - PriceOracleV2 Impl: `0xb4660AceBf93874fB6E945C312c5706093336Ef8`
+>     - PriceOracleV2 Impl | `0x34344702fe257aEB4FdD73F5c51f5DdE0168a652`
 >
 > - **Phase 29d: Security Audit Fix - 12 Issues Resolved (April 29, 2026) [COMPLETE]**:
 >   - **VULN-01 (HIGH)**: `slashAndBlacklistAgent()` now requires `onlySlashManager` — not callable by anyone
@@ -402,7 +402,7 @@ USDC:      0x1c7D4B196Cb0C7B01d743Fbc6116a902379C7238
 | `AgentSkillRegistryV2 Impl` | `0x656B6520CE44Bb0Fb08552274Be3a9B11aaa3569` | Implementation (Phase 14: O(1) domain lookup)              | ✅ Live | [Etherscan](https://sepolia.etherscan.io/address/0x656B6520CE44Bb0Fb08552274Be3a9B11aaa3569#code) |
 | `ServiceRegistryV2`         | `0x62E1eeEa1A2Ab987004F35bDA430457Ed6077201` | What do I offer? (UUPS Proxy, Phase 13 Bond + isActive)    | ✅ Live | [Etherscan](https://sepolia.etherscan.io/address/0x62E1eeEa1A2Ab987004F35bDA430457Ed6077201#code) |
 | `AdminRegistry`             | `0xC81C864CEAb6231ad764cf9867e031D8b6dee41d` | UUPS Proxy — Owner-managed registry with blacklist, featured agents, verification providers (Phase 29e: Pashov fixes + data migration) | ✅ Live | [Etherscan](https://sepolia.etherscan.io/address/0xC81C864CEAb6231ad764cf9867e031D8b6dee41d#code) |
-| `AdminRegistry Impl`        | `0xc34b9F78bDB6d4812B85752867772cF25c0405e3` | Implementation (OZ v5 compat: removed __UUPSUpgradeable_init()) | ✅ Live | [Etherscan](https://sepolia.etherscan.io/address/0xc34b9f78bdb6d4812b85752867772cf25c0405e3#code) |
+| `AdminRegistry Impl | `0xc34b9F78bDB6d4812B85752867772cF25c0405e3` | Implementation (OZ v5 compat: removed __UUPSUpgradeable_init()) | ✅ Live | [Etherscan](https://sepolia.etherscan.io/address/0xc34b9f78bdb6d4812b85752867772cf25c0405e3#code) |
 | `AdminRegistry (Old v1)`    | `0x8A8E3C9ffB8F25236c8152c8ac634336463f3Ab0` | ~~DEPRECATED~~ — First direct deployment, not UUPS | ❌ Old | [Etherscan](https://sepolia.etherscan.io/address/0x8A8E3C9ffB8F25236c8152c8ac634336463f3Ab0#code) |
 | `AdminRegistry (Old v2)`    | `0x9b4a7479E2609D1E6Dfc4232aD4CA493adF82c6e` | ~~DEPRECATED~~ — Second direct deployment, replaced by UUPS proxy | ❌ Old | [Etherscan](https://sepolia.etherscan.io/address/0x9b4a7479E2609D1E6Dfc4232aD4CA493adF82c6e#code) |
 | `ServiceRegistryV2 Impl`    | `0xb75B02D4523171ABdB6f5bcB9D60903ed3e30fAD` | Phase 29e: blacklist recheck + Pashov audit fixes | ✅ Live | [Etherscan](https://sepolia.etherscan.io/address/0xb75B02D4523171ABdB6f5bcB9D60903ed3e30fAD#code) |
@@ -411,13 +411,13 @@ USDC:      0x1c7D4B196Cb0C7B01d743Fbc6116a902379C7238
 | `BiddingSystem`             | `0x32c9d069a248a619d3EAc4D1FC76F2639AaBeF04` | Standalone bidding with commit-reveal (UUPS)               | ✅ Live | [Etherscan](https://sepolia.etherscan.io/address/0x32c9d069a248a619d3EAc4D1FC76F2639AaBeF04#code) |
 | `BiddingSystem Impl`        | `0x0eE5E780bbbBA610D0B1926a3993A2aa0B1B9812` | Implementation (Phase 29e: blacklist check on commitBid) | ✅ Live | [Etherscan](https://sepolia.etherscan.io/address/0x0eE5E780bbbBA610D0B1926a3993A2aa0B1B9812#code) |
 | `AgentReviewV5`             | `0x5CDb592Fd37749bF87448FBf5725D1Cd986dd1Cb` | How do I prove my value? (Phase 13: Median + Proportional) | ✅ Live | [Etherscan](https://sepolia.etherscan.io/address/0x5CDb592Fd37749bF87448FBf5725D1Cd986dd1Cb#code) |
-| `AgentReviewV5 Impl`        | `0x1c3513BC838059e2Fa71e60e92317Eef51688B6e` | Implementation (OZ v5 compat: removed __UUPSUpgradeable_init()) | ✅ Live | [Etherscan](https://sepolia.etherscan.io/address/0x1c3513bc838059e2fa71e60e92317eef51688b6e#code) |
+| `AgentReviewV5 Impl | `0x1c3513BC838059e2Fa71e60e92317Eef51688B6e` | Implementation (OZ v5 compat: removed __UUPSUpgradeable_init()) | ✅ Live | [Etherscan](https://sepolia.etherscan.io/address/0x1c3513bc838059e2fa71e60e92317eef51688b6e#code) |
 | `PriceOracle`               | `0x32fD2A54B722D2048A052fD0456004483a683aFE` | PriceOracleV2 - UUPS upgradeable per-token feeds           | ✅ Live | [Etherscan](https://sepolia.etherscan.io/address/0x32fD2A54B722D2048A052fD0456004483a683aFE#code) |
 | `PriceOracle Impl`          | `0x34344702fe257aEB4FdD73F5c51f5DdE0168a652` | Implementation (OZ v5 compat: removed __UUPSUpgradeable_init()) | ✅ Live | [Etherscan](https://sepolia.etherscan.io/address/0x34344702fe257aeb4fdd73f5c51f5dde0168a652#code) |
 | `CommitReveal`              | `0x85F193670fCb7B0c97D55E70Bf2a950b1065Fb3a` | Front-running protection (UUPS, Cleanup Fix)               | ✅ Live | [Etherscan](https://sepolia.etherscan.io/address/0x85F193670fCb7B0c97D55E70Bf2a950b1065Fb3a#code) |
-| `CommitReveal Impl`         | `0x0456fb2B6ef68B9133B22809D48D4f3748bEf87C` | Implementation (OZ v5 compat: removed __UUPSUpgradeable_init()) | ✅ Live | [Etherscan](https://sepolia.etherscan.io/address/0x0456fb2b6ef68b9133b22809d48d4f3748bef87c#code) |
+| `CommitReveal Impl | `0x0456fb2B6ef68B9133B22809D48D4f3748bEf87C` | Implementation (OZ v5 compat: removed __UUPSUpgradeable_init()) | ✅ Live | [Etherscan](https://sepolia.etherscan.io/address/0x0456fb2b6ef68b9133b22809d48d4f3748bef87c#code) |
 | `SlashManager`              | `0x1B8373cDF4f2eD740c3478e0129f0B8494CE4Fa3` | 3-of-5 multisig (O(1) lookup + UUPS + Pausable)            | ✅ Live | [Etherscan](https://sepolia.etherscan.io/address/0x1B8373cDF4f2eD740c3478e0129f0B8494CE4Fa3#code) |
-| `SlashManager Impl`         | `0x865ebF8EaC43FE343985058e56E08aAB4E605214` | Implementation (OZ v5 compat: removed __UUPSUpgradeable_init()) | ✅ Live | [Etherscan](https://sepolia.etherscan.io/address/0x865ebf8eac43fe343985058e56e08aab4e605214#code) |
+| `SlashManager Impl | `0x865ebF8EaC43FE343985058e56E08aAB4E605214` | Implementation (OZ v5 compat: removed __UUPSUpgradeable_init()) | ✅ Live | [Etherscan](https://sepolia.etherscan.io/address/0x865ebf8eac43fe343985058e56e08aab4e605214#code) |
 | `MilestoneEscrow`          | `0xd4Fdc345b1c6aF1B4Cc84339bcB251B33527Eb45` | MilestoneEscrowV2 - Per-token arbiter fees + USDC staking  | ✅ Live | [Etherscan](https://sepolia.etherscan.io/address/0xd4Fdc345b1c6aF1B4Cc84339bcB251B33527Eb45#code) |
 | `MilestoneEscrow Impl`     | `0xdE0EB59a35c6FD8d0eEF5f1F1F1884E46a4fe652` | Implementation (OZ v5 compat: removed __UUPSUpgradeable_init()) | ✅ Live | [Etherscan](https://sepolia.etherscan.io/address/0xde0eb59a35c6fd8d0eef5f1f1f1884e46a4fe652#code) |
 
@@ -1716,6 +1716,9 @@ _[Screenshot Placeholder: Navigation bar showing expanded "More" dropdown with A
 6. **Automatic contract fallbacks** - App works even without environment variables
 7. **Debug logging available** - Enable to trace contract calls and errors
 8. **Phase 4 Contracts** - All V3 contracts have been removed. Use V4 addresses only
+9. **UUPS Upgrade Continuity (A-01)** — Every new implementation MUST inherit `UUPSUpgradeable` and call `_authorizeUpgrade()` with `onlyOwner`. Failure to do so bricks the proxy.
+10. **SlashManager BP Scaling (A-02)** — `executeSlash()` scales slash linearly from MIN_SLASH_BP (25%) at 0.25 ETH to MAX_SLASH_BP (100%) at 100 ETH. Amounts >100 ETH cap at `DEFAULT_SLASH_BP` (50%).
+11. **AgentReviewV5 Reward Dust (A-03)** — Winner share calculation is `(totalPool * 60) / 100` (floor). Treasury gets remaining 40% + up to 99 wei rounding dust. Negligible economic impact.
 
 ---
 

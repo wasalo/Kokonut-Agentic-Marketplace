@@ -6,6 +6,7 @@ test = "contracts/test"
 cache_path = "cache"
 
 solc = "0.8.22"
+via_ir = true
 optimizer = true
 optimizer_runs = 20000
 

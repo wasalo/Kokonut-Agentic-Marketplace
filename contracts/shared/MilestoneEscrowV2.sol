@@ -1,7 +1,7 @@
 // SPDX-License-Identifier: MIT
-pragma solidity ^0.8.20;
+pragma solidity 0.8.22;
 
-import "@openzeppelin/contracts-upgradeable/access/OwnableUpgradeable.sol";
+import "@openzeppelin/contracts-upgradeable/access/Ownable2StepUpgradeable.sol";
 import "@openzeppelin/contracts-upgradeable/proxy/utils/UUPSUpgradeable.sol";
 import "@openzeppelin/contracts-upgradeable/utils/ContextUpgradeable.sol";
 import "@openzeppelin/contracts-upgradeable/utils/PausableUpgradeable.sol";
@@ -21,12 +21,17 @@ import "@openzeppelin/contracts/utils/ReentrancyGuard.sol";
  */
 contract MilestoneEscrowV2 is 
     ContextUpgradeable,
-    OwnableUpgradeable, 
+    Ownable2StepUpgradeable, 
     UUPSUpgradeable, 
     ReentrancyGuard,
     PausableUpgradeable
 {
     using SafeERC20 for IERC20;
+
+    /// @custom:oz-upgrades-unsafe-allow constructor
+    constructor() {
+        _disableInitializers();
+    }
 
     /***********************************/
     /* Constants */
@@ -245,6 +250,8 @@ contract MilestoneEscrowV2 is
         uint256 totalBudget
     ) external whenNotPaused {
         if (_msgSender() != agenticCommerce && _msgSender() != client) revert Unauthorized();
+        if (client == address(0) || provider == address(0)) revert ZeroAddress();
+        if (client == provider) revert InvalidJob();
         if (!supportedTokens[paymentToken]) revert TokenNotSupported();
         
         jobMilestones[jobId].client = client;
@@ -319,7 +326,7 @@ contract MilestoneEscrowV2 is
     function releaseMilestone(
         uint256 jobId,
         uint256 milestoneIndex
-    ) external whenNotPaused nonReentrant {
+    ) external nonReentrant whenNotPaused {
         JobMilestones storage jm = jobMilestones[jobId];
         if (jm.client == address(0)) revert InvalidJob();
         if (_msgSender() != jm.client) revert Unauthorized();
@@ -353,13 +360,9 @@ contract MilestoneEscrowV2 is
         if (disputes[jobId].flaggedAt != 0) revert DisputeAlreadyExists();
         if (arbiterPool.length == 0) revert NotRegisteredArbiter();
         
-        // V2: Pay fee in job's paymentToken
         address paymentToken = jm.paymentToken;
         uint256 fee = arbiterFeePerToken[paymentToken];
         if (fee == 0) revert InsufficientArbiterFee();
-        
-        // Transfer fee from flagger to contract
-        IERC20(paymentToken).safeTransferFrom(_msgSender(), address(this), fee);
         
         // Assign random arbiter
         uint256 randomIndex = uint256(keccak256(abi.encodePacked(
@@ -371,6 +374,7 @@ contract MilestoneEscrowV2 is
         
         address assignedArbiter = arbiterPool[randomIndex];
         
+        // Effects: Write state before external call
         disputes[jobId] = Dispute({
             jobId: jobId,
             flagger: _msgSender(),
@@ -383,6 +387,12 @@ contract MilestoneEscrowV2 is
         });
         
         activeDisputeIds.push(jobId);
+        
+        // Interaction: Transfer fee with fee-on-transfer detection
+        uint256 balanceBefore = IERC20(paymentToken).balanceOf(address(this));
+        IERC20(paymentToken).safeTransferFrom(_msgSender(), address(this), fee);
+        uint256 balanceAfter = IERC20(paymentToken).balanceOf(address(this));
+        if (balanceAfter - balanceBefore != fee) revert InvalidTokenAmount();
         
         emit DisputeFlagged(jobId, _msgSender(), paymentToken, fee);
         emit ArbiterAssigned(jobId, assignedArbiter);
@@ -499,6 +509,16 @@ contract MilestoneEscrowV2 is
         
         emit ArbiterSlashed(arbiter, slashAmount, reason);
     }
+    
+    /**
+     * @dev Withdraw accidentally sent tokens or accumulated slashed funds (owner only).
+     * @param token The token address to withdraw.
+     * @param amount The amount to withdraw.
+     */
+    function withdrawToken(address token, uint256 amount) external onlyOwner {
+        if (amount == 0) revert InvalidTokenAmount();
+        IERC20(token).safeTransfer(msg.sender, amount);
+    }
 
     /***********************************/
     /* Arbiter Functions */
@@ -517,13 +537,17 @@ contract MilestoneEscrowV2 is
         if (requiredStake == 0) revert InsufficientArbiterStake();
         if (amount < requiredStake) revert InsufficientArbiterStake();
         
-        // Transfer stake tokens from arbiter to contract
-        IERC20(token).safeTransferFrom(_msgSender(), address(this), amount);
-        
+        // Effects: Write state before external call
         arbiterStakes[_msgSender()] = amount;
         arbiterStakeToken[_msgSender()] = token;
         isRegisteredArbiter[_msgSender()] = true;
         arbiterPool.push(_msgSender());
+        
+        // Interaction: Transfer stake with fee-on-transfer detection
+        uint256 balanceBefore = IERC20(token).balanceOf(address(this));
+        IERC20(token).safeTransferFrom(_msgSender(), address(this), amount);
+        uint256 balanceAfter = IERC20(token).balanceOf(address(this));
+        if (balanceAfter - balanceBefore != amount) revert InvalidTokenAmount();
         
         emit ArbiterRegistered(_msgSender(), token, amount);
     }
@@ -592,4 +616,7 @@ contract MilestoneEscrowV2 is
     function getJobMilestones(uint256 jobId) external view returns (Milestone[] memory) {
         return jobMilestones[jobId].milestones;
     }
+
+    /// @dev Storage gap for upgrade safety
+    uint256[50] private __gap;
 }

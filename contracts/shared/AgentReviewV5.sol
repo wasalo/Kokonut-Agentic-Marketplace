@@ -1,7 +1,7 @@
 // SPDX-License-Identifier: MIT
-pragma solidity ^0.8.20;
+pragma solidity 0.8.22;
 
-import "@openzeppelin/contracts-upgradeable/access/OwnableUpgradeable.sol";
+import "@openzeppelin/contracts-upgradeable/access/Ownable2StepUpgradeable.sol";
 import "@openzeppelin/contracts-upgradeable/proxy/utils/UUPSUpgradeable.sol";
 import "@openzeppelin/contracts-upgradeable/utils/ContextUpgradeable.sol";
 import "@openzeppelin/contracts-upgradeable/utils/PausableUpgradeable.sol";
@@ -171,7 +171,40 @@ interface IAgentReviewV5 {
  * - M3: Median-based winner selection (eliminates proposer bias)
  * - M4: Proportional evaluator rewards (eliminates winner-take-all)
  */
-contract AgentReviewV5 is IAgentReviewV5, ContextUpgradeable, OwnableUpgradeable, UUPSUpgradeable, ReentrancyGuard, PausableUpgradeable {
+contract AgentReviewV5 is IAgentReviewV5, ContextUpgradeable, Ownable2StepUpgradeable, UUPSUpgradeable, ReentrancyGuard, PausableUpgradeable {
+    error AgentReviewV5_Already_claimed();
+    error AgentReviewV5_Already_evaluated();
+    error AgentReviewV5_Already_final();
+    error AgentReviewV5_Already_released();
+    error AgentReviewV5_Already_submitted();
+    error AgentReviewV5_Cannot_evaluate_own_proposal();
+    error AgentReviewV5_Cannot_exceed_100();
+    error AgentReviewV5_Deadline_in_past();
+    error AgentReviewV5_Deadline_not_passed();
+    error AgentReviewV5_Deadline_passed();
+    error AgentReviewV5_Exact_ETH_required();
+    error AgentReviewV5_Exceeds_available_balance();
+    error AgentReviewV5_Grace_period_not_passed();
+    error AgentReviewV5_Invalid_proposal();
+    error AgentReviewV5_Invalid_score();
+    error AgentReviewV5_Max_evaluators_reached();
+    error AgentReviewV5_No_evaluators();
+    error AgentReviewV5_No_reward();
+    error AgentReviewV5_No_stake();
+    error AgentReviewV5_Not_an_evaluator();
+    error AgentReviewV5_Not_decided();
+    error AgentReviewV5_Not_open();
+    error AgentReviewV5_Not_proposer();
+    error AgentReviewV5_Not_slashManager();
+    error AgentReviewV5_Not_under_review();
+    error AgentReviewV5_Not_winner();
+    error AgentReviewV5_Proposal_not_active();
+    error AgentReviewV5_Reward_too_high();
+    error AgentReviewV5_Reward_too_low();
+    error AgentReviewV5_Stake_too_low();
+    error AgentReviewV5_Transfer_failed();
+    error AgentReviewV5_Zero_address();
+    error AgentReviewV5_Zero_amount();
     uint256 public constant MAX_EVALUATORS_PER_PROPOSAL = 5;
     uint256 public constant MIN_STAKE = 0.001 ether;
     uint256 public constant SLASH_PERCENTAGE = 5000;
@@ -231,7 +264,7 @@ contract AgentReviewV5 is IAgentReviewV5, ContextUpgradeable, OwnableUpgradeable
     }
 
     modifier onlySlashManager() {
-        require(msg.sender == slashManager, "Not slashManager");
+        if (!(msg.sender == slashManager)) revert AgentReviewV5_Not_slashManager();
         _;
     }
 
@@ -249,10 +282,10 @@ contract AgentReviewV5 is IAgentReviewV5, ContextUpgradeable, OwnableUpgradeable
         }
 
         // L1 Fix: Check maximum reward limit
-        require(reward <= MAX_REWARD, "Reward too high");
-        require(msg.value == reward, "Exact ETH required");
-        require(reward >= MIN_STAKE, "Reward too low");
-        require(decisionDeadline > block.timestamp, "Deadline in past");
+        if (!(reward <= MAX_REWARD)) revert AgentReviewV5_Reward_too_high();
+        if (!(msg.value == reward)) revert AgentReviewV5_Exact_ETH_required();
+        if (!(reward >= MIN_STAKE)) revert AgentReviewV5_Reward_too_low();
+        if (!(decisionDeadline > block.timestamp)) revert AgentReviewV5_Deadline_in_past();
 
         _proposalCounter++;
         proposalId = _proposalCounter;
@@ -286,22 +319,22 @@ contract AgentReviewV5 is IAgentReviewV5, ContextUpgradeable, OwnableUpgradeable
         }
 
         Proposal storage proposal = proposals[proposalId];
-        require(proposal.id == proposalId, "Invalid proposal");
-        require(proposal.status == ProposalStatus.Open, "Not open");
-        require(proposal.proposer != _msgSender(), "Cannot evaluate own proposal");
-        require(proposal.decisionDeadline > block.timestamp, "Deadline passed");
-        require(msg.value >= MIN_STAKE, "Stake too low");
-        require(confidenceScore >= -100 && confidenceScore <= 100, "Invalid score");
+        if (!(proposal.id == proposalId)) revert AgentReviewV5_Invalid_proposal();
+        if (!(proposal.status == ProposalStatus.Open)) revert AgentReviewV5_Not_open();
+        if (!(proposal.proposer != _msgSender())) revert AgentReviewV5_Cannot_evaluate_own_proposal();
+        if (!(proposal.decisionDeadline > block.timestamp)) revert AgentReviewV5_Deadline_passed();
+        if (!(msg.value >= MIN_STAKE)) revert AgentReviewV5_Stake_too_low();
+        if (!(confidenceScore >= -100 && confidenceScore <= 100)) revert AgentReviewV5_Invalid_score();
 
         address[] storage evals = proposalEvaluators[proposalId];
-        require(evals.length < MAX_EVALUATORS_PER_PROPOSAL, "Max evaluators reached");
+        if (!(evals.length < MAX_EVALUATORS_PER_PROPOSAL)) revert AgentReviewV5_Max_evaluators_reached();
         
         for (uint256 i = 0; i < evals.length; i++) {
-            require(evals[i] != _msgSender(), "Already evaluated");
+            if (!(evals[i] != _msgSender())) revert AgentReviewV5_Already_evaluated();
         }
 
         Evaluation storage eval = evaluations[proposalId][_msgSender()];
-        require(eval.submittedAt == 0, "Already submitted");
+        if (!(eval.submittedAt == 0)) revert AgentReviewV5_Already_submitted();
 
         eval.proposalId = proposalId;
         eval.evaluator = _msgSender();
@@ -322,14 +355,14 @@ contract AgentReviewV5 is IAgentReviewV5, ContextUpgradeable, OwnableUpgradeable
 
     function attestDecision(uint256 proposalId, address winningEvaluator) external nonReentrant whenNotPaused {
         Proposal storage proposal = proposals[proposalId];
-        require(proposal.id == proposalId, "Invalid proposal");
-        require(proposal.status == ProposalStatus.UnderReview, "Not under review");
-        require(proposal.proposer == _msgSender(), "Not proposer");
-        require(proposal.decisionDeadline <= block.timestamp, "Deadline not passed");
+        if (!(proposal.id == proposalId)) revert AgentReviewV5_Invalid_proposal();
+        if (!(proposal.status == ProposalStatus.UnderReview)) revert AgentReviewV5_Not_under_review();
+        if (!(proposal.proposer == _msgSender())) revert AgentReviewV5_Not_proposer();
+        if (!(proposal.decisionDeadline <= block.timestamp)) revert AgentReviewV5_Deadline_not_passed();
 
         Evaluation storage winningEval = evaluations[proposalId][winningEvaluator];
-        require(winningEval.submittedAt > 0, "Not an evaluator");
-        require(!winningEval.isFinal, "Already final");
+        if (!(winningEval.submittedAt > 0)) revert AgentReviewV5_Not_an_evaluator();
+        if (!(!winningEval.isFinal)) revert AgentReviewV5_Already_final();
 
         ProposalStatus oldStatus = proposal.status;
         proposal.status = ProposalStatus.Decided;
@@ -358,14 +391,14 @@ contract AgentReviewV5 is IAgentReviewV5, ContextUpgradeable, OwnableUpgradeable
      */
     function finalizeDecision(uint256 proposalId) external nonReentrant whenNotPaused {
         Proposal storage proposal = proposals[proposalId];
-        require(proposal.id == proposalId, "Invalid proposal");
-        require(proposal.status == ProposalStatus.UnderReview, "Not under review");
+        if (!(proposal.id == proposalId)) revert AgentReviewV5_Invalid_proposal();
+        if (!(proposal.status == ProposalStatus.UnderReview)) revert AgentReviewV5_Not_under_review();
         
         // M5 Fix: Require deadline + grace period to have passed
-        require(proposal.decisionDeadline + GRACE_PERIOD <= block.timestamp, "Grace period not passed");
+        if (!(proposal.decisionDeadline + GRACE_PERIOD <= block.timestamp)) revert AgentReviewV5_Grace_period_not_passed();
         
         address[] storage evals = proposalEvaluators[proposalId];
-        require(evals.length > 0, "No evaluators");
+        if (!(evals.length > 0)) revert AgentReviewV5_No_evaluators();
         
         // Use median evaluator as winner (same logic as passing address(0))
         address winner = _getMedianEvaluator(proposalId);
@@ -443,12 +476,12 @@ contract AgentReviewV5 is IAgentReviewV5, ContextUpgradeable, OwnableUpgradeable
 
     function slashEvaluator(address evaluator, uint256 proposalId, uint256 slashBP, string calldata reason) external onlySlashManager whenNotPaused {
         Proposal storage proposal = proposals[proposalId];
-        require(proposal.id == proposalId, "Invalid proposal");
-        require(proposal.status == ProposalStatus.UnderReview, "Proposal not active");
+        if (!(proposal.id == proposalId)) revert AgentReviewV5_Invalid_proposal();
+        if (!(proposal.status == ProposalStatus.UnderReview)) revert AgentReviewV5_Proposal_not_active();
         
         Evaluation storage eval = evaluations[proposalId][evaluator];
-        require(eval.submittedAt > 0, "Not an evaluator");
-        require(!eval.isFinal, "Already final");
+        if (!(eval.submittedAt > 0)) revert AgentReviewV5_Not_an_evaluator();
+        if (!(!eval.isFinal)) revert AgentReviewV5_Already_final();
 
         // M2 Fix: Use slashBP passed from SlashManager, capped at 10000 (100%)
         if (slashBP > FEE_DENOMINATOR) slashBP = FEE_DENOMINATOR;
@@ -461,8 +494,7 @@ contract AgentReviewV5 is IAgentReviewV5, ContextUpgradeable, OwnableUpgradeable
             emit StakeAmountChanged(proposalId, evaluator, oldStake, eval.stakeAmount);
             
             // M2 Fix: Send to slashTreasury instead of owner
-            (bool success, ) = slashTreasury.call{value: slashAmount}("");
-            require(success, "Transfer failed");
+            _sendEth(slashTreasury, slashAmount);
         }
 
         emit EvaluatorSlashed(evaluator, slashAmount, reason);
@@ -470,46 +502,44 @@ contract AgentReviewV5 is IAgentReviewV5, ContextUpgradeable, OwnableUpgradeable
 
     function claimReward(uint256 proposalId) external nonReentrant {
         Proposal storage proposal = proposals[proposalId];
-        require(proposal.id == proposalId, "Invalid proposal");
-        require(proposal.status == ProposalStatus.Decided, "Not decided");
-        require(proposal.winningEvaluator == _msgSender(), "Not winner");
+        if (!(proposal.id == proposalId)) revert AgentReviewV5_Invalid_proposal();
+        if (!(proposal.status == ProposalStatus.Decided)) revert AgentReviewV5_Not_decided();
+        if (!(proposal.winningEvaluator == _msgSender())) revert AgentReviewV5_Not_winner();
 
         Evaluation storage eval = evaluations[proposalId][_msgSender()];
-        require(eval.isFinal, "Not winner");
-        require(!eval.rewardClaimed, "Already claimed");
-        require(eval.rewardAmount > 0, "No reward");
+        if (!(eval.isFinal)) revert AgentReviewV5_Not_winner();
+        if (!(!eval.rewardClaimed)) revert AgentReviewV5_Already_claimed();
+        if (!(eval.rewardAmount > 0)) revert AgentReviewV5_No_reward();
 
         uint256 amount = eval.rewardAmount;
         eval.rewardAmount = 0;
         eval.rewardClaimed = true;
 
-        (bool success, ) = _msgSender().call{value: amount}("");
-        require(success, "Transfer failed");
+        _sendEth(_msgSender(), amount);
 
         emit RewardClaimed(proposalId, _msgSender(), amount);
     }
 
     function releaseStake(uint256 proposalId) external nonReentrant {
         Proposal storage proposal = proposals[proposalId];
-        require(proposal.id == proposalId, "Invalid proposal");
+        if (!(proposal.id == proposalId)) revert AgentReviewV5_Invalid_proposal();
         
         Evaluation storage eval = evaluations[proposalId][_msgSender()];
-        require(eval.submittedAt > 0, "Not an evaluator");
-        require(!eval.stakeReleased, "Already released");
-        require(eval.stakeAmount > 0, "No stake");
+        if (!(eval.submittedAt > 0)) revert AgentReviewV5_Not_an_evaluator();
+        if (!(!eval.stakeReleased)) revert AgentReviewV5_Already_released();
+        if (!(eval.stakeAmount > 0)) revert AgentReviewV5_No_stake();
 
         uint256 amount = eval.stakeAmount;
         eval.stakeAmount = 0;
         eval.stakeReleased = true;
 
-        (bool success, ) = _msgSender().call{value: amount}("");
-        require(success, "Transfer failed");
+        _sendEth(_msgSender(), amount);
 
         emit StakeReleased(proposalId, _msgSender(), amount);
     }
 
     function getProposal(uint256 proposalId) external view returns (Proposal memory) {
-        require(proposalId > 0 && proposalId <= _proposalCounter, "Invalid proposal");
+        if (!(proposalId > 0 && proposalId <= _proposalCounter)) revert AgentReviewV5_Invalid_proposal();
         return proposals[proposalId];
     }
 
@@ -524,7 +554,7 @@ contract AgentReviewV5 is IAgentReviewV5, ContextUpgradeable, OwnableUpgradeable
     // M3 Fix: Calculate median score for automatic winner selection
     function calculateMedianScore(uint256 proposalId) public view returns (int256 medianScore) {
         address[] storage evals = proposalEvaluators[proposalId];
-        require(evals.length > 0, "No evaluators");
+        if (!(evals.length > 0)) revert AgentReviewV5_No_evaluators();
         
         // Collect all scores
         int256[] memory scores = new int256[](evals.length);
@@ -577,20 +607,24 @@ contract AgentReviewV5 is IAgentReviewV5, ContextUpgradeable, OwnableUpgradeable
     }
 
     function setAdminRegistry(address _adminRegistry) external onlyOwner {
+        if (_adminRegistry == address(0)) revert AgentReviewV5_Zero_address();
+        uint256 size;
+        assembly { size := extcodesize(_adminRegistry) }
+        if (size == 0) revert AgentReviewV5_Zero_address();
         adminRegistry = _adminRegistry;
         emit AdminRegistrySet(_adminRegistry);
     }
     
     // M2 Fix: Set slash treasury for slashed funds
     function setSlashTreasury(address treasury_) external onlyOwner {
-        require(treasury_ != address(0), "Zero address");
+        if (!(treasury_ != address(0))) revert AgentReviewV5_Zero_address();
         emit SlashTreasuryUpdated(slashTreasury, treasury_);
         slashTreasury = treasury_;
     }
     
     // M3 Fix: Set default slash percentage (basis points)
     function setDefaultSlashPercentage(uint256 slashBP_) external onlyOwner {
-        require(slashBP_ <= FEE_DENOMINATOR, "Cannot exceed 100%");
+        if (!(slashBP_ <= FEE_DENOMINATOR)) revert AgentReviewV5_Cannot_exceed_100();
         // Note: SLASH_PERCENTAGE is constant, this is just for documentation
         // The actual slash % is passed from SlashManager in slashEvaluator
     }
@@ -624,25 +658,24 @@ contract AgentReviewV5 is IAgentReviewV5, ContextUpgradeable, OwnableUpgradeable
     }
 
     function withdrawETH(address payable to, uint256 amount) external onlyOwner {
-        require(to != address(0), "Zero address");
-        require(amount > 0, "Zero amount");
+        if (!(to != address(0))) revert AgentReviewV5_Zero_address();
+        if (!(amount > 0)) revert AgentReviewV5_Zero_amount();
         
         uint256 locked = getTotalLockedETH();
         uint256 available = address(this).balance - locked;
         
-        require(amount <= available, "Exceeds available balance");
+        if (!(amount <= available)) revert AgentReviewV5_Exceeds_available_balance();
         
-        (bool success, ) = to.call{value: amount}("");
-        require(success, "Transfer failed");
+        _sendEth(to, amount);
         
         emit ETHWithdrawn(to, amount);
     }
 
     function cancelProposal(uint256 proposalId) external nonReentrant {
         Proposal storage proposal = proposals[proposalId];
-        require(proposal.id == proposalId, "Invalid proposal");
-        require(proposal.proposer == _msgSender(), "Not proposer");
-        require(proposal.status == ProposalStatus.Open, "Not open");
+        if (!(proposal.id == proposalId)) revert AgentReviewV5_Invalid_proposal();
+        if (!(proposal.proposer == _msgSender())) revert AgentReviewV5_Not_proposer();
+        if (!(proposal.status == ProposalStatus.Open)) revert AgentReviewV5_Not_open();
 
         ProposalStatus oldStatus = proposal.status;
         proposal.status = ProposalStatus.Cancelled;
@@ -650,8 +683,7 @@ contract AgentReviewV5 is IAgentReviewV5, ContextUpgradeable, OwnableUpgradeable
         uint256 refund = proposal.reward;
         proposal.reward = 0;
 
-        (bool success, ) = _msgSender().call{value: refund}("");
-        require(success, "Transfer failed");
+        _sendEth(_msgSender(), refund);
 
         emit ProposalCancelledByProposer(proposalId, _msgSender(), refund);
         emit ProposalStatusChanged(proposalId, oldStatus, ProposalStatus.Cancelled, _msgSender(), block.timestamp);
@@ -659,8 +691,8 @@ contract AgentReviewV5 is IAgentReviewV5, ContextUpgradeable, OwnableUpgradeable
 
     function setUnderReview(uint256 proposalId) external {
         Proposal storage proposal = proposals[proposalId];
-        require(proposal.id == proposalId, "Invalid proposal");
-        require(proposal.status == ProposalStatus.Open, "Not open");
+        if (!(proposal.id == proposalId)) revert AgentReviewV5_Invalid_proposal();
+        if (!(proposal.status == ProposalStatus.Open)) revert AgentReviewV5_Not_open();
         
         ProposalStatus oldStatus = proposal.status;
         proposal.status = ProposalStatus.UnderReview;
@@ -681,4 +713,14 @@ contract AgentReviewV5 is IAgentReviewV5, ContextUpgradeable, OwnableUpgradeable
      * All withdrawals are protected by the getTotalLockedETH() check in withdrawETH().
      */
     receive() external payable {}
+
+    /***********************************/
+    /* Internal Helpers */
+    /***********************************/
+    
+    function _sendEth(address to, uint256 amount) internal {
+        if (amount == 0) return;
+        (bool success, ) = payable(to).call{value: amount}("");
+        require(success, "ETH transfer failed");
+    }
 }

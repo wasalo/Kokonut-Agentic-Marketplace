@@ -77,12 +77,10 @@ export function useX402Payment(options: UseX402PaymentOptions = {}): UseX402Paym
         throw new Error(`Unsupported network: ${network}`);
       }
 
-      const facilitator = options?.facilitator || chainConfig.facilitator;
-      const response = await fetch(`${facilitator}/pay`, {
+      const response = await fetch('/api/x402/pay', {
         method: 'POST',
         headers: {
           'Content-Type': 'application/json',
-          'x-cdp-api-key': process.env.NEXT_PUBLIC_CDP_API_KEY || '',
         },
         body: JSON.stringify({
           payment_requirement: state.paymentRequired,

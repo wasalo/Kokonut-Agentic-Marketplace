@@ -75,7 +75,7 @@ export async function GET() {
 
     // Check environment variables
     checks.environment = !!(
-      process.env.NEXT_PUBLIC_WALLETCONNECT_PROJECT_ID && process.env.NEXT_PUBLIC_8004_API_KEY
+      process.env.NEXT_PUBLIC_WALLETCONNECT_PROJECT_ID && process.env._8004_API_KEY
     );
 
     const allHealthy = Object.values(checks).every(Boolean);

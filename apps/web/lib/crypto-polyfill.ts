@@ -26,8 +26,9 @@ if (typeof window !== 'undefined') {
 
   // Polyfill randomUUID if missing
   if (!hasRandomUUID) {
-    console.warn('[crypto-polyfill] crypto.randomUUID() not available - applying polyfill');
-
+    console.warn('[crypto-polyfill] crypto.randomUUID() not available');
+    console.warn('[crypto-polyfill] crypto.randomUUID() requires HTTPS. Using non-secure Math.random() fallback — IDs will not be cryptographically secure');
+    
     Object.defineProperty(window.crypto, 'randomUUID', {
       value: () => {
         return 'xxxxxxxx-xxxx-4xxx-yxxx-xxxxxxxxxxxx'.replace(/[xy]/g, c => {
@@ -59,18 +60,7 @@ if (typeof window !== 'undefined') {
         throw new Error('crypto.subtle.deriveKey not available in non-secure context');
       },
       digest: async (_algorithm: string, data: BufferSource) => {
-        // Simple hash fallback for non-critical use cases
-        // This is NOT cryptographically secure!
-        const hash = new Uint8Array(32);
-        const arr =
-          data instanceof ArrayBuffer
-            ? new Uint8Array(data)
-            : new Uint8Array(data.buffer, data.byteOffset, data.byteLength);
-        for (let i = 0; i < Math.min(arr.length, 32); i++) {
-          hash[i] = arr[i] ^ (i * 31);
-        }
-        console.warn('[crypto-polyfill] crypto.subtle.digest called - using insecure fallback');
-        return hash;
+        throw new Error('crypto.subtle.digest not available in non-secure context. Access via HTTPS.');
       },
       encrypt: async () => {
         throw new Error('crypto.subtle.encrypt not available in non-secure context');

@@ -1,7 +1,7 @@
 // SPDX-License-Identifier: MIT
-pragma solidity ^0.8.20;
+pragma solidity 0.8.22;
 
-import "@openzeppelin/contracts-upgradeable/access/OwnableUpgradeable.sol";
+import "@openzeppelin/contracts-upgradeable/access/Ownable2StepUpgradeable.sol";
 import "@openzeppelin/contracts-upgradeable/proxy/utils/UUPSUpgradeable.sol";
 import "@openzeppelin/contracts-upgradeable/utils/ContextUpgradeable.sol";
 import "@openzeppelin/contracts-upgradeable/utils/PausableUpgradeable.sol";
@@ -35,7 +35,7 @@ import {IAgenticCommerceV6} from "../interfaces/IAgenticCommerceV6.sol";
 contract AgenticCommerceV6 is 
     IAgenticCommerceV6, 
     ContextUpgradeable,
-    OwnableUpgradeable, 
+    Ownable2StepUpgradeable, 
     UUPSUpgradeable, 
     ReentrancyGuard,
     PausableUpgradeable
@@ -372,7 +372,10 @@ contract AgenticCommerceV6 is
             }
         } else {
             if (msg.value != 0) revert InvalidJob();
+            uint256 balanceBefore = job.paymentToken.balanceOf(address(this));
             job.paymentToken.safeTransferFrom(_msgSender(), address(this), cachedBudget);
+            uint256 balanceAfter = job.paymentToken.balanceOf(address(this));
+            if (balanceAfter - balanceBefore != cachedBudget) revert InvalidJob();
         }
         
         emit JobFunded(jobId, _msgSender(), cachedBudget);
@@ -737,4 +740,7 @@ contract AgenticCommerceV6 is
     event EvaluatorRegistered(address indexed evaluator);
     event EvaluatorUnregistered(address indexed evaluator);
     event EvaluatorRandomlySelected(uint256 indexed jobId, address indexed evaluator);
+
+    /// @dev Storage gap for upgrade safety
+    uint256[50] private __gap;
 }

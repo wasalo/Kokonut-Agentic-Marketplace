@@ -1,8 +1,8 @@
 // SPDX-License-Identifier: MIT
-pragma solidity ^0.8.20;
+pragma solidity 0.8.22;
 
 import {ReentrancyGuard} from "@openzeppelin/contracts/utils/ReentrancyGuard.sol";
-import {OwnableUpgradeable} from "@openzeppelin/contracts-upgradeable/access/OwnableUpgradeable.sol";
+import {Ownable2StepUpgradeable} from "@openzeppelin/contracts-upgradeable/access/Ownable2StepUpgradeable.sol";
 import {UUPSUpgradeable} from "@openzeppelin/contracts-upgradeable/proxy/utils/UUPSUpgradeable.sol";
 import {PausableUpgradeable} from "@openzeppelin/contracts-upgradeable/utils/PausableUpgradeable.sol";
 import {IAgentReviewV5} from "./AgentReviewV5.sol";
@@ -23,7 +23,30 @@ import {IAgentReviewV5} from "./AgentReviewV5.sol";
      * 
      * M1 Fix: Pass configurable slash basis points to AgentReviewV5
      */
-contract SlashManager is ReentrancyGuard, OwnableUpgradeable, UUPSUpgradeable, PausableUpgradeable {
+contract SlashManager is ReentrancyGuard, Ownable2StepUpgradeable, UUPSUpgradeable, PausableUpgradeable {
+    error SlashManager__AgentReview_not_set();
+    error SlashManager__Already_a_signer();
+    error SlashManager__Already_confirmed();
+    error SlashManager__Already_executed();
+    error SlashManager__Amount_too_high();
+    error SlashManager__Cannot_remove();
+    error SlashManager__Duplicate_signer();
+    error SlashManager__Empty_reason();
+    error SlashManager__Max_signers_reached();
+    error SlashManager__Not_AgentReview();
+    error SlashManager__Not_a_signer();
+    error SlashManager__Not_enough_confirmations();
+    error SlashManager__Not_enough_signers();
+    error SlashManager__Not_owner_or_signer();
+    error SlashManager__Proposal_exists();
+    error SlashManager__Proposal_not_found();
+    error SlashManager__Proposal_too_old();
+    error SlashManager__Too_early();
+    error SlashManager__Too_many_signers();
+    error SlashManager__Zero_address();
+    error SlashManager__Zero_amount();
+    error SlashManager__Zero_evaluator();
+    error SlashManager__Zero_signer();
     // Multisig configuration
     uint256 public constant REQUIRED_SIGNATURES = 3;
     uint256 public constant MAX_SIGNERS = 5;
@@ -97,12 +120,12 @@ contract SlashManager is ReentrancyGuard, OwnableUpgradeable, UUPSUpgradeable, P
         __Ownable_init(_owner);
         __Pausable_init();
 
-        require(_signers.length >= REQUIRED_SIGNATURES, "Not enough signers");
-        require(_signers.length <= MAX_SIGNERS, "Too many signers");
+        if (!(_signers.length >= REQUIRED_SIGNATURES)) revert SlashManager__Not_enough_signers();
+        if (!(_signers.length <= MAX_SIGNERS)) revert SlashManager__Too_many_signers();
 
         for (uint256 i = 0; i < _signers.length; i++) {
-            require(_signers[i] != address(0), "Zero signer");
-            require(!isSigner[_signers[i]], "Duplicate signer");
+            if (!(_signers[i] != address(0))) revert SlashManager__Zero_signer();
+            if (!(!isSigner[_signers[i]])) revert SlashManager__Duplicate_signer();
             
             signers.push(_signers[i]);
             isSigner[_signers[i]] = true;
@@ -132,7 +155,7 @@ contract SlashManager is ReentrancyGuard, OwnableUpgradeable, UUPSUpgradeable, P
      * @param _agentReview AgentReview contract address
      */
     function setAgentReview(address _agentReview) external onlyOwner {
-        require(_agentReview != address(0), "Zero address");
+        if (!(_agentReview != address(0))) revert SlashManager__Zero_address();
         agentReview = _agentReview;
         emit AgentReviewSet(_agentReview);
     }
@@ -150,12 +173,12 @@ contract SlashManager is ReentrancyGuard, OwnableUpgradeable, UUPSUpgradeable, P
         string calldata reason
     ) external whenNotPaused returns (bytes32 proposalHash) {
         // M5 Fix: Allow both owner and signers to create proposals
-        require(msg.sender == owner() || isSigner[msg.sender], "Not owner or signer");
-        require(evaluator != address(0), "Zero evaluator");
-        require(amount > 0, "Zero amount");
-        require(amount <= MAX_SLASH_AMOUNT, "Amount too high");
-        require(bytes(reason).length > 0, "Empty reason");
-        require(agentReview != address(0), "AgentReview not set");
+        if (!(msg.sender == owner() || isSigner[msg.sender])) revert SlashManager__Not_owner_or_signer();
+        if (!(evaluator != address(0))) revert SlashManager__Zero_evaluator();
+        if (!(amount > 0)) revert SlashManager__Zero_amount();
+        if (!(amount <= MAX_SLASH_AMOUNT)) revert SlashManager__Amount_too_high();
+        if (!(bytes(reason).length > 0)) revert SlashManager__Empty_reason();
+        if (!(agentReview != address(0))) revert SlashManager__AgentReview_not_set();
 
         // L6 Fix: Use nonce instead of timestamp for uniqueness
         proposalHash = keccak256(abi.encode(
@@ -165,7 +188,7 @@ contract SlashManager is ReentrancyGuard, OwnableUpgradeable, UUPSUpgradeable, P
             proposalNonce++
         ));
 
-        require(!_proposalExists(proposalHash), "Proposal exists");
+        if (!(!_proposalExists(proposalHash))) revert SlashManager__Proposal_exists();
 
         SlashProposal storage proposal = proposals[proposalHash];
         proposal.evaluator = evaluator;
@@ -189,10 +212,10 @@ contract SlashManager is ReentrancyGuard, OwnableUpgradeable, UUPSUpgradeable, P
      * @dev Confirm a proposal (signer calls this)
      */
     function confirmProposal(bytes32 proposalHash) external {
-        require(isSigner[msg.sender], "Not a signer");
-        require(_proposalExists(proposalHash), "Proposal not found");
-        require(!proposals[proposalHash].executed, "Already executed");
-        require(!proposals[proposalHash].confirmed[msg.sender], "Already confirmed");
+        if (!(isSigner[msg.sender])) revert SlashManager__Not_a_signer();
+        if (!(_proposalExists(proposalHash))) revert SlashManager__Proposal_not_found();
+        if (!(!proposals[proposalHash].executed)) revert SlashManager__Already_executed();
+        if (!(!proposals[proposalHash].confirmed[msg.sender])) revert SlashManager__Already_confirmed();
 
         proposals[proposalHash].confirmed[msg.sender] = true;
         proposals[proposalHash].confirmations++;
@@ -211,10 +234,10 @@ contract SlashManager is ReentrancyGuard, OwnableUpgradeable, UUPSUpgradeable, P
      */
     function executeSlash(bytes32 proposalHash) external nonReentrant whenNotPaused {
         SlashProposal storage proposal = proposals[proposalHash];
-        require(_proposalExists(proposalHash), "Proposal not found");
-        require(!proposal.executed, "Already executed");
-        require(proposal.confirmations >= REQUIRED_SIGNATURES, "Not enough confirmations");
-        require(block.timestamp >= proposal.executeAfter, "Too early");
+        if (!(_proposalExists(proposalHash))) revert SlashManager__Proposal_not_found();
+        if (!(!proposal.executed)) revert SlashManager__Already_executed();
+        if (!(proposal.confirmations >= REQUIRED_SIGNATURES)) revert SlashManager__Not_enough_confirmations();
+        if (!(block.timestamp >= proposal.executeAfter)) revert SlashManager__Too_early();
 
         proposal.executed = true;
 
@@ -248,7 +271,7 @@ contract SlashManager is ReentrancyGuard, OwnableUpgradeable, UUPSUpgradeable, P
         address evaluator,
         uint256 targetProposalId
     ) external view returns (bool) {
-        require(msg.sender == agentReview, "Not AgentReview");
+        if (!(msg.sender == agentReview)) revert SlashManager__Not_AgentReview();
 
         // M2 Fix: Direct lookup
         bytes32 proposalHash = activeSlashByEvaluator[evaluator][targetProposalId];
@@ -257,10 +280,7 @@ contract SlashManager is ReentrancyGuard, OwnableUpgradeable, UUPSUpgradeable, P
             SlashProposal storage proposal = proposals[proposalHash];
             
             if (!proposal.executed) {
-                require(
-                    block.timestamp <= proposal.createdAt + MAX_PROPOSAL_AGE,
-                    "Proposal too old"
-                );
+                if (!(block.timestamp <= proposal.createdAt + MAX_PROPOSAL_AGE)) revert SlashManager__Proposal_too_old();
                 return true;
             }
         }
@@ -272,8 +292,8 @@ contract SlashManager is ReentrancyGuard, OwnableUpgradeable, UUPSUpgradeable, P
      * @dev Cancel a proposal
      */
     function cancelProposal(bytes32 proposalHash) external onlyOwner {
-        require(_proposalExists(proposalHash), "Proposal not found");
-        require(!proposals[proposalHash].executed, "Already executed");
+        if (!(_proposalExists(proposalHash))) revert SlashManager__Proposal_not_found();
+        if (!(!proposals[proposalHash].executed)) revert SlashManager__Already_executed();
 
         address evaluator = proposals[proposalHash].evaluator;
         uint256 targetProposalId = proposals[proposalHash].proposalId;
@@ -290,9 +310,9 @@ contract SlashManager is ReentrancyGuard, OwnableUpgradeable, UUPSUpgradeable, P
      * @dev Add a new signer
      */
     function addSigner(address signer) external onlyOwner {
-        require(signer != address(0), "Zero address");
-        require(!isSigner[signer], "Already a signer");
-        require(signers.length < MAX_SIGNERS, "Max signers reached");
+        if (!(signer != address(0))) revert SlashManager__Zero_address();
+        if (!(!isSigner[signer])) revert SlashManager__Already_a_signer();
+        if (!(signers.length < MAX_SIGNERS)) revert SlashManager__Max_signers_reached();
 
         signers.push(signer);
         isSigner[signer] = true;
@@ -304,8 +324,8 @@ contract SlashManager is ReentrancyGuard, OwnableUpgradeable, UUPSUpgradeable, P
      * @dev Remove a signer
      */
     function removeSigner(address signer) external onlyOwner {
-        require(isSigner[signer], "Not a signer");
-        require(signers.length > REQUIRED_SIGNATURES, "Cannot remove");
+        if (!(isSigner[signer])) revert SlashManager__Not_a_signer();
+        if (!(signers.length > REQUIRED_SIGNATURES)) revert SlashManager__Cannot_remove();
         
         isSigner[signer] = false;
         

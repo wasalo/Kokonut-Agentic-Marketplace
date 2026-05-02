@@ -1,7 +1,7 @@
 // SPDX-License-Identifier: MIT
-pragma solidity ^0.8.20;
+pragma solidity 0.8.22;
 
-import "@openzeppelin/contracts-upgradeable/access/OwnableUpgradeable.sol";
+import "@openzeppelin/contracts-upgradeable/access/Ownable2StepUpgradeable.sol";
 import "@openzeppelin/contracts-upgradeable/proxy/utils/UUPSUpgradeable.sol";
 import "@openzeppelin/contracts-upgradeable/utils/ContextUpgradeable.sol";
 import "@openzeppelin/contracts-upgradeable/utils/PausableUpgradeable.sol";
@@ -28,7 +28,7 @@ import {AdminRegistry} from "./AdminRegistry.sol";
 contract AgenticCommerceV9 is 
     IAgenticCommerceV9, 
     ContextUpgradeable,
-    OwnableUpgradeable, 
+    Ownable2StepUpgradeable, 
     UUPSUpgradeable, 
     PausableUpgradeable,
     ReentrancyGuard
@@ -138,6 +138,8 @@ contract AgenticCommerceV9 is
     error DisputeWindowTooShort();
     error DisputeWindowTooLong();
     error SlashBPTooHigh();
+    error DecimalsQueryFailed(address token);
+    error InvalidDecimals(address token, uint8 decimals);
 
     /***********************************/
     /* Modifiers */
@@ -166,6 +168,11 @@ contract AgenticCommerceV9 is
     /***********************************/
     /* Initialize */
     /***********************************/
+
+    /// @custom:oz-upgrades-unsafe-allow constructor
+    constructor() {
+        _disableInitializers();
+    }
     
     function initialize(address _platformTreasury, address _adminRegistry, address _priceOracle) external initializer {
         __Context_init();
@@ -197,19 +204,20 @@ contract AgenticCommerceV9 is
      * @param budget The budget amount in token's native units.
      */
     function _checkMaxBudget(address token, uint8 decimals, uint256 budget) internal view {
-        if (maxBudgetUsd == 0) return; // 0 = no cap
+        if (maxBudgetUsd == 0) return;
+        if (decimals < 6) decimals = 6;
 
         uint256 budgetInUsd;
         if (isStablecoin[token]) {
             budgetInUsd = budget / (10 ** (decimals - 6));
         } else if (token == address(0)) {
             int256 ethPrice = priceOracle.getUsdPriceOfToken(address(0));
-            if (ethPrice <= 0) return; // Cannot validate, skip
-            budgetInUsd = (budget * uint256(ethPrice)) / (10 ** decimals);
+            if (ethPrice <= 0) return;
+            budgetInUsd = (budget * uint256(ethPrice)) / (10 ** decimals) / 100;
         } else {
             int256 tokenPrice = priceOracle.getUsdPriceOfToken(token);
-            if (tokenPrice <= 0) return; // Cannot validate, skip
-            budgetInUsd = (budget * uint256(tokenPrice)) / (10 ** decimals);
+            if (tokenPrice <= 0) return;
+            budgetInUsd = (budget * uint256(tokenPrice)) / (10 ** decimals) / 100;
         }
 
         if (budgetInUsd > maxBudgetUsd) revert BudgetTooHigh();
@@ -222,25 +230,22 @@ contract AgenticCommerceV9 is
      * @return The minimum budget amount in the token's native units
      */
     function getMinBudget(address token, uint8 decimals) public view returns (uint256) {
-        // Check for per-token override first
         if (minBudgetOverride[token] > 0) {
             return minBudgetOverride[token];
         }
         
-        // Stablecoins: direct USD amount adjusted for decimals
+        if (decimals < 6) decimals = 6;
+        
         if (isStablecoin[token]) {
             return minBudgetUsd * (10 ** (decimals - 6));
         }
         
-        // ETH: use price oracle for dynamic calculation
         if (token == address(0)) {
             int256 ethPrice = priceOracle.getUsdPriceOfToken(address(0));
             if (ethPrice <= 0) revert InvalidPrice();
-            // minBudgetUsd (6 dec) * 10^(decimals-6) * 10^8 (chainlink dec) / ethPrice (8 dec)
             return (minBudgetUsd * (10 ** (decimals - 6)) * 1e8) / uint256(ethPrice);
         }
         
-        // Volatile tokens: use price oracle
         int256 tokenPrice = priceOracle.getUsdPriceOfToken(token);
         if (tokenPrice > 0) {
             return (minBudgetUsd * (10 ** (decimals - 6)) * 1e8) / uint256(tokenPrice);
@@ -254,6 +259,7 @@ contract AgenticCommerceV9 is
      * @param newMin New minimum budget in USD (e.g., 5e6 for $5).
      */
     function setMinBudgetUsd(uint256 newMin) external onlyOwner {
+        if (newMin < 1e6) revert InvalidJob();
         uint256 oldMin = minBudgetUsd;
         minBudgetUsd = newMin;
         emit MinBudgetChanged(address(0), oldMin, newMin);
@@ -262,8 +268,10 @@ contract AgenticCommerceV9 is
     /**
      * @dev Set the global maximum budget in USD (6 decimals).
      * @param newMax New maximum budget in USD (e.g., 1_000_000e6 for $1M).
+     * Setting to 0 means no maximum (unlimited).
      */
     function setMaxBudgetUsd(uint256 newMax) external onlyOwner {
+        if (newMax > 0 && newMax < minBudgetUsd) revert InvalidJob();
         uint256 oldMax = maxBudgetUsd;
         maxBudgetUsd = newMax;
         emit MaxBudgetChanged(oldMax, newMax);
@@ -334,31 +342,35 @@ contract AgenticCommerceV9 is
         
         if (!_isTokenAllowed(paymentToken)) revert TokenNotAllowed(paymentToken);
         
-        // V9: Validate budget using multi-token minimum and maximum
-        if (budget > 0) {
-            uint8 decimals = _getTokenDecimals(paymentToken);
-            uint256 minBudget = getMinBudget(paymentToken, decimals);
-            if (budget < minBudget) revert BudgetTooLow();
-            _checkMaxBudget(paymentToken, decimals, budget);
-        }
+        if (msg.value > 0 && !fundNow) revert InvalidJob();
+        
+        // Validate budget using multi-token minimum and maximum
+        if (budget == 0) revert ZeroBudget();
+        uint8 decimals = _getTokenDecimals(paymentToken);
+        uint256 minBudget = getMinBudget(paymentToken, decimals);
+        if (budget < minBudget) revert BudgetTooLow();
+        _checkMaxBudget(paymentToken, decimals, budget);
         
         // Blacklist check with P7-01 try/catch
         if (adminRegistry != address(0)) {
             try AdminRegistry(adminRegistry).isWalletBlacklistedActive(_msgSender()) returns (bool isBlacklisted) {
                 if (isBlacklisted) revert ClientBlacklisted();
             } catch {
-                // If blacklist check fails, allow (fail open to prevent DOS)
+                emit BlacklistCheckFailed(adminRegistry);
+                if (blacklistCheckRequired) revert();
             }
             try AdminRegistry(adminRegistry).isWalletBlacklistedActive(provider) returns (bool isBlacklisted) {
                 if (isBlacklisted) revert ProviderBlacklisted();
             } catch {
-                // If blacklist check fails, allow (fail open to prevent DOS)
+                emit BlacklistCheckFailed(adminRegistry);
+                if (blacklistCheckRequired) revert();
             }
             if (evaluator != address(0)) {
                 try AdminRegistry(adminRegistry).isWalletBlacklistedActive(evaluator) returns (bool isBlacklisted) {
                     if (isBlacklisted) revert EvaluatorBlacklisted();
                 } catch {
-                    // If blacklist check fails, allow (fail open to prevent DOS)
+                    emit BlacklistCheckFailed(adminRegistry);
+                    if (blacklistCheckRequired) revert();
                 }
             }
         }
@@ -430,7 +442,10 @@ contract AgenticCommerceV9 is
                 uint256 allowance = token.allowance(_msgSender(), address(this));
                 if (allowance < amountToFund) revert InsufficientPayment();
                 
+                uint256 balanceBefore = token.balanceOf(address(this));
                 token.safeTransferFrom(_msgSender(), address(this), amountToFund);
+                uint256 balanceAfter = token.balanceOf(address(this));
+                if (balanceAfter - balanceBefore != amountToFund) revert InvalidJob();
             }
             
             emit JobFunded(jobId, _msgSender(), amountToFund);
@@ -458,18 +473,21 @@ contract AgenticCommerceV9 is
             try AdminRegistry(adminRegistry).isWalletBlacklistedActive(_msgSender()) returns (bool isBlacklisted) {
                 if (isBlacklisted) revert ClientBlacklisted();
             } catch {
-                // Fail open to prevent DOS
+                emit BlacklistCheckFailed(adminRegistry);
+                if (blacklistCheckRequired) revert();
             }
             try AdminRegistry(adminRegistry).isWalletBlacklistedActive(provider) returns (bool isBlacklisted) {
                 if (isBlacklisted) revert ProviderBlacklisted();
             } catch {
-                // Fail open to prevent DOS
+                emit BlacklistCheckFailed(adminRegistry);
+                if (blacklistCheckRequired) revert();
             }
             if (evaluator != address(0)) {
                 try AdminRegistry(adminRegistry).isWalletBlacklistedActive(evaluator) returns (bool isBlacklisted) {
                     if (isBlacklisted) revert EvaluatorBlacklisted();
                 } catch {
-                    // Fail open to prevent DOS
+                    emit BlacklistCheckFailed(adminRegistry);
+                    if (blacklistCheckRequired) revert();
                 }
             }
         }
@@ -582,17 +600,27 @@ contract AgenticCommerceV9 is
         job.status = JobStatus.Funded;
         
         if (job.hook != address(0)) {
-            IACPHook(job.hook).beforeAction(jobId, this.fund.selector, "");
+            try IACPHook(job.hook).beforeAction(jobId, this.fund.selector, "") {
+                // hook succeeded
+            } catch {
+                emit HookFailed(jobId, this.fund.selector);
+            }
         }
         
         if (address(job.paymentToken) == address(0)) {
             if (msg.value < cachedBudget) revert BudgetTooLow();
             
             uint256 excess = msg.value - cachedBudget;
-            if (excess > 0) payable(_msgSender()).transfer(excess);
+            if (excess > 0) {
+                (bool successExcess, ) = payable(_msgSender()).call{value: excess}("");
+                require(successExcess, "ETH transfer failed");
+            }
         } else {
             if (msg.value != 0) revert InvalidJob();
+            uint256 balanceBefore = job.paymentToken.balanceOf(address(this));
             job.paymentToken.safeTransferFrom(_msgSender(), address(this), cachedBudget);
+            uint256 balanceAfter = job.paymentToken.balanceOf(address(this));
+            if (balanceAfter - balanceBefore != cachedBudget) revert InvalidJob();
         }
         
         emit JobFunded(jobId, _msgSender(), cachedBudget);
@@ -620,9 +648,13 @@ contract AgenticCommerceV9 is
         job.deliverable = deliverable;
         jobSubmittedAt[jobId] = block.timestamp;
         
-        // V1-01 FIX: Hook before any external calls
+        // Hook before any external calls
         if (job.hook != address(0)) {
-            IACPHook(job.hook).beforeAction(jobId, this.submit.selector, "");
+            try IACPHook(job.hook).beforeAction(jobId, this.submit.selector, "") {
+                // hook succeeded
+            } catch {
+                emit HookFailed(jobId, this.submit.selector);
+            }
         }
         
         emit JobSubmitted(jobId, _msgSender(), deliverable);
@@ -679,16 +711,20 @@ contract AgenticCommerceV9 is
         uint256 evaluatorFeeAmount = evaluatorFeeEnabled[jobId] ? (amount * EVALUATOR_FEE_BP) / FEE_DENOMINATOR : 0;
         uint256 providerPayment = amount - platformFee - evaluatorFeeAmount;
 
+        // Hook before transfers (prevents reentrancy after state changes)
+        if (job.hook != address(0)) {
+            try IACPHook(job.hook).beforeAction(jobId, this.finalizeByEvaluator.selector, "") {
+                // hook succeeded
+            } catch {
+                emit HookFailed(jobId, this.finalizeByEvaluator.selector);
+            }
+        }
+
         // Transfer payments
         _transferPayment(job.paymentToken, platformTreasury, platformFee);
 
         if (evaluatorFeeAmount > 0) {
             _transferPayment(job.paymentToken, job.evaluator, evaluatorFeeAmount);
-        }
-
-        // V1-01 FIX: Hook before transfers (prevents reentrancy after state changes)
-        if (job.hook != address(0)) {
-            IACPHook(job.hook).beforeAction(jobId, this.finalizeByEvaluator.selector, "");
         }
 
         _transferPayment(job.paymentToken, job.provider, providerPayment);
@@ -852,7 +888,11 @@ contract AgenticCommerceV9 is
         _decrementJobCount(jobId);
 
         if (job.hook != address(0)) {
-            IACPHook(job.hook).beforeAction(jobId, this.completeAfterTimeout.selector, abi.encode(reason));
+            try IACPHook(job.hook).beforeAction(jobId, this.completeAfterTimeout.selector, abi.encode(reason)) {
+                // hook succeeded
+            } catch {
+                emit HookFailed(jobId, this.completeAfterTimeout.selector);
+            }
         }
 
         if (platformFee > 0) {
@@ -954,21 +994,13 @@ contract AgenticCommerceV9 is
      * @param evaluator The evaluator to slash.
      * @param reason Reason for slashing.
      */
-    function slashEvaluatorStake(address evaluator, string calldata reason) external onlyOwner {
+    function slashEvaluatorStake(address evaluator, string calldata reason) external nonReentrant onlyOwner {
         if (!isRegisteredEvaluator[evaluator]) revert EvaluatorNotRegistered();
         
         uint256 stake = evaluatorStakes[evaluator];
         if (stake == 0) revert InsufficientEvaluatorStake();
         
-        evaluatorStakes[evaluator] = 0;
-        
-        // Transfer slashed stake to platform treasury
-        if (platformTreasury != address(0)) {
-            (bool success, ) = payable(platformTreasury).call{value: stake}("");
-            require(success, "Stake transfer failed");
-        }
-        
-        // Remove from pool
+        // Remove from pool and clear registrations BEFORE external call
         for (uint256 i = 0; i < evaluatorPool.length; i++) {
             if (evaluatorPool[i] == evaluator) {
                 evaluatorPool[i] = evaluatorPool[evaluatorPool.length - 1];
@@ -978,6 +1010,14 @@ contract AgenticCommerceV9 is
         }
         
         isRegisteredEvaluator[evaluator] = false;
+        evaluatorStakes[evaluator] = 0;
+        
+        // Transfer slashed stake to platform treasury
+        if (platformTreasury != address(0)) {
+            (bool success, ) = payable(platformTreasury).call{value: stake}("");
+            require(success, "Stake transfer failed");
+        }
+        
         emit EvaluatorSlashed(evaluator, stake, reason);
     }
 
@@ -1106,6 +1146,8 @@ contract AgenticCommerceV9 is
             if (_msgSender() == evaluator) revert RolesMustBeDistinct();
             if (provider == evaluator) revert RolesMustBeDistinct();
         }
+        // ToB H-01: Prevent provider == client scenario (address swap protection)
+        if (provider == _msgSender()) revert RolesMustBeDistinct();
         if (expiredAt <= block.timestamp + MIN_EXPIRY_DURATION) revert ExpiryTooShort();
         if (expiredAt > block.timestamp + MAX_EXPIRY_DURATION) revert ExpiryTooLong();
         if (bytes(description).length == 0 || bytes(description).length > MAX_DESCRIPTION_LENGTH) revert InvalidJob();
@@ -1126,14 +1168,11 @@ contract AgenticCommerceV9 is
     function _getTokenDecimals(address token) internal view returns (uint8) {
         if (token == address(0)) return 18;
         
-        // Try to call decimals() on the token
         (bool success, bytes memory data) = token.staticcall(abi.encodeWithSignature("decimals()"));
-        if (success && data.length >= 32) {
-            return abi.decode(data, (uint8));
-        }
-        
-        // Default to 18 if call fails
-        return 18;
+        if (!(success && data.length >= 32)) revert DecimalsQueryFailed(token);
+        uint8 decimals = abi.decode(data, (uint8));
+        if (!(decimals > 0)) revert InvalidDecimals(token, decimals);
+        return decimals;
     }
 
     /***********************************/
@@ -1230,4 +1269,14 @@ contract AgenticCommerceV9 is
     event DisputeWindowSet(uint256 indexed jobId, uint256 window);
     event NonResponsiveSlashSet(uint256 indexed jobId, uint256 slashBP);
     event EvaluatorSlashedForInactivity(uint256 indexed jobId, address indexed evaluator, uint256 slashAmount);
+    event BlacklistCheckFailed(address indexed adminRegistry);
+    event HookFailed(uint256 indexed jobId, bytes4 indexed selector);
+
+    // C-01: Toggle — when true, blacklist check failures revert instead of failing open
+
+    // C-01: Toggle — when true, blacklist check failures revert instead of failing open
+    bool public blacklistCheckRequired;
+    
+    /// @dev Storage gap for upgrade safety
+    uint256[49] private __gap;
 }

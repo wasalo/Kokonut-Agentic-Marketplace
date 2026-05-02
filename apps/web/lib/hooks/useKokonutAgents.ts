@@ -7,16 +7,8 @@ import { decodeAgentMetadata, type AgentMetadata8004 } from '@/lib/metadata';
 import { debugLog, CONTRACT_ADDRESSES } from '@/lib/contracts/config';
 import { ERC8004_ABI } from '@/lib/8004contracts';
 
-const API_KEY = process.env.NEXT_PUBLIC_8004_API_KEY || '';
-const API_BASE = 'https://8004scan.io/api/v1/public';
+const API_PROXY = '/api/8004/proxy';
 const MAX_RETRIES = 3;
-
-// Validate API key is configured
-if (!API_KEY && process.env.NODE_ENV === 'production') {
-  console.error(
-    '[useKokonutAgents] ERROR: 8004scan API key not configured. Set NEXT_PUBLIC_8004_API_KEY in your .env file'
-  );
-}
 const CACHE_KEY = 'kokonut_agents_cache_v2';
 const CACHE_DURATION = 5 * 60 * 1000; // 5 minutes
 
@@ -114,13 +106,8 @@ async function fetchAgentsFromAPI(
 ): Promise<{ agents: any[]; hasMore: boolean; total: number }> {
   try {
     const response = await fetchWithBackoff(
-      `${API_BASE}/agents?chainId=11155111&page=${page}&limit=${limit}`,
-      {
-        headers: {
-          'X-API-Key': API_KEY,
-          'Content-Type': 'application/json',
-        },
-      }
+      `${API_PROXY}?chainId=11155111&page=${page}&limit=${limit}`,
+      {}
     );
 
     const data = await response.json();

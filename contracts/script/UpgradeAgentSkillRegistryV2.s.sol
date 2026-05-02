@@ -2,17 +2,17 @@
 pragma solidity ^0.8.20;
 
 import "forge-std/Script.sol";
-import {ServiceRegistryV2} from "../shared/ServiceRegistryV2.sol";
+import {AgentSkillRegistryV2} from "../shared/AgentSkillRegistryV2.sol";
 
-contract UpgradeServiceRegistryV2 is Script {
-    address public constant PROXY_ADDRESS = 0x62E1eeEa1A2Ab987004F35bDA430457Ed6077201;
+contract UpgradeAgentSkillRegistryV2 is Script {
+    address public constant PROXY_ADDRESS = 0xA84684261558f342d6871DD2CFef90A2117Aa20A;
 
     function run() external {
         uint256 deployerPrivateKey = vm.envUint("PRIVATE_KEY");
         address deployer = vm.addr(deployerPrivateKey);
 
         console.log("=============================================");
-        console.log("ServiceRegistryV2 Upgrade");
+        console.log("AgentSkillRegistryV2 Upgrade");
         console.log("=============================================");
         console.log("Deployer:", deployer);
         console.log("Proxy Address:", PROXY_ADDRESS);
@@ -21,13 +21,13 @@ contract UpgradeServiceRegistryV2 is Script {
 
         vm.startBroadcast(deployerPrivateKey);
 
-        ServiceRegistryV2 newImplementation = new ServiceRegistryV2();
+        AgentSkillRegistryV2 newImplementation = new AgentSkillRegistryV2();
 
         console.log("    New Implementation:", address(newImplementation));
 
         console.log("[2/2] Upgrading proxy...");
 
-        ServiceRegistryV2(PROXY_ADDRESS).upgradeToAndCall(address(newImplementation), "");
+        AgentSkillRegistryV2(PROXY_ADDRESS).upgradeToAndCall(address(newImplementation), "");
 
         console.log("    Upgrade complete!");
 
@@ -35,7 +35,7 @@ contract UpgradeServiceRegistryV2 is Script {
 
         console.log("");
         console.log("NEXT STEPS:");
-        console.log("1. forge verify-contract <IMPL_ADDR> contracts/shared/ServiceRegistryV2.sol:ServiceRegistryV2 --chain 11155111");
-        console.log("2. cast implementation 0x62E1eeEa1A2Ab987004F35bDA430457Ed6077201 --rpc-url sepolia");
+        console.log("1. forge verify-contract <IMPL_ADDR> contracts/shared/AgentSkillRegistryV2.sol:AgentSkillRegistryV2 --chain 11155111");
+        console.log("2. cast implementation 0xA84684261558f342d6871DD2CFef90A2117Aa20A --rpc-url sepolia");
     }
 }

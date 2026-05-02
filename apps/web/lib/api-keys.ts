@@ -77,8 +77,8 @@ export function generateApiKey(tier: ApiKeyTier): string {
   const prefix = tier === 'enterprise' || tier === 'anonymous' 
     ? API_KEY_PREFIXES.live 
     : API_KEY_PREFIXES.live;
-  const randomPart = Math.random().toString(36).substring(2, 15) + 
-                   Math.random().toString(36).substring(2, 15);
+  const randomPart = crypto.randomUUID().replace(/-/g, '') + 
+                   crypto.randomUUID().replace(/-/g, '');
   const key = `${prefix}${randomPart}`;
   VALID_API_KEYS.set(key, tier);
   return key;
@@ -101,7 +101,7 @@ export function getTierFromApiKey(key: string | undefined): ApiKeyTier {
   if (key.startsWith(API_KEY_PREFIXES.live)) {
     const storedTier = VALID_API_KEYS.get(key);
     if (storedTier) return storedTier;
-    return 'enterprise';
+    return 'anonymous';
   }
   
   return 'anonymous';

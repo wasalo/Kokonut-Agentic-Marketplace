@@ -1,7 +1,7 @@
 // SPDX-License-Identifier: MIT
-pragma solidity ^0.8.20;
+pragma solidity 0.8.22;
 
-import "@openzeppelin/contracts-upgradeable/access/OwnableUpgradeable.sol";
+import "@openzeppelin/contracts-upgradeable/access/Ownable2StepUpgradeable.sol";
 import "@openzeppelin/contracts-upgradeable/proxy/utils/UUPSUpgradeable.sol";
 import "@openzeppelin/contracts/token/ERC721/IERC721.sol";
 
@@ -69,9 +69,19 @@ interface IAgentSkillRegistryV2 {
  */
 contract AgentSkillRegistryV2 is 
     IAgentSkillRegistryV2, 
-    OwnableUpgradeable, 
+    Ownable2StepUpgradeable, 
     UUPSUpgradeable
 {
+    error AgentSkillRegistryV2_Already_inactive();
+    error AgentSkillRegistryV2_Invalid_address();
+    error AgentSkillRegistryV2_Invalid_agent();
+    error AgentSkillRegistryV2_Invalid_identity_registry();
+    error AgentSkillRegistryV2_Invalid_skillId();
+    error AgentSkillRegistryV2_Name_required();
+    error AgentSkillRegistryV2_Not_agent_owner();
+    error AgentSkillRegistryV2_Not_registered_by_caller();
+    error AgentSkillRegistryV2_Skill_is_inactive();
+    error AgentSkillRegistryV2_Version_required();
     
     struct SkillData {
         uint256 agentId;
@@ -108,8 +118,8 @@ contract AgentSkillRegistryV2 is
      * @dev Initialize the contract (replaces constructor for upgradeable contracts)
      * @param _identityRegistry Address of the ERC-8004 IdentityRegistry
      */
-    function initialize(address _identityRegistry) public initializer {
-        require(_identityRegistry != address(0), "Invalid identity registry");
+    function initialize(address _identityRegistry) external initializer {
+        if (!(_identityRegistry != address(0))) revert AgentSkillRegistryV2_Invalid_identity_registry();
         
         __Ownable_init(msg.sender);
         
@@ -126,7 +136,7 @@ contract AgentSkillRegistryV2 is
      * @dev Update identity registry address (for flexibility)
      */
     function setIdentityRegistry(address _identityRegistry) external onlyOwner {
-        require(_identityRegistry != address(0), "Invalid address");
+        if (!(_identityRegistry != address(0))) revert AgentSkillRegistryV2_Invalid_address();
         identityRegistry = IERC721(_identityRegistry);
         emit IdentityRegistryUpdated(_identityRegistry);
     }
@@ -137,7 +147,7 @@ contract AgentSkillRegistryV2 is
      */
     function _verifyAgentOwnership(uint256 agentId) internal view returns (address) {
         try identityRegistry.ownerOf(agentId) returns (address owner) {
-            require(owner != address(0), "Invalid agent");
+            if (!(owner != address(0))) revert AgentSkillRegistryV2_Invalid_agent();
             return owner;
         } catch {
             revert("Agent does not exist");
@@ -161,12 +171,12 @@ contract AgentSkillRegistryV2 is
         override
         returns (uint256 skillId) 
     {
-        require(bytes(name).length > 0, "Name required");
-        require(bytes(version).length > 0, "Version required");
+        if (!(bytes(name).length > 0)) revert AgentSkillRegistryV2_Name_required();
+        if (!(bytes(version).length > 0)) revert AgentSkillRegistryV2_Version_required();
         
         // FIXED: Use ownerOf() instead of getAgent()
         address agentOwner = _verifyAgentOwnership(agentId);
-        require(agentOwner == msg.sender, "Not agent owner");
+        if (!(agentOwner == msg.sender)) revert AgentSkillRegistryV2_Not_agent_owner();
         
         skillId = _skillCounter++;
         
@@ -198,17 +208,14 @@ contract AgentSkillRegistryV2 is
      */
     function _indexSkillByDomains(uint256 skillId, string[] memory domains) internal {
         for (uint256 i = 0; i < domains.length; i++) {
-            bytes32 domainKey = keccak256(abi.encodePacked(domains[i]));
+            bytes32 domainKey = keccak256(abi.encode(domains[i]));
             _domainToSkills[domainKey].push(skillId);
         }
     }
-    
-    /**
-     * @dev M1 Fix: Remove skill from domain indexes
-     */
+
     function _unindexSkillByDomains(uint256 skillId, string[] memory domains) internal {
         for (uint256 i = 0; i < domains.length; i++) {
-            bytes32 domainKey = keccak256(abi.encodePacked(domains[i]));
+            bytes32 domainKey = keccak256(abi.encode(domains[i]));
             uint256[] storage skillList = _domainToSkills[domainKey];
             for (uint256 j = 0; j < skillList.length; j++) {
                 if (skillList[j] == skillId) {
@@ -232,11 +239,11 @@ contract AgentSkillRegistryV2 is
         string calldata endpoint,
         string[] memory domains
     ) external override {
-        require(skillId < _skillCounter, "Invalid skillId");
-        require(_skills[skillId].registeredBy == msg.sender, "Not registered by caller");
-        require(_skills[skillId].isActive, "Skill is inactive");
-        require(bytes(name).length > 0, "Name required");
-        require(bytes(version).length > 0, "Version required");
+        if (!(skillId < _skillCounter)) revert AgentSkillRegistryV2_Invalid_skillId();
+        if (!(_skills[skillId].registeredBy == msg.sender)) revert AgentSkillRegistryV2_Not_registered_by_caller();
+        if (!(_skills[skillId].isActive)) revert AgentSkillRegistryV2_Skill_is_inactive();
+        if (!(bytes(name).length > 0)) revert AgentSkillRegistryV2_Name_required();
+        if (!(bytes(version).length > 0)) revert AgentSkillRegistryV2_Version_required();
         
         SkillData storage skill = _skills[skillId];
         
@@ -259,7 +266,7 @@ contract AgentSkillRegistryV2 is
     }
     
     function getSkill(uint256 skillId) external view override returns (Skill memory) {
-        require(skillId < _skillCounter, "Invalid skillId");
+        if (!(skillId < _skillCounter)) revert AgentSkillRegistryV2_Invalid_skillId();
         SkillData storage data = _skills[skillId];
         return Skill({
             agentId: data.agentId,
@@ -279,9 +286,9 @@ contract AgentSkillRegistryV2 is
     }
     
     function deactivateSkill(uint256 skillId) external override {
-        require(skillId < _skillCounter, "Invalid skillId");
-        require(_skills[skillId].registeredBy == msg.sender, "Not registered by caller");
-        require(_skills[skillId].isActive, "Already inactive");
+        if (!(skillId < _skillCounter)) revert AgentSkillRegistryV2_Invalid_skillId();
+        if (!(_skills[skillId].registeredBy == msg.sender)) revert AgentSkillRegistryV2_Not_registered_by_caller();
+        if (!(_skills[skillId].isActive)) revert AgentSkillRegistryV2_Already_inactive();
         
         // M1 Fix: Remove from domain indexes
         _unindexSkillByDomains(skillId, _skills[skillId].domains);

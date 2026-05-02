@@ -4,7 +4,7 @@ import { useEmailStore } from '@/lib/emails/store';
 import { renderEmail, type TemplateData } from '@/lib/emails/templates';
 import type { EmailTemplateType } from '@/lib/emails/types';
 
-const RESEND_API_KEY = process.env.NEXT_PUBLIC_RESEND_KEY;
+const RESEND_API_KEY = process.env.RESEND_KEY;
 
 const sendEmailSchema = z.object({
   to: z.string().email(),
