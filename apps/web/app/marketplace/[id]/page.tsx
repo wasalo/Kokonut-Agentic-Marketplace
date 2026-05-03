@@ -3,6 +3,8 @@
 import { use, useState } from 'react';
 import { useAccount } from 'wagmi';
 import NextLink from 'next/link';
+import { FollowButton } from 'ethereum-identity-kit';
+import { useUnifiedAgentProfile } from '@/lib/hooks/useUnifiedAgentProfile';
 import {
   ArrowLeft,
   ShoppingBag,
@@ -14,6 +16,9 @@ import {
   Edit,
   Power,
   Loader2,
+  Star,
+  Bookmark,
+  Shield,
 } from 'lucide-react';
 import { Card } from '@heroui/react';
 import { formatUnits } from 'viem';
@@ -26,6 +31,7 @@ import { useServiceContract } from '@/lib/hooks/useServicesContract';
 import { useAgentReputation } from '@/lib/hooks/useAgentReputation';
 import { useTokenPriceConversion } from '@/lib/hooks/useTokenConversion';
 import { showToast, getTransactionError } from '@/lib/toast';
+import { Address } from '@/components/Address';
 
 const ZERO_ADDRESS = '0x0000000000000000000000000000000000000000';
 
@@ -41,6 +47,11 @@ export default function ServiceDetailPage({
   const { service, isLoading, refetch } = useServiceContract(serviceId);
   const reputation = useAgentReputation(service?.provider);
   const { ethToUsdcRate } = useTokenPriceConversion();
+
+  // Agent profile from subgraph for richer provider card
+  const agentIdForProfile = service ? BigInt(service.agentId) : BigInt(0);
+  const agentAddress = service?.provider as `0x${string}`;
+  const { profile: agentProfile } = useUnifiedAgentProfile(agentIdForProfile, agentAddress);
 
   const isEth =
     service?.paymentToken && service.paymentToken.toLowerCase() === ZERO_ADDRESS.toLowerCase();
@@ -330,31 +341,70 @@ export default function ServiceDetailPage({
             Provider
           </h2>
 
-          <div className="flex items-start justify-between">
-            <div>
-              <p className="font-medium">Agent #{service.agentId.toString()}</p>
-              <p className="text-xs text-default-400 font-mono mt-1">{service.provider}</p>
+          <div className="flex items-start gap-4">
+            <div className="w-12 h-12 rounded-full bg-gradient-to-br from-primary to-primary/60 flex items-center justify-center text-white font-bold shrink-0">
+              <Shield className="w-6 h-6" />
             </div>
 
-            <div className="text-right">
+            <div className="flex-1 min-w-0">
+              <div className="flex items-center gap-2 flex-wrap">
+                <p className="font-semibold text-base truncate">
+                  {agentProfile.name || `Agent #${service.agentId.toString()}`}
+                </p>
+                {agentProfile.capabilities.length > 0 && (
+                  <span className="text-[10px] px-1.5 py-0.5 rounded-full bg-content2 text-default-500">
+                    {agentProfile.capabilities[0]}
+                  </span>
+                )}
+              </div>
+              <Address
+                address={service.provider as `0x${string}`}
+                truncate
+                className="text-xs text-default-400 font-mono mt-0.5"
+              />
+              {agentProfile.capabilities.length > 1 && (
+                <div className="flex flex-wrap gap-1 mt-2">
+                  {agentProfile.capabilities.slice(1, 4).map(cap => (
+                    <span key={cap} className="text-[10px] px-1.5 py-0.5 rounded-full bg-primary/10 text-primary">
+                      {cap}
+                    </span>
+                  ))}
+                </div>
+              )}
+            </div>
+
+            <div className="text-right shrink-0">
               {reputation.feedbackCount > 0 ? (
                 <div>
-                  <p className="text-lg font-semibold">{reputation.normalizedRating.toFixed(1)}</p>
+                  <p className="text-lg font-semibold flex items-center gap-1">
+                    <Star className="w-3.5 h-3.5 fill-yellow-500 text-yellow-500" />
+                    {reputation.normalizedRating.toFixed(1)}
+                  </p>
                   <p className="text-xs text-default-400">{reputation.feedbackCount} reviews</p>
                 </div>
               ) : (
                 <p className="text-xs text-default-400">No reviews yet</p>
               )}
+              {agentProfile.services.length > 0 && (
+                <p className="text-xs text-default-400 mt-1">
+                  {agentProfile.services.length} service{agentProfile.services.length !== 1 ? 's' : ''}
+                </p>
+              )}
             </div>
           </div>
 
-          <div className="flex gap-3 mt-4">
+          <div className="flex items-center gap-3 mt-4 pt-3 border-t border-divider">
             <NextLink
               href={`/identity/${service.agentId}`}
-              className="text-sm text-primary hover:underline"
+              className="text-sm text-primary hover:underline inline-flex items-center gap-1"
             >
+              <ExternalLink className="w-3 h-3" />
               View Agent Profile
             </NextLink>
+            <FollowButton
+              lookupAddress={service.provider as `0x${string}`}
+              connectedAddress={address as `0x${string}` | undefined}
+            />
           </div>
         </Card>
 
@@ -376,6 +426,36 @@ export default function ServiceDetailPage({
                 <ShieldCheck className="w-4 h-4" />
                 Purchase Service
               </NextLink>
+            </div>
+          </Card>
+        )}
+
+        {/* Similar Services */}
+        {agentProfile.services.length > 1 && (
+          <Card className="border border-divider p-6">
+            <h2 className="text-base font-semibold mb-4 flex items-center gap-2">
+              <ShoppingBag className="w-4 h-4 text-success" />
+              More from {agentProfile.name || 'this provider'}
+            </h2>
+            <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-3">
+              {agentProfile.services
+                .filter(s => s.id !== service.id.toString())
+                .slice(0, 3)
+                .map(s => (
+                  <NextLink
+                    key={s.id}
+                    href={`/marketplace/${s.serviceId}`}
+                    className="block p-3 border border-divider rounded-lg hover:border-primary/50 transition-colors cursor-pointer"
+                  >
+                    <p className="text-sm font-medium truncate">{s.name}</p>
+                    <p className="text-xs text-default-500 mt-1 line-clamp-1">{s.description || ''}</p>
+                    {s.price && (
+                      <p className="text-xs text-success font-medium mt-1">
+                        ${(Number(s.price) / 1e6).toFixed(2)}
+                      </p>
+                    )}
+                  </NextLink>
+                ))}
             </div>
           </Card>
         )}

@@ -1,16 +1,15 @@
 'use client';
 
-import { useState, useCallback, useEffect } from 'react';
+import { useMemo, useState, useCallback, useEffect } from 'react';
 import { useAccount } from 'wagmi';
 import { useSearchParams, useRouter } from 'next/navigation';
 import NextLink from 'next/link';
-import { Plus, Code } from 'lucide-react';
+import { Plus, Code, Users, TrendingUp } from 'lucide-react';
 import { ServiceList } from '@/components/heroui/service-list';
 import { useAllServices } from '@/lib/hooks/useServicesContract';
 import { useProviderServices, useTotalServiceCount } from '@/lib/hooks/useServices';
 import { useDebounce } from '@/lib/hooks/useDebounce';
 import { StatCard } from '@/components/ui/stat-card';
-import { FilterPanel, FilterPresets } from '@/components/ui/filter-panel';
 import { EmptyStateServices } from '@/components/ui/empty-state';
 
 const SKILL_DOMAINS = [
@@ -30,12 +29,6 @@ const SKILL_DOMAINS = [
 function FilterSection({
   searchQuery,
   setSearchQuery,
-  showActiveOnly,
-  setShowActiveOnly,
-  minPrice,
-  setMinPrice,
-  maxPrice,
-  setMaxPrice,
   skillDomain,
   setSkillDomain,
 }: {
@@ -52,37 +45,21 @@ function FilterSection({
 }) {
   return (
     <div className="mb-6">
-      <FilterPanel
-        searchPlaceholder="Search services..."
-        searchValue={searchQuery}
-        onSearchChange={setSearchQuery}
-        filters={FilterPresets.services()}
-        filterValues={{
-          status: showActiveOnly ? 'active' : '',
-          domain: skillDomain,
-          priceMin: minPrice,
-          priceMax: maxPrice,
-        }}
-        onFilterChange={(key, value) => {
-          if (key === 'status') setShowActiveOnly(value === 'active' || value === '');
-          if (key === 'domain') setSkillDomain(value as string);
-          if (key === 'priceMin') setMinPrice(value as string);
-          if (key === 'priceMax') setMaxPrice(value as string);
-        }}
-        onReset={() => {
-          setSearchQuery('');
-          setShowActiveOnly(true);
-          setMinPrice('');
-          setMaxPrice('');
-          setSkillDomain('');
-        }}
-      />
-      <div className="flex flex-wrap gap-2 mt-4 px-1">
+      <div className="relative">
+        <input
+          type="text"
+          placeholder="Search services..."
+          value={searchQuery}
+          onChange={e => setSearchQuery(e.target.value)}
+          className="w-full pl-4 pr-4 py-2.5 bg-content2 border border-divider rounded-lg text-sm focus:outline-none focus:ring-2 focus:ring-success focus:border-transparent transition-all"
+        />
+      </div>
+      <div className="flex flex-wrap gap-2 mt-4">
         {SKILL_DOMAINS.slice(1, 6).map(domain => (
           <button
             key={domain.value}
             onClick={() => setSkillDomain(skillDomain === domain.value ? '' : domain.value)}
-            className={`px-3 py-1.5 rounded-full text-sm transition-colors cursor-pointer ${
+            className={`px-3 py-1.5 rounded-full text-xs transition-colors cursor-pointer ${
               skillDomain === domain.value
                 ? 'bg-[#009F4D] text-white'
                 : 'bg-content2 text-default-600 hover:bg-content3'
@@ -93,10 +70,10 @@ function FilterSection({
         ))}
         <NextLink
           href="/marketplace/skills"
-          className="px-3 py-1.5 rounded-full text-sm text-[#009F4D] hover:bg-content2 transition-colors flex items-center gap-1 cursor-pointer"
+          className="px-3 py-1.5 rounded-full text-xs text-[#009F4D] hover:bg-content2 transition-colors flex items-center gap-1 cursor-pointer"
         >
-          <Code className="w-3.5 h-3.5" />
-          Browse All Skills
+          <Code className="w-3 h-3" />
+          Browse Skills
         </NextLink>
       </div>
     </div>
@@ -121,6 +98,13 @@ export default function MarketplaceInner() {
   const services = providerParam ? providerServices : allMarketServices;
   const isServicesLoading = providerParam ? isProviderLoading : isAllLoading;
   const activeServicesCount = services.length;
+
+  const uniqueProviders = useMemo(() => new Set(services.map(s => s.provider.toLowerCase())).size, [services]);
+  const avgPrice = useMemo(() => {
+    if (services.length === 0) return 0;
+    const total = services.reduce((sum, s) => sum + Number(s.price) / 1e6, 0);
+    return total / services.length;
+  }, [services]);
 
   const [searchQuery, setSearchQuery] = useState('');
   const [debouncedSearchQuery, setDebouncedSearchQuery] = useState('');
@@ -178,6 +162,16 @@ export default function MarketplaceInner() {
           label="Total Services"
           value={totalCount.toString()}
           isLoading={isTotalCountLoading}
+        />
+        <StatCard
+          label="Providers"
+          value={uniqueProviders.toString()}
+          isLoading={isServicesLoading}
+        />
+        <StatCard
+          label="Avg Price"
+          value={`$${avgPrice.toFixed(0)}`}
+          isLoading={isServicesLoading}
         />
       </div>
 

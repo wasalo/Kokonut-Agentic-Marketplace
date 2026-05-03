@@ -4058,8 +4058,8 @@ async function efpFetch<T>(path: string): Promise<T> {
   if (!response.ok) {
     throw new Error(`EFP API error: ${response.status}`);
   }
-  const data = await response.json();
-  return data.data as T;
+  const json = await response.json() as { data: T };
+  return json.data;
 }
 
 const EFP_LIST_RECORDS_ABI = parseAbi([
