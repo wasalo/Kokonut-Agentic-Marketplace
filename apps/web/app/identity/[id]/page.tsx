@@ -4,17 +4,16 @@ import { use, Suspense } from 'react';
 import { useState } from 'react';
 import Link from 'next/link';
 import { Card, Badge, Skeleton } from '@heroui/react';
-import { useAgentReputation } from '@/lib/hooks/useAgentReputation';
-import { useAgentOwner, useAgentTokenURI } from '@/lib/hooks/useAgents';
-import { useAgentServices } from '@/lib/hooks/useServices';
-import { useJobs } from '@/lib/hooks/useJobs';
-import { useAgentSkills } from '@/lib/hooks/useSkills';
+import { useUnifiedAgentProfile, useEfpStats } from '@/lib/hooks';
 
 import { formatAddress } from '@/lib/utils';
+import { useAccount } from 'wagmi';
+import { FollowButton, FollowersYouKnow, FollowersAndFollowing, FollowerTag } from 'ethereum-identity-kit';
+
 import { 
-  Wallet, 
-  Package, 
-  Briefcase, 
+  Wallet,
+  Package,
+  Briefcase,
   Star,
   Plug,
   ExternalLink,
@@ -26,6 +25,7 @@ import {
   MessageSquare,
   Webhook,
   Mail,
+  Users,
 } from 'lucide-react';
 
 interface AgentDetailPageProps {
@@ -35,11 +35,17 @@ interface AgentDetailPageProps {
 function AgentHeader({ 
   agentId, 
   owner, 
-  metadata 
+  metadata,
+  connectedAddress,
+  followersCount,
+  followingCount,
 }: { 
   agentId: bigint;
   owner: `0x${string}` | undefined;
   metadata: any;
+  connectedAddress?: `0x${string}`;
+  followersCount: number;
+  followingCount: number;
 }) {
   const [copied, setCopied] = useState(false);
   const agentName = metadata?.name || `Agent #${agentId}`;
@@ -114,6 +120,32 @@ function AgentHeader({
               )}
             </div>
           )}
+
+          {/* EFP Social - Follow Stats + Follow Button + Follower Tag */}
+          <div className="flex flex-wrap items-center gap-2 md:gap-3 mb-3 md:mb-4">
+            <div className="flex items-center gap-3 text-xs md:text-sm text-default-500">
+              <span className="flex items-center gap-1">
+                <Users className="w-3.5 h-3.5" />
+                <strong className="text-foreground">{followersCount}</strong> followers
+              </span>
+              <span className="flex items-center gap-1">
+                <strong className="text-foreground">{followingCount}</strong> following
+              </span>
+            </div>
+            {connectedAddress && owner && connectedAddress.toLowerCase() !== owner.toLowerCase() && (
+              <span className="flex items-center gap-2">
+                <FollowerTag
+                  lookupAddressOrName={owner}
+                  connectedAddress={connectedAddress}
+                  showLoading={false}
+                />
+                <FollowButton
+                  lookupAddress={owner}
+                  connectedAddress={connectedAddress}
+                />
+              </span>
+            )}
+          </div>
           
           {/* Address and actions - stack on mobile */}
           <div className="flex flex-col md:flex-row md:items-center gap-2 md:gap-4 text-xs md:text-sm">
@@ -156,16 +188,19 @@ function StatsGrid({
   servicesCount, 
   providerJobsCount,
   skillsCount,
+  followersCount,
   isLoading 
 }: { 
   score: number;
   servicesCount: number;
   providerJobsCount: number;
   skillsCount: number;
+  followersCount: number;
   isLoading: boolean;
 }) {
   const stats = [
     { label: 'Reputation', value: score || 0, icon: Star },
+    { label: 'Followers', value: followersCount, icon: Users },
     { label: 'Services', value: servicesCount, icon: Package },
     { label: 'Jobs Done', value: providerJobsCount, icon: Briefcase },
     { label: 'Skills', value: skillsCount, icon: Code },
@@ -173,8 +208,8 @@ function StatsGrid({
 
   if (isLoading) {
     return (
-      <div className="grid grid-cols-2 md:grid-cols-4 gap-2 md:gap-4 mb-4 md:mb-6">
-        {[...Array(4)].map((_, i) => (
+      <div className="grid grid-cols-2 md:grid-cols-5 gap-2 md:gap-4 mb-4 md:mb-6">
+        {[...Array(5)].map((_, i) => (
           <Skeleton key={i} className="h-16 md:h-24 rounded-lg md:rounded-xl" />
         ))}
       </div>
@@ -182,7 +217,7 @@ function StatsGrid({
   }
 
   return (
-    <div className="grid grid-cols-2 md:grid-cols-4 gap-2 md:gap-4 mb-4 md:mb-6">
+    <div className="grid grid-cols-2 md:grid-cols-5 gap-2 md:gap-4 mb-4 md:mb-6">
       {stats.map((stat, i) => (
         <Card key={i} className="bg-content2 border-divider">
           <div className="p-2 md:p-4">
@@ -213,22 +248,22 @@ function StatRow({ label, value }: { label: string; value: React.ReactNode }) {
 
 function OverviewTab({ 
   score,
-  initialScore,
-  decayFactor,
-  halfLifeDays,
   servicesCount,
   providerJobsCount,
   clientJobsCount,
-  skillsCount
+  skillsCount,
+  followersCount,
+  reviewCount,
+  averageRating,
 }: { 
   score: number;
-  initialScore: number;
-  decayFactor: number;
-  halfLifeDays: number;
   servicesCount: number;
   providerJobsCount: number;
   clientJobsCount: number;
   skillsCount: number;
+  followersCount: number;
+  reviewCount: number;
+  averageRating: number;
 }) {
   return (
     <div className="space-y-4 md:space-y-6">
@@ -237,6 +272,7 @@ function OverviewTab({
         servicesCount={servicesCount}
         providerJobsCount={providerJobsCount}
         skillsCount={skillsCount}
+        followersCount={followersCount}
         isLoading={false}
       />
       
@@ -248,10 +284,9 @@ function OverviewTab({
               Reputation
             </h3>
             <div className="space-y-0">
-              <StatRow label="Current Score" value={score} />
-              <StatRow label="Initial Score" value={initialScore} />
-              <StatRow label="Decay Factor" value={decayFactor?.toFixed(2) || '0'} />
-              <StatRow label="Half-life" value={halfLifeDays ? `${halfLifeDays} days` : '30 days'} />
+              <StatRow label="Score" value={score} />
+              <StatRow label="Reviews" value={reviewCount} />
+              <StatRow label="Avg Rating" value={averageRating.toFixed(1)} />
             </div>
           </div>
         </Card>
@@ -407,7 +442,32 @@ function PortfolioTab({ metadata }: { metadata: any }) {
   return <PortfolioGrid items={portfolio} />;
 }
 
-function ConnectionsTab({ metadata }: { metadata: any }) {
+function NetworkTab({ owner }: { owner: `0x${string}` | undefined }) {
+  if (!owner) {
+    return (
+      <Card className="bg-content2 border-divider">
+        <div className="p-6 md:p-8 text-center">
+          <Users className="w-10 h-10 md:w-12 md:h-12 text-default-400 mx-auto mb-3 md:mb-4" />
+          <p className="text-default-500 text-sm md:text-base">Loading network data...</p>
+        </div>
+      </Card>
+    );
+  }
+
+  return (
+    <div className="space-y-4 md:space-y-6">
+      <FollowersAndFollowing
+        user={owner}
+        defaultTab="followers"
+        darkMode
+        showRecommendations
+        useVirtualList
+      />
+    </div>
+  );
+}
+
+function ConnectionsTab({ metadata, owner, connectedAddress }: { metadata: any; owner?: `0x${string}`; connectedAddress?: `0x${string}` }) {
   const endpoints = metadata?.endpoints || {};
   const channels = metadata?.channels || {};
   
@@ -429,6 +489,16 @@ function ConnectionsTab({ metadata }: { metadata: any }) {
   
   return (
     <div className="grid gap-3 md:gap-4">
+      {/* Followers You Know */}
+      {connectedAddress && (
+        <FollowersYouKnow
+          lookupAddressOrName={owner!}
+          connectedAddress={connectedAddress}
+          showEmpty={false}
+          hasModal
+        />
+      )}
+
       {/* Endpoints */}
       {(endpoints.https || endpoints.mcp || endpoints.a2a) && (
         <Card className="bg-content2 border-divider">
@@ -580,29 +650,21 @@ export default function AgentDetailPage({ params }: AgentDetailPageProps) {
   const { id } = use(params);
   const agentId = BigInt(id);
   const agentAddress = `0x${id}` as `0x${string}`;
+  const { address: connectedAddress } = useAccount();
   
-  const { owner } = useAgentOwner(agentId);
-  const { metadata } = useAgentTokenURI(agentId);
-  const { score, initialScore, decayFactor, halfLifeDays } = useAgentReputation(agentAddress);
-  const { services, isLoading: isLoadingServices } = useAgentServices();
-  const { jobs: allJobs } = useJobs(0, 100);
-  const { skillIds, isLoading: isLoadingSkills } = useAgentSkills(agentId);
+  const { profile, isLoading } = useUnifiedAgentProfile(agentId, agentAddress);
+  const { owner, metadata, name, description, capabilities, isActive, services, skillIds, skills, providerJobs, clientJobs, reputationScore } = profile;
+  const { followersCount, followingCount } = useEfpStats(owner);
   
   const [activeTab, setActiveTab] = useState('overview');
-  
-  const providerJobs = allJobs?.filter(j => 
-    j.provider && j.provider.toLowerCase() === agentAddress.toLowerCase()
-  ) || [];
-  const clientJobs = allJobs?.filter(j => 
-    j.client && j.client.toLowerCase() === agentAddress.toLowerCase()
-  ) || [];
-  
+
   const tabs = [
     { id: 'overview', label: 'Overview' },
     { id: 'services', label: `Services (${services?.length || 0})` },
     { id: 'jobs', label: `Jobs (${providerJobs.length + clientJobs.length})` },
     { id: 'skills', label: `Skills (${skillIds?.length || 0})` },
     { id: 'portfolio', label: `Portfolio (${metadata?.portfolio?.length || 0})` },
+    { id: 'network', label: 'Network' },
     { id: 'connections', label: 'Connections' },
   ];
   
@@ -612,6 +674,9 @@ export default function AgentDetailPage({ params }: AgentDetailPageProps) {
         agentId={agentId}
         owner={owner}
         metadata={metadata}
+        connectedAddress={connectedAddress as `0x${string}` | undefined}
+        followersCount={followersCount}
+        followingCount={followingCount}
       />
       
       <div className="flex flex-col sm:flex-row items-center justify-center rounded-md bg-muted p-1 gap-1 mb-4 md:mb-6 overflow-x-auto">
@@ -634,20 +699,20 @@ export default function AgentDetailPage({ params }: AgentDetailPageProps) {
         {activeTab === 'overview' && (
           <Suspense fallback={<Skeleton className="h-64 rounded-xl" />}>
             <OverviewTab 
-              score={score}
-              initialScore={initialScore}
-              decayFactor={decayFactor}
-              halfLifeDays={halfLifeDays}
+              score={reputationScore}
               servicesCount={services?.length || 0}
               providerJobsCount={providerJobs.length}
               clientJobsCount={clientJobs.length}
               skillsCount={skillIds?.length || 0}
+              followersCount={followersCount}
+              reviewCount={profile.reviewCount}
+              averageRating={profile.averageRating}
             />
           </Suspense>
         )}
         
         {activeTab === 'services' && (
-          <ServicesTab services={services || []} isLoading={isLoadingServices} />
+          <ServicesTab services={services || []} isLoading={isLoading} />
         )}
         
         {activeTab === 'jobs' && (
@@ -655,15 +720,19 @@ export default function AgentDetailPage({ params }: AgentDetailPageProps) {
         )}
         
         {activeTab === 'skills' && (
-          <SkillsTab skillIds={skillIds} isLoading={isLoadingSkills} />
+          <SkillsTab skillIds={skillIds} isLoading={isLoading} />
         )}
         
         {activeTab === 'portfolio' && (
           <PortfolioTab metadata={metadata} />
         )}
         
+        {activeTab === 'network' && (
+          <NetworkTab owner={owner} />
+        )}
+        
         {activeTab === 'connections' && (
-          <ConnectionsTab metadata={metadata} />
+          <ConnectionsTab metadata={metadata} owner={owner} connectedAddress={connectedAddress as `0x${string}` | undefined} />
         )}
       </div>
     </div>

@@ -23,7 +23,7 @@ import {
 } from 'lucide-react';
 import NextLink from 'next/link';
 import { AGENT_SKILL_REGISTRY_ABI } from '@/lib/contracts/abis';
-import { useWalletAgentsWithDetails } from '@/lib/hooks/useWalletAgentsWithDetails';
+import { useWalletAgentsFromSubgraph } from '@/lib/hooks';
 import { CONTRACT_ADDRESSES, getContractAddress } from '@/lib/contracts/config';
 import { TransactionError } from '@/components/TransactionError';
 import { ConfirmModal } from '@/components/ConfirmModal';
@@ -351,7 +351,7 @@ function SkillCard({
 
 export default function DashboardSkillsPage() {
   const { isConnected, address } = useAccount();
-  const { agents, isLoading: isLoadingAgents } = useWalletAgentsWithDetails(address);
+  const { agents, isLoading: isLoadingAgents } = useWalletAgentsFromSubgraph(address);
   const [selectedAgentId, setSelectedAgentId] = useState<number | null>(null);
   const [showForm, setShowForm] = useState(false);
   const [editingSkill, setEditingSkill] = useState<(Skill & { skillId: bigint }) | null>(null);

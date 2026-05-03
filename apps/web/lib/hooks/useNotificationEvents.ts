@@ -4,6 +4,8 @@ import { useEffect, useCallback, useRef } from 'react';
 import { usePublicClient, useAccount } from 'wagmi';
 import { parseAbiItem } from 'viem';
 import { getContractAddress, debugLog, DEFAULT_FROM_BLOCK } from '@/lib/contracts/config';
+import { graphqlQuery } from '@/lib/graphql/client';
+import { GET_ACTIVITY_ALL } from '@/lib/graphql/queries/activity';
 import { useNotifications } from '@/lib/hooks/useNotifications';
 import { triggerWebhooks } from '@/lib/webhooks/trigger';
 import { sendNotificationEmail } from '@/lib/emails/notification-bridge';
@@ -956,8 +958,23 @@ const publicClient = usePublicClient();
       }
     };
 
+    // Initial subgraph catch-up to fill missed events without RPC
+    graphqlQuery<{ activities: { id: string; type: string; timestamp: string; blockNumber: string }[] }>(
+      GET_ACTIVITY_ALL, { first: 20, skip: 0 }
+    ).then(subgraphData => {
+      const subActivities = subgraphData.activities || [];
+      if (subActivities.length > 0 && subActivities[0].blockNumber) {
+        const latestBlock = BigInt(subActivities[0].blockNumber);
+        if (latestBlock > lastBlockRef.current) {
+          debugLog('hooks', `Subgraph catch-up: block ${latestBlock} > ${lastBlockRef.current}`);
+        }
+      }
+    }).catch(() => {
+      // Subgraph unavailable — continue with RPC polling
+    });
+
     processAllEvents();
-    pollingInterval = setInterval(processAllEvents, 15000);
+    pollingInterval = setInterval(processAllEvents, 60000);
 
     return () => {
       clearInterval(pollingInterval);

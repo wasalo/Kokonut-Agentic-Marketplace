@@ -9,7 +9,7 @@ import { Card } from '@heroui/react';
 import { useWriteContract, useWaitForTransactionReceipt } from 'wagmi';
 import { ERC8004_ABI } from '@/lib/8004contracts';
 import { generateAgentMetadata, type AgentMetadata8004 } from '@/lib/metadata';
-import { useWalletAgentsWithDetails } from '@/lib/hooks/useWalletAgentsWithDetails';
+import { useWalletAgentsFromSubgraph } from '@/lib/hooks';
 import { CONTRACT_ADDRESSES, getContractAddress } from '@/lib/contracts/config';
 import { TransactionError } from '@/components/TransactionError';
 import { PortfolioForm, type PortfolioItem } from '@/components/PortfolioForm';
@@ -45,7 +45,7 @@ export default function RegisterAgentPage(): JSX.Element {
   const { isConnected, address } = useAccount();
   const [formData, setFormData] = useState<FormData>(initialFormData);
 
-  const { taggedAgents } = useWalletAgentsWithDetails(address);
+  const { taggedAgents } = useWalletAgentsFromSubgraph(address);
   const isRegistered = taggedAgents.length > 0;
   const agent = taggedAgents[0];
 
@@ -117,7 +117,7 @@ export default function RegisterAgentPage(): JSX.Element {
           </div>
           <p className="text-xs text-default-400 font-mono break-all mb-4">TX: {txHash}</p>
           <NextLink
-            href="/identity"
+            href="/leaderboard"
             className="inline-flex items-center justify-center w-full px-6 py-3 text-base font-semibold bg-gradient-to-r from-[#009F4D] to-[#00c853] text-white rounded-lg hover:opacity-90 transition-opacity"
           >
             View Agents

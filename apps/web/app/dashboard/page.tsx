@@ -17,7 +17,7 @@ import {
 import NextLink from 'next/link';
 import { useUserJobs, getJobStatusLabel } from '@/lib/hooks/useJobs';
 import { useProposalCount, useProposals } from '@/lib/hooks/useProposals';
-import { useActivityFeed, ActivityType } from '@/lib/hooks/useActivityFeed';
+import { useActivityFromSubgraph } from '@/lib/hooks';
 import { Address } from '@/components/Address';
 import { ArbiterSection } from '@/components/ArbiterSection';
 import { EvaluatorSection } from '@/components/EvaluatorSection';
@@ -233,7 +233,7 @@ function QuickActions() {
 }
 
 function PlatformActivityWidget() {
-  const { activities, isLoading } = useActivityFeed('all', 5);
+  const { activities, isLoading } = useActivityFromSubgraph(undefined, undefined, 0, 5);
 
   return (
     <Card className="border border-divider mb-8">
@@ -263,43 +263,32 @@ function PlatformActivityWidget() {
         ) : (
           <div className="space-y-3">
             {activities.slice(0, 5).map(activity => {
-              const typeColors: Record<ActivityType, string> = {
-                job: '#009F4D',
-                service: '#FFCD00',
-                proposal: '#009F4D',
-                all: '#666',
-              };
+              const typeColor = activity.type.startsWith('JOB') ? '#009F4D'
+                : activity.type.startsWith('SERVICE') ? '#FFCD00'
+                : '#009F4D';
+
+              const linkPath = activity.type.startsWith('JOB')
+                ? `/jobs/${activity.details.targetId}`
+                : activity.type.startsWith('SERVICE')
+                  ? `/marketplace/${activity.details.targetId}`
+                  : `/review/${activity.details.targetId}`;
 
               return (
                 <NextLink
                   key={activity.id}
-                  href={
-                    activity.type === 'job'
-                      ? `/jobs/${activity.details.targetId}`
-                      : activity.type === 'service'
-                        ? `/marketplace/${activity.details.targetId}`
-                        : `/review/${activity.details.targetId}`
-                  }
+                  href={linkPath}
                   className="flex items-center gap-3 p-3 border border-divider rounded-lg hover:bg-content2/50 transition-colors"
                 >
                   <div
                     className="w-2 h-2 rounded-full flex-shrink-0"
-                    style={{ backgroundColor: typeColors[activity.type] }}
+                    style={{ backgroundColor: typeColor }}
                   />
                   <div className="flex-1 min-w-0">
                     <p className="text-sm font-medium truncate">{activity.action}</p>
                     <p className="text-xs text-default-500 truncate">
-                      {activity.details.description}
+                      {activity.details.title || 'Activity'}
                     </p>
                   </div>
-                  {activity.details.amount && (
-                    <span
-                      className="text-xs font-medium flex-shrink-0"
-                      style={{ color: typeColors[activity.type] }}
-                    >
-                      {activity.details.amount} {activity.details.currency}
-                    </span>
-                  )}
                 </NextLink>
               );
             })}

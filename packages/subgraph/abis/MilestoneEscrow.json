@@ -1,0 +1,188 @@
+[
+  {
+    "anonymous": false,
+    "inputs": [
+      {
+        "indexed": true,
+        "name": "jobId",
+        "type": "uint256"
+      }
+    ],
+    "name": "MilestoneEnabled",
+    "type": "event"
+  },
+  {
+    "anonymous": false,
+    "inputs": [
+      {
+        "indexed": true,
+        "name": "jobId",
+        "type": "uint256"
+      },
+      {
+        "indexed": true,
+        "name": "milestoneIndex",
+        "type": "uint256"
+      },
+      {
+        "indexed": false,
+        "name": "description",
+        "type": "string"
+      },
+      {
+        "indexed": false,
+        "name": "amount",
+        "type": "uint256"
+      }
+    ],
+    "name": "MilestoneAdded",
+    "type": "event"
+  },
+  {
+    "anonymous": false,
+    "inputs": [
+      {
+        "indexed": true,
+        "name": "jobId",
+        "type": "uint256"
+      },
+      {
+        "indexed": true,
+        "name": "milestoneIndex",
+        "type": "uint256"
+      },
+      {
+        "indexed": false,
+        "name": "proofHash",
+        "type": "bytes32"
+      }
+    ],
+    "name": "MilestoneCompleted",
+    "type": "event"
+  },
+  {
+    "anonymous": false,
+    "inputs": [
+      {
+        "indexed": true,
+        "name": "jobId",
+        "type": "uint256"
+      },
+      {
+        "indexed": true,
+        "name": "milestoneIndex",
+        "type": "uint256"
+      },
+      {
+        "indexed": false,
+        "name": "amount",
+        "type": "uint256"
+      }
+    ],
+    "name": "MilestoneReleased",
+    "type": "event"
+  },
+  {
+    "anonymous": false,
+    "inputs": [
+      {
+        "indexed": true,
+        "name": "jobId",
+        "type": "uint256"
+      },
+      {
+        "indexed": true,
+        "name": "flagger",
+        "type": "address"
+      },
+      {
+        "indexed": false,
+        "name": "token",
+        "type": "address"
+      },
+      {
+        "indexed": false,
+        "name": "fee",
+        "type": "uint256"
+      }
+    ],
+    "name": "DisputeFlagged",
+    "type": "event"
+  },
+  {
+    "anonymous": false,
+    "inputs": [
+      {
+        "indexed": true,
+        "name": "jobId",
+        "type": "uint256"
+      },
+      {
+        "indexed": false,
+        "name": "releasedToProvider",
+        "type": "bool"
+      },
+      {
+        "indexed": true,
+        "name": "arbiter",
+        "type": "address"
+      },
+      {
+        "indexed": false,
+        "name": "token",
+        "type": "address"
+      },
+      {
+        "indexed": false,
+        "name": "arbiterFee",
+        "type": "uint256"
+      }
+    ],
+    "name": "DisputeResolved",
+    "type": "event"
+  },
+  {
+    "anonymous": false,
+    "inputs": [
+      {
+        "indexed": true,
+        "name": "arbiter",
+        "type": "address"
+      },
+      {
+        "indexed": false,
+        "name": "token",
+        "type": "address"
+      },
+      {
+        "indexed": false,
+        "name": "stake",
+        "type": "uint256"
+      }
+    ],
+    "name": "ArbiterRegistered",
+    "type": "event"
+  },
+  {
+    "anonymous": false,
+    "inputs": [
+      {
+        "indexed": true,
+        "name": "arbiter",
+        "type": "address"
+      },
+      {
+        "indexed": false,
+        "name": "token",
+        "type": "address"
+      },
+      {
+        "indexed": false,
+        "name": "refundedStake",
+        "type": "uint256"
+      }
+    ],
+    "name": "ArbiterUnregistered",
+    "type": "event"
+  }
+]

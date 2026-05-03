@@ -32,11 +32,11 @@ test.describe('Visual Regression Tests', () => {
     await expect(page.getByRole('heading', { name: 'Jobs Directory' })).toBeVisible();
   });
 
-  test('identity page loads', async ({ page }) => {
-    await page.goto('/identity');
+  test('leaderboard page loads', async ({ page }) => {
+    await page.goto('/leaderboard');
+    // Wait for network to be idle
     await page.waitForLoadState('networkidle');
-
-    await page.screenshot({ path: 'tests/snapshots/identity.png', fullPage: true });
+    await page.screenshot({ path: 'tests/snapshots/leaderboard.png', fullPage: true });
   });
 
   test('leaderboard page loads', async ({ page }) => {

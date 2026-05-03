@@ -8,6 +8,7 @@ import type { Metadata } from 'next';
 import { Inter } from 'next/font/google';
 import Script from 'next/script';
 import { ThemeProvider } from '@/contexts/ThemeContext';
+import 'ethereum-identity-kit/css';
 import './globals.css';
 import { Providers } from './providers';
 import { NavbarComponent } from '@/components/heroui/navbar';

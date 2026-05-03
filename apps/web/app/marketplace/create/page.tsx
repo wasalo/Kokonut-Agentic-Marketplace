@@ -16,7 +16,7 @@ import NextLink from 'next/link';
 import { Card, Button } from '@heroui/react';
 import { parseUnits } from 'viem';
 import { useCreateService } from '@/lib/hooks/useServices';
-import { useWalletAgentsWithDetails } from '@/lib/hooks/useWalletAgentsWithDetails';
+import { useWalletAgentsFromSubgraph } from '@/lib/hooks';
 import { useAddKokonutTag } from '@/lib/hooks/useAddKokonutTag';
 import { useDebug } from '@/contexts/DebugContext';
 import { validateStringLength, validateMetadataURI } from '@/lib/hooks/useValidation';
@@ -170,7 +170,7 @@ export default function CreateServicePage() {
     isLoading: isCheckingAgents,
     error: agentsError,
     refetch,
-  } = useWalletAgentsWithDetails(address);
+  } = useWalletAgentsFromSubgraph(address);
 
   // Step 2: Add Kokonut tag hook
   const {
@@ -545,7 +545,7 @@ export default function CreateServicePage() {
                 </p>
               )}
 
-              <NextLink href="/identity">
+              <NextLink href="/dashboard/agents">
                 <Button variant="ghost" className="w-full">
                   View My Agents
                 </Button>

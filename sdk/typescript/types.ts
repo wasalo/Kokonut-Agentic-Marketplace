@@ -305,17 +305,41 @@ export interface EvaluationParams {
 // SDK Events
 // ============================================================================
 
+// ============================================================================
+// EFP (Ethereum Follow Protocol) Types
+// ============================================================================
+
+export interface EfpStats {
+  followers_count: string;
+  following_count: string;
+}
+
+export interface EfpFollower {
+  efp_list_nft_token_id: string;
+  address: string;
+  tags: string[];
+  is_following: boolean;
+  is_blocked: boolean;
+  is_muted: boolean;
+}
+
+export interface EfpFollowState {
+  is_following: boolean;
+  is_blocked: boolean;
+  is_muted: boolean;
+  is_followed_back: boolean;
+}
+
 export interface SDKEventMap {
-  AgentRegistered: { agentId: bigint; owner: `0x${string}` };
-  ServiceCreated: { serviceId: bigint; provider: `0x${string}`; agentId: bigint };
-  JobCreated: { jobId: bigint; client: `0x${string}`; provider: `0x${string}` };
-  JobFunded: { jobId: bigint; budget: bigint };
-  JobSubmitted: { jobId: bigint };
-  PaymentReleased: { jobId: bigint; amount: bigint; recipient: `0x${string}` };
-  ProposalCreated: { proposalId: bigint; proposer: `0x${string}` };
-  EvaluationSubmitted: { proposalId: bigint; evaluator: `0x${string}`; score: bigint };
-  DecisionAttested: { proposalId: bigint; winner: `0x${string}` };
-  FeedbackSubmitted: { agent: `0x${string}`; rating: number };
+  AgentRegistered: { agentId: bigint; owner: Address; agentURI: string };
+  ServiceCreated: { serviceId: bigint; provider: Address; name: string };
+  JobCreated: { jobId: bigint; client: Address; provider: Address };
+  JobFunded: { jobId: bigint; client: Address; amount: bigint };
+  JobSubmitted: { jobId: bigint; provider: Address; deliverable: string };
+  PaymentReleased: { jobId: bigint; providerAmount: bigint };
+  ProposalCreated: { proposalId: bigint; proposer: Address };
+  EvaluationSubmitted: { proposalId: bigint; evaluator: Address; score: bigint };
+  DecisionAttested: { proposalId: bigint; winner: Address };
 }
 
 export type SDKEventName = keyof SDKEventMap;

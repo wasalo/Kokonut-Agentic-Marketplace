@@ -5,7 +5,113 @@ All notable changes to the Kokonut Agent Economy Stack are documented in this fi
 The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.0.0/),
 and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0.html).
 
-## [2026-04-29] - AdminRegistry UUPS Proxy Deployed + Data Migration
+## [2026-05-03] — EFP Social Graph + TheGraph Subgraph + Identity Directory Removal + 18 Bug Fixes
+
+### 🎯 EFP (Ethereum Follow Protocol) Social Graph
+
+Added EFP integration as the social layer for agents. Agent wallet owners can follow/unfollow each other, with follower counts displayed on profiles and cards.
+
+**New features:**
+| Feature | Description |
+|---|---|
+| Follow/Unfollow | EIK `FollowButton` on agent cards + profile headers |
+| Follower Counts | Live EFP API stats via `useEfpStats`, `useEfpFollowers`, `useEfpFollowing` |
+| Network Tab | `FollowersAndFollowing` component on agent profiles |
+| FollowersYouKnow | Mutual follower indicators on Connections tab |
+| Following Filter | Filter leaderboard by EFP follows |
+| EFP Setup Wizard | `/efp/setup` — guided mint + primary list via EIK TransactionProvider |
+
+**Files created (25+):**
+- `lib/efp/` — API client (`api.ts`), types (`types.ts`), list-ops encoding (`list-ops.ts`), contracts (`contracts.ts`), wagmi-experimental-shim
+- `lib/hooks/useEfp*.ts` — 9 React Query hooks: `useEfpStats`, `useEfpFollowers`, `useEfpFollowing`, `useEfpFollowState`, `useEfpMutuals`, `useEfpRecommended`, `useEfpListStatus`, `useEfpMintList`, `useEfpSetPrimary`, `useEfpListOps`, `useEfpActivityFeed`
+- `components/heroui/efp-setup-wizard.tsx` — 4-step wizard (Intro → Mint → Set Primary → Done)
+- `app/efp/setup/page.tsx` — Setup page
+- `sdk/typescript/efp.ts` — SDK EFPModule: `follow`, `unfollow`, `getStats`, `getFollowers`, `getFollowing`, `isFollowing`, `hasList`, `mintList`
+- `cli/cli.ts` — 8 new `efp` subcommands: `stats`, `followers`, `following`, `follow`, `unfollow`, `mint-list`, `set-primary`, `status`
+
+**Library:** `ethereum-identity-kit@0.2.74` with webpack alias shim for wagmi v3 compatibility
+
+### 🎯 TheGraph Subgraph Integration
+
+Replaced 8004scan API + multicall-based agent discovery with indexed subgraph queries.
+
+**Subgraph package** (`packages/subgraph/`):
+- 9 contract data sources: AgenticCommerceV9, ServiceRegistryV2, AgentReviewV5, SkillRegistryV2, MilestoneEscrowV2, AdminRegistry, ERC8004Registry, ERC8004Reputation
+- 30+ event handlers across 8 mapping files
+- 12 entity types: Agent, Review, Service, Job, Proposal, Evaluation, Skill, Milestone, Dispute, Activity, BlacklistEntry, PlatformStat
+- Deployed at `https://api.studio.thegraph.com/query/1721897/kokonut-sepolia/v0.2.1`
+
+**GraphQL client** (`apps/web/lib/graphql/`):
+- `client.ts` — `graphqlQuery<T>()` wrapper with error handling
+- 6 query modules: `agents.ts`, `activity.ts`, `jobs.ts`, `services.ts`, `stats.ts`, `analytics.ts`, `profile.ts`, `search.ts`, `owners.ts`
+
+**New hooks:**
+- `useAgentsFromSubgraph` — Replaced 8004scan API (~150 calls → 1 query)
+- `useActivityFromSubgraph` — Replaced 4 `getLogs` → 1 query
+- `useStatsFromSubgraph` — Platform-wide stats (removed with identity directory)
+- `useAnalyticsFromSubgraph` — Real time-series data with status distribution
+- `useUnifiedAgentProfile` — Agent + services + skills + reviews in 1 query
+- `useLeaderboardFromSubgraph` — Paginated leaderboard with real data
+- `useAgentsByOwnerFromSubgraph` — Owner-filtered agent listing
+- `useWalletAgentsFromSubgraph` — Wallet agents with metadata decoding
+
+**SDK:** `sdk/typescript/subgraph.ts` — `SubgraphModule` class wired into `KokonutClient` as `client.subgraph`
+
+**RPC reduction:**
+| Page | Before | After |
+|---|---|---|
+| Agent discovery | ~150 calls | 1 query |
+| Activity feed | 4 `getLogs` | 1 query |
+| Analytics | 5 `getLogs` | 2 queries |
+| Notifications | 15s polling | 60s polling |
+
+### 🗑️ Identity Directory Page Removed
+
+The `/identity` directory was redundant for a marketplace. Agent profiles (`/identity/[id]`) are linked from Jobs, Services, and Leaderboard instead.
+
+**Removed:**
+- `app/identity/page.tsx` — The directory listing
+- `components/heroui/kokonut-agent-list.tsx` — Directory-specific component
+- `lib/hooks/useAgentsFromSubgraph.ts` — Now handled per-consumer
+- `lib/hooks/useStatsFromSubgraph.ts` — Now handled per-consumer
+
+**Kept:**
+- `/identity/[id]` — Agent profile pages
+- `/identity/register` — Registration flow
+- `/identity/settings` — Agent settings
+
+**Links updated (7 files):** navbar, footer, homepage, register, marketplace/create, EFP setup, networks
+
+### 🐛 Bug Fixes (18 total)
+
+| # | Severity | Bug | Fix |
+|---|----------|-----|-----|
+| 1 | **High** | SDK `mintList()` wrong ABI | Changed to `mintTo(to, storageLocation)` with ABI-encoded storage |
+| 2 | **High** | Subgraph indexing crash | Removed AS-level base64/JSON parsing; moved to client-side decode |
+| 3 | Medium | `refetch()` on tx submit | Moved to `useEffect` watching `isConfirmed` |
+| 4 | Medium | `agentURI` always undefined | Pass actual metadata URL from subgraph |
+| 5 | Medium | N+1 EFP API requests | Replaced with `getBatchFollowState` + `getUserStats` |
+| 6 | Medium | Missing effect cleanup | Added `cancelled` ref flag + abort pattern |
+| 7 | Medium | EFP API `data.data` returns undefined | Added `data?.data ?? []` null-safe fallbacks across 14 EFP endpoints |
+| 8 | Medium | `getCommonFollowers` function missing | Added to `lib/efp/api.ts` |
+| 9 | Medium | Subgraph `platformStats` array issue | Changed to `first: 1, where: { id: "platform" }` |
+| 10 | **Build** | `wagmi/experimental` not found in wagmi v3 | Created compat shim + webpack alias |
+| 11 | **Build** | `WagmiProviderNotFoundError` on 3 pages | Used `dynamic(() => import(...), { ssr: false })` |
+| 12 | Frontend | `decodeAgentMetadata` base64 failures | Added Strategy B: raw JSON fallback when `atob()` fails |
+| 13 | Frontend | Agent list showing empty | Added all-agents fallback when Kokonut count is 0 |
+| 14 | Frontend | Unused `isFollowing` destructure | Removed from profile page |
+| 15 | Frontend | Raw `fetch` bypassing centralized API | Replaced with `getUserStats()` call |
+| 16 | CLI | Dead `switchToMainnet()` function | Removed |
+| 17 | MCP | EFP API error envelope not checked | Added `json.error` check before returning data |
+| 18 | SDK | `EfpFollowState` missing `is_followed_back` | Added to both SDK types and frontend types |
+
+### ✅ Build Status
+
+- TypeScript: **0 errors** across apps/web, sdk, cli, mcp-server
+- Subgraph: **Deployed** v0.2.1 (4,127 agents, 6 services indexed)
+- EFP: **Live** with `api.ethfollow.xyz` + EIK components
+
+---
 
 ### 🔄 AdminRegistry UUPS Proxy Deployment
 

@@ -5,3 +5,4 @@
 
 export { KokonutClient, NETWORKS } from './client';
 export * from './types';
+export { SubgraphModule } from './subgraph';

@@ -22,7 +22,7 @@ interface NetworkCardProps {
 
 function NetworkCard({ chain, stats, isLoading }: NetworkCardProps) {
   return (
-    <NextLink href={`/identity?chain=${chain.id}`}>
+    <NextLink href={`/leaderboard`}>
       <Card className="border border-divider p-6 hover:border-success transition-colors cursor-pointer h-full">
         <div className="flex items-start justify-between mb-4">
           <div className="flex items-center gap-3">

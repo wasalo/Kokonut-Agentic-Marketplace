@@ -1,0 +1,58 @@
+[
+  {
+    "anonymous": false,
+    "inputs": [
+      {
+        "indexed": true,
+        "name": "agentId",
+        "type": "uint256"
+      },
+      {
+        "indexed": false,
+        "name": "agentURI",
+        "type": "string"
+      },
+      {
+        "indexed": true,
+        "name": "owner",
+        "type": "address"
+      }
+    ],
+    "name": "Registered",
+    "type": "event"
+  },
+  {
+    "anonymous": false,
+    "inputs": [
+      {
+        "indexed": true,
+        "name": "agentId",
+        "type": "uint256"
+      },
+      {
+        "indexed": false,
+        "name": "newURI",
+        "type": "string"
+      }
+    ],
+    "name": "AgentURIUpdated",
+    "type": "event"
+  },
+  {
+    "anonymous": false,
+    "inputs": [
+      {
+        "indexed": true,
+        "name": "agentId",
+        "type": "uint256"
+      },
+      {
+        "indexed": false,
+        "name": "key",
+        "type": "string"
+      }
+    ],
+    "name": "MetadataUpdated",
+    "type": "event"
+  }
+]

@@ -6,7 +6,8 @@ import { WagmiProvider } from 'wagmi';
 import { RainbowKitProvider, darkTheme } from '@rainbow-me/rainbowkit';
 import { config } from '@/lib/wagmi';
 import { DebugProvider } from '@/contexts/DebugContext';
-import { TransactionProvider } from '@/contexts/TransactionContext';
+import { TransactionProvider as KokonutTxProvider } from '@/contexts/TransactionContext';
+import { TransactionProvider as EfpTxProvider } from 'ethereum-identity-kit';
 import { usePersonalNotifications } from '@/lib/hooks/useNotificationEvents';
 
 function NotificationWatcher() {
@@ -36,18 +37,20 @@ export function Providers({ children }: { children: ReactNode }) {
     <WagmiProvider config={config}>
       <QueryClientProvider client={queryClient}>
         <DebugProvider>
-          <TransactionProvider>
-            <RainbowKitProvider
-              theme={darkTheme({
-                accentColor: '#009F4D',
-                accentColorForeground: '#FFFFFF',
-                borderRadius: 'large',
-              })}
-            >
-              <NotificationWatcher />
-              {children}
-            </RainbowKitProvider>
-          </TransactionProvider>
+          <KokonutTxProvider>
+            <EfpTxProvider>
+              <RainbowKitProvider
+                theme={darkTheme({
+                  accentColor: '#009F4D',
+                  accentColorForeground: '#FFFFFF',
+                  borderRadius: 'large',
+                })}
+              >
+                <NotificationWatcher />
+                {children}
+              </RainbowKitProvider>
+            </EfpTxProvider>
+          </KokonutTxProvider>
         </DebugProvider>
       </QueryClientProvider>
     </WagmiProvider>

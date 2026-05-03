@@ -4,7 +4,7 @@ import { useAccount } from 'wagmi';
 import { Card, Skeleton, Badge } from '@heroui/react';
 import { Wallet, Plus, ArrowLeft, ExternalLink, Settings, Package, Star } from 'lucide-react';
 import NextLink from 'next/link';
-import { useWalletAgentsWithDetails } from '@/lib/hooks/useWalletAgentsWithDetails';
+import { useWalletAgentsFromSubgraph } from '@/lib/hooks';
 import { useProviderServices } from '@/lib/hooks/useServices';
 
 import { useAgentReputation } from '@/lib/hooks/useAgentReputation';
@@ -135,7 +135,7 @@ function AgentCardSkeleton() {
 
 export default function DashboardAgentsPage() {
   const { isConnected, address } = useAccount();
-  const { agents, isLoading, error, refetch } = useWalletAgentsWithDetails(address);
+  const { agents, isLoading, error, refetch } = useWalletAgentsFromSubgraph(address);
 
   if (!isConnected) {
     return <WalletConnectPrompt />;
@@ -177,7 +177,7 @@ export default function DashboardAgentsPage() {
               <p className="text-danger font-medium">Error loading agents</p>
               <p className="text-danger-600 text-sm mt-1">{error.message}</p>
               <button
-                onClick={refetch}
+                 onClick={() => refetch()}
                 className="mt-3 px-4 py-2 bg-danger text-white rounded-lg text-sm font-medium hover:bg-danger-600 transition-colors"
               >
                 Try Again

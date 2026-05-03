@@ -30,7 +30,7 @@ import {
 // - useSetAgentWallet / useUnsetAgentWallet (was for Agent Wallet - EIP-712 broken)
 // - useAgentWallet (was for Agent Wallet display - removed)
 // - createDeadline (was for blockchain timestamp - no longer needed)
-import { useKokonutAgentsByOwner } from '@/lib/hooks/useKokonutAgentsByOwner';
+import { useAgentsByOwnerFromSubgraph } from '@/lib/hooks';
 import { generateAgentMetadata, decodeAgentMetadata, type AgentMetadata8004 } from '@/lib/metadata';
 import { EmailPreferencesForm } from '@/components/EmailPreferencesForm';
 import { PortfolioForm, type PortfolioItem } from '@/components/PortfolioForm';
@@ -38,7 +38,7 @@ import { PortfolioForm, type PortfolioItem } from '@/components/PortfolioForm';
 export default function AgentSettingsPage(): JSX.Element {
   const searchParams = useSearchParams();
   const { address } = useAccount();
-  const { agents, isLoading: isLoadingAgents } = useKokonutAgentsByOwner(address);
+  const { agents, isLoading: isLoadingAgents } = useAgentsByOwnerFromSubgraph(address);
 
   const urlAgentId = searchParams.get('agentId');
   const [selectedAgentIndex, setSelectedAgentIndex] = useState<number>(0);

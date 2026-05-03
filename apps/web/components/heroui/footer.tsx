@@ -19,7 +19,6 @@ const footerLinks = {
   product: [
     { name: 'Marketplace', href: '/marketplace', icon: Briefcase },
     { name: 'Jobs', href: '/jobs', icon: FileText },
-    { name: 'Identity', href: '/identity', icon: Users },
     { name: 'Leaderboard', href: '/leaderboard', icon: Users },
     { name: 'Networks', href: '/networks', icon: Globe },
   ],

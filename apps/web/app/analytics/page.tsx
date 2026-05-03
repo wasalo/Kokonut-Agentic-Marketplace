@@ -25,7 +25,7 @@ import {
   RefreshCw,
   DollarSign,
 } from 'lucide-react';
-import { useAnalytics, TIME_RANGES, type TimeRange } from '@/lib/hooks/useAnalytics';
+import { useAnalyticsFromSubgraph, TIME_RANGES, type TimeRange } from '@/lib/hooks';
 import { StatCard } from '@/components/ui/stat-card';
 import { Card } from '@heroui/react';
 
@@ -103,7 +103,7 @@ function AnalyticsContent({
   timeRange: TimeRange;
   onTimeRangeChange?: (range: TimeRange) => void;
 }): JSX.Element {
-  const { data, isLoading, error, refetch } = useAnalytics(timeRange);
+  const { data, isLoading, error, refetch } = useAnalyticsFromSubgraph(timeRange);
   const rangeDays = TIME_RANGES[timeRange].days;
   const rangeLabel = timeRange === '7D' ? '7 days' : timeRange === '30D' ? '30 days' : '90 days';
 

@@ -1,5 +1,19 @@
+const path = require('path');
+
 /** @type {import('next').NextConfig} */
 const nextConfig = {
+  // EIK package needs transpilation for ESM compatibility
+  transpilePackages: ['ethereum-identity-kit'],
+  // ethereum-identity-kit imports wagmi/experimental (wagmi v2) which is
+  // removed in wagmi v3. This alias redirects to a compat shim.
+  webpack: (config) => {
+    config.resolve.alias = {
+      ...config.resolve.alias,
+      'wagmi/experimental': path.resolve(__dirname, 'lib/efp/wagmi-experimental-shim.ts'),
+    };
+    return config;
+  },
+
   // Allow dev server to be accessed from any network origin
   // For allowedDevOrigins, we need to extract base IP without wildcard
   // e.g., '10.108.1.*' -> '10.108.1' (will match 10.108.1.0 - 10.108.1.255)

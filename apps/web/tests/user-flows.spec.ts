@@ -3,12 +3,11 @@ import { test, expect } from '@playwright/test';
 test.describe('User Flows', () => {
   test.describe.configure({ mode: 'serial' });
 
-  test('navigate from homepage to identity page', async ({ page }) => {
-    await page.goto('/', { waitUntil: 'domcontentloaded' });
-
-    // Click on Identity link
-    await page.click('text=Identity');
-    await page.waitForURL('**/identity');
+  test('navigate from homepage to leaderboard page', async ({ page }) => {
+    await page.goto('/');
+    await page.waitForLoadState('networkidle');
+    await page.click('text=Leaderboard');
+    await page.waitForURL('**/leaderboard');
 
     await expect(page.locator('h1')).toContainText('Identity');
   });
@@ -29,8 +28,8 @@ test.describe('User Flows', () => {
     await expect(page.locator('h1')).toContainText('Review');
   });
 
-  test('search functionality on identity page', async ({ page }) => {
-    await page.goto('/identity', { waitUntil: 'domcontentloaded' });
+  test('search functionality on leaderboard page', async ({ page }) => {
+    await page.goto('/leaderboard', { waitUntil: 'domcontentloaded' });
 
     // Find search input
     const searchInput = page.locator('input[placeholder*="Search"]');
@@ -102,10 +101,10 @@ test.describe('Responsive Design', () => {
     await expect(page.locator('h1')).toBeVisible();
   });
 
-  test('identity page renders on tablet viewport', async ({ page }) => {
+  test('leaderboard page renders on tablet viewport', async ({ page }) => {
     await page.setViewportSize({ width: 768, height: 1024 });
-    await page.goto('/identity', { waitUntil: 'domcontentloaded' });
+    await page.goto('/leaderboard', { waitUntil: 'domcontentloaded' });
 
-    await expect(page.locator('text=Kokonut Agents')).toBeVisible();
+    await expect(page.locator('text=Leaderboard')).toBeVisible();
   });
 });

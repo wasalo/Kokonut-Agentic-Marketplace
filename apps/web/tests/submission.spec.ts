@@ -1,7 +1,5 @@
 import { test, expect } from '@playwright/test';
 
-const isCI = process.env.CI !== undefined;
-
 const MIN_USDC = '0.01';
 
 test.describe('Form View Tests - No Wallet Required', () => {

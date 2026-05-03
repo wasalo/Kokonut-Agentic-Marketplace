@@ -6,8 +6,8 @@ test.describe('Basic Page Loading', () => {
     await expect(page).toHaveTitle(/Kokonut/i);
   });
 
-  test('identity page loads', async ({ page }) => {
-    await page.goto('/identity', { waitUntil: 'domcontentloaded' });
+  test('leaderboard page loads', async ({ page }) => {
+    await page.goto('/leaderboard', { waitUntil: 'domcontentloaded' });
     await expect(page.locator('h1')).toContainText('Identity');
   });
 
@@ -53,8 +53,8 @@ test.describe('Navigation', () => {
 });
 
 test.describe('UI Elements', () => {
-  test('stat cards render on identity page', async ({ page }) => {
-    await page.goto('/identity', { waitUntil: 'domcontentloaded' });
+  test('stat cards render on leaderboard page', async ({ page }) => {
+    await page.goto('/leaderboard', { waitUntil: 'domcontentloaded' });
     await expect(page.locator('text=Kokonut Agents')).toBeVisible();
     await expect(page.locator('text=Active')).toBeVisible();
   });

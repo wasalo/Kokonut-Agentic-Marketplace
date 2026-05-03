@@ -3,8 +3,10 @@
 import { memo } from 'react';
 import Image from 'next/image';
 import { Card, Chip } from '@heroui/react';
-import { Star, ExternalLink, Shield } from 'lucide-react';
+import { Star, ExternalLink, Shield, Users, UserCheck } from 'lucide-react';
 import { useRouter } from 'next/navigation';
+import { useAccount } from 'wagmi';
+import { FollowButton } from 'ethereum-identity-kit';
 import { Address } from '@/components/Address';
 
 interface AgentCardProps {
@@ -17,6 +19,8 @@ interface AgentCardProps {
   totalReviews?: number;
   agentURI?: string;
   isActive?: boolean;
+  followersCount?: number;
+  followsYou?: boolean;
 }
 
 export const AgentCard = memo(function AgentCard({
@@ -29,12 +33,21 @@ export const AgentCard = memo(function AgentCard({
   totalReviews = 0,
   agentURI,
   isActive = true,
+  followersCount,
+  followsYou,
 }: AgentCardProps) {
   const router = useRouter();
+  const { address: connectedAddress } = useAccount();
 
   const handleClick = () => {
     router.push(`/identity/${id}`);
   };
+
+  const handleFollowClick = (e: React.MouseEvent) => {
+    e.stopPropagation();
+  };
+
+  const isOwner = connectedAddress && connectedAddress.toLowerCase() === owner.toLowerCase();
 
   return (
     <div
@@ -80,18 +93,36 @@ export const AgentCard = memo(function AgentCard({
                     </span>
                   )}
                 </div>
-                <Address
-                  address={owner as `0x${string}`}
-                  truncate
-                  className="text-small text-default-500"
-                />
-              </div>
-              {rating > 0 && (
-                <div className="flex items-center gap-1 px-2 py-1 bg-warning-100 text-warning-700 rounded-full text-xs font-medium shrink-0">
-                  <Star className="w-3 h-3 fill-current" />
-                  {rating.toFixed(1)}
+                <div className="flex items-center gap-2">
+                  <Address
+                    address={owner as `0x${string}`}
+                    truncate
+                    className="text-small text-default-500"
+                  />
+                  {followsYou && (
+                    <span className="inline-flex items-center gap-0.5 text-[10px] px-1.5 py-0.5 bg-primary/10 text-primary rounded-full">
+                      <UserCheck className="w-2.5 h-2.5" />
+                      Follows you
+                    </span>
+                  )}
                 </div>
-              )}
+              </div>
+              <div className="flex items-center gap-2 shrink-0">
+                {rating > 0 && (
+                  <div className="flex items-center gap-1 px-2 py-1 bg-warning-100 text-warning-700 rounded-full text-xs font-medium">
+                    <Star className="w-3 h-3 fill-current" />
+                    {rating.toFixed(1)}
+                  </div>
+                )}
+                {connectedAddress && !isOwner && (
+                  <span onClick={handleFollowClick}>
+                    <FollowButton
+                      lookupAddress={owner as `0x${string}`}
+                      connectedAddress={connectedAddress}
+                    />
+                  </span>
+                )}
+              </div>
             </div>
           </div>
         </div>
@@ -119,11 +150,19 @@ export const AgentCard = memo(function AgentCard({
               View Details
               <ExternalLink className="w-4 h-4" />
             </span>
-            {totalReviews > 0 && (
-              <p className="text-tiny text-default-400">
-                {totalReviews} review{totalReviews !== 1 ? 's' : ''}
-              </p>
-            )}
+            <div className="flex items-center gap-3 text-tiny text-default-400">
+              {followersCount !== undefined && (
+                <span className="flex items-center gap-1">
+                  <Users className="w-3 h-3" />
+                  {followersCount}
+                </span>
+              )}
+              {totalReviews > 0 && (
+                <span>
+                  {totalReviews} review{totalReviews !== 1 ? 's' : ''}
+                </span>
+              )}
+            </div>
           </div>
         </div>
       </Card>

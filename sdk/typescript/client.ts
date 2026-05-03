@@ -5,6 +5,8 @@
 
 import { createPublicClient, createWalletClient, http, custom, type Address, parseAbi } from 'viem';
 import { privateKeyToAccount } from 'viem/accounts';
+import { EFPModule } from './efp';
+import { SubgraphModule } from './subgraph';
 import type {
   SDKConfig,
   NetworkName,
@@ -284,6 +286,8 @@ export class KokonutClient {
   public bidding: BiddingSystemModule;
   public milestones: MilestoneModule;
   public adminRegistry: AdminRegistryModule;
+  public efp: EFPModule;
+  public subgraph: SubgraphModule;
 
 
   constructor(config: SDKConfig) {
@@ -331,6 +335,8 @@ export class KokonutClient {
     this.bidding = new BiddingSystemModule(this.wallet, this.publicClient, this.contracts);
     this.milestones = new MilestoneModule(this.wallet, this.publicClient, this.contracts);
     this.adminRegistry = new AdminRegistryModule(this.wallet, this.publicClient, this.contracts);
+    this.efp = new EFPModule(this.wallet, this.publicClient, this.contracts);
+    this.subgraph = new SubgraphModule();
 
     this.setupEventListeners();
   }
@@ -2799,3 +2805,4 @@ class AdminRegistryModule {
 
 export { NETWORKS } from './types';
 export * from './types';
+export { EFPModule } from './efp';

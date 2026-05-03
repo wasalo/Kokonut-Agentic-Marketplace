@@ -224,6 +224,55 @@ async function getAgentReputation(address: string) {
   }
 }
 
+const EFP_API_BASE = 'https://api.ethfollow.xyz/api/v1';
+
+async function efpFetch<T>(path: string): Promise<T> {
+  const response = await fetch(`${EFP_API_BASE}${path}`);
+  if (!response.ok) throw new Error(`EFP API error: ${response.status}`);
+  const json = await response.json() as { data?: T; error?: string };
+  if (json.error) throw new Error(`EFP API error: ${json.error}`);
+  return json.data as T;
+}
+
+async function getEfpStats(address: string) {
+  const stats = await efpFetch<{ followers_count: string; following_count: string }>(
+    `/users/${address}/stats`
+  );
+  return {
+    address,
+    followersCount: stats.followers_count,
+    followingCount: stats.following_count,
+  };
+}
+
+async function getEfpFollowers(address: string, limit = 10, offset = 0) {
+  const data = await efpFetch<{ followers: Array<{ address: string; tags: string[] }> }>(
+    `/users/${address}/followers?limit=${limit}&offset=${offset}`
+  );
+  return {
+    address,
+    followers: (data.followers || []).map(f => ({
+      address: f.address,
+      tags: f.tags,
+    })),
+    count: (data.followers || []).length,
+  };
+}
+
+async function getEfpFollowing(address: string, limit = 10, offset = 0) {
+  const data = await efpFetch<{ following: Array<{ address: string; tags: string[] }> }>(
+    `/users/${address}/following?limit=${limit}&offset=${offset}`
+  );
+  return {
+    address,
+    following: (data.following || []).map(f => ({
+      address: f.address,
+      tags: f.tags,
+    })),
+    count: (data.following || []).length,
+  };
+}
+
 async function handleToolCall(toolName: string, args: Record<string, unknown>) {
   switch (toolName) {
     case 'jobs_get':
@@ -261,6 +310,20 @@ async function handleToolCall(toolName: string, args: Record<string, unknown>) {
         args.chain as string,
         args.message as string,
         args.passphrase as string
+      );
+    case 'efp_stats':
+      return getEfpStats(args.address as string);
+    case 'efp_followers':
+      return getEfpFollowers(
+        args.address as string,
+        Number(args.limit) || 10,
+        Number(args.offset) || 0
+      );
+    case 'efp_following':
+      return getEfpFollowing(
+        args.address as string,
+        Number(args.limit) || 10,
+        Number(args.offset) || 0
       );
     default:
       throw new Error(`Unknown tool: ${toolName}`);
@@ -371,6 +434,44 @@ const TOOLS = [
         passphrase: { type: 'string', description: 'Wallet passphrase' },
       },
       required: ['wallet', 'chain', 'message', 'passphrase'],
+    },
+  },
+  // EFP Tools
+  {
+    name: 'efp_stats',
+    description: 'Get EFP follower and following counts for an Ethereum address',
+    inputSchema: {
+      type: 'object',
+      properties: {
+        address: { type: 'string', description: 'Ethereum address' },
+      },
+      required: ['address'],
+    },
+  },
+  {
+    name: 'efp_followers',
+    description: 'Get followers list for an Ethereum address from EFP',
+    inputSchema: {
+      type: 'object',
+      properties: {
+        address: { type: 'string', description: 'Ethereum address' },
+        limit: { type: 'string', description: 'Results per page (default: 10)' },
+        offset: { type: 'string', description: 'Result offset (default: 0)' },
+      },
+      required: ['address'],
+    },
+  },
+  {
+    name: 'efp_following',
+    description: 'Get following list for an Ethereum address from EFP',
+    inputSchema: {
+      type: 'object',
+      properties: {
+        address: { type: 'string', description: 'Ethereum address' },
+        limit: { type: 'string', description: 'Results per page (default: 10)' },
+        offset: { type: 'string', description: 'Result offset (default: 0)' },
+      },
+      required: ['address'],
     },
   },
 ];

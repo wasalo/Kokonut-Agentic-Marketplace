@@ -4047,6 +4047,385 @@ program
     console.log('\n🥥 Built by Wasabi @ Syntropic Agent');
   });
 
+// ============================================================================
+// EFP Commands
+// ============================================================================
+
+const EFP_API_BASE = 'https://api.ethfollow.xyz/api/v1';
+
+async function efpFetch<T>(path: string): Promise<T> {
+  const response = await fetch(`${EFP_API_BASE}${path}`);
+  if (!response.ok) {
+    throw new Error(`EFP API error: ${response.status}`);
+  }
+  const data = await response.json();
+  return data.data as T;
+}
+
+const EFP_LIST_RECORDS_ABI = parseAbi([
+  'function applyListOp(bytes calldata _listOp) external',
+] as const);
+
+const EFP_LIST_REGISTRY_ABI = parseAbi([
+  'function mint() external returns (uint256)',
+] as const);
+
+const EFP_ACCOUNT_METADATA_ABI = parseAbi([
+  'function setValue(string calldata key, bytes calldata value) external',
+] as const);
+
+const EFP_MAINNET_RPC = 'https://ethereum.publicnode.com';
+
+function efpAddressToBytes(address: string): Uint8Array {
+  const addr = address.startsWith('0x') ? address.slice(2) : address;
+  const bytes = new Uint8Array(20);
+  for (let i = 0; i < 20; i++) {
+    bytes[i] = parseInt(addr.slice(i * 2, i * 2 + 2), 16);
+  }
+  return bytes;
+}
+
+function buildEfpFollowOp(targetAddress: string): `0x${string}` {
+  const addrBytes = efpAddressToBytes(targetAddress);
+  const record = new Uint8Array([1, 1, ...addrBytes]);
+  const op = new Uint8Array([1, 1, ...record]);
+  let hex = '0x';
+  for (const b of op) hex += b.toString(16).padStart(2, '0');
+  return hex as `0x${string}`;
+}
+
+function buildEfpUnfollowOp(targetAddress: string): `0x${string}` {
+  const addrBytes = efpAddressToBytes(targetAddress);
+  const record = new Uint8Array([1, 1, ...addrBytes]);
+  const op = new Uint8Array([1, 2, ...record]);
+  let hex = '0x';
+  for (const b of op) hex += b.toString(16).padStart(2, '0');
+  return hex as `0x${string}`;
+}
+
+program
+  .command('efp')
+  .description('Ethereum Follow Protocol commands')
+  .addCommand(
+    new Command('stats')
+      .description('Get EFP stats (followers & following) for an address')
+      .argument('<address>', 'Ethereum address')
+      .option('--json', 'Output as JSON')
+      .action(async (address, options) => {
+        try {
+          const stats = await efpFetch<{ followers_count: string; following_count: string }>(
+            `/users/${address}/stats`
+          );
+          if (options.json) {
+            console.log(JSON.stringify(stats, null, 2));
+          } else {
+            console.log(chalk.green('\n📊 EFP Stats:'));
+            console.log(chalk.cyan('Address:'), address);
+            console.log(chalk.cyan('Followers:'), chalk.bold(stats.followers_count));
+            console.log(chalk.cyan('Following:'), chalk.bold(stats.following_count));
+          }
+        } catch (error: any) {
+          console.error(chalk.red('❌ Error:'), error.message);
+        }
+      })
+  )
+  .addCommand(
+    new Command('followers')
+      .description('List followers of an address')
+      .argument('<address>', 'Ethereum address')
+      .option('--limit <number>', 'Number of results', '10')
+      .option('--offset <number>', 'Result offset', '0')
+      .option('--json', 'Output as JSON')
+      .action(async (address, options) => {
+        try {
+          const data = await efpFetch<{ followers: any[] }>(
+            `/users/${address}/followers?limit=${options.limit}&offset=${options.offset}`
+          );
+          const followers = data.followers || [];
+          if (options.json) {
+            console.log(JSON.stringify(followers, null, 2));
+          } else {
+            console.log(chalk.green(`\n👥 Followers (${followers.length}):`));
+            for (const f of followers) {
+              console.log(`  ${chalk.cyan(f.address)} ${f.is_following ? chalk.dim('(follows you)') : ''}`);
+            }
+          }
+        } catch (error: any) {
+          console.error(chalk.red('❌ Error:'), error.message);
+        }
+      })
+  )
+  .addCommand(
+    new Command('following')
+      .description('List accounts an address follows')
+      .argument('<address>', 'Ethereum address')
+      .option('--limit <number>', 'Number of results', '10')
+      .option('--offset <number>', 'Result offset', '0')
+      .option('--json', 'Output as JSON')
+      .action(async (address, options) => {
+        try {
+          const data = await efpFetch<{ following: any[] }>(
+            `/users/${address}/following?limit=${options.limit}&offset=${options.offset}`
+          );
+          const following = data.following || [];
+          if (options.json) {
+            console.log(JSON.stringify(following, null, 2));
+          } else {
+            console.log(chalk.green(`\n👤 Following (${following.length}):`));
+            for (const f of following) {
+              console.log(`  ${chalk.cyan(f.address)} ${f.is_following ? chalk.dim('(follows you)') : ''}`);
+            }
+          }
+        } catch (error: any) {
+          console.error(chalk.red('❌ Error:'), error.message);
+        }
+      })
+  )
+  .addCommand(
+    new Command('follow')
+      .description('Follow an Ethereum address on EFP')
+      .argument('<target>', 'Address to follow')
+      .option('--ows-wallet <id>', 'OWS Wallet ID to use')
+      .action(async (target, options) => {
+        try {
+          const rl = createInterface();
+          if (options.owsWallet) {
+            const passphrase = await promptPassphrase(rl, 'Enter wallet passphrase: ');
+            const pk = ows.getPrivateKey(options.owsWallet, passphrase);
+            initWallet(pk);
+          } else {
+            initWallet();
+          }
+          rl.close();
+
+          const listRecordsAddr = '0x7dAdDa25302e9c8e5E0E8343367F17A506C7730A' as Address;
+          const mainnetClient = createPublicClient({
+            chain: mainnet,
+            transport: http(EFP_MAINNET_RPC),
+          });
+
+          console.log(chalk.cyan('\n🔗 Following:'), target);
+          console.log(chalk.dim('From:'), config.signerAddress);
+
+          const listOp = buildEfpFollowOp(target);
+          const hash = await walletClient!.writeContract({
+            address: listRecordsAddr,
+            abi: EFP_LIST_RECORDS_ABI,
+            functionName: 'applyListOp',
+            args: [listOp],
+          } as any);
+
+          console.log(chalk.dim('Transaction:'), hash);
+          console.log(chalk.yellow('⏳ Waiting for confirmation...'));
+
+          const receipt = await mainnetClient.waitForTransactionReceipt({ hash });
+          if (receipt.status === 'success') {
+            console.log(chalk.green('✅ Followed successfully!'));
+          } else {
+            console.log(chalk.red('❌ Transaction reverted'));
+          }
+        } catch (error: any) {
+          console.error(chalk.red('❌ Error:'), error.message);
+        }
+      })
+  )
+  .addCommand(
+    new Command('unfollow')
+      .description('Unfollow an Ethereum address on EFP')
+      .argument('<target>', 'Address to unfollow')
+      .option('--ows-wallet <id>', 'OWS Wallet ID to use')
+      .action(async (target, options) => {
+        try {
+          const rl = createInterface();
+          if (options.owsWallet) {
+            const passphrase = await promptPassphrase(rl, 'Enter wallet passphrase: ');
+            const pk = ows.getPrivateKey(options.owsWallet, passphrase);
+            initWallet(pk);
+          } else {
+            initWallet();
+          }
+          rl.close();
+
+          const listRecordsAddr = '0x7dAdDa25302e9c8e5E0E8343367F17A506C7730A' as Address;
+          const mainnetClient = createPublicClient({
+            chain: mainnet,
+            transport: http(EFP_MAINNET_RPC),
+          });
+
+          console.log(chalk.cyan('\n🔗 Unfollowing:'), target);
+
+          const listOp = buildEfpUnfollowOp(target);
+          const hash = await walletClient!.writeContract({
+            address: listRecordsAddr,
+            abi: EFP_LIST_RECORDS_ABI,
+            functionName: 'applyListOp',
+            args: [listOp],
+          } as any);
+
+          console.log(chalk.dim('Transaction:'), hash);
+          console.log(chalk.yellow('⏳ Waiting for confirmation...'));
+
+          const receipt = await mainnetClient.waitForTransactionReceipt({ hash });
+          if (receipt.status === 'success') {
+            console.log(chalk.green('✅ Unfollowed successfully!'));
+          } else {
+            console.log(chalk.red('❌ Transaction reverted'));
+          }
+        } catch (error: any) {
+          console.error(chalk.red('❌ Error:'), error.message);
+        }
+      })
+  )
+  .addCommand(
+    new Command('mint-list')
+      .description('Mint an EFP List NFT (free + gas)')
+      .option('--ows-wallet <id>', 'OWS Wallet ID to use')
+      .action(async options => {
+        try {
+          const rl = createInterface();
+          if (options.owsWallet) {
+            const passphrase = await promptPassphrase(rl, 'Enter wallet passphrase: ');
+            const pk = ows.getPrivateKey(options.owsWallet, passphrase);
+            initWallet(pk);
+          } else {
+            initWallet();
+          }
+          rl.close();
+
+          const mainnetClient = createPublicClient({
+            chain: mainnet,
+            transport: http(EFP_MAINNET_RPC),
+          });
+
+          console.log(chalk.cyan('\n🪄 Minting EFP List NFT...'));
+
+          const registryAddr = '0x5bB2D89c1990c86F5cC8b6Fb4211C18BcEE4A8a2' as Address;
+          const hash = await walletClient!.writeContract({
+            address: registryAddr,
+            abi: EFP_LIST_REGISTRY_ABI,
+            functionName: 'mint',
+            args: [],
+          } as any);
+
+          console.log(chalk.dim('Transaction:'), hash);
+          console.log(chalk.yellow('⏳ Waiting for confirmation...'));
+
+          const receipt = await mainnetClient.waitForTransactionReceipt({ hash });
+          if (receipt.status === 'success') {
+            console.log(chalk.green('✅ EFP List minted!'));
+            console.log(chalk.dim('Next step: Set it as your primary list with:'));
+            console.log(chalk.cyan('  pnpm run cli -- efp set-primary'));
+          } else {
+            console.log(chalk.red('❌ Transaction reverted'));
+          }
+        } catch (error: any) {
+          console.error(chalk.red('❌ Error:'), error.message);
+        }
+      })
+  )
+  .addCommand(
+    new Command('set-primary')
+      .description('Set your EFP List as primary')
+      .argument('[tokenId]', 'Token ID of EFP List (auto-detects if not provided)')
+      .option('--ows-wallet <id>', 'OWS Wallet ID to use')
+      .action(async (tokenId, options) => {
+        try {
+          const rl = createInterface();
+          if (options.owsWallet) {
+            const passphrase = await promptPassphrase(rl, 'Enter wallet passphrase: ');
+            const pk = ows.getPrivateKey(options.owsWallet, passphrase);
+            initWallet(pk);
+          } else {
+            initWallet();
+          }
+          rl.close();
+
+          const mainnetClient = createPublicClient({
+            chain: mainnet,
+            transport: http(EFP_MAINNET_RPC),
+          });
+
+          let resolvedTokenId = tokenId;
+          if (!resolvedTokenId) {
+            // Auto-detect primary list from API
+            const data = await efpFetch<string | null>(`/users/${config.signerAddress}/primary-list`);
+            if (data) {
+              resolvedTokenId = data;
+              console.log(chalk.dim(`Found existing primary list: ${resolvedTokenId}`));
+            } else {
+              // Use tokenId = 1 as fallback (newly minted)
+              resolvedTokenId = '1';
+              console.log(chalk.yellow('⚠️  No existing primary list found. Using token ID 1.'));
+            }
+          }
+
+          const key = 'primary-list';
+          const tokenIdBigInt = BigInt(resolvedTokenId);
+          const value = `0x${tokenIdBigInt.toString(16).padStart(64, '0')}` as `0x${string}`;
+
+          const metadataAddr = '0x3B6ADe10E9E2C44Cb7D1eC8f3CADE850Be02937f' as Address;
+
+          console.log(chalk.cyan('\n⭐ Setting primary list...'));
+          console.log(chalk.dim('Token ID:'), resolvedTokenId);
+
+          const hash = await walletClient!.writeContract({
+            address: metadataAddr,
+            abi: EFP_ACCOUNT_METADATA_ABI,
+            functionName: 'setValue',
+            args: [key, value],
+          } as any);
+
+          console.log(chalk.dim('Transaction:'), hash);
+          console.log(chalk.yellow('⏳ Waiting for confirmation...'));
+
+          const receipt = await mainnetClient.waitForTransactionReceipt({ hash });
+          if (receipt.status === 'success') {
+            console.log(chalk.green('✅ Primary list set!'));
+          } else {
+            console.log(chalk.red('❌ Transaction reverted'));
+          }
+        } catch (error: any) {
+          console.error(chalk.red('❌ Error:'), error.message);
+        }
+      })
+  )
+  .addCommand(
+    new Command('status')
+      .description('Check EFP setup status for your address')
+      .option('--ows-wallet <id>', 'OWS Wallet ID to use')
+      .option('--json', 'Output as JSON')
+      .action(async options => {
+        try {
+          const opts = program.opts();
+          initWallet(undefined, opts.wallet, opts.passphrase);
+
+          const address = config.signerAddress;
+
+          const [primaryList, stats] = await Promise.all([
+            efpFetch<string | null>(`/users/${address}/primary-list`).catch(() => null),
+            efpFetch<{ followers_count: string; following_count: string }>(`/users/${address}/stats`).catch(() => null),
+          ]);
+
+          if (options.json) {
+            console.log(JSON.stringify({ address, primaryList, stats }, null, 2));
+          } else {
+            console.log(chalk.green('\n🔍 EFP Status:'));
+            console.log(chalk.cyan('Address:'), address);
+            console.log(chalk.cyan('Primary List:'), primaryList ? chalk.green(`✅ #${primaryList}`) : chalk.red('❌ Not set'));
+            console.log(chalk.cyan('Followers:'), stats?.followers_count || '0');
+            console.log(chalk.cyan('Following:'), stats?.following_count || '0');
+
+            if (!primaryList) {
+              console.log(chalk.yellow('\n⚠️  No primary EFP list found. Set up with:'));
+              console.log(chalk.cyan('  pnpm run cli -- efp mint-list'));
+            }
+          }
+        } catch (error: any) {
+          console.error(chalk.red('❌ Error:'), error.message);
+        }
+      })
+  );
+
 // If no command provided, show help
 if (process.argv.slice(2).length === 0) {
   program.outputHelp();

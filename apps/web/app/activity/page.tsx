@@ -3,19 +3,20 @@
 import { useState } from 'react';
 import NextLink from 'next/link';
 import { Card } from '@heroui/react';
-import { Activity, Briefcase, ShoppingBag, Scale, ExternalLink, Filter } from 'lucide-react';
-import { useActivityFeed, ActivityType } from '@/lib/hooks/useActivityFeed';
+import { Activity, Briefcase, ShoppingBag, Scale, ExternalLink, Filter, Users } from 'lucide-react';
+import { useAccount } from 'wagmi';
+import { useEfpActivityFeed, useActivityFromSubgraph } from '@/lib/hooks';
 import { StatusBadge } from '@/components/StatusBadge';
 import { Address } from '@/components/Address';
 
-const ACTIVITY_ICONS: Record<ActivityType, React.ComponentType<{ className?: string }>> = {
+const ACTIVITY_ICONS: Record<string, React.ComponentType<{ className?: string }>> = {
   job: Briefcase,
   service: ShoppingBag,
   proposal: Scale,
   all: Activity,
 };
 
-const ACTIVITY_COLORS: Record<ActivityType, string> = {
+const ACTIVITY_COLORS: Record<string, string> = {
   job: '#009F4D',
   service: '#FFCD00',
   proposal: '#009F4D',
@@ -24,7 +25,7 @@ const ACTIVITY_COLORS: Record<ActivityType, string> = {
 
 interface ActivityItemData {
   id: string;
-  type: ActivityType;
+  type: string;
   action: string;
   actor: `0x${string}`;
   blockNumber: bigint;
@@ -112,16 +113,38 @@ function ActivitySkeleton() {
   );
 }
 
-const FILTERS: { type: ActivityType; label: string }[] = [
+const FILTERS: { type: string; label: string }[] = [
   { type: 'all', label: 'All Activity' },
   { type: 'job', label: 'Jobs' },
   { type: 'service', label: 'Services' },
   { type: 'proposal', label: 'Proposals' },
 ];
 
+const SUBGRAPH_TYPE_MAP: Record<string, string | undefined> = {
+  all: undefined,
+  job: 'JOB_CREATED',
+  service: 'SERVICE_CREATED',
+  proposal: 'PROPOSAL_CREATED',
+};
+
 export default function ActivityPage(): JSX.Element {
-  const [filter, setFilter] = useState<ActivityType>('all');
-  const { activities, isLoading, error, refetch } = useActivityFeed(filter, 50);
+  const { address, isConnected } = useAccount();
+  const [filter, setFilter] = useState<string>('all');
+  const [followingOnly, setFollowingOnly] = useState(false);
+
+  const subgraphType = SUBGRAPH_TYPE_MAP[filter];
+
+  const {
+    activities,
+    isLoading,
+    error,
+    refetch,
+  } = useActivityFromSubgraph(
+    followingOnly ? undefined : subgraphType,
+    followingOnly ? [address!] : undefined,
+    0,
+    50
+  );
 
   return (
     <div className="container mx-auto px-4 py-8">
@@ -152,14 +175,25 @@ export default function ActivityPage(): JSX.Element {
           {FILTERS.map(f => (
             <button
               key={f.type}
-              onClick={() => setFilter(f.type)}
+              onClick={() => { setFilter(f.type); setFollowingOnly(false); }}
               className={`px-4 py-2 rounded-lg text-sm font-medium transition-colors ${
-                filter === f.type ? 'bg-success text-white' : 'hover:bg-content2 text-default-600'
+                !followingOnly && filter === f.type ? 'bg-success text-white' : 'hover:bg-content2 text-default-600'
               }`}
             >
               {f.label}
             </button>
           ))}
+          {isConnected && (
+            <button
+              onClick={() => setFollowingOnly(!followingOnly)}
+              className={`px-4 py-2 rounded-lg text-sm font-medium transition-colors flex items-center gap-1 ${
+                followingOnly ? 'bg-primary text-white' : 'hover:bg-content2 text-default-600'
+              }`}
+            >
+              <Users className="w-4 h-4" />
+              Following
+            </button>
+          )}
         </div>
       </Card>
 

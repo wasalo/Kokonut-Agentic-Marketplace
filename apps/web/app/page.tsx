@@ -75,7 +75,7 @@ function StatsSection() {
       label: 'Browse Agents',
       value: 'Explore',
       icon: Shield,
-      href: '/identity',
+      href: '/leaderboard',
       isCta: true,
     },
     {

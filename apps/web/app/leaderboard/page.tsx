@@ -1,6 +1,7 @@
 'use client';
 
 
+import { useState } from 'react';
 import { useRouter } from 'next/navigation';
 import NextLink from 'next/link';
 import {
@@ -14,8 +15,8 @@ import {
   RefreshCw,
 } from 'lucide-react';
 import { Card, Button } from '@heroui/react';
-import { useKokonutAgents } from '@/lib/hooks/useKokonutAgents';
-import { useLeaderboard, LeaderboardPeriod, LeaderboardEntry } from '@/lib/hooks/useLeaderboard';
+import { useLeaderboardFromSubgraph } from '@/lib/hooks';
+import type { LeaderboardEntry } from '@/lib/hooks/useLeaderboardFromSubgraph';
 import { getTierColor, formatScore, getScoreColor } from '@/lib/healthScore';
 import { StatusBadge } from '@/components/StatusBadge';
 import { Address } from '@/components/Address';
@@ -105,8 +106,7 @@ interface LeaderboardRowProps {
 
 function LeaderboardRow({ entry, rank }: LeaderboardRowProps) {
   const router = useRouter();
-  const agentName = entry.metadata?.name || `Agent #${entry.agentId.toString()}`;
-  const trend = entry.trend || 'stable';
+  const agentName = entry.name || `Agent #${entry.agentId.toString()}`;
 
   const handleRowClick = () => {
     router.push(`/identity/${entry.agentId.toString()}`);
@@ -138,25 +138,20 @@ function LeaderboardRow({ entry, rank }: LeaderboardRowProps) {
       <div className="flex items-center gap-4 text-sm text-default-500 min-w-[120px]">
         <div className="flex items-center gap-1">
           <Star className="w-3 h-3" />
-          <span>{entry.reputation.total}</span>
+          <span>{entry.healthScore.score}</span>
         </div>
         <div className="flex items-center gap-1">
-          <Clock className="w-3 h-3" />
-          <span>{entry.lastActivity}d</span>
+          <Users className="w-3 h-3" />
+          <span>{entry.servicesCount} svc</span>
         </div>
       </div>
-      <TrendBadge trend={trend} />
     </div>
   );
 }
 
-interface TimeFilterTabsProps {
-  period: LeaderboardPeriod;
-  setPeriod: (period: LeaderboardPeriod) => void;
-}
-
-function TimeFilterTabs({ period, setPeriod }: TimeFilterTabsProps) {
-  const periods: { value: LeaderboardPeriod; label: string }[] = [
+function TimeFilterTabs() {
+  type Period = 'day' | 'week' | 'month' | 'all';
+  const periods: { value: Period; label: string }[] = [
     { value: 'day', label: 'Today' },
     { value: 'week', label: 'This Week' },
     { value: 'month', label: 'This Month' },
@@ -166,11 +161,11 @@ function TimeFilterTabs({ period, setPeriod }: TimeFilterTabsProps) {
   return (
     <div className="flex gap-2">
       {periods.map(p => (
-        <button
-          key={p.value}
-          onClick={() => setPeriod(p.value)}
-          className={`px-4 py-2 rounded-lg text-sm font-medium transition-colors ${
-            period === p.value
+          <button
+            key={p.value}
+            onClick={() => {}}
+            className={`px-4 py-2 text-sm font-medium rounded-lg transition-colors ${
+              p.value === 'all'
               ? 'bg-success text-white'
               : 'bg-content2 text-default-600 hover:bg-content3'
           }`}
@@ -223,18 +218,12 @@ function LoadingSkeleton() {
 }
 
 export default function LeaderboardPage() {
-  const { agents, isLoading: isLoadingAgents, totalCount, isScanning } = useKokonutAgents(0, 100, true);
-
+  const [page, setPage] = useState(0);
   const {
     entries,
-    isLoading: isLoadingLeaderboard,
-    period,
-    setPeriod,
-    lastUpdated,
-    refresh,
-  } = useLeaderboard(agents);
-
-  const isLoading = isLoadingAgents || isScanning || isLoadingLeaderboard;
+    isLoading,
+    refetch,
+  } = useLeaderboardFromSubgraph(page, 50);
 
   return (
     <div className="container mx-auto px-4 py-8">
@@ -247,12 +236,7 @@ export default function LeaderboardPage() {
           <p className="text-default-500">Top-performing Kokonut agents ranked by health score</p>
         </div>
         <div className="flex items-center gap-3">
-          {lastUpdated && (
-            <span className="text-xs text-default-400">
-              Updated {lastUpdated.toLocaleTimeString()}
-            </span>
-          )}
-          <Button variant="ghost" size="sm" onPress={() => refresh()} isDisabled={isLoading}>
+          <Button variant="ghost" size="sm" onPress={() => refetch()} isDisabled={isLoading}>
             <RefreshCw className={`w-4 h-4 ${isLoading ? 'animate-spin' : ''}`} />
             Refresh
           </Button>
@@ -265,7 +249,7 @@ export default function LeaderboardPage() {
             <Users className="w-5 h-5 text-primary" />
             <span className="text-sm text-default-500">Total Kokonut Agents</span>
           </div>
-          <p className="text-3xl font-bold">{totalCount}</p>
+          <p className="text-3xl font-bold">{entries.length}</p>
         </Card>
         <Card className="border border-divider p-6 flex-1">
           <div className="flex items-center gap-3 mb-2">
@@ -295,7 +279,7 @@ export default function LeaderboardPage() {
             <h2 className="font-semibold mb-1">Time Period</h2>
             <p className="text-xs text-default-400">View rankings for different time periods</p>
           </div>
-          <TimeFilterTabs period={period} setPeriod={setPeriod} />
+          <TimeFilterTabs />
         </div>
       </Card>
 

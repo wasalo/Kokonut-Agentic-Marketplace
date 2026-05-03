@@ -89,26 +89,42 @@ export function generateAgentMetadata(data: AgentMetadata8004): string {
   return `data:application/json;base64,${base64}`;
 }
 
+function normalizeDecodedMetadata(raw: any): AgentMetadata8004 {
+  if (raw.verification && !raw.verification.provider) {
+    raw.verification.provider = 'self.xyz';
+  }
+  if (!raw.verification) raw.verification = undefined;
+  if (!raw.portfolio) raw.portfolio = undefined;
+  if (!raw.skills) raw.skills = undefined;
+  if (!raw.marketplaceProfile) raw.marketplaceProfile = undefined;
+  return raw;
+}
+
 export function decodeAgentMetadata(uri: string): AgentMetadata8004 | null {
   try {
     if (uri.startsWith('data:')) {
       const parts = uri.split(',');
       if (parts.length === 2 && parts[0].includes('base64')) {
-        const base64 = parts[1];
-        const json = atob(base64);
-        const decoded = JSON.parse(json) as AgentMetadata8004;
-        if (decoded.verification && !decoded.verification.provider) {
-          decoded.verification.provider = 'self.xyz';
+        const payload = parts[1];
+
+        // Strategy A: Standard base64 decode + JSON parse
+        try {
+          const json = atob(payload);
+          const decoded = JSON.parse(json);
+          return normalizeDecodedMetadata(decoded);
+        } catch {
+          // atob + JSON.parse failed — payload may not be valid base64
         }
-        if (!decoded.verification) decoded.verification = undefined;
-        if (!decoded.portfolio) decoded.portfolio = undefined;
-        if (!decoded.skills) decoded.skills = undefined;
-        if (!decoded.marketplaceProfile) decoded.marketplaceProfile = undefined;
-        return decoded;
+
+        // Strategy B: Raw JSON parse (some agents store JSON directly, not base64)
+        try {
+          const decoded = JSON.parse(payload);
+          return normalizeDecodedMetadata(decoded);
+        } catch {
+          // Not valid JSON either
+        }
       }
     }
-    if (uri.startsWith('ipfs://')) return null;
-    if (uri.startsWith('https://')) return null;
     return null;
   } catch {
     return null;

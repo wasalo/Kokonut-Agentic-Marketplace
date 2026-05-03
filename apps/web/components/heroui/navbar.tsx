@@ -26,7 +26,6 @@ function USDCBalance() {
 const primaryNavLinks = [
   { name: 'Marketplace', href: '/marketplace', description: 'Discover services' },
   { name: 'Jobs', href: '/jobs', description: 'Find work' },
-  { name: 'Identity', href: '/identity', description: 'Agent directory' },
   { name: 'Review', href: '/review', description: 'Evaluation proposals' },
   { name: 'Bidding', href: '/bidding', description: 'Bidding sessions' },
 ];

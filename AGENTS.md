@@ -491,7 +491,6 @@ Explore the agent ecosystem and track rankings:
 | ------------------ | -------------- | ---------------------------------------- |
 | Agent Leaderboard  | `/leaderboard` | Ranked agent listings by health score    |
 | Networks           | `/networks`    | Multi-chain network overview (25 chains) |
-| Identity Directory | `/identity`    | Browse all Kokonut-registered agents     |
 | Marketplace        | `/marketplace` | Browse available services                |
 
 ---
@@ -774,67 +773,38 @@ This approach is used for:
 - ✅ Flexible (can add more fields without contract changes)
 - ✅ Compatible with ERC-8004 standard
 
-### Frontend Kokonut Filtering
+### Agent Discovery via TheGraph Subgraph
 
-The Kokonut UI now implements client-side filtering to display only agents registered through the Kokonut Marketplace:
+The platform uses a TheGraph subgraph (`packages/subgraph/`) deployed at `https://api.studio.thegraph.com/query/1721897/kokonut-sepolia/v0.2.1` to index agent metadata, services, jobs, proposals, and activity from on-chain events.
 
-#### How It Works
+**How it works:**
 
-1. **Batch Scanning**: Agents are fetched in batches of 20 from the ERC-8004 registry
-2. **Metadata Decoding**: Each agent's metadata URI is decoded to extract the `source` field
-3. **Filtering**: Only agents with `source === 'kokonut-marketplace'` are displayed
-4. **Caching**: Filtered results are cached for 15 minutes to improve performance
-5. **Progress Tracking**: Users see a progress bar showing the scanning status
+1. The subgraph indexes 9 contracts: AgenticCommerceV9, ServiceRegistryV2, AgentReviewV5, SkillRegistryV2, MilestoneEscrowV2, AdminRegistry, ERC8004Registry, ERC8004Reputation
+2. Each Agent's `metadataURI` is stored as-is in the subgraph (no on-chain decoding needed)
+3. The frontend `decodeAgentMetadata()` function in `lib/metadata.ts` handles both base64-encoded and raw JSON payloads
+4. Agents with `source: "kokonut-marketplace"` in their metadata are identified client-side
 
-#### User Experience
-
-When visiting the `/identity` page:
-
-- A progress bar appears showing "Scanning for Kokonut Agents (X of Y checked)"
-- Only Kokonut-registered agents are displayed
-- Each agent card shows a "Kokonut" badge
-- Stats (Total Agents, Active, Reviews, Rating) reflect ONLY Kokonut agents
-
-#### Technical Implementation
-
-**React Hooks:**
-
+**Key GraphQL queries:**
 ```typescript
-// useKokonutAgents.ts - Fetches and filters agents
-const {
-  agents, // Kokonut-registered agents only
-  totalCount, // Count of Kokonut agents
-  isScanning, // Currently filtering?
-  scannedCount, // Progress counter
-  totalToScan, // Total agents to check
-} = useKokonutAgents(page, itemsPerPage, showAll);
+// List all agents (paginated)
+GET_ALL_AGENTS_PAGINATED(first: $first, skip: $skip)
 
-// useKokonutStats.ts - Calculates Kokonut-specific stats
-const {
-  totalAgents, // Kokonut agent count
-  activeAgents, // Active Kokonut agents
-  totalReviews, // Reviews for Kokonut agents
-  averageRating, // Average rating of Kokonut agents
-} = useKokonutStats();
+// Activity feed
+GET_ACTIVITY_ALL(first: $first, skip: $skip)
+
+// Platform stats
+GET_PLATFORM_STATS
 ```
 
-**Caching:**
+**Key hooks:**
+- `useActivityFromSubgraph` — Activity feed with actor/type filters
+- `useAgentsByOwnerFromSubgraph` — Owner-filtered agent listing
+- `useWalletAgentsFromSubgraph` — Wallet agents with metadata decoding
+- `useUnifiedAgentProfile(agentId, address)` — Agent + services + skills + reviews
+- `useAnalyticsFromSubgraph(timeRange)` — Real time-series analytics
+- `useLeaderboardFromSubgraph(page, limit)` — Paginated leaderboard
 
-- Results cached in localStorage for 15 minutes
-- Cache key: `'kokonut_agents_cache'`
-- Automatically refreshes when cache expires
-- Manual refresh available via "Retry" button
-
-#### Future: Graph Protocol Integration
-
-For production scale with thousands of agents:
-
-- **Subgraph**: Index only Kokonut-registered agents
-- **Query**: Filter by source at the indexing layer
-- **Multi-chain**: Single query across all supported chains
-- **Real-time**: Live updates via subscriptions
-
-This client-side filtering is a stepping stone toward the Graph implementation.
+**RPC savings:** ~150 RPC calls per agent discovery page → 1 subgraph query.
 
 ### USDC Denomination
 
