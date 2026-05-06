@@ -77,13 +77,15 @@ const connectSrc = isDev
           'https://eth.llamarpc.com',
           'https://8004scan.io',
           'https://rpc.ankr.com',
-          'https://eth.public-rpc.com',
           'https://eth-sepolia.g.alchemy.com',
+          'https://api.studio.thegraph.com',
+          'https://data.ethfollow.xyz',
+          'https://euc.li',
           'wss://*.walletconnect.com',
           'https://*.rpc.walletconnect.com',
           ...devWsSources,
         ].join(' ')
-    : "'self' https://ethereum-sepolia-rpc.publicnode.com https://ethereum-sepolia.publicnode.com https://ethereum.publicnode.com https://eth-sepolia-public.unifra.io https://sepolia.gateway.tenderly.co https://api.zan.top/eth-sepolia https://1rpc.io/sepolia https://eth-sepolia.api.onfinality.io/public https://api.web3modal.org https://pulse.walletconnect.org https://eth-mainnet.g.alchemy.com/v2/demo https://eth.llamarpc.com https://8004scan.io https://rpc.ankr.com https://eth.public-rpc.com https://eth-sepolia.g.alchemy.com wss://*.walletconnect.com https://*.rpc.walletconnect.com";
+    : "'self' https://ethereum-sepolia-rpc.publicnode.com https://ethereum-sepolia.publicnode.com https://ethereum.publicnode.com https://eth-sepolia-public.unifra.io https://sepolia.gateway.tenderly.co https://api.zan.top/eth-sepolia https://1rpc.io/sepolia https://eth-sepolia.api.onfinality.io/public https://api.web3modal.org https://pulse.walletconnect.org https://eth.llamarpc.com https://8004scan.io https://rpc.ankr.com https://eth-sepolia.g.alchemy.com https://api.studio.thegraph.com https://data.ethfollow.xyz https://euc.li wss://*.walletconnect.com https://*.rpc.walletconnect.com";
 
     const cspDirectives = [
       "default-src 'self'",

@@ -1,30 +1,24 @@
 'use client';
 
-import { useState } from 'react';
-import { Card, Button, Chip, Input } from '@heroui/react';
+import { useState, useEffect } from 'react';
+import { Card, Button, Chip } from '@heroui/react';
 import {
   ListChecks,
-  CheckCircle2,
   Clock,
-  AlertTriangle,
   Loader2,
-  Gavel,
   Plus,
 } from 'lucide-react';
 import { formatUnits } from 'viem';
 import {
   useJobMilestones,
   useJobMilestonesDetails,
-  useDispute,
   useCompleteMilestone,
   useReleaseMilestone,
-  useFlagDispute,
   useAddMilestone,
+  useEnableMilestones,
 } from '@/lib/hooks/useMilestoneEscrow';
-import { useEnableJobMilestones } from '@/lib/hooks/useJobs';
-import { Address } from '@/components/Address';
 import { ErrorDisplay } from '@/components/ErrorDisplay';
-import { useAccount } from 'wagmi';
+import { JobStatus } from '@/lib/hooks/useJobs';
 
 interface MilestoneSectionProps {
   jobId: bigint;
@@ -32,9 +26,22 @@ interface MilestoneSectionProps {
   provider: string;
   paymentToken: string;
   budget: bigint;
+  jobStatus?: number;
   isClient: boolean;
   isProvider: boolean;
   onRefetch?: () => void;
+}
+
+function getTokenInfo(paymentToken: string) {
+  const isETH = paymentToken === '0x0000000000000000000000000000000000000000';
+  return {
+    symbol: isETH ? 'ETH' : 'USDC',
+    decimals: isETH ? 18 : 6,
+  };
+}
+
+function isTerminalStatus(status?: number) {
+  return status === JobStatus.Completed || status === JobStatus.Rejected || status === JobStatus.Expired;
 }
 
 export function MilestoneSection({
@@ -43,10 +50,11 @@ export function MilestoneSection({
   provider,
   paymentToken,
   budget,
+  jobStatus,
   isClient,
   isProvider,
-}: MilestoneSectionProps): JSX.Element {
-  useAccount();
+  onRefetch,
+}: MilestoneSectionProps): JSX.Element | null {
   const [proofHash, setProofHash] = useState('');
   
   // Add milestone form state
@@ -54,109 +62,154 @@ export function MilestoneSection({
   const [newDescription, setNewDescription] = useState('');
   const [newAmount, setNewAmount] = useState('');
   const [newDueDate, setNewDueDate] = useState('');
-  const [disputeMilestoneIndex, setDisputeMilestoneIndex] = useState<number>(0);
+  const [enableConfirmed, setEnableConfirmed] = useState(false);
 
-  const { milestones, isLoading: loadingMilestones } = useJobMilestones(jobId);
-  const { details } = useJobMilestonesDetails(jobId);
-  const { dispute } = useDispute(jobId);
+  const { milestones, isLoading: loadingMilestones, error: milestonesError, refetch: refetchMilestones } = useJobMilestones(jobId);
+  const { details, error: detailsError, refetch: refetchDetails } = useJobMilestonesDetails(jobId);
 
-  const {
-    enableJobMilestones,
-    isPending: isEnablePending,
-    error: enableError,
-  } = useEnableJobMilestones();
+  const { symbol: tokenSymbol, decimals: tokenDecimals } = getTokenInfo(paymentToken);
+  const isTerminal = isTerminalStatus(jobStatus);
 
   const {
     completeMilestone,
     isPending: isCompletePending,
+    isSuccess: isCompleteSuccess,
     writeError: completeError,
   } = useCompleteMilestone();
 
   const {
     releaseMilestone,
     isPending: isReleasePending,
+    isSuccess: isReleaseSuccess,
     writeError: releaseError,
   } = useReleaseMilestone();
 
   const {
     addMilestone,
     isPending: isAddMilestonePending,
+    isSuccess: isAddMilestoneSuccess,
     writeError: addMilestoneError,
   } = useAddMilestone();
 
+
+
   const {
-    flagDispute,
-    isPending: isFlagPending,
-    writeError: flagError,
-  } = useFlagDispute();
+    enableMilestones,
+    isPending: isEnablePending,
+    isSuccess: isEnableSuccess,
+    writeError: enableError,
+  } = useEnableMilestones();
 
-  const [enableSuccess, setEnableSuccess] = useState(false);
+  // Auto-refresh milestone state when enable tx confirms
+  useEffect(() => {
+    if (isEnableSuccess) {
+      setEnableConfirmed(true);
+      refetchMilestones();
+      refetchDetails();
+      onRefetch?.();
+    }
+  }, [isEnableSuccess, refetchMilestones, refetchDetails, onRefetch]);
 
-  const handleEnableMilestones = async () => {
-    await enableJobMilestones(
-      jobId,
-      client as `0x${string}`,
-      provider as `0x${string}`,
-      paymentToken as `0x${string}`,
-      budget
-    );
-    setEnableSuccess(true);
-  };
+  // Auto-refresh after add milestone confirms
+  useEffect(() => {
+    if (isAddMilestoneSuccess) {
+      refetchMilestones();
+      refetchDetails();
+      onRefetch?.();
+    }
+  }, [isAddMilestoneSuccess, refetchMilestones, refetchDetails, onRefetch]);
 
-  const handleAddMilestone = async () => {
-    if (!newDescription || !newAmount) return;
-    const amountUSDC = BigInt(Math.floor(parseFloat(newAmount) * 1e6));
-    const dueDate = newDueDate ? BigInt(Math.floor(new Date(newDueDate).getTime() / 1000)) : 0n;
-    await addMilestone(jobId, amountUSDC, newDescription, dueDate);
-    setNewDescription('');
-    setNewAmount('');
-    setNewDueDate('');
-    setShowAddForm(false);
-  };
+  // Auto-refresh after complete milestone confirms
+  useEffect(() => {
+    if (isCompleteSuccess) {
+      refetchMilestones();
+      onRefetch?.();
+    }
+  }, [isCompleteSuccess, refetchMilestones, onRefetch]);
 
-  if (!details?.usesMilestones) {
+  // Auto-refresh after release milestone confirms
+  useEffect(() => {
+    if (isReleaseSuccess) {
+      refetchMilestones();
+      refetchDetails();
+      onRefetch?.();
+    }
+  }, [isReleaseSuccess, refetchMilestones, refetchDetails, onRefetch]);
+
+  // Auto-open add form when milestones are enabled but none exist yet
+  useEffect(() => {
+    if (details?.usesMilestones && milestones && milestones.length === 0 && !loadingMilestones) {
+      setShowAddForm(true);
+    }
+  }, [details?.usesMilestones, milestones, loadingMilestones]);
+
+  if (!details?.usesMilestones && !enableConfirmed) {
     return (
       <Card className="border border-divider p-6">
         <div className="flex items-center gap-3 mb-4">
-          <ListChecks className="w-5 h-5 text-default-400" />
+          <ListChecks className="w-4 h-4 text-default-400" />
           <h2 className="text-base font-semibold">Milestones</h2>
         </div>
-        
-        {isClient && !enableSuccess ? (
+        {isClient && !isTerminal ? (
           <div className="space-y-3">
             <p className="text-sm text-default-500">
-              This job uses standard single payment. Enable milestones to split payments into multiple phases.
+              No milestones configured. Enable milestone-based payments to split this job into payable phases.
             </p>
             <button
-              onClick={handleEnableMilestones}
+              onClick={() => enableMilestones(jobId, client as `0x${string}`, provider as `0x${string}`, paymentToken as `0x${string}`, budget)}
               disabled={isEnablePending}
-              className="px-4 py-2 bg-[#009F4D] text-white rounded-lg font-medium hover:opacity-90 disabled:opacity-50"
+              className="px-4 py-2 bg-[#009F4D] text-white rounded-lg font-medium hover:opacity-90 disabled:opacity-50 text-sm"
             >
               {isEnablePending ? 'Enabling...' : 'Enable Milestones'}
             </button>
             {enableError && <ErrorDisplay error={enableError} />}
           </div>
         ) : (
-          <div className="flex items-center gap-2 text-success">
-            <CheckCircle2 className="w-5 h-5" />
-            <p className="text-sm">Milestones enabled! Reload to manage.</p>
-          </div>
+          <p className="text-sm text-default-500">
+            {isTerminal ? 'Milestones cannot be enabled for jobs in terminal state.' : 'Milestones not enabled for this job.'}
+          </p>
         )}
       </Card>
     );
   }
 
+  const handleAddMilestone = async () => {
+    console.log('[milestone] handleAddMilestone called', { newDescription, newAmount, newDueDate });
+    if (!newDescription || !newAmount) {
+      console.log('[milestone] handleAddMilestone blocked: missing fields');
+      return;
+    }
+    try {
+      const amountRaw = BigInt(Math.floor(parseFloat(newAmount) * Math.pow(10, tokenDecimals)));
+      const dueDate = newDueDate ? BigInt(Math.floor(new Date(newDueDate).getTime() / 1000)) : 0n;
+      console.log('[milestone] addMilestone args:', { jobId: jobId.toString(), amount: amountRaw.toString(), description: newDescription, dueDate: dueDate.toString() });
+      await addMilestone(jobId, amountRaw, newDescription, dueDate);
+      setNewDescription('');
+      setNewAmount('');
+      setNewDueDate('');
+      setShowAddForm(false);
+    } catch (e) {
+      console.error('[milestone] addMilestone failed:', e);
+    }
+  };
+
   const handleCompleteMilestone = async (index: number) => {
     if (!proofHash) return;
-    await completeMilestone(jobId, BigInt(index), `0x${proofHash.replace('0x', '')}` as `0x${string}`);
+    try {
+      console.log('[milestone] completeMilestone:', { jobId: jobId.toString(), index, proofHash });
+      await completeMilestone(jobId, BigInt(index), `0x${proofHash.replace('0x', '')}` as `0x${string}`);
+    } catch (e) {
+      console.error('[milestone] completeMilestone failed:', e);
+    }
   };
 
   const handleReleaseMilestone = async (index: number) => {
-    await releaseMilestone(jobId, BigInt(index));
-  };
-
-  const handleFlagDispute = async () => {
-    await flagDispute(jobId, BigInt(disputeMilestoneIndex));
+    try {
+      console.log('[milestone] releaseMilestone:', { jobId: jobId.toString(), index });
+      await releaseMilestone(jobId, BigInt(index));
+    } catch (e) {
+      console.error('[milestone] releaseMilestone failed:', e);
+    }
   };
 
   return (
@@ -170,12 +223,12 @@ export function MilestoneSection({
           </Chip>
         </div>
         <div className="flex items-center gap-3">
-          {details && (
+          {details && details.totalBudget !== undefined && (
             <div className="text-sm text-default-500">
-              Total: {formatUnits(details.totalBudget, 6)} USDC
+              Total: {formatUnits(details.totalBudget ?? 0n, tokenDecimals)} {tokenSymbol}
             </div>
           )}
-          {isClient && !showAddForm && (
+          {isClient && !showAddForm && !isTerminal && (
             <button
               onClick={() => setShowAddForm(true)}
               className="px-3 py-1.5 text-sm text-primary bg-primary/10 rounded-lg font-medium hover:bg-primary/20 flex items-center gap-1"
@@ -187,30 +240,49 @@ export function MilestoneSection({
         </div>
       </div>
 
+      {/* Error display */}
+      {(milestonesError || detailsError) && (
+        <div className="mb-4">
+          {milestonesError && <ErrorDisplay error={milestonesError} />}
+          {detailsError && <ErrorDisplay error={detailsError} />}
+        </div>
+      )}
+
+      {/* Terminal state warning */}
+      {isTerminal && (
+        <div className="mb-4 p-3 bg-default-50 border border-divider rounded-lg">
+          <p className="text-xs text-default-500">
+            This job has reached a terminal state. Milestone actions are disabled.
+          </p>
+        </div>
+      )}
+
       {/* Add Milestone Form */}
-      {showAddForm && (
+      {showAddForm && !isTerminal && (
         <div className="mb-4 p-4 bg-content2 rounded-lg border border-divider">
           <h3 className="text-sm font-medium mb-3">Add New Milestone</h3>
-<div className="space-y-3">
-            <Input
+          <div className="space-y-3">
+            <input
+              type="text"
               placeholder="Description (e.g., Phase 1 completion)"
               value={newDescription}
               onChange={(e) => setNewDescription(e.target.value)}
+              className="w-full px-3 py-2 bg-content2 border border-divider rounded-lg focus:outline-none focus:ring-2 focus:ring-success text-sm"
             />
             <div className="flex gap-2">
-              <Input
+              <input
                 type="number"
-                step="0.01"
-                placeholder="Amount (USDC)"
+                step={tokenDecimals === 18 ? '0.0001' : '0.01'}
+                placeholder={`Amount (${tokenSymbol})`}
                 value={newAmount}
                 onChange={(e) => setNewAmount(e.target.value)}
+                className="flex-1 px-3 py-2 bg-content2 border border-divider rounded-lg focus:outline-none focus:ring-2 focus:ring-success text-sm"
               />
-              <Input
+              <input
                 type="date"
-                placeholder="Due date (optional)"
                 value={newDueDate}
                 onChange={(e) => setNewDueDate(e.target.value)}
-                className="w-40"
+                className="w-40 px-3 py-2 bg-content2 border border-divider rounded-lg focus:outline-none focus:ring-2 focus:ring-success text-sm"
               />
             </div>
             <div className="flex gap-2 justify-end">
@@ -277,7 +349,7 @@ export function MilestoneSection({
                   </div>
                   <p className="text-sm text-default-600 mt-1">{milestone.description}</p>
                   <p className="text-lg font-semibold text-primary mt-2">
-                    {formatUnits(milestone.amount, 6)} USDC
+                    {formatUnits(milestone.amount ?? 0n, tokenDecimals)} {tokenSymbol}
                   </p>
                   {milestone.dueDate > 0 && (
                     <div className="flex items-center gap-1 text-xs text-default-400 mt-2">
@@ -289,21 +361,22 @@ export function MilestoneSection({
               </div>
 
               {/* Provider: Complete milestone */}
-              {isProvider && !milestone.completed && (
+              {isProvider && !milestone.completed && !isTerminal && (
                 <div className="mt-4 pt-4 border-t border-divider">
                   <div className="flex gap-2">
-                    <Input
+                    <input
+                      type="text"
                       placeholder="Proof hash (IPFS or data URI)"
                       value={proofHash}
                       onChange={(e) => setProofHash(e.target.value)}
-                      className="flex-1"
+                      className="flex-1 px-3 py-2 bg-content2 border border-divider rounded-lg focus:outline-none focus:ring-2 focus:ring-success text-sm"
                     />
                     <Button
                       size="sm"
                       variant="outline"
                       className="border-[#009F4D] text-[#009F4D]"
                       onPress={() => handleCompleteMilestone(index)}
-                      isDisabled={!proofHash || isCompletePending}
+                      isDisabled={!proofHash || isCompletePending || isTerminal}
                     >
                       {isCompletePending ? 'Submitting...' : 'Submit'}
                     </Button>
@@ -312,11 +385,11 @@ export function MilestoneSection({
               )}
 
               {/* Client: Release milestone */}
-              {isClient && milestone.completed && !milestone.released && (
+              {isClient && milestone.completed && !milestone.released && !isTerminal && (
                 <div className="mt-4 pt-4 border-t border-divider">
                   <button
                     onClick={() => handleReleaseMilestone(index)}
-                    disabled={isReleasePending}
+                    disabled={isReleasePending || isTerminal}
                     className="px-3 py-1.5 bg-success text-white text-sm rounded-lg font-medium hover:opacity-90 disabled:opacity-50"
                   >
                     {isReleasePending ? 'Releasing...' : 'Release Payment'}
@@ -330,72 +403,16 @@ export function MilestoneSection({
           {releaseError && <ErrorDisplay error={releaseError} />}
         </div>
       ) : (
-        <p className="text-sm text-default-500">No milestones defined yet.</p>
-      )}
-
-      {/* Dispute Section */}
-      {(isClient || isProvider) && !dispute?.resolved && (
-        <div className="mt-6 pt-6 border-t border-divider">
-          <div className="flex items-center gap-2 mb-4">
-            <AlertTriangle className="w-5 h-5 text-warning" />
-            <h3 className="text-sm font-semibold">Dispute Resolution</h3>
-          </div>
-
-          {dispute?.flaggler ? (
-            <div className="p-4 bg-warning/10 border border-warning/30 rounded-lg">
-              <div className="flex items-center justify-between">
-                <div>
-                  <p className="text-sm font-medium text-warning">Dispute Active</p>
-                  <p className="text-xs text-default-500 mt-1">
-                    Flagged by: <Address address={dispute.flaggler} truncate />
-                  </p>
-                  {dispute.arbiter && (
-                    <p className="text-xs text-default-500 mt-1">
-                      Arbiter: <Address address={dispute.arbiter} truncate />
-                    </p>
-                  )}
-                </div>
-                <Gavel className="w-6 h-6 text-warning" />
-              </div>
-            </div>
-          ) : (
-            <div className="p-4 bg-default-50 rounded-lg">
-              <p className="text-xs text-default-500 mb-3">
-                Having an issue? Flag a dispute to engage an arbiter (0.001 ETH fee).
-              </p>
-              {milestones && milestones.length > 0 && (
-                <div className="mb-3">
-                  <label className="text-xs text-default-600 block mb-1">Milestone to dispute:</label>
-                  <select
-                    value={disputeMilestoneIndex}
-                    onChange={(e) => setDisputeMilestoneIndex(Number(e.target.value))}
-                    className="w-full px-2 py-1.5 text-sm border border-divider rounded-lg bg-background"
-                  >
-                    {milestones.map((m, i) => (
-                      <option key={i} value={i}>
-                        Phase {i + 1}: {m.description.slice(0, 40)}{m.description.length > 40 ? '...' : ''} ({formatUnits(m.amount, 6)} USDC)
-                      </option>
-                    ))}
-                  </select>
-                </div>
-              )}
-              <Button
-                size="sm"
-                variant="outline"
-                className="border-warning text-warning"
-                onPress={handleFlagDispute}
-                isDisabled={isFlagPending || !milestones || milestones.length === 0}
-              >
-                {isFlagPending ? 'Flagging...' : 'Flag Dispute'}
-              </Button>
-              <p className="text-xs text-default-400 mt-2">
-                Fee: paid in job payment token
-              </p>
-              {flagError && <ErrorDisplay error={flagError} />}
-            </div>
+        <div className="text-center py-6">
+          <p className="text-sm text-default-500 mb-3">No milestones defined yet.</p>
+          {isClient && (
+            <p className="text-xs text-default-400">
+              Add milestones to split this job into payable phases. Each milestone releases payment upon completion.
+            </p>
           )}
         </div>
       )}
+
     </Card>
   );
 }

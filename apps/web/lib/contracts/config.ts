@@ -42,7 +42,7 @@ const sepoliaContracts = {
   serviceRegistryImpl: '0xb75B02D4523171ABdB6f5bcB9D60903ed3e30fAD', // Phase 29e: blacklist recheck
   // Phase 29: V9 - Multi-token configurable minimum budgets
   agenticCommerce: '0x4c592510e4FAbbEEA8D7142dE1f38d548b500e7f',
-  agenticCommerceImpl: '0xAFC89ae02843D041f2704f33FFf2e0d567859D58', // Phase 29f: OZ v5 compat
+  agenticCommerceImpl: '0xbc8068fcc7124960d96fbee106112c5654de63b8', // Phase 29g: storage-layout-aware V9 impl
   // Phase 11: BiddingSystem - Standalone commit-reveal bidding
   biddingSystem: '0x32c9d069a248a619d3EAc4D1FC76F2639AaBeF04',
   biddingSystemImpl: '0x0eE5E780bbbBA610D0B1926a3993A2aa0B1B9812', // Phase 29e: blacklist check
@@ -55,7 +55,7 @@ const sepoliaContracts = {
 
   // Phase 29: MilestoneEscrowV2 - Per-token arbiter fees + USDC staking
   milestoneEscrow: '0xd4Fdc345b1c6aF1B4Cc84339bcB251B33527Eb45',
-  milestoneEscrowImpl: '0xdE0EB59a35c6FD8d0eEF5f1F1F1884E46a4fe652', // Phase 29f: OZ v5 compat
+  milestoneEscrowImpl: '0xb7b801a1cfff3ad295063cd75b751c47e0f76b7f', // Phase 29g: actual deployed V9 impl
 
   // Phase 29: PriceOracleV2 - UUPS upgradeable per-token feeds
   priceOracle: '0x32fD2A54B722D2048A052fD0456004483a683aFE',
@@ -176,7 +176,7 @@ export const CONTRACT_ADDRESSES = {
     serviceRegistryImpl: '0xb75B02D4523171ABdB6f5bcB9D60903ed3e30fAD', // Phase 29e: blacklist recheck
     // Phase 29: V9 - Multi-token configurable minimum budgets
     agenticCommerce: '0x4c592510e4FAbbEEA8D7142dE1f38d548b500e7f',
-  agenticCommerceImpl: '0xAFC89ae02843D041f2704f33FFf2e0d567859D58', // Phase 29f: OZ v5 compat
+  agenticCommerceImpl: '0xbc8068fcc7124960d96fbee106112c5654de63b8', // Phase 29g: storage-layout-aware V9 impl
     // Phase 11: BiddingSystem - Standalone commit-reveal bidding
     biddingSystem: '0x32c9d069a248a619d3EAc4D1FC76F2639AaBeF04',
   biddingSystemImpl: '0x0eE5E780bbbBA610D0B1926a3993A2aa0B1B9812', // Phase 29e: blacklist check
@@ -189,7 +189,7 @@ export const CONTRACT_ADDRESSES = {
 
     // Phase 29: MilestoneEscrowV2 - Per-token arbiter fees + USDC staking
     milestoneEscrow: '0xd4Fdc345b1c6aF1B4Cc84339bcB251B33527Eb45',
-  milestoneEscrowImpl: '0xdE0EB59a35c6FD8d0eEF5f1F1F1884E46a4fe652', // Phase 29f: OZ v5 compat
+  milestoneEscrowImpl: '0xb7b801a1cfff3ad295063cd75b751c47e0f76b7f', // Phase 29g: actual deployed V9 impl
 
     // Phase 29: PriceOracleV2 - UUPS upgradeable per-token feeds
     priceOracle: '0x32fD2A54B722D2048A052fD0456004483a683aFE',

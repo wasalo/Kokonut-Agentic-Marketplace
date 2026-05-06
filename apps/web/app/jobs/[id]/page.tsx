@@ -24,6 +24,11 @@ import {
   RefreshCw,
   CircleDot,
   Link,
+  AlertTriangle,
+  Gavel,
+  ShieldAlert,
+  ChevronDown,
+  ChevronUp,
 } from 'lucide-react';
 import { Card } from '@heroui/react';
 import { formatUnits, toHex, keccak256 } from 'viem';
@@ -31,7 +36,8 @@ import {
   useJob,
   useFundJob,
   useSubmitJob,
-  useCompleteJob,
+  useApproveByClient,
+  useFinalizeByEvaluator,
   useRejectJob,
   useClaimRefund,
   useSetBudget,
@@ -43,12 +49,10 @@ import {
   useCompleteAfterTimeout,
   useRefundExpired,
   getJobStatusLabel,
-  getJobStatusColor,
   JobStatus,
   isOpenJob,
   Job,
   Bid,
-  useEnableJobMilestones,
 } from '@/lib/hooks/useJobs';
 import { useWatchJob } from '@/lib/hooks/useJobEvents';
 import { useService } from '@/lib/hooks/useServices';
@@ -79,10 +83,19 @@ const AcceptBidForm = dynamic(() => import('@/components/BiddingForms').then(m =
 const BidStatusCard = dynamic(() => import('@/components/BiddingForms').then(m => m.BidStatusCard), {
   loading: () => <div className="animate-pulse h-24 bg-content2 rounded-lg" />,
 });
+import { StatusBadge, getJobStatusBadgeType } from '@/components/StatusBadge';
 import { Address } from '@/components/Address';
 import { ErrorDisplay } from '@/components/ErrorDisplay';
-import { ConfirmModal } from '@/components/ConfirmModal';
 import { MilestoneSection } from '@/components/MilestoneSection';
+import { useDispute, useFlagDispute, useJobMilestones } from '@/lib/hooks/useMilestoneEscrow';
+import { JobHeader } from '@/components/jobs/JobHeader';
+import { JobWarnings } from '@/components/jobs/JobWarnings';
+import { BalanceCard } from '@/components/jobs/BalanceCard';
+import { TransactionStatusCard } from '@/components/jobs/TransactionStatusCard';
+import { DeliverableDisplay } from '@/components/jobs/DeliverableDisplay';
+import { JobSettingsCard } from '@/components/jobs/JobSettingsCard';
+import { FeedbackCard } from '@/components/jobs/FeedbackCard';
+import { BiddingSectionForProvider } from '@/components/jobs/BiddingSectionForProvider';
 
 export default function JobDetailPage({
   params,
@@ -141,47 +154,14 @@ export default function JobDetailPage({
   // Client review state (Phase 3)
   const [clientApproved, setClientApproved] = useState(false);
 
+  // Dispute state
+  const [showDisputeForm, setShowDisputeForm] = useState(false);
+  const [disputeMilestoneIndex, setDisputeMilestoneIndex] = useState<number>(0);
+  const { dispute } = useDispute(jobId);
+  const { milestones } = useJobMilestones(jobId);
+  const { flagDispute, isPending: isFlagPending, writeError: flagError } = useFlagDispute();
+
   const { fundJob, hash: fundHash, isPending: isFundPending, error: fundError } = useFundJob();
-
-  // Milestone enable state
-  const { enableJobMilestones, hash: milestoneHash, isPending: isMilestonePending } = useEnableJobMilestones();
-  const [showMilestonePrompt, setShowMilestonePrompt] = useState(false);
-  const [, setMilestoneSetupDone] = useState(false);
-
-  // Check for pending milestone job on mount
-  // Note: isClient derived inline since it's defined later in component
-  useEffect(() => {
-    if (!job || !address) return;
-    const clientIsMe = job.client.toLowerCase() === address.toLowerCase();
-    if (clientIsMe && job.status === JobStatus.Open && job.budget > 0n) {
-      const pending = localStorage.getItem('pending_milestone_job');
-      const jobKey = `milestone_setup_${job.id}`;
-      if (pending === 'true' && localStorage.getItem(jobKey) !== 'done') {
-        setShowMilestonePrompt(true);
-      }
-      localStorage.removeItem('pending_milestone_job');
-    }
-  }, [job, address]);
-
-  // Handle milestone enable after fund
-  const handleEnableMilestones = useCallback(() => {
-    if (!job || !address) return;
-    enableJobMilestones(
-      job.id,
-      job.client as `0x${string}`,
-      job.provider as `0x${string}`,
-      job.paymentToken as `0x${string}`,
-      job.budget
-    );
-  }, [job, address, enableJobMilestones]);
-
-  // Track milestone tx confirmation
-  useEffect(() => {
-    if (milestoneHash) {
-      const jobKey = `milestone_setup_${jobId}`;
-      localStorage.setItem(jobKey, 'done');
-    }
-  }, [milestoneHash, jobId]);
 
   // ETH funding with value
   const {
@@ -210,11 +190,17 @@ export default function JobDetailPage({
     error: submitError,
   } = useSubmitJob();
   const {
-    completeJob,
-    hash: completeHash,
-    isPending: isCompletePending,
-    error: completeError,
-  } = useCompleteJob();
+    approveByClient,
+    hash: approveByClientHash,
+    isPending: isApproveByClientPending,
+    error: approveByClientError,
+  } = useApproveByClient();
+  const {
+    finalizeByEvaluator,
+    hash: finalizeHash,
+    isPending: isFinalizePending,
+    error: finalizeError,
+  } = useFinalizeByEvaluator();
   const {
     rejectJob,
     hash: rejectHash,
@@ -300,7 +286,8 @@ export default function JobDetailPage({
     fundHash ||
     fundETHTxHash ||
     submitHash ||
-    completeHash ||
+    approveByClientHash ||
+    finalizeHash ||
     rejectHash ||
     refundHash ||
     approveHash ||
@@ -374,10 +361,17 @@ export default function JobDetailPage({
     }
   }, [fulfillmentText, job?.description]);
 
-  // Client review handler (Phase 3)
+  // Client review handler (Phase 3) — actually calls approveByClient on-chain
   const handleClientApprove = useCallback(() => {
-    setClientApproved(true);
-  }, []);
+    if (!job) return;
+    handleAction('Approving delivery', () => approveByClient(job.id));
+  }, [job, approveByClient, handleAction]);
+
+  // Dispute handler
+  const handleFlagDispute = useCallback(() => {
+    if (!job) return;
+    handleAction('Flagging dispute', () => flagDispute(job.id, BigInt(disputeMilestoneIndex)));
+  }, [job, disputeMilestoneIndex, flagDispute, handleAction]);
 
   // Determine if job uses USDC or ETH - defined before early returns to maintain hooks order
   // Note: Uses fallback values since job might be undefined at this point
@@ -417,11 +411,27 @@ export default function JobDetailPage({
   const isPastDisputeWindow =
     job && Date.now() / 1000 > Number(job.expiredAt) + DISPUTE_WINDOW_SECONDS;
 
+  // Determine if there are any actionable items for the current viewer
+  const isTerminal =
+    job?.status === JobStatus.Completed ||
+    job?.status === JobStatus.Rejected ||
+    job?.status === JobStatus.Expired;
+  const hasActiveDispute = !!dispute?.flagger && !dispute?.resolved;
+  const canFlagDispute = (isClient || isProvider) && !dispute?.resolved && !isTerminal;
+  const hasActions =
+    isClient ||
+    isProvider ||
+    isEvaluator ||
+    hasActiveDispute ||
+    canFlagDispute ||
+    isTerminal;
+
   const anyPending =
     isFundPending ||
     isFundETHPending ||
     isSubmitPending ||
-    isCompletePending ||
+    isApproveByClientPending ||
+    isFinalizePending ||
     isRejectPending ||
     isRefundPending ||
     isWithdrawPending ||
@@ -431,7 +441,8 @@ export default function JobDetailPage({
   const currentError =
     fundError ||
     submitError ||
-    completeError ||
+    approveByClientError ||
+    finalizeError ||
     rejectError ||
     refundError ||
     completeAfterTimeoutError ||
@@ -461,7 +472,6 @@ export default function JobDetailPage({
   }
 
   const statusLabel = getJobStatusLabel(job.status);
-  const statusColor = getJobStatusColor(job.status);
   
   const budgetDecimals = isUSDC ? 6 : 18;
   const formattedBudget = formatUnits(job.budget, budgetDecimals);
@@ -479,142 +489,31 @@ export default function JobDetailPage({
 
       <div className="max-w-2xl mx-auto space-y-6">
         {/* Job Header */}
-        <Card className="border border-divider p-6">
-          <div className="flex items-start justify-between mb-4">
-            <div>
-              <h1 className="text-2xl font-semibold">Job #{job.id.toString()}</h1>
-              <p className="text-sm text-default-500 mt-1">{job.description}</p>
-            </div>
-            <span
-              className={`inline-flex items-center px-3 py-1 rounded-full text-sm font-medium ${
-                statusColor === 'success'
-                  ? 'bg-success/10 text-success'
-                  : statusColor === 'warning'
-                    ? 'bg-warning/10 text-warning'
-                    : statusColor === 'danger'
-                      ? 'bg-danger/10 text-danger'
-                      : statusColor === 'primary'
-                        ? 'bg-primary/10 text-primary'
-                        : 'bg-default/10 text-default-500'
-              }`}
-            >
-              {statusLabel}
-            </span>
-          </div>
+        <JobHeader job={job} service={service} isClient={isClient} isProvider={isProvider} isEvaluator={isEvaluator} address={address} />
 
-          {service && Number(service.id) > 0 && (
-            <NextLink
-              href={`/marketplace/${service.id}`}
-              className="text-sm text-primary hover:underline"
-            >
-              Service: {service.name}
-            </NextLink>
-          )}
+        {/* Warnings */}
+        <JobWarnings job={job} isClient={isClient} isProvider={isProvider} isEvaluatorFeeEnabled={isEvaluatorFeeEnabled} address={address} />
 
-          <div className="grid grid-cols-1 sm:grid-cols-2 gap-3 md:gap-4 mt-4 pt-4 border-t border-divider">
-            <div>
-              <p className="text-xs text-default-400 uppercase tracking-wide">Budget</p>
-              <div className="flex flex-wrap items-center gap-2">
-                <p className="text-lg font-semibold text-success">${formattedBudget}</p>
-                {job.paymentToken &&
-                  job.paymentToken !== '0x0000000000000000000000000000000000000000' && (
-                    <PaymentTokenBadge
-                      token={
-                        SUPPORTED_TOKENS.find(
-                          t => t.address.toLowerCase() === job.paymentToken.toLowerCase()
-                        ) || SUPPORTED_TOKENS[0]
-                      }
-                    />
-                  )}
-              </div>
-            </div>
-            <div>
-              <p className="text-xs text-default-400 uppercase tracking-wide">Deadline</p>
-              <p className="text-sm flex items-center gap-1">
-                <Clock className="w-3 h-3" />
-                {deadlineDate.toLocaleDateString()} {deadlineDate.toLocaleTimeString()}
-              </p>
-              {isExpired && <p className="text-xs text-danger mt-0.5">Expired</p>}
-            </div>
-          </div>
+        {/* Transaction Status */}
+        <TransactionStatusCard txStep={txStep} />
 
-          <div className="grid grid-cols-1 sm:grid-cols-3 gap-3 md:gap-4 mt-4 pt-4 border-t border-divider text-xs">
-            <div>
-              <p className="text-default-400 uppercase tracking-wide">Client</p>
-              <Address address={job.client as `0x${string}`} truncate className="mt-0.5" />
-              {isClient && <span className="text-primary">(You)</span>}
-            </div>
-            <div>
-              <p className="text-default-400 uppercase tracking-wide">Provider</p>
-              {job.provider === '0x0000000000000000000000000000000000000000' ? (
-                <span className="text-default-500 mt-0.5">Open (Bidding)</span>
-              ) : (
-                <>
-                  <Address address={job.provider as `0x${string}`} truncate className="mt-0.5" />
-                  {isProvider && <span className="text-primary">(You)</span>}
-                </>
-              )}
-            </div>
-            <div>
-              <p className="text-default-400 uppercase tracking-wide">Evaluator</p>
-{job.evaluator.toLowerCase() === job.client.toLowerCase() ? (
-                <div className="flex items-center gap-2 mt-0.5">
-                  <span className="text-sm bg-primary/20 text-primary px-2 py-0.5 rounded">Randomly Assigned</span>
-                  {isEvaluatorFeeEnabled && (
-                    <span className="block text-xs text-success">+1% evaluator fee</span>
-                  )}
-                </div>
-              ) : (
-                <>
-                  <Address address={job.evaluator as `0x${string}`} truncate className="mt-0.5" />
-                  {isEvaluator && <span className="text-primary">(You)</span>}
-                  {isEvaluatorFeeEnabled && (
-                    <span className="block text-xs text-success mt-1">+1% evaluator fee</span>
-                  )}
-                </>
-              )}
-            </div>
-          </div>
-        </Card>
+        {currentError && <ErrorDisplay error={currentError} />}
 
-        {/* Evaluator Fee Badge for Clients */}
-        {isClient && isEvaluatorFeeEnabled && (
-          <Card className="border border-success/20 bg-success/5 p-4">
-            <div className="flex items-center gap-2">
-              <DollarSign className="w-4 h-4 text-success" />
-              <span className="text-sm text-success">
-                Evaluator fee enabled (+1% of budget on completion)
-              </span>
-            </div>
-          </Card>
-        )}
+        {/* Balance Card */}
+        <BalanceCard job={job} isClient={isClient} address={address} />
 
-        {/* Hook Address Display */}
-        {job.hook && job.hook !== '0x0000000000000000000000000000000000000000' && (
-          <Card className="border border-divider p-4">
-            <div className="flex items-center gap-2">
-              <Link className="w-4 h-4 text-default-400" />
-              <span className="text-sm text-default-500">Hook:</span>
-              <Address address={job.hook as `0x${string}`} className="text-sm" />
-            </div>
-          </Card>
-        )}
-
-        {/* Evaluator Conflict Warning - Only for explicit evaluators, not random pool */}
-        {isClient && job.evaluator.toLowerCase() !== job.client.toLowerCase() && job.evaluator.toLowerCase() === address?.toLowerCase() && (
-          <Card className="border border-warning/30 bg-warning/5 p-4">
-            <div className="flex items-start gap-3">
-              <AlertCircle className="w-5 h-5 text-warning shrink-0 mt-0.5" />
-              <div>
-                <p className="font-medium text-warning">Conflict of Interest</p>
-                <p className="text-sm text-default-500 mt-1">
-                  You are both the client and evaluator for this job. Consider assigning a different
-                  evaluator for impartial evaluation.
-                </p>
-              </div>
-            </div>
-          </Card>
-        )}
+        {/* Milestone Section */}
+        <MilestoneSection
+          jobId={jobId}
+          client={job.client}
+          provider={job.provider}
+          paymentToken={job.paymentToken}
+          budget={job.budget}
+          jobStatus={job.status}
+          isClient={isClient}
+          isProvider={isProvider}
+          onRefetch={refetch}
+        />
 
         {/* Evaluator = Provider Warning */}
         {job.provider &&
@@ -697,8 +596,31 @@ export default function JobDetailPage({
         )}
 
         {/* Actions */}
+        {hasActions && (
         <Card className="border border-divider p-6">
-          <h2 className="text-base font-semibold mb-4">Actions</h2>
+          <h2 className="text-xl font-bold mb-5">Actions</h2>
+
+          {/* Active Dispute Banner */}
+          {hasActiveDispute && (
+            <div className="mb-4 p-4 bg-warning/10 border border-warning/30 rounded-lg">
+              <div className="flex items-center justify-between">
+                <div className="flex items-center gap-2">
+                  <ShieldAlert className="w-5 h-5 text-warning" />
+                  <p className="text-sm font-medium text-warning">Dispute Active</p>
+                </div>
+                <Gavel className="w-5 h-5 text-warning" />
+              </div>
+              <p className="text-xs text-default-500 mt-1">
+                Flagged by: <Address address={dispute.flagger} truncate />
+              </p>
+              {dispute.arbiter && (
+                <p className="text-xs text-default-500 mt-1">
+                  Arbiter: <Address address={dispute.arbiter} truncate />
+                </p>
+              )}
+            </div>
+          )}
+
           <div className="space-y-3">
             {job.status === JobStatus.Open && isClient && (
               <>
@@ -856,27 +778,25 @@ export default function JobDetailPage({
 
             {job.status === JobStatus.Submitted && isEvaluator && (
               <>
-                {(isClient || clientApproved) && (
-                  <div className="space-y-3">
-                    <button
-                      onClick={() =>
-                        handleAction('Approving work', () =>
-                          completeJob(job.id, keccak256(toHex('approved')))
-                        )
-                      }
-                      disabled={anyPending || !!txStep}
-                      className="w-full flex items-center gap-3 p-4 border border-success/30 rounded-lg hover:bg-success/5 transition-colors disabled:opacity-50"
-                    >
-                      <CheckSquare className="w-5 h-5 text-success" />
-                      <div className="text-left">
-                        <p className="font-medium">Approve & Release Payment</p>
-                        <p className="text-xs text-default-500">
-                          Release ${formattedBudget} USDC to provider
-                        </p>
-                      </div>
-                    </button>
-                  </div>
-                )}
+                <div className="space-y-3">
+                  <button
+                    onClick={() =>
+                      handleAction('Finalizing evaluation', () =>
+                        finalizeByEvaluator(job.id, keccak256(toHex('approved')))
+                      )
+                    }
+                    disabled={anyPending || !!txStep}
+                    className="w-full flex items-center gap-3 p-4 border border-success/30 rounded-lg hover:bg-success/5 transition-colors disabled:opacity-50"
+                  >
+                    <CheckSquare className="w-5 h-5 text-success" />
+                    <div className="text-left">
+                      <p className="font-medium">Finalize & Release Payment</p>
+                      <p className="text-xs text-default-500">
+                        Release {formattedBudget} {isUSDC ? 'USDC' : 'ETH'} to provider
+                      </p>
+                    </div>
+                  </button>
+                </div>
 
                 <div className="space-y-2">
                   <button
@@ -1011,8 +931,63 @@ export default function JobDetailPage({
                 This job has reached a terminal state. No further actions available.
               </div>
             )}
+
+            {/* Dispute Resolution — Collapsed by default when no active dispute */}
+            {canFlagDispute && !hasActiveDispute && (
+              <div className="pt-4 border-t border-divider mt-2">
+                <button
+                  type="button"
+                  onClick={() => setShowDisputeForm(!showDisputeForm)}
+                  className="w-full flex items-center justify-between p-3 text-sm text-default-500 hover:text-default-700 hover:bg-content2 rounded-lg transition-colors"
+                >
+                  <span className="flex items-center gap-2">
+                    <AlertTriangle className="w-4 h-4 text-warning" />
+                    Need help? Open a dispute
+                  </span>
+                  {showDisputeForm ? (
+                    <ChevronUp className="w-4 h-4" />
+                  ) : (
+                    <ChevronDown className="w-4 h-4" />
+                  )}
+                </button>
+
+                {showDisputeForm && (
+                  <div className="mt-2 p-4 bg-default-50 rounded-lg space-y-3">
+                    <p className="text-xs text-default-500">
+                      Having an issue? Flag a dispute to engage an arbiter. A fee will be paid in the job payment token.
+                    </p>
+                    {milestones && milestones.length > 0 && (
+                      <div>
+                        <label className="text-xs text-default-600 block mb-1">Milestone to dispute:</label>
+                        <select
+                          value={disputeMilestoneIndex}
+                          onChange={(e) => setDisputeMilestoneIndex(Number(e.target.value))}
+                          className="w-full px-2 py-1.5 text-sm border border-divider rounded-lg bg-background"
+                        >
+                          {milestones.map((m, i) => (
+                            <option key={i} value={i}>
+                              Phase {i + 1}: {m.description?.slice(0, 40)}{m.description?.length > 40 ? '...' : ''}
+                            </option>
+                          ))}
+                        </select>
+                      </div>
+                    )}
+                    <button
+                      type="button"
+                      onClick={handleFlagDispute}
+                      disabled={isFlagPending}
+                      className="px-4 py-2 bg-warning text-white text-sm rounded-lg font-medium hover:opacity-90 disabled:opacity-50"
+                    >
+                      {isFlagPending ? 'Flagging...' : 'Flag Dispute'}
+                    </button>
+                    {flagError && <ErrorDisplay error={flagError} />}
+                  </div>
+                )}
+              </div>
+            )}
           </div>
         </Card>
+        )}
 
         {/* Open Job Bidding Section */}
         {jobIsOpen && (
@@ -1082,53 +1057,11 @@ export default function JobDetailPage({
           </>
         )}
 
-        {/* Job Settings - Only for client before funding (not for open jobs) */}
-        {job.status === JobStatus.Open && isClient && (
-          <Card className="border border-divider p-6">
-            <h2 className="text-base font-semibold mb-4 flex items-center gap-2">
-              <Settings className="w-4 h-4" />
-              Job Settings
-            </h2>
-            <div className="space-y-4">
-              <div>
-                <label className="text-sm font-medium">Update Budget (USDC)</label>
-                <div className="flex gap-2 mt-1">
-                  <input
-                    type="number"
-                    step="0.01"
-                    placeholder="New budget amount"
-                    value={newBudget}
-                    onChange={e => setNewBudget(e.target.value)}
-                    className="flex-1 px-3 py-2 bg-content2 border border-divider rounded-lg focus:outline-none focus:ring-2 focus:ring-primary text-sm"
-                  />
-                  <button
-                    onClick={() =>
-                      handleAction('Updating budget', () =>
-                        setBudget(job.id, BigInt(Math.floor(parseFloat(newBudget) * 1e6)))
-                      )
-                    }
-                    disabled={!newBudget || isBudgetPending}
-                    className="px-4 py-2 bg-primary text-white rounded-lg text-sm font-medium hover:opacity-90 disabled:opacity-50"
-                  >
-                    {isBudgetPending ? <Loader2 className="w-4 h-4 animate-spin" /> : 'Update'}
-                  </button>
-                </div>
-              </div>
-            </div>
-          </Card>
-        )}
+        {/* Job Settings */}
+        <JobSettingsCard job={job} isClient={isClient} isUSDC={isUSDC} budgetDecimals={budgetDecimals} newBudget={newBudget} setNewBudget={setNewBudget} setBudget={setBudget} isBudgetPending={isBudgetPending} handleAction={handleAction} />
 
         {/* Deliverable */}
-        {job.status >= JobStatus.Submitted &&
-          job.deliverable !==
-            '0x0000000000000000000000000000000000000000000000000000000000000000' && (
-            <Card className="border border-divider p-6">
-              <h2 className="text-base font-semibold mb-3">Deliverable</h2>
-              <p className="text-xs font-mono text-default-500 break-all bg-content2 p-3 rounded">
-                {job.deliverable}
-              </p>
-            </Card>
-          )}
+        <DeliverableDisplay job={job} />
 
         {/* Submit Feedback (client only, after completion) */}
         {job.status === JobStatus.Completed &&
@@ -1200,226 +1133,8 @@ export default function JobDetailPage({
         )}
       </div>
 
-        {/* Milestone Prompt Modal */}
-        {showMilestonePrompt && (
-          <ConfirmModal
-            isOpen={showMilestonePrompt}
-            onConfirm={() => {
-              handleEnableMilestones();
-              setShowMilestonePrompt(false);
-              setMilestoneSetupDone(true);
-            }}
-            onCancel={() => {
-              setShowMilestonePrompt(false);
-              const jobKey = `milestone_setup_${jobId}`;
-              localStorage.setItem(jobKey, 'skipped');
-            }}
-            title="Enable Milestone Payments?"
-            message="You selected milestone-based payment when creating this job. Would you like to enable milestones now? This allows staged payments as work is completed."
-            confirmText="Enable Milestones"
-            cancelText="Skip for Now"
-            variant="default"
-            isPending={isMilestonePending}
-          />
-        )}
-
-        {/* Milestone Section */}
-        <MilestoneSection
-          jobId={jobId}
-          client={job.client}
-          provider={job.provider}
-          paymentToken={job.paymentToken}
-          budget={job.budget}
-          isClient={isClient}
-          isProvider={isProvider}
-          onRefetch={refetch}
-        />
 
       </div>
     );
   }
 
-  function FeedbackCard({ agentId, jobId }: { agentId: bigint; jobId: bigint }) {
-  const [rating, setRating] = useState('850');
-  const [comment, setComment] = useState('');
-  const [submitted, setSubmitted] = useState(false);
-
-  const { writeContract, data: txHash, isPending, error } = useWriteContract();
-  const { isSuccess } = useWaitForTransactionReceipt({ hash: txHash });
-
-  const ERC8004_REP = process.env.NEXT_PUBLIC_8004_REPUTATION_ADDRESS as `0x${string}`;
-
-  const handleSubmit = useCallback(() => {
-    const salt = keccak256(toHex(`feedback-${jobId}-${Date.now()}`));
-    writeContract({
-      address: ERC8004_REP,
-      abi: ERC8004_ABI,
-      functionName: 'giveFeedback',
-      args: [
-        agentId,
-        BigInt(rating),
-        2, // decimals (e.g., 850 with 2 decimals = 8.50)
-        comment || `Feedback for job #${jobId}`,
-        '',
-        '',
-        '',
-        salt,
-      ],
-    });
-  }, [agentId, rating, comment, jobId, writeContract, ERC8004_REP]);
-
-  if (isSuccess && !submitted) {
-    setSubmitted(true);
-  }
-
-  if (submitted) {
-    return (
-      <Card className="border border-success/30 p-6">
-        <div className="flex items-center gap-2 text-success">
-          <CheckCircle2 className="w-5 h-5" />
-          <p className="font-medium">Feedback Submitted!</p>
-        </div>
-      </Card>
-    );
-  }
-
-  return (
-    <Card className="border border-divider p-6">
-      <h2 className="text-base font-semibold mb-4">Leave Feedback</h2>
-      <p className="text-sm text-default-500 mb-4">
-        Rate the provider's work on this job. Your feedback is recorded onchain.
-      </p>
-      <div className="space-y-4">
-        <div>
-          <label className="text-sm font-medium">Rating (0-1000)</label>
-          <input
-            type="range"
-            min="0"
-            max="1000"
-            value={rating}
-            onChange={e => setRating(e.target.value)}
-            className="w-full mt-1"
-          />
-          <div className="flex justify-between text-xs text-default-400">
-            <span>0 (Poor)</span>
-            <span className="font-medium text-default-700">{rating}</span>
-            <span>1000 (Excellent)</span>
-          </div>
-        </div>
-        <div>
-          <label className="text-sm font-medium">Comment</label>
-          <textarea
-            placeholder="How was the work?"
-            value={comment}
-            onChange={e => setComment(e.target.value)}
-            rows={2}
-            className="w-full mt-1 px-3 py-2 bg-content2 border border-divider rounded-lg focus:outline-none focus:ring-2 focus:ring-success resize-none"
-          />
-        </div>
-        {error && (
-          <div className="p-3 bg-danger-50 border border-danger-200 rounded-lg text-danger text-sm">
-            {error.message}
-          </div>
-        )}
-        <button
-          onClick={handleSubmit}
-          disabled={isPending}
-          className="w-full px-6 py-3 bg-gradient-to-r from-[#009F4D] to-[#00c853] text-white rounded-lg font-medium hover:opacity-90 disabled:opacity-50"
-        >
-          {isPending ? 'Submitting...' : 'Submit Feedback'}
-        </button>
-      </div>
-    </Card>
-  );
-}
-
-interface BiddingSectionForProviderProps {
-  job: Job;
-  address: `0x${string}`;
-  refetch: () => void;
-}
-
-function BiddingSectionForProvider({ job, address, refetch }: BiddingSectionForProviderProps) {
-  const { bid: userBid } = useUserBid(job.id, address);
-  const { withdrawStake, isPending: isWithdrawPending } = useWithdrawStake();
-  const [showWithdrawModal, setShowWithdrawModal] = useState(false);
-
-  const canWithdrawStake =
-    userBid &&
-    userBid.bidId > BigInt(0) &&
-    userBid.revealed &&
-    !userBid.accepted &&
-    (job.status === JobStatus.Completed ||
-      job.status === JobStatus.Rejected ||
-      job.status === JobStatus.Expired);
-
-  const handleWithdrawClick = () => {
-    setShowWithdrawModal(true);
-  };
-
-  const handleWithdrawConfirm = () => {
-    setShowWithdrawModal(false);
-    withdrawStake(job.id);
-  };
-
-  return (
-    <div className="space-y-4">
-      {/* User's Bid Status */}
-      {userBid && userBid.bidId > BigInt(0) && <BidStatusCard bid={userBid} />}
-
-      {/* Withdraw Stake Button - for losing bidders */}
-      {canWithdrawStake && (
-        <>
-          <button
-            onClick={handleWithdrawClick}
-            disabled={isWithdrawPending}
-            className="w-full flex items-center gap-3 p-4 border border-warning/30 rounded-lg hover:bg-warning/5 transition-colors disabled:opacity-50"
-          >
-            <RefreshCw className="w-5 h-5 text-warning" />
-            <div className="text-left">
-              <p className="font-medium">Withdraw Stake</p>
-              <p className="text-xs text-default-500">
-                Reclaim your staked funds (bid was not accepted)
-              </p>
-            </div>
-            {isWithdrawPending && <Loader2 className="w-5 h-5 animate-spin text-warning ml-auto" />}
-          </button>
-          <ConfirmModal
-            isOpen={showWithdrawModal}
-            onConfirm={handleWithdrawConfirm}
-            onCancel={() => setShowWithdrawModal(false)}
-            title="Withdraw Stake"
-            message="Withdraw your staked funds? This will forfeit your bid."
-            confirmText="Withdraw"
-            variant="warning"
-            isPending={isWithdrawPending}
-          />
-        </>
-      )}
-
-      {/* Commit or Reveal Form */}
-      {!userBid?.revealed ? (
-        <CommitBidForm job={job} onSuccess={refetch} />
-      ) : !userBid?.accepted ? (
-        <>
-          <RevealBidForm job={job} onSuccess={refetch} />
-          {!canWithdrawStake && (
-            <p className="text-sm text-default-500 text-center">
-              Waiting for client to accept a bid...
-            </p>
-          )}
-        </>
-      ) : (
-        <Card className="border border-success/30 p-6">
-          <div className="flex items-center gap-2 text-success">
-            <CheckCircle2 className="w-5 h-5" />
-            <p className="font-medium">Your bid was accepted!</p>
-          </div>
-          <p className="text-sm text-default-500 mt-2">
-            The client has accepted your bid. Check the Actions section to submit your deliverable.
-          </p>
-        </Card>
-      )}
-    </div>
-  );
-}

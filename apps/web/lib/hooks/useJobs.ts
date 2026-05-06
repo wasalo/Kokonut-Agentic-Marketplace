@@ -40,21 +40,27 @@ export { JobStatus, JobType };
 
 function mapJobData(data: unknown): Job | undefined {
   if (!data || typeof data !== 'object') return undefined;
-  const d = data as { id: bigint; client: string; provider: string; evaluator: string; serviceId: bigint; paymentToken: string; description: string; budget: bigint; expiredAt: bigint; status: number; hook: string; deliverable: string };
-  if (!d || !('id' in d)) return undefined;
+  // Handle both tuple-object and array formats from viem
+  const arr = data as unknown[];
+  const isArray = Array.isArray(data);
+  const id = isArray ? arr[0] : (data as any).id;
+  const client = isArray ? arr[1] : (data as any).client;
+  if (!id || !client) return undefined;
+  // Filter out empty/phantom jobs (client is zero-address)
+  if (typeof client === 'string' && client === '0x0000000000000000000000000000000000000000') return undefined;
   return {
-    id: d.id,
-    client: d.client as `0x${string}`,
-    provider: d.provider as `0x${string}`,
-    evaluator: d.evaluator as `0x${string}`,
-    serviceId: d.serviceId,
-    paymentToken: d.paymentToken as `0x${string}`,
-    description: d.description,
-    budget: d.budget,
-    expiredAt: d.expiredAt,
-    status: d.status,
-    hook: d.hook as `0x${string}`,
-    deliverable: d.deliverable as `0x${string}`,
+    id: isArray ? arr[0] : (data as any).id,
+    client: (isArray ? arr[1] : (data as any).client) as `0x${string}`,
+    provider: (isArray ? arr[2] : (data as any).provider) as `0x${string}`,
+    evaluator: (isArray ? arr[3] : (data as any).evaluator) as `0x${string}`,
+    serviceId: isArray ? arr[4] : (data as any).serviceId,
+    paymentToken: (isArray ? arr[5] : (data as any).paymentToken) as `0x${string}`,
+    description: isArray ? arr[6] : (data as any).description,
+    budget: isArray ? arr[7] : (data as any).budget,
+    expiredAt: isArray ? arr[8] : (data as any).expiredAt,
+    status: isArray ? arr[9] : (data as any).status,
+    hook: (isArray ? arr[10] : (data as any).hook) as `0x${string}`,
+    deliverable: (isArray ? arr[11] : (data as any).deliverable) as `0x${string}`,
   };
 }
 
@@ -95,7 +101,7 @@ export function useJob(jobId: number | bigint | undefined) {
   const { data, isLoading, error, refetch } = useReadContract({
     address: AGENTIC_COMMERCE_ADDRESS,
     abi: AGENTIC_COMMERCE_ABI,
-    functionName: 'getJob',
+    functionName: 'jobs',
     args: id !== undefined ? [id] : undefined,
     query: {
       retry: 2,
@@ -113,20 +119,16 @@ export function useJob(jobId: number | bigint | undefined) {
 }
 
 export function useJobs(start: number = 0, count: number = 20) {
-  const {
-    count: totalCount,
-    isLoading: isCountLoading,
-    error: countError,
-    refetch: refetchCount,
-  } = useJobCount();
-
+  // V9 storage corruption: jobCounter reads V8's jobSubmittedAt slot (position 9)
+  // and returns garbage (3). Ignore it — read a fixed window and let mapJobData
+  // filter out phantom zero-address jobs.
   const jobQueries = [];
-  const safeCount = totalCount ?? 0;
-  for (let i = start; i < Math.min(start + count, safeCount); i++) {
+  const endIndex = start + count;
+  for (let i = start; i < endIndex; i++) {
     jobQueries.push({
       address: AGENTIC_COMMERCE_ADDRESS,
       abi: AGENTIC_COMMERCE_ABI,
-      functionName: 'getJob' as const,
+      functionName: 'jobs' as const,
       args: [BigInt(i)],
     });
   }
@@ -139,7 +141,6 @@ export function useJobs(start: number = 0, count: number = 20) {
   } = useReadContracts({
     contracts: jobQueries,
     query: {
-      enabled: jobQueries.length > 0 && !isCountLoading,
       retry: 2,
       staleTime: 30 * 1000,
     },
@@ -148,9 +149,9 @@ export function useJobs(start: number = 0, count: number = 20) {
   if (!results || results.length === 0) {
     return {
       jobs: [] as Job[],
-      isLoading: isCountLoading,
-      error: countError,
-      refetch: refetchCount,
+      isLoading,
+      error,
+      refetch,
     };
   }
 
@@ -166,11 +167,8 @@ export function useJobs(start: number = 0, count: number = 20) {
   return {
     jobs,
     isLoading,
-    error: error || countError,
-    refetch: () => {
-      refetch();
-      refetchCount();
-    },
+    error,
+    refetch,
   };
 }
 

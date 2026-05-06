@@ -5,6 +5,242 @@ All notable changes to the Kokonut Agent Economy Stack are documented in this fi
 The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.0.0/),
 and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0.html).
 
+## [2026-05-05] — Milestone System Fix: Auto-Enable + Data Normalization + Job Actions Repair
+
+### 🎯 Milestones Auto-Enable On-Chain During Job Creation
+
+**Root Cause:** The "Milestone-Based Payment" toggle in the job creation form only affected the redirect URL — it never called `enableMilestones()` on the `MilestoneEscrow` contract. Jobs created with milestones toggled ON landed on the detail page with `usesMilestones: false`, showing the "Enable Milestones" fallback instead of the milestone management UI.
+
+**Fix:** Imported `useEnableMilestones` from `useMilestoneEscrow`. After `createJob` confirms, the creation flow now calls `enableMilestones(jobId, client, provider, paymentToken, budget)` before redirecting to the job detail page. Added "Enabling Milestones..." loading state to the submit button.
+
+**Files:** `apps/web/app/jobs/create/create-job-content.tsx`
+
+---
+
+### 🎯 Job Detail Page Action Buttons Repaired
+
+**Root Cause (3 separate bugs):**
+
+1. **Client "Approve Delivery" / "Review & Approve"** — `handleClientApprove` only set local React state (`setClientApproved(true)`). It never called `approveByClient(jobId)` on-chain.
+2. **Evaluator "Approve & Release Payment"** — Called `useCompleteJob`, which was a **no-op stub** that only logged a console warning and never wrote to the contract.
+3. **`useFinalizeByEvaluator` existed but was never imported** — The correct V9 hook was fully implemented but `page.tsx` never used it.
+
+**Fix:**
+- Wired up `useApproveByClient` hook — client approval now calls `approveByClient(jobId)` on-chain
+- Replaced `useCompleteJob` stub with `useFinalizeByEvaluator` — evaluator now calls `finalizeByEvaluator(jobId, reason)` on-chain
+- Updated transaction tracking (`txHash`, `anyPending`, `currentError`) to include the new hooks
+
+**Files:** `apps/web/app/jobs/[id]/page.tsx`
+
+---
+
+### 🎯 MilestoneSection: Token-Aware Decimals + Job Status Gating
+
+**Root Cause:** All amount handling hardcoded `1e6` (USDC 6 decimals) and displayed "USDC" labels. For ETH jobs, entering `0.005` ETH became `5000` wei instead of `5_000_000_000_000_000` wei, causing `InvalidTokenAmount` or `MilestoneAmountExceedsBudget` reverts.
+
+**Fix:**
+- Added `getTokenInfo(paymentToken)` helper — detects ETH (zero address → 18 decimals) vs USDC (6 decimals)
+- All amount parsing, `formatUnits` calls, and labels now use dynamic `tokenDecimals` and `tokenSymbol`
+- Added `jobStatus` prop and `isTerminalStatus()` helper — disables milestone actions when job is `Completed`, `Rejected`, or `Expired`
+- Removed dead `useAccount()` call
+
+**Files:** `apps/web/components/MilestoneSection.tsx`
+
+---
+
+### 🎯 MilestoneEscrow Data Normalization (viem v2 Array Format)
+
+**Root Cause:** `useReadContract` (viem v2) returns tuple/struct data as **arrays**, not objects with named properties. The hooks performed blind type casts (`data as JobMilestones | undefined`), but at runtime `details` was an array like `['0x...', '0x...', '0x...', 100n, true]`. Accessing `details.totalBudget` on an array returned `undefined`, causing `formatUnits(undefined, ...)` to crash with `TypeError: can't access property "toString", value is undefined`.
+
+**Fix:** Added three normalization functions (mirroring the pattern in `useJobs.ts`):
+- `mapJobMilestonesDetails(data)` — maps `jobMilestones` 5-field tuple
+- `mapMilestone(data)` — maps each milestone's 6-field tuple
+- `mapDispute(data)` — maps `getDispute` 8-field tuple
+
+Updated all three read hooks (`useJobMilestones`, `useJobMilestonesDetails`, `useDispute`) to use these mappers instead of blind casts. Also added `feePaid` and `milestoneIndex` fields to the `Dispute` interface to match V2 contract's 8-field return struct.
+
+**Files:** `apps/web/lib/hooks/useMilestoneEscrow.ts`
+
+---
+
+### 🎯 Event Watcher: Fixed Broken MilestoneEscrow Signatures
+
+**Root Cause:** 4 event signatures in `useNotificationEvents.ts` were missing the `address token` parameter introduced in MilestoneEscrowV2, causing completely different topic hashes — these events were silently never caught by the event watcher.
+
+**Fix:** Updated signatures for:
+- `ArbiterRegistered(address indexed arbiter, address token, uint256 stake)`
+- `ArbiterUnregistered(address indexed arbiter, address token, uint256 refundedStake)`
+- `DisputeFlagged(uint256 indexed jobId, address indexed flagger, address token, uint256 fee)` — also fixed `flaggler` → `flagger` typo
+- `DisputeResolved(uint256 indexed jobId, bool releasedToProvider, address indexed arbiter, address token, uint256 arbiterFee)`
+
+**Removed:** Dead `MilestoneAutoReleased` event listener (only existed in V1, never emitted by V2).
+
+**Files:** `apps/web/lib/hooks/useNotificationEvents.ts`
+
+---
+
+### 🎯 Error Boundary Hardening
+
+**Root Cause:** `app/error.tsx` did `console.error(error)` and `error.message` without checking if `error` was actually a valid Error object. When a component crashed, the error boundary could itself crash while trying to report the error.
+
+**Fix:**
+- Wrapped `console.error` in try/catch
+- Added defensive extraction of `error.message` with `typeof` checks
+- Falls back to `'An unexpected error occurred.'` if error object is malformed
+
+**Files:** `apps/web/app/error.tsx`
+
+### 📦 Files Modified Summary
+
+| File | Changes |
+|------|---------|
+| `apps/web/app/jobs/create/create-job-content.tsx` | Auto-enable milestones after job creation, new loading state |
+| `apps/web/app/jobs/[id]/page.tsx` | Wired up `useApproveByClient` + `useFinalizeByEvaluator`, removed no-op stub |
+| `apps/web/components/MilestoneSection.tsx` | Dynamic token decimals/symbol, job status gating, error handling |
+| `apps/web/lib/hooks/useMilestoneEscrow.ts` | Added `mapJobMilestonesDetails`, `mapMilestone`, `mapDispute` normalizers |
+| `apps/web/lib/hooks/useNotificationEvents.ts` | Fixed 4 event signatures + removed dead `MilestoneAutoReleased` |
+| `apps/web/app/error.tsx` | Defensive error handling |
+
+### ✅ Build Status
+
+- TypeScript: **0 errors**
+
+---
+
+## [2026-05-04] — V9 Jobs Directory Fix: ABI Mismatch + Subgraph Stats + Storage Layout Investigation
+
+### 🎯 Root Cause: `getJob()` → `jobs(uint256)` ABI Mismatch
+
+The AgenticCommerceV9 implementation at `0xbc8068fcc7124960d96fbee106112c5654de63b8` has `mapping(uint256 => Job) public jobs` which auto-generates a `jobs(uint256)` getter — **not** `getJob(uint256)`. The frontend ABI declared `getJob(uint256)`, causing all `useReadContract` calls to revert with "function does not exist" — every job read returned empty.
+
+**Fix:** Changed `abis.ts` to use `function jobs(uint256)` and updated `useJob()` and `useJobs()` hooks to call `jobs(jobId)` instead of `getJob(jobId)`.
+
+### 🎯 Storage Layout Investigation
+
+Investigation revealed the proxy at `0x4c592510...` was originally deployed with V8 then upgraded to V9. The V9 contract inserts 6 new state variables before existing ones, causing a storage layout mismatch:
+
+| V9 Variable | Slot | V8 Had | V9 Reads |
+|---|---|---|---|
+| `minBudgetUsd` | 1 | `platformTreasury` | 5e6 (correct via setMinBudgetUsd) |
+| `maxBudgetUsd` | 2 | `jobs` mapping base | 0 (fixed via setMaxBudgetUsd) |
+| `priceOracle` | 7 | `jobDisputeWindow` | 0x2 (fixed via setPriceOracle) |
+| **`jobs` mapping** | **8** | `jobNonResponsiveSlashBP` | **Empty** |
+| **`jobCounter`** | **9** | `jobSubmittedAt` | **3 (garbage)** |
+
+The 3 "jobs" in `jobCounter` are garbage from V8's `jobSubmittedAt` slot — not real jobs. **Fix:** `mapJobData()` now filters out jobs with `client == address(0)`, preventing phantom job cards from appearing in the directory.
+
+**Implementation address updated:**
+- Old: `0xAFC89ae02843D041f2704f33FFf2e0d567859D58`
+- New (confirmed on-chain): `0xbc8068fcc7124960d96fbee106112c5654de63b8`
+
+### 🎯 Subgraph-Powered Job Stats
+
+Replaced client-side `jobs.filter()` stats computation with subgraph queries:
+
+**New query:** `GET_JOB_STATS` in `lib/graphql/queries/stats.ts`
+**New hook:** `useJobStatsFromSubgraph()` in `lib/hooks/useJobStatsFromSubgraph.ts`
+
+Stats now load from subgraph (instant, no RPC calls) instead of depending on the on-chain `jobs` mapping which is empty until new V9 jobs are created.
+
+### 📦 Files Modified
+
+| File | Changes |
+|---|---|
+| `apps/web/lib/contracts/abis.ts` | `getJob(uint256)` → `jobs(uint256)` |
+| `apps/web/lib/hooks/useJobs.ts` | Updated `useJob()` and `useJobs()` to `functionName: 'jobs'`, added phantom job filter in `mapJobData()` |
+| `apps/web/lib/contracts/config.ts` | Updated `agenticCommerceImpl` to `0xbc8068fc...` |
+| `apps/web/lib/graphql/queries/stats.ts` | Added `GET_JOB_STATS` query |
+| `apps/web/lib/hooks/useJobStatsFromSubgraph.ts` | **NEW** — Subgraph-powered job stats hook |
+| `apps/web/app/jobs/page.tsx` | Stats cards now use `useJobStatsFromSubgraph()` instead of `jobs.filter()` |
+| `AGENTS.md` | Updated AgenticCommerce Impl address |
+| `README.md` | Updated AgenticCommerce Impl address |
+| `CHANGELOG.md` | This entry |
+
+### ✅ Build Status
+
+- TypeScript: **0 errors**
+- Job directory: Stats load from subgraph. List is empty until jobs created on V9.
+
+---
+
+## [2026-05-04] — V9 Post-Deployment Configuration: priceOracle + USDC Allowlist + Static Frontend Minimums
+
+### 🎯 Root Cause: Uninitialized V9 State Variables
+
+**Problem:** V9 `initialize()` was never called after UUPS upgrade from V8. The `initializer` modifier blocked re-initialization, leaving 4 critical state variables with default/wrong values:
+
+| Variable | On-Chain Value | Expected Value |
+|---|---|---|
+| `priceOracle()` | `0x2` | `0x32fD2A54B722D2048A052fD0456004483a683aFE` |
+| `allowedTokens[USDC]` | unset | `true` |
+| `isStablecoin[USDC]` | `false` | `true` |
+| `maxBudgetUsd()` | `0` | `1_000_000e6` |
+
+This caused two revert errors during job creation:
+- **ETH**: `InvalidPrice()` — `getMinBudget()` called `priceOracle.getUsdPriceOfToken()` on `address(2)` (no contract → returns 0 → `InvalidPrice`)
+- **USDC**: `TokenNotAllowed(USDC)` — `onlyAllowedToken` modifier rejected USDC
+
+### 🔧 Fix: 4 Owner Transactions
+
+Owner executed the following on AgenticCommerceV9 proxy (`0x4c592510e4FAbbEEA8D7142dE1f38d548b500e7f`):
+
+| # | Tx | Function | Value | Effect |
+|---|---|---|---|---|
+| 1 | `0x82b095...` | `setPriceOracle()` | `0x32fD2A54B722D2048A052fD0456004483a683aFE` | Fixes ETH minimum budget calculation |
+| 2 | `0x09088f...` | `setAllowedToken()` | `(USDC, true)` | Allows USDC as payment token |
+| 3 | `0x8c66fa...` | `setStablecoin()` | `(USDC, true)` | Marks USDC as 1:1 with USD |
+| 4 | `0x57f881...` | `setMaxBudgetUsd()` | `1_000_000e6` ($1M) | Fixes broken max budget |
+
+### 🎯 Frontend Fix: Static Minimum Budgets
+
+Replaced dynamic `useMinBudget` hook (oracle-based, caused floating-point HTML validation errors like "valid between 6.99-7.01") with static `MIN_BUDGETS` constants:
+
+```typescript
+const MIN_BUDGETS = {
+  USDC: { min: 5, label: '5 USDC' },
+  ETH: { min: 0.0025, label: '0.0025 ETH' },
+};
+```
+
+**Changes in `create-job-content.tsx`:**
+- Removed `useMinBudget` import and call
+- Removed `isMinBudgetLoading` loading state guard
+- Removed `minEthFallback` fallback
+- Simplified `isFormValid` — uses static `minBudgetInToken` directly
+- HTML `min` attribute is now a clean constant (no loading guard needed)
+
+**Why:** The contract still enforces `getMinBudget()` on-chain. Static frontend minimums give clean UX while the contract provides actual enforcement. If the owner changes `minBudgetUsd`, users get a clean `BudgetTooLow` revert instead of a confusing floating-point HTML validation error.
+
+### 📦 Files Modified
+
+| File | Changes |
+|------|---------|
+| `contracts/` | (None — all on-chain) |
+| `apps/web/app/jobs/create/create-job-content.tsx` | Replaced `useMinBudget` with static `MIN_BUDGETS` |
+| `AGENTS.md` | Added Phase 29g section |
+| `CHANGELOG.md` | This entry |
+| `README.md` | Updated contract config section |
+
+### ✅ Verification
+
+All 4 state variables confirmed correct after fix:
+
+```bash
+$ cast call 0x4c5925... "priceOracle()(address)"
+0x32fD2A54B722D2048A052fD0456004483a683aFE
+
+$ cast call 0x4c5925... "allowedTokens(address)(bool)" 0x1c7D4B...
+true
+
+$ cast call 0x4c5925... "isStablecoin(address)(bool)" 0x1c7D4B...
+true
+
+$ cast call 0x4c5925... "maxBudgetUsd()(uint256)"
+1000000000000
+```
+
+---
+
 ## [2026-05-03] — EFP Social Graph + TheGraph Subgraph + Identity Directory Removal + 18 Bug Fixes
 
 ### 🎯 EFP (Ethereum Follow Protocol) Social Graph

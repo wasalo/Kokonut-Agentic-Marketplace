@@ -27,11 +27,68 @@ export interface JobMilestones {
 
 export interface Dispute {
   jobId: bigint;
-  flaggler: string;
+  flagger: string;
   arbiter: string;
   flaggedAt: bigint;
   resolved: boolean;
   releaseToProvider: boolean;
+  feePaid: bigint;
+  milestoneIndex: bigint;
+}
+
+// ============ Data Normalization Helpers ============
+// viem v2 returns tuple/struct data as arrays, not objects with named properties.
+// These mappers handle both array and object formats defensively.
+
+function mapJobMilestonesDetails(data: unknown): JobMilestones | undefined {
+  if (!data || typeof data !== 'object') return undefined;
+  const arr = data as unknown[];
+  const isArray = Array.isArray(data);
+  const client = isArray ? arr[0] : (data as any).client;
+  if (!client || (typeof client === 'string' && client === '0x0000000000000000000000000000000000000000')) {
+    return undefined;
+  }
+  return {
+    client: client as string,
+    provider: (isArray ? arr[1] : (data as any).provider) as string,
+    paymentToken: (isArray ? arr[2] : (data as any).paymentToken) as string,
+    totalBudget: (isArray ? arr[3] : (data as any).totalBudget) as bigint,
+    usesMilestones: (isArray ? arr[4] : (data as any).usesMilestones) as boolean,
+  };
+}
+
+function mapMilestone(data: unknown): Milestone | undefined {
+  if (!data || typeof data !== 'object') return undefined;
+  const arr = data as unknown[];
+  const isArray = Array.isArray(data);
+  return {
+    description: (isArray ? arr[0] : (data as any).description) as string,
+    amount: (isArray ? arr[1] : (data as any).amount) as bigint,
+    dueDate: (isArray ? arr[2] : (data as any).dueDate) as bigint,
+    completed: (isArray ? arr[3] : (data as any).completed) as boolean,
+    released: (isArray ? arr[4] : (data as any).released) as boolean,
+    proofHash: (isArray ? arr[5] : (data as any).proofHash) as string,
+  };
+}
+
+function mapDispute(data: unknown): Dispute | undefined {
+  if (!data || typeof data !== 'object') return undefined;
+  const arr = data as unknown[];
+  const isArray = Array.isArray(data);
+  const flagger = isArray ? arr[1] : (data as any).flagger;
+  if (!flagger || (typeof flagger === 'string' && flagger === '0x0000000000000000000000000000000000000000')) {
+    return undefined;
+  }
+  return {
+    jobId: (isArray ? arr[0] : (data as any).jobId) as bigint,
+    flagger: flagger as string,
+    arbiter: (isArray ? arr[2] : (data as any).arbiter) as string,
+    flaggedAt: (isArray ? arr[3] : (data as any).flaggedAt) as bigint,
+    resolved: (isArray ? arr[4] : (data as any).resolved) as boolean,
+    releaseToProvider: (isArray ? arr[5] : (data as any).releaseToProvider) as boolean,
+    feePaid: (isArray ? arr[6] : (data as any).feePaid) as bigint,
+    milestoneIndex: (isArray ? arr[7] : (data as any).milestoneIndex) as bigint,
+  };
 }
 
 // ============ Milestone Read Hooks ============
@@ -51,32 +108,18 @@ export function useJobMilestones(jobId: number | bigint | undefined) {
     },
   });
 
+  // Normalize array-of-arrays from viem into Milestone objects
+  const milestones: Milestone[] | undefined =
+    data && Array.isArray(data)
+      ? data
+          .map(mapMilestone)
+          .filter((m): m is Milestone => m !== undefined)
+      : undefined;
+
   return {
-    milestones: data as Milestone[] | undefined,
+    milestones,
     isLoading,
     error,
-    refetch,
-  };
-}
-
-export function useMilestoneCount(jobId: number | bigint | undefined) {
-  const id = jobId !== undefined ? (typeof jobId === 'bigint' ? jobId : BigInt(jobId)) : undefined;
-
-  const { data, isLoading, refetch } = useReadContract({
-    address: MILESTONE_ESCROW_ADDRESS,
-    abi: MILESTONE_ESCROW_ABI,
-    functionName: 'getMilestoneCount',
-    args: id !== undefined ? [id] : undefined,
-    query: {
-      retry: 2,
-      staleTime: 30 * 1000,
-      enabled: id !== undefined,
-    },
-  });
-
-  return {
-    count: data ? Number(data) : 0,
-    isLoading,
     refetch,
   };
 }
@@ -97,7 +140,7 @@ export function useJobMilestonesDetails(jobId: number | bigint | undefined) {
   });
 
   return {
-    details: data as JobMilestones | undefined,
+    details: mapJobMilestonesDetails(data),
     isLoading,
     error,
     refetch,
@@ -182,7 +225,7 @@ export function useDispute(jobId: number | bigint | undefined) {
   });
 
   return {
-    dispute: data as Dispute | undefined,
+    dispute: mapDispute(data),
     isLoading,
     error,
     refetch,

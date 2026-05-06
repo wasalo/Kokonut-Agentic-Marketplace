@@ -130,21 +130,18 @@ const EVENT_ABI_ITEMS = {
   milestoneReleased: parseAbiItem(
     'event MilestoneReleased(uint256 indexed jobId, uint256 indexed milestoneIndex, uint256 amount)'
   ),
-  milestoneAutoReleased: parseAbiItem(
-    'event MilestoneAutoReleased(uint256 indexed jobId, uint256 indexed milestoneIndex, uint256 amount)'
-  ),
-  arbiterRegistered: parseAbiItem('event ArbiterRegistered(address indexed arbiter, uint256 stake)'),
+  arbiterRegistered: parseAbiItem('event ArbiterRegistered(address indexed arbiter, address token, uint256 stake)'),
   arbiterUnregistered: parseAbiItem(
-    'event ArbiterUnregistered(address indexed arbiter, uint256 refundedStake)'
+    'event ArbiterUnregistered(address indexed arbiter, address token, uint256 refundedStake)'
   ),
   disputeFlagged: parseAbiItem(
-    'event DisputeFlagged(uint256 indexed jobId, address indexed flaggler, uint256 fee)'
+    'event DisputeFlagged(uint256 indexed jobId, address indexed flagger, address token, uint256 fee)'
   ),
   evidenceSubmitted: parseAbiItem(
     'event EvidenceSubmitted(uint256 indexed jobId, address indexed submitter, bytes32 evidenceHash)'
   ),
   disputeResolved: parseAbiItem(
-    'event DisputeResolved(uint256 indexed jobId, bool releasedToProvider, address indexed arbiter, uint256 arbiterFee)'
+    'event DisputeResolved(uint256 indexed jobId, bool releasedToProvider, address indexed arbiter, address token, uint256 arbiterFee)'
   ),
   arbiterSlashed: parseAbiItem(
     'event ArbiterSlashed(address indexed arbiter, uint256 slashedAmount, string reason)'
@@ -612,7 +609,6 @@ const publicClient = usePublicClient();
             EVENT_ABI_ITEMS.milestoneAdded,
             EVENT_ABI_ITEMS.milestoneCompleted,
             EVENT_ABI_ITEMS.milestoneReleased,
-            EVENT_ABI_ITEMS.milestoneAutoReleased,
             EVENT_ABI_ITEMS.arbiterRegistered,
             EVENT_ABI_ITEMS.arbiterUnregistered,
             EVENT_ABI_ITEMS.disputeFlagged,
@@ -674,18 +670,6 @@ const publicClient = usePublicClient();
             });
           }
 
-          if (event === 'MilestoneAutoReleased' && log.args.jobId && log.args.milestoneIndex) {
-            const amount = Number(log.args.amount || 0) / 1e6;
-            triggerWebhooks({
-              event: 'milestone.auto_released',
-              data: {
-                jobId: log.args.jobId.toString(),
-                milestoneIndex: log.args.milestoneIndex.toString(),
-                amount: amount.toString(),
-              },
-            });
-          }
-
           if (event === 'ArbiterRegistered' && log.args.arbiter) {
             const stake = Number(log.args.stake || 0) / 1e18;
             if (address && log.args.arbiter.toLowerCase() === address.toLowerCase()) {
@@ -720,13 +704,13 @@ const publicClient = usePublicClient();
             });
           }
 
-          if (event === 'DisputeFlagged' && log.args.jobId && log.args.flaggler) {
+          if (event === 'DisputeFlagged' && log.args.jobId && log.args.flagger) {
             const fee = Number(log.args.fee || 0) / 1e18;
             triggerWebhooks({
               event: 'dispute.flagged',
               data: {
                 jobId: log.args.jobId.toString(),
-                flaggler: log.args.flaggler,
+                flagger: log.args.flagger,
                 fee: fee.toString(),
               },
             });

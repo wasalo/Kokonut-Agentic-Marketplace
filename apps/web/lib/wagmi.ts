@@ -21,12 +21,10 @@ export const CHAIN_RPC_CONFIG = {
       'https://eth-sepolia.api.onfinality.io/public',
     ],
   },
-  1: {  // Ethereum Mainnet (placeholder)
+   1: {  // Ethereum Mainnet (placeholder)
     primary: 'https://eth.llamarpc.com',
     fallbacks: [
-      'https://eth-mainnet.g.alchemy.com/v2/demo',
       'https://rpc.ankr.com/eth',
-      'https://eth.public-rpc.com',
     ],
   },
   8453: {  // Base (placeholder)

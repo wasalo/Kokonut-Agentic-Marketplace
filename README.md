@@ -212,14 +212,14 @@ The wildcard format (e.g., `10.108.1.*`) allows any IP in that subnet. Add expli
 | ------------------------ | -------------------------------------------- | -------------------------- |
 | **AdminRegistry**        | `0xC81C864CEAb6231ad764cf9867e031D8b6dee41d` | UUPS Proxy — Phase 29e Pashov fixes + data migration |
 | **MilestoneEscrow**      | `0xd4Fdc345b1c6aF1B4Cc84339bcB251B33527Eb45` | MilestoneEscrowV2 - Per-token fees + USDC staking |
-| **MilestoneEscrow Impl** | `0xfb764A5c740aC47721bC9802596395CdF2DC4CdB` | Phase 29e: activeDisputeIds cleanup + Pashov fixes |
+| **MilestoneEscrow Impl** | `0xb7b801a1cfff3ad295063cd75b751c47e0f76b7f` | Phase 29g: actual deployed V9 |
 | **AgentSkillRegistryV2** | `0xA84684261558f342d6871DD2CFef90A2117Aa20A` | Skills/capabilities (UUPS) |
 | **ServiceRegistryV2**    | `0x62E1eeEa1A2Ab987004F35bDA430457Ed6077201` | Service listings (UUPS)    |
 | **ServiceRegistryV2 Impl** | `0xb75B02D4523171ABdB6f5bcB9D60903ed3e30fAD` | Phase 29e: blacklist recheck + Pashov fixes |
 | **AgenticCommerce**      | `0x4c592510e4FAbbEEA8D7142dE1f38d548b500e7f` | Job escrow (V9: Multi-Token Configurable Minimums) |
-| **AgenticCommerce Impl** | `0x9634280fb2416061124aa6474F1BcF692473bEF4` | Phase 29e: commit-reveal + stake + Pashov fixes |
+| **AgenticCommerce Impl** | `0xbc8068fcc7124960d96fbee106112c5654de63b8` | Phase 29g: storage-layout-aware V9 |
 | **PriceOracle**          | `0x32fD2A54B722D2048A052fD0456004483a683aFE` | PriceOracleV2 - UUPS upgradeable per-token feeds |
-| **PriceOracle Impl**     | `0xb4660AceBf93874fB6E945C312c5706093336Ef8` | UUPS upgradeable, ETH feed support |
+| **PriceOracle Impl**     | `0x34344702fe257aEB4FdD73F5c51f5DdE0168a652` | OZ v5 compat (removed __UUPSUpgradeable_init()) |
 | **AgentReviewV5**        | `0x5CDb592Fd37749bF87448FBf5725D1Cd986dd1Cb` | A/B evaluation             |
 | **BiddingSystem**        | `0x32c9d069a248a619d3EAc4dFC76F2639AaBeF04`  | Commit-reveal bidding      |
 | **BiddingSystem Impl**    | `0x0eE5E780bbbBA610D0B1926a3993A2aa0B1B9812` | Phase 29e: blacklist check on commitBid |
@@ -236,10 +236,11 @@ The wildcard format (e.g., `10.108.1.*`) allows any IP in that subnet. Add expli
 | ----------------- | -------------------------------------------------------------------- |
 | **Identity**      | Can't pretend to be someone else — identities are on-chain NFTs      |
 | **Escrow**        | Money can't be stolen — held by code, not any person    |
-| **Multi-Token**   | Budget in USDC, ETH, or any ERC20 - dynamic minimums via oracle |
+| **Multi-Token**   | Budget in USDC, ETH, or any ERC20 — static minimums (5 USDC / 0.0025 ETH) |
 | **Fund at Create** | Optional immediate funding in single transaction |
 | **Exact Approvals** | Only job budget approved - not unlimited tokens |
-| **Dynamic Minimums** | ETH/volatile token minimums auto-adjust with market price |
+| **Static Minimums** | No floating-point validation errors — fixed per-token minimums enforced by contract |
+| **Milestone Payments** | Auto-enable on-chain at creation; token-aware amounts (USDC 6d / ETH 18d) |
 | **Evaluation**   | Judges incentivized to be honest — they stake their own money
 | **Slashing**      | Cheaters lose 50% of stake — expensive to be dishonest               |
 | **Front-running** | Commit-reveal stops bots from sniping purchases                      |

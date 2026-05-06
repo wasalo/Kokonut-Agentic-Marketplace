@@ -2,20 +2,21 @@
 
 import { useState, useCallback, useEffect } from 'react';
 import { useAccount, useWaitForTransactionReceipt, usePublicClient, useWriteContract } from 'wagmi';
-import { erc20Abi } from 'viem';
+import { erc20Abi, formatUnits } from 'viem';
 import { useRouter, useSearchParams } from 'next/navigation';
 import { ArrowLeft, Loader2, ShieldCheck, AlertTriangle, Coins } from 'lucide-react';
 import NextLink from 'next/link';
 import { Card } from '@heroui/react';
 import { useService } from '@/lib/hooks/useServices';
 import { useCreateJobWithRandomEvaluator, useCreateJobV8, useJobCount, useSetBudget } from '@/lib/hooks/useJobs';
+import { useEnableMilestones } from '@/lib/hooks/useMilestoneEscrow';
 import { CONTRACT_ADDRESSES, getContractAddress } from '@/lib/contracts/config';
 
 import { validateAddress, validateDeadline, validateStringLength } from '@/lib/hooks/useValidation';
 import { TransactionError } from '@/components/TransactionError';
 import { useFormSubmit, formatTimeRemaining } from '@/lib/hooks/useDebounce';
 import { useClientJobCount, MAX_JOBS_PER_CLIENT } from '@/lib/hooks/useClientJobCount';
-import { useMinBudget } from '@/lib/hooks/useMinBudget';
+import { useMaxBudgetUsd, MAX_BUDGET_USD } from '@/lib/hooks/useMinBudget';
 import {
   useTokenPriceConversion,
   USDC_TOKEN,
@@ -92,7 +93,7 @@ function CreateJobContent() {
   const serviceId = serviceIdParam ? BigInt(serviceIdParam) : undefined;
   const { service } = useService(serviceId ?? BigInt(0));
 
-  const { formatUsdValue } = useTokenPriceConversion();
+  const { formatUsdValue, ethToUsdcRate } = useTokenPriceConversion();
 
   const {
     count: jobCount,
@@ -114,10 +115,14 @@ function CreateJobContent() {
   const [clientReview] = useState(true);
   const [fundJobNow, setFundJobNow] = useState(false);
 
-  const { minBudget: minBudgetInToken } = useMinBudget(
-    paymentToken.address as `0x${string}`,
-    paymentToken.decimals
-  );
+  const { maxBudgetUsd } = useMaxBudgetUsd();
+
+  // Static per-token minimum budgets (replaces dynamic contract call for better UX)
+  const MIN_BUDGETS: Record<string, { min: number; label: string }> = {
+    USDC: { min: 5, label: '5 USDC' },
+    ETH: { min: 0.0025, label: '0.0025 ETH' },
+  };
+  const minBudgetInToken = MIN_BUDGETS[paymentToken.symbol]?.min ?? 5;
 
   useEffect(() => {
     if (providerParam) {
@@ -148,6 +153,12 @@ function CreateJobContent() {
   const { setBudget: setJobBudget } = useSetBudget();
   const jobCounter = useJobCount();
 
+  const {
+    enableMilestones,
+    isSuccess: isEnableMilestonesSuccess,
+    isPending: isEnableMilestonesPending,
+  } = useEnableMilestones();
+
   const txHash = randomHash || v8Hash;
   const { isLoading: isConfirming, isSuccess: isConfirmed } = useWaitForTransactionReceipt({
     hash: txHash,
@@ -162,26 +173,43 @@ function CreateJobContent() {
     CONTRACT_ADDRESSES.sepolia.agenticCommerce
   );
 
+  const [isEnablingMilestones, setIsEnablingMilestones] = useState(false);
+
+  // After createJob confirms, set budget then optionally enable milestones
   useEffect(() => {
-    if (isConfirmed && txHash && jobCounter) {
-      setSubmitPhase('idle');
-      // The new jobId is jobCounter - 1 (since counter is incremented after job creation)
+    if (isConfirmed && txHash && jobCounter && !isEnablingMilestones) {
       const newJobId = BigInt(jobCounter.count - 1);
-      const budgetAmount = BigInt(Math.floor(parseFloat(budget) * 1e6));
-      
-      // Only set budget separately if NOT using V8 (which sets budget at creation)
+      const budgetAmount = BigInt(Math.floor(parseFloat(budget) * Math.pow(10, paymentToken.decimals)));
       if (!fundJobNow && budget) {
         setJobBudget(newJobId, budgetAmount);
       }
-      
-      showToast.success('Job Created!', 'Redirecting to your jobs...');
-      // Store milestone preference if selected, for job detail page
+      setSubmitPhase('idle');
+      showToast.success('Job Created!', '');
+
       if (useMilestones) {
-        localStorage.setItem('pending_milestone_job', 'true');
+        setIsEnablingMilestones(true);
+        enableMilestones(
+          newJobId,
+          address!,
+          provider as `0x${string}`,
+          paymentToken.address as `0x${string}`,
+          budgetAmount
+        );
+      } else {
+        router.push('/jobs');
       }
-      router.push('/jobs');
     }
-  }, [isConfirmed, txHash, jobCounter, router, useMilestones, budget, setJobBudget, fundJobNow]);
+  }, [isConfirmed, txHash, jobCounter, useMilestones, address, provider, paymentToken, budget, setJobBudget, fundJobNow, router, isEnablingMilestones, enableMilestones]);
+
+  // Redirect after milestones are successfully enabled
+  useEffect(() => {
+    if (isEnableMilestonesSuccess && isEnablingMilestones && jobCounter) {
+      const newJobId = BigInt(jobCounter.count - 1);
+      setIsEnablingMilestones(false);
+      showToast.success('Milestones Enabled!', 'Redirecting to job detail...');
+      router.push(`/jobs/${newJobId.toString()}`);
+    }
+  }, [isEnableMilestonesSuccess, isEnablingMilestones, jobCounter, router]);
 
   const validateProvider = useCallback(
     (value: string) => {
@@ -325,6 +353,23 @@ function CreateJobContent() {
         if (fundJobNow && paymentToken.symbol === 'USDC') {
           try {
             setSubmitPhase('checking');
+            console.log('[CreateJob] Checking USDC balance on-demand...');
+
+            // Step 0: Check USDC balance first
+            const balance = await publicClient!.readContract({
+              address: USDC_TOKEN.address,
+              abi: erc20Abi,
+              functionName: 'balanceOf',
+              args: [address!],
+            });
+            if (balance < budgetAmount) {
+              const formattedBalance = formatUnits(balance, 6);
+              showToast.error('Insufficient USDC balance',
+                `You need ${budget} USDC but only have ${formattedBalance} USDC`);
+              setSubmitPhase('idle');
+              return;
+            }
+
             console.log('[CreateJob] Checking USDC allowance on-demand...');
             
             const allowance = await publicClient!.readContract({
@@ -412,6 +457,9 @@ function CreateJobContent() {
       provider,
       budget,
       paymentToken,
+      minBudgetInToken,
+      maxBudgetUsd,
+      ethToUsdcRate,
       validateDeadlineField,
       validateBudgetField,
       createJobV8,
@@ -425,7 +473,7 @@ function CreateJobContent() {
 
 const { handleSubmit, isSubmitting, timeUntilNextSubmit } = useFormSubmit(performSubmit, 2000);
 
-const isFormLoading = isRandomPending || isV8Pending || isConfirming || submitPhase !== 'idle';
+const isFormLoading = isRandomPending || isV8Pending || isConfirming || submitPhase !== 'idle' || isEnableMilestonesPending || isEnablingMilestones;
 const error = randomError || v8Error;
 
 // Reset submit phase on transaction errors
@@ -440,7 +488,7 @@ let isFormValid = false;
 if (serviceId && service) {
   isFormValid = !!description && Number(service.price) > 0;
 } else {
-  isFormValid = !!provider && provider.startsWith('0x') && !!budget && parseFloat(budget) >= minBudgetInToken && !!description;
+  isFormValid = !!provider && provider.startsWith('0x') && !!budget && parseFloat(budget) >= minBudgetInToken * 0.999 && !!description;
 }
 
 const budgetInUsdc =
@@ -632,7 +680,7 @@ const budgetInUsdc =
                     id="budget"
                     type="number"
                     step={paymentToken.symbol === 'USDC' ? '0.01' : '0.0001'}
-                    min={minBudgetInToken > 0 ? minBudgetInToken : 0}
+                    min={minBudgetInToken}
                     placeholder={paymentToken.symbol === 'USDC' ? '100.00' : '0.0500'}
                     value={budget}
                     onChange={e => {
@@ -767,10 +815,15 @@ const budgetInUsdc =
                     <Loader2 className="w-4 h-4 animate-spin" />
                     Approving USDC...
                   </>
-                ) : submitPhase === 'creating' ? (
+                )                 : submitPhase === 'creating' ? (
                   <>
                     <Loader2 className="w-4 h-4 animate-spin" />
                     Creating Job...
+                  </>
+                ) : isEnableMilestonesPending || isEnablingMilestones ? (
+                  <>
+                    <Loader2 className="w-4 h-4 animate-spin" />
+                    Enabling Milestones...
                   </>
                 ) : isConfirming ? (
                   <>

@@ -109,7 +109,7 @@ export const AGENTIC_COMMERCE_ABI = parseAbi([
   'function refundExpired(uint256 jobId) external',
   'function setDisputeWindow(uint256 jobId, uint256 window) external',
   'function setNonResponsiveSlashBP(uint256 jobId, uint256 slashBP) external',
-  'function getJob(uint256 jobId) external view returns ((uint256 id, address client, address provider, address evaluator, uint256 serviceId, address paymentToken, string description, uint256 budget, uint256 expiredAt, uint8 status, address hook, bytes32 deliverable))',
+  'function jobs(uint256) external view returns (uint256 id, address client, address provider, address evaluator, uint256 serviceId, address paymentToken, string description, uint256 budget, uint256 expiredAt, uint8 status, address hook, bytes32 deliverable)',
   'function getClientJobCount(address client) external view returns (uint256)',
   'function registerAsEvaluator() external payable',
   'function unregisterAsEvaluator() external',
@@ -332,7 +332,6 @@ export const MILESTONE_ESCROW_ABI = parseAbi([
   'function submitMilestone(uint256 jobId, uint256 milestoneIndex, bytes32 proofHash) external',
   'function releaseMilestone(uint256 jobId, uint256 milestoneIndex) external',
   'function getJobMilestones(uint256 jobId) external view returns ((string description, uint256 amount, uint256 dueDate, bool completed, bool released, bytes32 proofHash)[] memory)',
-  'function getMilestoneCount(uint256 jobId) external view returns (uint256)',
   'function jobMilestones(uint256) external view returns (address client, address provider, address paymentToken, uint256 totalBudget, bool usesMilestones)',
   'function milestoneTotalAmount(uint256) external view returns (uint256)',
 

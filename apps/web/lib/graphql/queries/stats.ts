@@ -14,6 +14,17 @@ export const GET_PLATFORM_STATS = `
   }
 `;
 
+export const GET_JOB_STATS = `
+  query GetJobStats {
+    platformStats(first: 1, where: { id: "platform" }) {
+      totalJobs
+    }
+    jobs(first: 1000, orderBy: createdAt, orderDirection: desc) {
+      status
+    }
+  }
+`;
+
 export const GET_ALL_AGENTS_METADATA = `
   query GetAllAgentsMetadata($first: Int!) {
     agents(first: $first, orderBy: createdAt, orderDirection: desc) {

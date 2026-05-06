@@ -26,6 +26,7 @@ import { StatusBadge, getJobStatusBadgeType } from '@/components/StatusBadge';
 import { useDebounce } from '@/lib/hooks/useDebounce';
 import { EmptyStateJobs } from '@/components/ui/empty-state';
 import { Pagination } from '@/components/ui/pagination';
+import { useJobStatsFromSubgraph } from '@/lib/hooks/useJobStatsFromSubgraph';
 
 function JobCard({ job }: { job: any }) {
   const { service } = useService(job.serviceId ?? BigInt(0));
@@ -130,6 +131,7 @@ export default function JobsPage(): JSX.Element {
   }, [searchQuery, debouncedSearch]);
 
   const { jobs, isLoading } = useJobsFromEvents();
+  const { stats: subgraphStats, isLoading: isStatsLoading } = useJobStatsFromSubgraph();
 
   // Filter jobs
   const filteredJobs = jobs.filter(job => {
@@ -204,27 +206,26 @@ export default function JobsPage(): JSX.Element {
         <Card className="border border-divider p-4">
           <div className="text-sm text-default-500">Open Jobs</div>
           <div className="text-2xl font-bold">
-            {jobs.filter(j => j.status === JobStatus.Open).length}
+            {isStatsLoading ? '...' : subgraphStats.openJobs}
           </div>
         </Card>
         <Card className="border border-divider p-4">
           <div className="text-sm text-default-500">In Progress</div>
           <div className="text-2xl font-bold">
-            {
-              jobs.filter(j => j.status === JobStatus.Funded || j.status === JobStatus.Submitted)
-                .length
-            }
+            {isStatsLoading ? '...' : subgraphStats.inProgressJobs}
           </div>
         </Card>
         <Card className="border border-divider p-4">
           <div className="text-sm text-default-500">Completed</div>
           <div className="text-2xl font-bold">
-            {jobs.filter(j => j.status === JobStatus.Completed).length}
+            {isStatsLoading ? '...' : subgraphStats.completedJobs}
           </div>
         </Card>
         <Card className="border border-divider p-4">
           <div className="text-sm text-default-500">Total Jobs</div>
-          <div className="text-2xl font-bold">{jobs.length}</div>
+          <div className="text-2xl font-bold">
+            {isStatsLoading ? '...' : subgraphStats.totalJobs}
+          </div>
         </Card>
       </div>
 
