@@ -39,8 +39,9 @@ interface ActivityItemData {
 }
 
 function ActivityItem({ activity }: { activity: ActivityItemData }) {
-  const Icon = ACTIVITY_ICONS[activity.type];
-  const color = ACTIVITY_COLORS[activity.type];
+  const typeKey = activity.type.split('_')[0].toLowerCase() as keyof typeof ACTIVITY_ICONS;
+  const Icon = ACTIVITY_ICONS[typeKey] ?? Activity;
+  const color = ACTIVITY_COLORS[activity.type] ?? '#666';
 
   const getLink = () => {
     switch (activity.type) {

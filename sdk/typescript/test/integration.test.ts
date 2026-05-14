@@ -86,17 +86,19 @@ describe.skip('SDK Integration Tests - Sepolia', () => {
   });
 
   describe('PriceOracle Read Functions', () => {
-    it('should get USDC price', async () => {
+    it('should get token price', async () => {
       if (!client?.priceOracle) {
         console.log('\n⚠️  PriceOracle not initialized - skipping');
         return;
       }
 
       try {
-        const price = await client.priceOracle.getUSDCPrice();
+        const price = await client.priceOracle.getUsdPriceOfToken(
+          client.contracts.usdc as `0x${string}`
+        );
         expect(price).toBeDefined();
         expect(typeof price).toBe('bigint');
-        console.log('\n💵 USDC Price:', price.toString());
+        console.log('\n💵 Price:', price.toString());
       } catch (error) {
         console.log(
           '\n⚠️  PriceOracle call failed:',
@@ -112,7 +114,9 @@ describe.skip('SDK Integration Tests - Sepolia', () => {
       }
 
       try {
-        const stale = await client.priceOracle.isStale();
+        const stale = await client.priceOracle.isStale(
+          client.contracts.usdc as `0x${string}`
+        );
         expect(typeof stale).toBe('boolean');
         console.log('\n📊 Price stale:', stale);
       } catch (error) {
@@ -167,9 +171,9 @@ describe.skip('SDK Integration Tests - Sepolia', () => {
       }
 
       try {
-        const count = await client.commerce.getJobCount();
+        const count = await client.commerce.getClientJobCount(client.address);
         expect(typeof count).toBe('number');
-        console.log('\n📋 Total jobs:', count);
+        console.log('\n📋 Client job count:', count);
       } catch (error) {
         console.log('\n⚠️  Commerce call failed:', error instanceof Error ? error.message : error);
       }

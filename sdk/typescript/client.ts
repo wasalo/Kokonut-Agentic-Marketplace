@@ -92,7 +92,6 @@ const AGENTIC_COMMERCE_ABI = parseAbi([
   'function setBudget(uint256 jobId, uint256 amount) external',
   'function fund(uint256 jobId, uint256 expectedBudget) external payable',
   'function submit(uint256 jobId, bytes32 deliverable) external',
-  'function complete(uint256 jobId, bytes32 reason) external',
   'function reject(uint256 jobId, bytes32 reason) external',
   'function claimRefund(uint256 jobId) external',
   'function refundExpired(uint256 jobId) external',
@@ -117,8 +116,8 @@ const AGENTIC_COMMERCE_ABI = parseAbi([
   'function getEvaluatorPoolSize() external view returns (uint256)',
   'function finalizeRandomEvaluator(uint256 jobId, bytes32 salt) external',
   'function slashEvaluatorStake(address evaluator, string calldata reason) external',
-  // View Functions
-  'function getJob(uint256 jobId) external view returns ((uint256 id, address client, address provider, address evaluator, uint256 serviceId, address paymentToken, string description, uint256 budget, uint256 expiredAt, uint8 status, address hook, bytes32 deliverable))',
+  // View Functions (V9: uses `jobs` not `getJob`)
+  'function jobs(uint256) external view returns (uint256 id, address client, address provider, address evaluator, uint256 serviceId, address paymentToken, string description, uint256 budget, uint256 expiredAt, uint8 status, address hook, bytes32 deliverable)',
   'function jobCounter() external view returns (uint256)',
   'function getClientJobCount(address client) external view returns (uint256)',
   'function isEvaluatorFeeEnabled(uint256 jobId) external view returns (bool)',
@@ -184,6 +183,8 @@ const AGENT_REVIEW_ABI = parseAbi([
   'function setAdminRegistry(address _adminRegistry) external',
   'function withdrawETH(address payable to, uint256 amount) external',
   'function getTotalLockedETH() external view returns (uint256 totalLocked)',
+  'function setSlashTreasury(address treasury_) external',
+  'function setDefaultSlashPercentage(uint256 slashBP) external',
   // Events
   'event ProposalCreated(uint256 indexed proposalId, address indexed proposer, string title, uint256 reward)',
   'event EvaluationSubmitted(uint256 indexed proposalId, address indexed evaluator, int256 confidenceScore, uint256 stakeAmount)',
@@ -236,6 +237,7 @@ const MILESTONE_ESCROW_ABI = parseAbi([
   'function arbiterStakes(address) external view returns (uint256)',
   'function isRegisteredArbiter(address) external view returns (bool)',
   'function slashArbiter(address arbiter, string calldata reason) external',
+  'function withdrawToken(address token, uint256 amount) external',
   // Dispute System (V2: ERC20 fee)
   'function flagDispute(uint256 jobId, uint256 milestoneIndex) external',
   'function submitEvidence(uint256 jobId, bytes32 evidenceHash) external',
@@ -270,7 +272,7 @@ export class KokonutClient {
   private publicClient: any;
   private chain: any; // Keep as any if dynamic, or refine
   private network: NetworkName;
-  private contracts: ContractAddresses;
+  public contracts: ContractAddresses;
   private eventHandlers: Map<SDKEventName, Set<SDKEventHandler>> = new Map();
 
   // Contract instances
@@ -895,14 +897,19 @@ class CommerceModule {
       functionName: 'createJob',
       args: [
         params.provider as Address,
-        (params.evaluator || params.provider) as Address,
+        params.budget || 0n,
+        (params.paymentToken || '0x0000000000000000000000000000000000000000') as Address,
+        params.serviceId || 0n,
         BigInt(params.expiredAt || Math.floor(Date.now() / 1000) + 7 * 24 * 60 * 60),
         params.description,
+        (params.evaluator || '0x0000000000000000000000000000000000000000') as Address,
         (params.hook || '0x0000000000000000000000000000000000000000') as Address,
         params.evaluatorFee || false,
+        params.clientReview ?? true,
+        params.fundNow || false,
+        params.fundAmount || 0n,
       ],
     } as any);
-
 
     return {
       hash,
@@ -987,17 +994,7 @@ class CommerceModule {
   }
 
   async completeJob(jobId: number | bigint, reason: `0x${string}`): Promise<TransactionResult> {
-    const hash = await this.wallet.writeContract({
-      address: this.contracts.agenticCommerce,
-      abi: AGENTIC_COMMERCE_ABI,
-      functionName: 'complete',
-      args: [jobId, reason],
-    } as any);
-
-    return {
-      hash,
-      wait: () => this.publicClient.waitForTransactionReceipt({ hash }),
-    };
+    return this.finalizeByEvaluator(BigInt(jobId), reason);
   }
 
   async rejectJob(jobId: number | bigint, reason: `0x${string}`): Promise<TransactionResult> {
@@ -1096,7 +1093,7 @@ class CommerceModule {
     const job = (await this.publicClient.readContract({
       address: this.contracts.agenticCommerce as Address,
       abi: AGENTIC_COMMERCE_ABI,
-      functionName: 'getJob',
+      functionName: 'jobs',
       args: [BigInt(jobId)],
     } as any)) as JobTuple;
 
@@ -1377,19 +1374,36 @@ class CommerceModule {
     };
   }
 
-  async getMyJobs(): Promise<Job[]> {
-    const jobIds = (await this.publicClient.readContract({
+  async completeAfterTimeout(jobId: bigint, reason: `0x${string}`): Promise<TransactionResult> {
+    const hash = await this.wallet.writeContract({
       address: this.contracts.agenticCommerce,
       abi: AGENTIC_COMMERCE_ABI,
-      functionName: 'getClientJobs',
-      args: [this.wallet.account.address],
-    } as any)) as unknown as bigint[];
+      functionName: 'completeAfterTimeout',
+      args: [jobId, reason],
+    } as any);
+    return { hash, wait: () => this.publicClient.waitForTransactionReceipt({ hash }) };
+  }
+
+  async refundExpired(jobId: bigint): Promise<TransactionResult> {
+    const hash = await this.wallet.writeContract({
+      address: this.contracts.agenticCommerce,
+      abi: AGENTIC_COMMERCE_ABI,
+      functionName: 'refundExpired',
+      args: [jobId],
+    } as any);
+    return { hash, wait: () => this.publicClient.waitForTransactionReceipt({ hash }) };
+  }
+
+  async getMyJobs(): Promise<Job[]> {
+    const jobCount = await this.getClientJobCount(this.wallet.account.address as Address);
     const jobs: Job[] = [];
 
-    for (const id of jobIds) {
+    for (let i = 0n; i < jobCount; i++) {
       try {
-        const job = await this.getJob(id);
-        jobs.push(job);
+        const job = await this.getJob(i);
+        if (job.client && job.client !== '0x0000000000000000000000000000000000000000') {
+          jobs.push(job);
+        }
       } catch {
         // Skip invalid jobs
       }
@@ -1675,6 +1689,52 @@ class ReviewModule {
     };
   }
 
+  async finalizeDecision(proposalId: bigint): Promise<TransactionResult> {
+    const hash = await this.wallet.writeContract({
+      address: this.contracts.agentReview as Address,
+      abi: AGENT_REVIEW_ABI,
+      functionName: 'finalizeDecision',
+      args: [proposalId],
+    } as any);
+    return { hash, wait: () => this.publicClient.waitForTransactionReceipt({ hash }) };
+  }
+
+  async getTotalLockedETH(): Promise<bigint> {
+    return (await this.publicClient.readContract({
+      address: this.contracts.agentReview as Address,
+      abi: AGENT_REVIEW_ABI,
+      functionName: 'getTotalLockedETH',
+    } as any)) as unknown as bigint;
+  }
+
+  async calculateMedianScore(proposalId: bigint): Promise<bigint> {
+    return (await this.publicClient.readContract({
+      address: this.contracts.agentReview as Address,
+      abi: AGENT_REVIEW_ABI,
+      functionName: 'calculateMedianScore',
+      args: [proposalId],
+    } as any)) as unknown as bigint;
+  }
+
+  async setSlashTreasury(treasury: Address): Promise<TransactionResult> {
+    const hash = await this.wallet.writeContract({
+      address: this.contracts.agentReview as Address,
+      abi: AGENT_REVIEW_ABI,
+      functionName: 'setSlashTreasury',
+      args: [treasury],
+    } as any);
+    return { hash, wait: () => this.publicClient.waitForTransactionReceipt({ hash }) };
+  }
+
+  async setDefaultSlashPercentage(slashBP: bigint): Promise<TransactionResult> {
+    const hash = await this.wallet.writeContract({
+      address: this.contracts.agentReview as Address,
+      abi: AGENT_REVIEW_ABI,
+      functionName: 'setDefaultSlashPercentage',
+      args: [slashBP],
+    } as any);
+    return { hash, wait: () => this.publicClient.waitForTransactionReceipt({ hash }) };
+  }
 
   on<K extends 'ProposalCreated' | 'EvaluationSubmitted' | 'DecisionAttested'>(
     event: K,
@@ -1881,12 +1941,20 @@ class SkillsModule {
 const PRICE_ORACLE_ABI = parseAbi([
   'function getUsdPriceOfToken(address token) external view returns (int256)',
   'function getTokenAmountForUsd(uint256 usdAmount, address token) external view returns (uint256)',
+  'function getUsdAmountForTokens(uint256 tokenAmount, address token) external view returns (uint256)',
   'function isStale(address token) external view returns (bool)',
   'function priceFeeds(address token) external view returns (address)',
   'function feedDecimals(address token) external view returns (uint8)',
   'function isStablecoin(address token) external view returns (bool)',
   'function ethPriceFeed() external view returns (address)',
   'function ethFeedDecimals() external view returns (uint8)',
+  'function getPriceFeed(address token) external view returns (address)',
+  'function getTokenInfo(address token) external view returns (address feed, uint8 decimals, bool stable)',
+  'function setPriceFeed(address token, address feed, uint8 decimals) external',
+  'function removePriceFeed(address token) external',
+  'function setEthPriceFeed(address feed, uint8 decimals) external',
+  'function setStablecoin(address token, bool isStable) external',
+  'function batchSetPriceFeeds(address[] calldata tokens, address[] calldata feeds, uint8[] calldata decimals_) external',
 ]);
 
 class PriceOracleModule {
@@ -1936,6 +2004,34 @@ class PriceOracleModule {
       args: [token],
     } as any);
     return Number(result);
+  }
+
+  async getUsdAmountForTokens(tokenAmount: bigint, token: Address): Promise<bigint> {
+    return (await this.publicClient.readContract({
+      address: this.contracts.priceOracle as Address,
+      abi: PRICE_ORACLE_ABI,
+      functionName: 'getUsdAmountForTokens',
+      args: [tokenAmount, token],
+    } as any)) as unknown as bigint;
+  }
+
+  async getPriceFeed(token: Address): Promise<Address> {
+    return (await this.publicClient.readContract({
+      address: this.contracts.priceOracle as Address,
+      abi: PRICE_ORACLE_ABI,
+      functionName: 'getPriceFeed',
+      args: [token],
+    } as any)) as unknown as Address;
+  }
+
+  async getTokenInfo(token: Address): Promise<{ feed: Address; decimals: number; stable: boolean }> {
+    const result = (await this.publicClient.readContract({
+      address: this.contracts.priceOracle as Address,
+      abi: PRICE_ORACLE_ABI,
+      functionName: 'getTokenInfo',
+      args: [token],
+    } as any)) as [Address, number, boolean];
+    return { feed: result[0], decimals: Number(result[1]), stable: result[2] };
   }
 
 }
@@ -2011,20 +2107,28 @@ class CommitRevealModule {
 
 interface SlashProposal {
   evaluator: Address;
+  proposalId: bigint;
   amount: bigint;
   reason: string;
+  createdAt: bigint;
+  executeAfter: bigint;
   confirmations: number;
-  execAfter: bigint;
   isExecuted: boolean;
 }
 
 const SLASH_MANAGER_ABI = parseAbi([
   'function createProposal(address evaluator, uint256 proposalId, uint256 amount, string calldata reason) external returns (bytes32)',
   'function confirmProposal(bytes32 proposalId) external',
-  'function executeProposal(bytes32 proposalId) external',
-  'function cancelProposal(bytes32 proposalId) external',
-  'function getProposal(bytes32 proposalId) external view returns (address evaluator, uint256 amount, string reason, uint256 confirmations, uint256 execAfter, bool isExecuted)',
+  'function executeSlash(bytes32 proposalHash) external',
+  'function cancelProposal(bytes32 proposalHash) external',
+  'function getProposal(bytes32 proposalHash) external view returns (address evaluator, uint256 proposalId, uint256 amount, string reason, uint256 createdAt, uint256 executeAfter, uint256 confirmations, bool executed)',
   'function isSigner(address account) external view returns (bool)',
+  'function hasConfirmed(bytes32 proposalHash, address signer) external view returns (bool)',
+  'function addSigner(address signer) external',
+  'function removeSigner(address signer) external',
+  'function setAgentReview(address _agentReview) external',
+  'function pause() external',
+  'function unpause() external',
 ]);
 
 class SlashManagerModule {
@@ -2075,12 +2179,12 @@ class SlashManagerModule {
     };
   }
 
-  async executeProposal(proposalId: string): Promise<TransactionResult> {
+  async executeSlash(proposalHash: string): Promise<TransactionResult> {
     const hash = await this.wallet.writeContract({
       address: this.contracts.slashManager,
       abi: SLASH_MANAGER_ABI,
-      functionName: 'executeProposal',
-      args: [proposalId],
+      functionName: 'executeSlash',
+      args: [proposalHash],
     } as any);
 
     return {
@@ -2089,12 +2193,12 @@ class SlashManagerModule {
     };
   }
 
-  async cancelProposal(proposalId: string): Promise<TransactionResult> {
+  async cancelProposal(proposalHash: string): Promise<TransactionResult> {
     const hash = await this.wallet.writeContract({
       address: this.contracts.slashManager,
       abi: SLASH_MANAGER_ABI,
       functionName: 'cancelProposal',
-      args: [proposalId],
+      args: [proposalHash],
     } as any);
 
     return {
@@ -2103,20 +2207,22 @@ class SlashManagerModule {
     };
   }
 
-  async getProposal(proposalId: string): Promise<SlashProposal> {
+  async getProposal(proposalHash: string): Promise<SlashProposal> {
     const proposal = (await this.publicClient.readContract({
       address: this.contracts.slashManager,
       abi: SLASH_MANAGER_ABI,
       functionName: 'getProposal',
-      args: [proposalId],
-    } as any)) as unknown as [Address, bigint, string, bigint, bigint, boolean];
+      args: [proposalHash],
+    } as any)) as unknown as [Address, bigint, bigint, string, bigint, bigint, bigint, boolean];
     return {
       evaluator: proposal[0],
-      amount: proposal[1],
-      reason: proposal[2],
-      confirmations: Number(proposal[3]),
-      execAfter: proposal[4],
-      isExecuted: proposal[5],
+      proposalId: proposal[1],
+      amount: proposal[2],
+      reason: proposal[3],
+      createdAt: proposal[4],
+      executeAfter: proposal[5],
+      confirmations: Number(proposal[6]),
+      isExecuted: proposal[7],
     };
   }
 
@@ -2128,6 +2234,45 @@ class SlashManagerModule {
       args: [account],
     } as any);
     return result as boolean;
+  }
+
+  async hasConfirmed(proposalHash: string, signer: Address): Promise<boolean> {
+    return (await this.publicClient.readContract({
+      address: this.contracts.slashManager as Address,
+      abi: SLASH_MANAGER_ABI,
+      functionName: 'hasConfirmed',
+      args: [proposalHash, signer],
+    } as any)) as unknown as boolean;
+  }
+
+  async addSigner(signer: Address): Promise<TransactionResult> {
+    const hash = await this.wallet.writeContract({
+      address: this.contracts.slashManager,
+      abi: SLASH_MANAGER_ABI,
+      functionName: 'addSigner',
+      args: [signer],
+    } as any);
+    return { hash, wait: () => this.publicClient.waitForTransactionReceipt({ hash }) };
+  }
+
+  async removeSigner(signer: Address): Promise<TransactionResult> {
+    const hash = await this.wallet.writeContract({
+      address: this.contracts.slashManager,
+      abi: SLASH_MANAGER_ABI,
+      functionName: 'removeSigner',
+      args: [signer],
+    } as any);
+    return { hash, wait: () => this.publicClient.waitForTransactionReceipt({ hash }) };
+  }
+
+  async setAgentReview(agentReview: Address): Promise<TransactionResult> {
+    const hash = await this.wallet.writeContract({
+      address: this.contracts.slashManager,
+      abi: SLASH_MANAGER_ABI,
+      functionName: 'setAgentReview',
+      args: [agentReview],
+    } as any);
+    return { hash, wait: () => this.publicClient.waitForTransactionReceipt({ hash }) };
   }
 }
 
@@ -2708,6 +2853,43 @@ class MilestoneModule {
     } as unknown as object));
   }
 
+  async getArbiters(): Promise<Address[]> {
+    return (await this.publicClient.readContract({
+      address: this.contracts.milestoneEscrow! as Address,
+      abi: MILESTONE_ESCROW_ABI,
+      functionName: 'getArbiters',
+    } as any)) as unknown as Address[];
+  }
+
+  async getArbiterStakeToken(arbiter: Address): Promise<Address> {
+    return (await this.publicClient.readContract({
+      address: this.contracts.milestoneEscrow! as Address,
+      abi: MILESTONE_ESCROW_ABI,
+      functionName: 'getArbiterStakeToken',
+      args: [arbiter],
+    } as any)) as unknown as Address;
+  }
+
+  async slashArbiter(arbiter: Address, reason: string): Promise<TransactionResult> {
+    const hash = await this.wallet.writeContract({
+      address: this.contracts.milestoneEscrow! as Address,
+      abi: MILESTONE_ESCROW_ABI,
+      functionName: 'slashArbiter',
+      args: [arbiter, reason],
+    } as any);
+    return { hash, wait: () => this.publicClient.waitForTransactionReceipt({ hash }) };
+  }
+
+  async withdrawToken(token: Address, amount: bigint): Promise<TransactionResult> {
+    const hash = await this.wallet.writeContract({
+      address: this.contracts.milestoneEscrow! as Address,
+      abi: MILESTONE_ESCROW_ABI,
+      functionName: 'withdrawToken',
+      args: [token, amount],
+    } as any);
+    return { hash, wait: () => this.publicClient.waitForTransactionReceipt({ hash }) };
+  }
+
   async flagDispute(jobId: bigint, milestoneIndex: bigint): Promise<TransactionResult> {
     const hash = await this.wallet.writeContract({
       address: this.contracts.milestoneEscrow! as Address,
@@ -2761,6 +2943,26 @@ class MilestoneModule {
 }
 
 
+const ADMIN_REGISTRY_ABI = parseAbi([
+  'function setSlashManager(address _slashManager) external',
+  'function slashManager() external view returns (address)',
+  'function blacklistAgent(uint256 agentId, string calldata reason) external',
+  'function unblacklistAgent(uint256 agentId) external',
+  'function blacklistWallet(address wallet, string calldata reason) external',
+  'function unblacklistWallet(address wallet) external',
+  'function slashAndBlacklistAgent(uint256 agentId, string calldata reason) external',
+  'function setFeaturedAgent(uint256 agentId, bool isFeatured) external',
+  'function isAgentBlacklistedActive(uint256 agentId) external view returns (bool)',
+  'function isWalletBlacklistedActive(address wallet) external view returns (bool)',
+  'function getBlacklistedAgentCount() external view returns (uint256)',
+  'function getBlacklistedWalletCount() external view returns (uint256)',
+  'function getAllBlacklistedAgents() external view returns (uint256[])',
+  'function getAllBlacklistedWallets() external view returns (address[])',
+  'function getFeaturedAgents() external view returns (uint256[])',
+  'function pause() external',
+  'function unpause() external',
+]);
+
 class AdminRegistryModule {
   private wallet: any;
   private publicClient: any;
@@ -2779,9 +2981,7 @@ class AdminRegistryModule {
   async setSlashManager(slashManager: Address): Promise<TransactionResult> {
     const hash = await this.wallet.writeContract({
       address: this.contracts.adminRegistry! as Address,
-      abi: parseAbi([
-        'function setSlashManager(address _slashManager) external',
-      ]),
+      abi: ADMIN_REGISTRY_ABI,
       functionName: 'setSlashManager',
       args: [slashManager],
     } as any);
@@ -2791,11 +2991,117 @@ class AdminRegistryModule {
   async getSlashManager(): Promise<Address> {
     return (await this.publicClient.readContract({
       address: this.contracts.adminRegistry! as Address,
-      abi: parseAbi([
-        'function slashManager() external view returns (address)',
-      ]),
+      abi: ADMIN_REGISTRY_ABI,
       functionName: 'slashManager',
     } as any)) as unknown as Address;
+  }
+
+  async blacklistAgent(agentId: bigint, reason: string): Promise<TransactionResult> {
+    const hash = await this.wallet.writeContract({
+      address: this.contracts.adminRegistry! as Address,
+      abi: ADMIN_REGISTRY_ABI,
+      functionName: 'blacklistAgent',
+      args: [agentId, reason],
+    } as any);
+    return { hash, wait: () => this.publicClient.waitForTransactionReceipt({ hash }) };
+  }
+
+  async unblacklistAgent(agentId: bigint): Promise<TransactionResult> {
+    const hash = await this.wallet.writeContract({
+      address: this.contracts.adminRegistry! as Address,
+      abi: ADMIN_REGISTRY_ABI,
+      functionName: 'unblacklistAgent',
+      args: [agentId],
+    } as any);
+    return { hash, wait: () => this.publicClient.waitForTransactionReceipt({ hash }) };
+  }
+
+  async blacklistWallet(wallet: Address, reason: string): Promise<TransactionResult> {
+    const hash = await this.wallet.writeContract({
+      address: this.contracts.adminRegistry! as Address,
+      abi: ADMIN_REGISTRY_ABI,
+      functionName: 'blacklistWallet',
+      args: [wallet, reason],
+    } as any);
+    return { hash, wait: () => this.publicClient.waitForTransactionReceipt({ hash }) };
+  }
+
+  async unblacklistWallet(wallet: Address): Promise<TransactionResult> {
+    const hash = await this.wallet.writeContract({
+      address: this.contracts.adminRegistry! as Address,
+      abi: ADMIN_REGISTRY_ABI,
+      functionName: 'unblacklistWallet',
+      args: [wallet],
+    } as any);
+    return { hash, wait: () => this.publicClient.waitForTransactionReceipt({ hash }) };
+  }
+
+  async setFeaturedAgent(agentId: bigint, isFeatured: boolean): Promise<TransactionResult> {
+    const hash = await this.wallet.writeContract({
+      address: this.contracts.adminRegistry! as Address,
+      abi: ADMIN_REGISTRY_ABI,
+      functionName: 'setFeaturedAgent',
+      args: [agentId, isFeatured],
+    } as any);
+    return { hash, wait: () => this.publicClient.waitForTransactionReceipt({ hash }) };
+  }
+
+  async isAgentBlacklistedActive(agentId: bigint): Promise<boolean> {
+    return (await this.publicClient.readContract({
+      address: this.contracts.adminRegistry! as Address,
+      abi: ADMIN_REGISTRY_ABI,
+      functionName: 'isAgentBlacklistedActive',
+      args: [agentId],
+    } as any)) as unknown as boolean;
+  }
+
+  async isWalletBlacklistedActive(wallet: Address): Promise<boolean> {
+    return (await this.publicClient.readContract({
+      address: this.contracts.adminRegistry! as Address,
+      abi: ADMIN_REGISTRY_ABI,
+      functionName: 'isWalletBlacklistedActive',
+      args: [wallet],
+    } as any)) as unknown as boolean;
+  }
+
+  async getFeaturedAgents(): Promise<bigint[]> {
+    return (await this.publicClient.readContract({
+      address: this.contracts.adminRegistry! as Address,
+      abi: ADMIN_REGISTRY_ABI,
+      functionName: 'getFeaturedAgents',
+    } as any)) as unknown as bigint[];
+  }
+
+  async getAllBlacklistedAgents(): Promise<bigint[]> {
+    return (await this.publicClient.readContract({
+      address: this.contracts.adminRegistry! as Address,
+      abi: ADMIN_REGISTRY_ABI,
+      functionName: 'getAllBlacklistedAgents',
+    } as any)) as unknown as bigint[];
+  }
+
+  async getAllBlacklistedWallets(): Promise<Address[]> {
+    return (await this.publicClient.readContract({
+      address: this.contracts.adminRegistry! as Address,
+      abi: ADMIN_REGISTRY_ABI,
+      functionName: 'getAllBlacklistedWallets',
+    } as any)) as unknown as Address[];
+  }
+
+  async blacklistedAgentCount(): Promise<number> {
+    return Number(await this.publicClient.readContract({
+      address: this.contracts.adminRegistry! as Address,
+      abi: ADMIN_REGISTRY_ABI,
+      functionName: 'getBlacklistedAgentCount',
+    } as any));
+  }
+
+  async blacklistedWalletCount(): Promise<number> {
+    return Number(await this.publicClient.readContract({
+      address: this.contracts.adminRegistry! as Address,
+      abi: ADMIN_REGISTRY_ABI,
+      functionName: 'getBlacklistedWalletCount',
+    } as any));
   }
 }
 

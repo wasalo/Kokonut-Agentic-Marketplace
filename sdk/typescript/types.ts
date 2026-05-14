@@ -213,11 +213,17 @@ export interface Job {
 
 export interface JobParams {
   provider: `0x${string}`;
-  evaluator?: `0x${string}`;
+  budget?: bigint;
+  paymentToken?: `0x${string}`;
+  serviceId?: bigint;
   description: string;
   expiredAt?: number;
+  evaluator?: `0x${string}`;
   hook?: `0x${string}`;
   evaluatorFee?: boolean;
+  clientReview?: boolean;
+  fundNow?: boolean;
+  fundAmount?: bigint;
 }
 
 export interface OpenJobParams {

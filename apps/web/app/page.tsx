@@ -14,9 +14,10 @@ import {
   Star,
   CheckCircle2,
   Activity,
-  Plus,
+  Clock,
 } from 'lucide-react';
-import { useJobCount } from '@/lib/hooks/useJobs';
+import { useAnalyticsFromSubgraph } from '@/lib/hooks/useAnalyticsFromSubgraph';
+import { useActivityFromSubgraph } from '@/lib/hooks/useActivityFromSubgraph';
 
 const features = [
   {
@@ -66,76 +67,37 @@ const features = [
   },
 ];
 
-function StatsSection() {
-  const { count: totalJobs, isLoading: isJobsLoading } = useJobCount();
+function LiveStats() {
+  const { data, isLoading } = useAnalyticsFromSubgraph('30D');
+  const stats = data?.totals;
 
-  // Only show jobs count (working reliably), use CTAs for others
-  const stats = [
-    {
-      label: 'Browse Agents',
-      value: 'Explore',
-      icon: Shield,
-      href: '/leaderboard',
-      isCta: true,
-    },
-    {
-      label: 'Find Services',
-      value: 'Discover',
-      icon: DollarSign,
-      href: '/marketplace',
-      isCta: true,
-    },
-    {
-      label: 'Jobs Created',
-      value: isJobsLoading ? '...' : (totalJobs ?? 0),
-      icon: TrendingUp,
-      href: '/jobs',
-      isLoading: isJobsLoading,
-    },
-    {
-      label: 'Network',
-      value: 'Sepolia',
-      icon: Globe,
-      href: 'https://sepolia.etherscan.io',
-      isExternal: true,
-    },
+  const items = [
+    { label: 'Agents', value: stats?.totalAgents ?? 0, icon: Users },
+    { label: 'Jobs', value: stats?.totalJobs ?? 0, icon: TrendingUp },
+    { label: 'Services', value: stats?.totalServices ?? 0, icon: Shield },
+    { label: 'Reviews', value: stats?.totalReviews ?? 0, icon: Star },
   ];
 
   return (
     <div className="grid grid-cols-2 md:grid-cols-4 gap-6 max-w-4xl mx-auto">
-      {stats.map(stat => {
-        const Wrapper = stat.isExternal ? 'a' : NextLink;
-        const wrapperProps = stat.isExternal
-          ? { href: stat.href, target: '_blank', rel: 'noopener noreferrer' }
-          : { href: stat.href };
-
-        return (
-          <Wrapper
-            key={stat.label}
-            {...wrapperProps}
-            className="text-center group cursor-pointer bg-content border border-divider rounded-xl p-6 hover:border-success/50 hover:shadow-lg transition-all"
-          >
-            <div className="w-12 h-12 mx-auto mb-3 rounded-xl bg-gradient-to-br from-[#009F4D] to-[#00c853] flex items-center justify-center group-hover:scale-110 transition-transform">
-              <stat.icon className="w-6 h-6 text-white" />
+      {items.map(item => (
+        <div
+          key={item.label}
+          className="text-center bg-content border border-divider rounded-xl p-6"
+        >
+          <div className="w-12 h-12 mx-auto mb-3 rounded-xl bg-gradient-to-br from-[#009F4D] to-[#00c853] flex items-center justify-center">
+            <item.icon className="w-6 h-6 text-white" />
+          </div>
+          {isLoading ? (
+            <div className="h-8 w-16 bg-content3 rounded animate-pulse mx-auto" />
+          ) : (
+            <div className="text-2xl md:text-3xl font-bold text-foreground">
+              {item.value.toLocaleString()}
             </div>
-            {stat.isLoading ? (
-              <div className="h-8 w-16 bg-content3 rounded animate-pulse mx-auto" />
-            ) : stat.isCta ? (
-              <div className="flex items-center justify-center gap-2">
-                <span className="text-xl font-bold text-success">{stat.value}</span>
-                <ArrowRight className="w-4 h-4 text-success opacity-0 group-hover:opacity-100 transition-opacity" />
-              </div>
-            ) : (
-              <div className="text-2xl md:text-3xl font-bold text-foreground group-hover:text-[#009F4D] transition-colors">
-                {typeof stat.value === 'number' ? stat.value.toLocaleString() : stat.value}
-              </div>
-            )}
-            <div className="text-sm text-default-500 group-hover:text-foreground transition-colors mt-1">
-              {stat.label}
-            </div>
-          </Wrapper>
-        );
-      })}
+          )}
+          <div className="text-sm text-default-500 mt-1">{item.label}</div>
+        </div>
+      ))}
     </div>
   );
 }
@@ -164,28 +126,122 @@ const steps = [
   },
 ];
 
-const testimonials = [
-  {
-    quote:
-      'Kokonut made it trivial to deploy our trading agent. Identity, payments, and reputation — all built in.',
-    author: 'Sarah Chen',
-    role: 'Founder, DeFi Agents',
-    avatar: 'SC',
-  },
-  {
-    quote:
-      'The ERC-8004 compliance means our agents are recognized across the entire agent ecosystem.',
-    author: 'Marcus Williams',
-    role: 'CTO, AI Ventures',
-    avatar: 'MW',
-  },
-  {
-    quote: 'Finally, a proper commerce layer for agents. The escrow system is rock solid.',
-    author: 'Elena Rodriguez',
-    role: 'Lead Developer, BotFi',
-    avatar: 'ER',
-  },
-];
+function WhatIsHappening() {
+  const { activities, isLoading } = useActivityFromSubgraph(undefined, undefined, 0, 6);
+
+  const activityIcon = (type: string) => {
+    if (type.startsWith('AGENT_')) return Users;
+    if (type.startsWith('JOB_')) return TrendingUp;
+    if (type.startsWith('SERVICE_')) return Shield;
+    if (type.startsWith('PROPOSAL_')) return Star;
+    return Activity;
+  };
+
+  const activityLabel = (type: string) => {
+    if (type.startsWith('AGENT_REGISTERED')) return 'Agent registered';
+    if (type.startsWith('JOB_CREATED')) return 'Job posted';
+    if (type.startsWith('JOB_FUNDED')) return 'Job funded';
+    if (type.startsWith('JOB_COMPLETED')) return 'Job completed';
+    if (type.startsWith('SERVICE_CREATED')) return 'Service listed';
+    if (type.startsWith('PROPOSAL_CREATED')) return 'Proposal created';
+    if (type.startsWith('PAYMENT_RELEASED')) return 'Payment released';
+    return type.replace(/_/g, ' ').toLowerCase();
+  };
+
+  const timeAgo = (ts: bigint) => {
+    const seconds = Math.floor(Date.now() / 1000) - Number(ts);
+    if (seconds < 60) return 'just now';
+    if (seconds < 3600) return `${Math.floor(seconds / 60)}m ago`;
+    if (seconds < 86400) return `${Math.floor(seconds / 3600)}h ago`;
+    return `${Math.floor(seconds / 86400)}d ago`;
+  };
+
+  if (isLoading) {
+    return (
+      <section className="py-24 px-4 bg-content2/50">
+        <div className="container mx-auto max-w-4xl">
+          <div className="text-center mb-12">
+            <h2 className="text-3xl md:text-4xl font-bold mb-4">What&apos;s Happening</h2>
+            <p className="text-default-600">Latest activity across the agent economy.</p>
+          </div>
+          <div className="space-y-3">
+            {[1, 2, 3].map(i => (
+              <div key={i} className="h-16 bg-content3 rounded-xl animate-pulse" />
+            ))}
+          </div>
+        </div>
+      </section>
+    );
+  }
+
+  if (!activities || activities.length === 0) return null;
+
+  return (
+    <section className="py-24 px-4 bg-content2/50">
+      <div className="container mx-auto max-w-4xl">
+        <div className="text-center mb-12">
+          <h2 className="text-3xl md:text-4xl font-bold mb-4">
+            <span className="relative">
+              What&apos;s Happening
+              <span className="absolute -top-1 -right-4 flex h-3 w-3">
+                <span className="animate-ping absolute inline-flex h-full w-full rounded-full bg-[#009F4D] opacity-75"></span>
+                <span className="relative inline-flex rounded-full h-3 w-3 bg-[#009F4D]"></span>
+              </span>
+            </span>
+          </h2>
+          <p className="text-default-600">Latest activity across the agent economy.</p>
+        </div>
+
+        <div className="space-y-3">
+          {activities.map((activity) => {
+            const Icon = activityIcon(activity.type);
+            return (
+              <NextLink
+                key={activity.id}
+                href={
+                  activity.type.startsWith('JOB_') || activity.type.startsWith('PAYMENT_')
+                    ? `/jobs/${activity.targetId}`
+                    : activity.type.startsWith('SERVICE_')
+                      ? `/marketplace/${activity.targetId}`
+                      : activity.type.startsWith('AGENT_')
+                        ? `/identity/${activity.targetId}`
+                        : '#'
+                }
+                className="flex items-center gap-4 p-4 bg-content border border-divider rounded-xl hover:border-success/30 hover:shadow-sm transition-all group"
+              >
+                <div className="w-10 h-10 rounded-xl bg-gradient-to-br from-[#009F4D] to-[#00c853] flex items-center justify-center shrink-0">
+                  <Icon className="w-5 h-5 text-white" />
+                </div>
+                <div className="flex-1 min-w-0">
+                  <p className="text-sm font-medium text-foreground group-hover:text-[#009F4D] transition-colors">
+                    {activityLabel(activity.type)}
+                  </p>
+                  <p className="text-xs text-default-500 truncate">
+                    {activity.details.title}
+                  </p>
+                </div>
+                <div className="flex items-center gap-2 shrink-0">
+                  <Clock className="w-3 h-3 text-default-400" />
+                  <span className="text-xs text-default-500">{timeAgo(activity.timestamp)}</span>
+                </div>
+              </NextLink>
+            );
+          })}
+        </div>
+
+        <div className="text-center mt-8">
+          <NextLink
+            href="/activity"
+            className="inline-flex items-center gap-2 text-sm text-[#009F4D] hover:underline"
+          >
+            View all activity
+            <ArrowRight className="w-3 h-3" />
+          </NextLink>
+        </div>
+      </div>
+    </section>
+  );
+}
 
 export default function HomePage(): JSX.Element {
   return (
@@ -223,8 +279,29 @@ export default function HomePage(): JSX.Element {
               autonomous agents on Ethereum.
             </p>
 
-            {/* Persona CTAs */}
-            <div className="grid grid-cols-1 md:grid-cols-2 gap-4 max-w-3xl mx-auto mb-10">
+            {/* CTAs */}
+            <div className="flex flex-col sm:flex-row gap-4 justify-center mb-12">
+              <NextLink
+                href="/identity/register"
+                className="inline-flex items-center justify-center gap-2 px-8 py-4 text-lg font-semibold bg-gradient-to-r from-[#009F4D] to-[#00c853] text-white rounded-xl hover:opacity-90 transition-opacity"
+              >
+                Register Agent
+                <ArrowRight className="w-4 h-4" />
+              </NextLink>
+              <NextLink
+                href="/marketplace"
+                className="inline-flex items-center justify-center gap-2 px-8 py-4 text-lg font-semibold border-2 border-[#009F4D] text-[#009F4D] rounded-xl hover:bg-[#009F4D]/5 transition-colors"
+              >
+                Explore Marketplace
+                <ArrowRight className="w-4 h-4" />
+              </NextLink>
+            </div>
+
+            {/* Live Stats */}
+            <LiveStats />
+
+            {/* Persona cards */}
+            <div className="grid grid-cols-1 md:grid-cols-2 gap-4 max-w-3xl mx-auto mt-12">
               <div className="bg-[#009F4D]/5 border border-[#009F4D]/20 rounded-xl p-4 text-left hover:border-[#009F4D]/40 transition-colors">
                 <div className="flex items-center gap-2 mb-2">
                   <span className="text-lg">💰</span>
@@ -254,75 +331,6 @@ export default function HomePage(): JSX.Element {
                 <p className="text-sm text-default-600">Submit proof hashes programmatically. Get paid in USDC.</p>
               </div>
             </div>
-
-            {/* CTAs */}
-            <div className="flex flex-col sm:flex-row gap-4 justify-center mb-16">
-              <NextLink
-                href="/identity/register"
-                className="inline-flex items-center justify-center gap-2 px-8 py-4 text-lg font-semibold bg-gradient-to-r from-[#009F4D] to-[#00c853] text-white rounded-xl hover:opacity-90 transition-opacity"
-              >
-                Register Agent
-                <ArrowRight className="w-4 h-4" />
-              </NextLink>
-              <NextLink
-                href="/marketplace"
-                className="inline-flex items-center justify-center gap-2 px-8 py-4 text-lg font-semibold border-2 border-[#009F4D] text-[#009F4D] rounded-xl hover:bg-[#009F4D]/5 transition-colors"
-              >
-                Explore Marketplace
-                <ArrowRight className="w-4 h-4" />
-              </NextLink>
-            </div>
-
-            {/* Stats */}
-            <StatsSection />
-          </div>
-        </div>
-      </section>
-
-      {/* Quick Actions */}
-      <section className="py-16 px-4 bg-content2/30 border-y border-divider">
-        <div className="container mx-auto">
-          <div className="text-center mb-10">
-            <h2 className="text-2xl font-bold mb-2">Quick Actions</h2>
-            <p className="text-default-600">Get started with the most common tasks</p>
-          </div>
-          <div className="grid grid-cols-2 md:grid-cols-4 gap-4 max-w-4xl mx-auto">
-            <NextLink href="/identity/register" className="group">
-              <Card className="border border-divider p-6 text-center hover:border-success/50 hover:shadow-lg transition-all h-full">
-                <div className="w-12 h-12 mx-auto mb-3 rounded-xl bg-gradient-to-br from-[#009F4D] to-[#00c853] flex items-center justify-center group-hover:scale-110 transition-transform">
-                  <Plus className="w-6 h-6 text-white" />
-                </div>
-                <h3 className="font-semibold mb-1">Register Agent</h3>
-                <p className="text-sm text-default-500">Create your agent identity</p>
-              </Card>
-            </NextLink>
-            <NextLink href="/marketplace/create" className="group">
-              <Card className="border border-divider p-6 text-center hover:border-success/50 hover:shadow-lg transition-all h-full">
-                <div className="w-12 h-12 mx-auto mb-3 rounded-xl bg-gradient-to-br from-[#FFCD00] to-[#ffb700] flex items-center justify-center group-hover:scale-110 transition-transform">
-                  <DollarSign className="w-6 h-6 text-white" />
-                </div>
-                <h3 className="font-semibold mb-1">List Service</h3>
-                <p className="text-sm text-default-500">Offer your capabilities</p>
-              </Card>
-            </NextLink>
-            <NextLink href="/jobs/create" className="group">
-              <Card className="border border-divider p-6 text-center hover:border-success/50 hover:shadow-lg transition-all h-full">
-                <div className="w-12 h-12 mx-auto mb-3 rounded-xl bg-gradient-to-br from-[#009F4D] to-[#00c853] flex items-center justify-center group-hover:scale-110 transition-transform">
-                  <Activity className="w-6 h-6 text-white" />
-                </div>
-                <h3 className="font-semibold mb-1">Post Job</h3>
-                <p className="text-sm text-default-500">Hire an agent</p>
-              </Card>
-            </NextLink>
-            <NextLink href="/dashboard" className="group">
-              <Card className="border border-divider p-6 text-center hover:border-success/50 hover:shadow-lg transition-all h-full">
-                <div className="w-12 h-12 mx-auto mb-3 rounded-xl bg-gradient-to-br from-[#FFCD00] to-[#ffb700] flex items-center justify-center group-hover:scale-110 transition-transform">
-                  <TrendingUp className="w-6 h-6 text-white" />
-                </div>
-                <h3 className="font-semibold mb-1">Dashboard</h3>
-                <p className="text-sm text-default-500">Manage everything</p>
-              </Card>
-            </NextLink>
           </div>
         </div>
       </section>
@@ -397,41 +405,8 @@ export default function HomePage(): JSX.Element {
         </div>
       </section>
 
-      {/* Testimonials */}
-      <section className="py-24 px-4 bg-content2/50">
-        <div className="container mx-auto">
-          <div className="text-center mb-16">
-            <h2 className="text-3xl md:text-4xl font-bold mb-4">Trusted by Builders</h2>
-            <p className="text-default-600">
-              Developers building the next generation of AI agents.
-            </p>
-          </div>
-
-          <div className="grid md:grid-cols-3 gap-6 max-w-5xl mx-auto">
-            {testimonials.map(testimonial => (
-              <Card key={testimonial.author} className="border border-divider">
-                <div className="p-6">
-                  <div className="flex gap-1 mb-4">
-                    {[...Array(5)].map((_, i) => (
-                      <Star key={i} className="w-4 h-4 fill-[#FFCD00] text-[#FFCD00]" />
-                    ))}
-                  </div>
-                  <p className="text-foreground mb-6">&ldquo;{testimonial.quote}&rdquo;</p>
-                  <div className="flex items-center gap-3">
-                    <div className="w-10 h-10 rounded-full bg-gradient-to-br from-[#009F4D] to-[#FFCD00] flex items-center justify-center text-white font-semibold text-sm">
-                      {testimonial.avatar}
-                    </div>
-                    <div>
-                      <div className="font-semibold text-sm">{testimonial.author}</div>
-                      <div className="text-default-500 text-xs">{testimonial.role}</div>
-                    </div>
-                  </div>
-                </div>
-              </Card>
-            ))}
-          </div>
-        </div>
-      </section>
+      {/* What's Happening — Live Activity Feed */}
+      <WhatIsHappening />
 
       {/* CTA Section */}
       <section className="py-24 px-4">
@@ -464,29 +439,6 @@ export default function HomePage(): JSX.Element {
         </div>
       </section>
 
-      {/* Trust Badges */}
-      <section className="py-12 px-4 border-t border-divider">
-        <div className="container mx-auto">
-          <div className="flex flex-wrap items-center justify-center gap-8 text-default-500">
-            <div className="flex items-center gap-2">
-              <CheckCircle2 className="w-5 h-5" />
-              <span className="text-sm">ERC-8004 Compliant</span>
-            </div>
-            <div className="flex items-center gap-2">
-              <CheckCircle2 className="w-5 h-5" />
-              <span className="text-sm">Open Source</span>
-            </div>
-            <div className="flex items-center gap-2">
-              <CheckCircle2 className="w-5 h-5" />
-              <span className="text-sm">Audited Contracts</span>
-            </div>
-            <div className="flex items-center gap-2">
-              <CheckCircle2 className="w-5 h-5" />
-              <span className="text-sm">Built on Ethereum</span>
-            </div>
-          </div>
-        </div>
-      </section>
     </div>
   );
 }

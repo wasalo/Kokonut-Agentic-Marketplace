@@ -1259,6 +1259,7 @@ program
   .argument('<service-id>', 'Service ID to purchase')
   .option('--evaluator <address>', 'Evaluator address for job approval')
   .option('--expiry <number>', 'Job expiry in days', '7')
+  .option('--fund-now', 'Fund the job immediately')
   .action(async (serviceId, options) => {
     try {
       const opts = program.opts();
@@ -1274,9 +1275,8 @@ program
       ]);
 
       const agenticCommerceABI = parseAbi([
-        'function createJob(address provider, address evaluator, uint256 expiredAt, string description, address hook) external returns (uint256 jobId)',
-        'function setBudget(uint256 jobId, uint256 amount) external',
-        'event JobCreated(uint256 indexed jobId, address indexed client, address indexed provider, address evaluator, uint256 serviceId, uint256 expiredAt)',
+        'function createJob(address provider, uint256 budget, address paymentToken, uint256 serviceId, uint256 expiredAt, string description, address evaluator, address hook, bool evaluatorFee, bool clientReview, bool fundNow, uint256 fundAmount) external payable returns (uint256 jobId)',
+        'event JobCreated(uint256 indexed jobId, address indexed client, address indexed provider, address evaluator, uint256 serviceId, uint256 expiredAt, bool evaluatorFee, bool clientReview, bool randomEvaluator)',
       ]);
 
       const serviceRegistry = getContractInstance(
@@ -1299,41 +1299,29 @@ program
       console.log(chalk.dim('Provider:'), service.provider);
       console.log(chalk.dim('Price:'), service.price.toString(), 'wei');
 
-      const evaluator = (options.evaluator as Address) || (service.provider as Address);
+      const evaluator = (options.evaluator as Address) || zeroAddress;
       const expiryDays = parseInt(options.expiry);
       const expiredAt = BigInt(Math.floor(Date.now() / 1000) + expiryDays * 24 * 60 * 60);
+      const fundNow = !!options.fundNow;
 
       console.log(chalk.cyan('\n📝 Creating Job...'));
 
+      const fundAmount = fundNow ? service.price : 0n;
+
       const jobHash = await commerce.write.createJob([
         service.provider as Address,
-        evaluator,
+        service.price,
+        service.paymentToken as Address,
+        sid,
         expiredAt,
         `Purchase: ${service.name}`,
+        evaluator,
         zeroAddress,
-      ]);
-
-      console.log(chalk.cyan('Transaction sent:'), jobHash);
-
-      const jobReceipt = await waitForTransactionReceipt(jobHash);
-      let jobId;
-      for (const log of jobReceipt.logs) {
-        try {
-          const parsed = parseLog({ log, abi: agenticCommerceABI });
-          if (parsed && parsed.eventName === 'JobCreated') {
-            jobId = (parsed.args as any).jobId.toString();
-            break;
-          }
-        } catch (e) {
-          /* ignore */
-        }
-      }
-
-      console.log(chalk.green('✅ Job Created!'));
-      console.log(chalk.cyan('Job ID:'), jobId);
-
-      console.log(chalk.cyan('\n💰 Setting budget...'));
-      const budgetHash = await commerce.write.setBudget([BigInt(jobId), service.price]);
+        true,
+        true,
+        fundNow,
+        fundAmount,
+      ], { value: fundNow && service.paymentToken === zeroAddress ? service.price : 0n });
       await waitForTransactionReceipt(budgetHash);
 
       console.log(chalk.green('✅ Budget set!'));
@@ -1433,7 +1421,7 @@ program
 // 🎯 APPROVE DELIVERABLE COMMAND
 program
   .command('approve-deliverable')
-  .description('Approve deliverable and release payment')
+  .description('Approve deliverable and release payment (evaluator)')
   .argument('<job-id>', 'Job ID')
   .option('--reason <string>', 'Approval reason/comment')
   .action(async (jobId, options) => {
@@ -1447,18 +1435,18 @@ program
       }
 
       const agenticCommerceABI = parseAbi([
-        'function complete(uint256 jobId, bytes32 reason) external',
+        'function finalizeByEvaluator(uint256 jobId, bytes32 reason) external',
       ]);
 
       const commerce = getContractInstance(config.contracts.agenticCommerce, agenticCommerceABI);
 
       const reasonBytes32 = viemKeccak256(viemToBytes(options.reason || 'Work approved'));
 
-      console.log(chalk.cyan('\n✅ Approving Deliverable:'));
+      console.log(chalk.cyan('\n✅ Finalizing (Evaluator):'));
       console.log(chalk.dim('Job ID:'), jobId);
       console.log(chalk.dim('Reason:'), options.reason || 'Work approved');
 
-      const hash = await commerce.write.complete([BigInt(jobId), reasonBytes32]);
+      const hash = await commerce.write.finalizeByEvaluator([BigInt(jobId), reasonBytes32]);
       console.log(chalk.cyan('Transaction sent:'), hash);
 
       const receipt = await waitForTransactionReceipt(hash);
@@ -1467,7 +1455,42 @@ program
 
       console.log(chalk.green('\n🎊 Job completed successfully!'));
     } catch (error) {
-      console.error(chalk.red('❌ Error approving deliverable:'), error.message);
+      console.error(chalk.red('❌ Error finalizing:'), error.message);
+    }
+  });
+
+// 🎯 APPROVE BY CLIENT COMMAND
+program
+  .command('approve-by-client')
+  .description('Client approves delivery (moves job to pending evaluator finalization)')
+  .argument('<job-id>', 'Job ID')
+  .action(async (jobId) => {
+    try {
+      const opts = program.opts();
+      initWallet(undefined, opts.wallet, opts.passphrase);
+
+      if (!config.contracts.agenticCommerce || config.contracts.agenticCommerce === ZeroAddress) {
+        console.log(chalk.yellow('⚠️  Agentic Commerce not deployed yet.'));
+        return;
+      }
+
+      const agenticCommerceABI = parseAbi([
+        'function approveByClient(uint256 jobId) external',
+      ]);
+
+      const commerce = getContractInstance(config.contracts.agenticCommerce, agenticCommerceABI);
+
+      console.log(chalk.cyan('\n👤 Approving as Client:'));
+      console.log(chalk.dim('Job ID:'), jobId);
+
+      const hash = await commerce.write.approveByClient([BigInt(jobId)]);
+      console.log(chalk.cyan('Transaction sent:'), hash);
+
+      const receipt = await waitForTransactionReceipt(hash);
+      console.log(chalk.green('✅ Client approved!'));
+      console.log(chalk.cyan('Gas used:'), receipt.gasUsed.toString());
+    } catch (error) {
+      console.error(chalk.red('❌ Error approving as client:'), error.message);
     }
   });
 
@@ -2634,19 +2657,12 @@ program
 
 // ============================================================================
 // V6 BIDDING COMMANDS
-// ============================================================================
-
-// 🎯 CREATE OPEN JOB COMMAND
+// 🎯 COMPLETE AFTER TIMEOUT COMMAND
 program
-  .command('create-open-job')
-  .description('Create an open job for bidding (V6)')
-  .requiredOption('--max-budget <number>', 'Maximum budget in USDC wei (required)')
-  .requiredOption('--deadline <number>', 'Deadline in days (required)')
-  .option('--evaluator <address>', 'Evaluator address (optional)')
-  .option('--description <string>', 'Job description')
-  .option('--evaluator-fee', 'Enable evaluator fee (1%)')
-  .option('--payment-token <address>', 'Payment token address (defaults to USDC)')
-  .action(async options => {
+  .command('complete-after-timeout')
+  .description('Complete a job after the dispute window has passed')
+  .argument('<job-id>', 'Job ID')
+  .action(async (jobId) => {
     try {
       const opts = program.opts();
       initWallet(undefined, opts.wallet, opts.passphrase);
@@ -2656,301 +2672,347 @@ program
         return;
       }
 
-      const agenticCommerceABI = parseAbi([
-        'function createOpenJob(uint256 maxBudget, address evaluator, uint256 expiredAt, string description, address paymentToken, bool evaluatorFee) external returns (uint256)',
-        'event OpenJobCreated(uint256 indexed jobId, address indexed client, uint256 maxBudget)',
+      const abi = parseAbi([
+        'function completeAfterTimeout(uint256 jobId, bytes32 reason) external',
       ]);
 
-      const commerce = getContractInstance(config.contracts.agenticCommerce, agenticCommerceABI);
+      const commerce = getContractInstance(config.contracts.agenticCommerce, abi);
+      const reason = viemKeccak256(viemToBytes('timeout-completed'));
 
-      const maxBudget = BigInt(options.maxBudget);
-      const evaluator = (options.evaluator as Address) || zeroAddress;
-      const description = options.description || 'Open job for bidding';
-      const deadlineDays = parseInt(options.deadline);
-      const expiredAt = BigInt(Math.floor(Date.now() / 1000) + deadlineDays * 24 * 60 * 60);
-      const evaluatorFee = options.evaluatorFee || false;
-      const paymentToken = (options.paymentToken as Address) || (config.contracts.usdc as Address);
+      console.log(chalk.cyan('\n⏰ Completing After Timeout:'));
+      console.log(chalk.dim('Job ID:'), jobId);
 
-      console.log(chalk.cyan('\n📋 Creating Open Job (Bidding):'));
-      console.log(chalk.dim('Max Budget:'), maxBudget.toString(), 'wei');
-      console.log(chalk.dim('Evaluator:'), evaluator);
-      console.log(chalk.dim('Description:'), description);
-      console.log(chalk.dim('Deadline:'), new Date(Number(expiredAt) * 1000).toISOString());
-      console.log(chalk.dim('Evaluator Fee:'), evaluatorFee ? 'Enabled' : 'Disabled');
-      console.log(chalk.dim('Payment Token:'), paymentToken);
-
-      const hash = await commerce.write.createOpenJob([
-        maxBudget,
-        evaluator,
-        expiredAt,
-        description,
-        paymentToken,
-        evaluatorFee,
-      ]);
+      const hash = await commerce.write.completeAfterTimeout([BigInt(jobId), reason]);
       console.log(chalk.cyan('Transaction sent:'), hash);
 
       const receipt = await waitForTransactionReceipt(hash);
-      console.log(chalk.green('✅ Open job created!'));
+      console.log(chalk.green('✅ Job completed after timeout!'));
       console.log(chalk.cyan('Gas used:'), receipt.gasUsed.toString());
-
-      let jobId;
-      for (const log of receipt.logs) {
-        try {
-          const parsed = parseLog({ log, abi: agenticCommerceABI });
-          if (
-            parsed &&
-            (parsed.eventName === 'OpenJobCreated' || parsed.eventName === 'JobCreated')
-          ) {
-            jobId = (parsed.args as any).jobId.toString();
-            break;
-          }
-        } catch (e) {
-          /* ignore */
-        }
-      }
-
-      if (jobId) {
-        console.log(chalk.green('\n🎉 Job ID:'), jobId);
-      }
     } catch (error: unknown) {
       const err = error as { message?: string };
-      console.error(chalk.red('❌ Error creating open job:'), err.message);
+      console.error(chalk.red('❌ Error completing after timeout:'), err.message);
     }
   });
 
-// 🎯 COMMIT BID COMMAND
+// 🎯 REFUND EXPIRED COMMAND
 program
-  .command('commit-bid')
-  .description('Commit a sealed bid with stake (V6)')
-  .requiredOption('--job-id <number>', 'Job ID (required)')
-  .requiredOption('--amount <number>', 'Bid amount in USDC wei (required)')
-  .requiredOption('--message <string>', 'Bid message (required)')
-  .action(async options => {
+  .command('refund-expired')
+  .description('Trigger a permissionless refund for an expired job')
+  .argument('<job-id>', 'Job ID')
+  .action(async (jobId) => {
     try {
       const opts = program.opts();
       initWallet(undefined, opts.wallet, opts.passphrase);
 
-      const commerceABI = parseAbi([
-        'function commitBid(uint256 jobId, bytes32 commitHash) external payable',
-      ]);
-
-      const commerce = getContractInstance(config.contracts.agenticCommerce, commerceABI);
-
-      const jobId = BigInt(options.jobId);
-      const amount = BigInt(options.amount);
-      const message = options.message;
-
-      const stake = (amount * 100n) / 10000n;
-      // Note: In real app, we need a secure unique salt
-      const salt = viemKeccak256(viemToBytes(config.signerAddress + Date.now().toString()));
-      const commitHash = viemKeccak256(
-        viemEncodePacked(['uint256', 'string', 'bytes32'], [amount, message, salt])
-      );
-
-      console.log(chalk.cyan('\n🔐 Committing Bid:'));
-      console.log(chalk.dim('Job ID:'), jobId.toString());
-      console.log(chalk.dim('Amount:'), amount.toString(), 'wei');
-      console.log(chalk.dim('Message:'), message);
-      console.log(chalk.dim('Stake (1%):'), viemFormatEther(stake), 'ETH');
-      console.log(chalk.dim('Salt (Save this!):'), salt);
-
-      const hash = await commerce.write.commitBid([jobId, commitHash], { value: stake });
-      console.log(chalk.cyan('Transaction sent:'), hash);
-
-      await waitForTransactionReceipt(hash);
-      console.log(chalk.green('✅ Bid committed!'));
-    } catch (error: unknown) {
-      const err = error as { message?: string };
-      console.error(chalk.red('❌ Error committing bid:'), err.message);
-    }
-  });
-
-// 🎯 REVEAL BID COMMAND
-program
-  .command('reveal-bid')
-  .description('Reveal your committed bid (V6)')
-  .requiredOption('--job-id <number>', 'Job ID (required)')
-  .requiredOption('--amount <number>', 'Bid amount (required)')
-  .requiredOption('--message <string>', 'Bid message (required)')
-  .requiredOption('--salt <string>', 'Salt used in commitment (required)')
-  .action(async options => {
-    try {
-      const opts = program.opts();
-      initWallet(undefined, opts.wallet, opts.passphrase);
-
-      const commerceABI = parseAbi([
-        'function revealBid(uint256 jobId, uint256 amount, string message, bytes32 salt) external',
-      ]);
-
-      const commerce = getContractInstance(config.contracts.agenticCommerce, commerceABI);
-
-      const jobId = BigInt(options.jobId);
-      const amount = BigInt(options.amount);
-      const message = options.message;
-      const salt = (options.salt as `0x${string}`) || zeroHash;
-
-      console.log(chalk.cyan('\n🔓 Revealing Bid:'));
-      console.log(chalk.dim('Job ID:'), jobId.toString());
-      console.log(chalk.dim('Amount:'), amount.toString(), 'wei');
-      console.log(chalk.dim('Message:'), message);
-
-      const hash = await commerce.write.revealBid([jobId, amount, message, salt]);
-      console.log(chalk.cyan('Transaction sent:'), hash);
-
-      await waitForTransactionReceipt(hash);
-      console.log(chalk.green('✅ Bid revealed!'));
-    } catch (error: unknown) {
-      const err = error as { message?: string };
-      console.error(chalk.red('❌ Error revealing bid:'), err.message);
-    }
-  });
-
-// 🎯 ACCEPT BID COMMAND
-program
-  .command('accept-bid')
-  .description('Accept a winning bid (V6)')
-  .requiredOption('--job-id <number>', 'Job ID (required)')
-  .requiredOption('--bid-id <number>', 'Bid ID to accept (required)')
-  .action(async options => {
-    try {
-      const opts = program.opts();
-      initWallet(undefined, opts.wallet, opts.passphrase);
-
-      const commerceABI = parseAbi(['function acceptBid(uint256 jobId, uint256 bidId) external']);
-      const commerce = getContractInstance(
-        config.contracts.agenticCommerce as Address,
-        commerceABI
-      );
-
-      const jobId = BigInt(options.jobId);
-      const bidId = BigInt(options.bidId);
-
-      console.log(chalk.cyan('\n✅ Accepting Bid:'));
-      console.log(chalk.dim('Job ID:'), jobId.toString());
-      console.log(chalk.dim('Bid ID:'), bidId.toString());
-
-      const hash = await commerce.write.acceptBid([jobId, bidId]);
-      console.log(chalk.cyan('Transaction sent:'), hash);
-
-      await waitForTransactionReceipt(hash);
-      console.log(chalk.green('✅ Bid accepted!'));
-    } catch (error: unknown) {
-      const err = error as { message?: string };
-      console.error(chalk.red('❌ Error accepting bid:'), err.message);
-    }
-  });
-
-// 🎯 WITHDRAW STAKE COMMAND
-program
-  .command('withdraw-stake')
-  .description('Withdraw your stake from a job (V6)')
-  .requiredOption('--job-id <number>', 'Job ID (required)')
-  .action(async options => {
-    try {
-      const opts = program.opts();
-      initWallet(undefined, opts.wallet, opts.passphrase);
-
-      const commerceABI = parseAbi(['function withdrawStake(uint256 jobId) external']);
-      const commerce = getContractInstance(
-        config.contracts.agenticCommerce as Address,
-        commerceABI
-      );
-
-      const jobId = BigInt(options.jobId);
-
-      console.log(chalk.cyan('\n💸 Withdrawing Stake:'));
-      console.log(chalk.dim('Job ID:'), jobId.toString());
-
-      const hash = await commerce.write.withdrawStake([jobId]);
-      console.log(chalk.cyan('Transaction sent:'), hash);
-
-      await waitForTransactionReceipt(hash);
-      console.log(chalk.green('✅ Stake withdrawn!'));
-    } catch (error: unknown) {
-      const err = error as { message?: string };
-      console.error(chalk.red('❌ Error withdrawing stake:'), err.message);
-    }
-  });
-
-// 🎯 GET MY BID COMMAND
-program
-  .command('get-my-bid')
-  .description('Get your bid for a job (V6)')
-  .requiredOption('--job-id <number>', 'Job ID (required)')
-  .action(async options => {
-    try {
-      const opts = program.opts();
-      initWallet(undefined, opts.wallet, opts.passphrase);
-
-      const commerceABI = parseAbi([
-        'function getUserBid(uint256 jobId, address user) external view returns ((address bidder, uint256 amount, string message, uint8 status, uint256 committedAt, uint256 revealedAt))',
-      ]);
-
-      const commerce = getContractInstance(
-        config.contracts.agenticCommerce as Address,
-        commerceABI
-      );
-
-      const jobId = BigInt(options.jobId);
-      const bid = (await commerce.read.getUserBid([jobId, config.signerAddress as Address])) as any;
-
-      if (bid.bidder === zeroAddress) {
-        console.log(chalk.yellow('\n⚠️  No bid found for this job'));
+      if (!config.contracts.agenticCommerce || config.contracts.agenticCommerce === ZeroAddress) {
+        console.log(chalk.yellow('⚠️  Agentic Commerce not deployed yet.'));
         return;
       }
 
-      const statusNames = ['None', 'Committed', 'Revealed', 'Accepted', 'Forfeited'];
+      const abi = parseAbi([
+        'function refundExpired(uint256 jobId) external',
+      ]);
 
-      console.log(chalk.cyan('\n📋 Your Bid:'));
-      console.log(chalk.dim('Job ID:'), jobId.toString());
-      console.log(chalk.dim('Bidder:'), bid.bidder);
-      console.log(chalk.dim('Amount:'), bid.amount.toString(), 'wei');
-      console.log(chalk.dim('Message:'), bid.message);
-      console.log(chalk.dim('Status:'), statusNames[bid.status] || 'Unknown');
-      console.log(
-        chalk.dim('Committed At:'),
-        new Date(Number(bid.committedAt) * 1000).toISOString()
-      );
-      if (bid.revealedAt > 0n) {
-        console.log(
-          chalk.dim('Revealed At:'),
-          new Date(Number(bid.revealedAt) * 1000).toISOString()
-        );
-      }
+      const commerce = getContractInstance(config.contracts.agenticCommerce, abi);
+
+      console.log(chalk.cyan('\n💸 Triggering Refund (Expired Job):'));
+      console.log(chalk.dim('Job ID:'), jobId);
+
+      const hash = await commerce.write.refundExpired([BigInt(jobId)]);
+      console.log(chalk.cyan('Transaction sent:'), hash);
+
+      const receipt = await waitForTransactionReceipt(hash);
+      console.log(chalk.green('✅ Refund triggered!'));
+      console.log(chalk.cyan('Gas used:'), receipt.gasUsed.toString());
     } catch (error: unknown) {
       const err = error as { message?: string };
-      console.error(chalk.red('❌ Error getting bid:'), err.message);
+      console.error(chalk.red('❌ Error triggering refund:'), err.message);
     }
   });
 
-// 🎯 GET JOB BID COUNT COMMAND
+// 🎯 REGISTER EVALUATOR COMMAND
 program
-  .command('get-job-bid-count')
-  .description('Get number of bids on a job (V6)')
-  .requiredOption('--job-id <number>', 'Job ID (required)')
-  .action(async options => {
+  .command('register-evaluator')
+  .description('Register as an evaluator (0.01 ETH stake)')
+  .action(async () => {
     try {
       const opts = program.opts();
       initWallet(undefined, opts.wallet, opts.passphrase);
 
-      const commerceABI = parseAbi([
-        'function jobBidCount(uint256 jobId) external view returns (uint256)',
+      if (!config.contracts.agenticCommerce || config.contracts.agenticCommerce === ZeroAddress) {
+        console.log(chalk.yellow('⚠️  Agentic Commerce not deployed yet.'));
+        return;
+      }
+
+      const abi = parseAbi([
+        'function registerAsEvaluator() external payable',
       ]);
-      const commerce = getContractInstance(
-        config.contracts.agenticCommerce as Address,
-        commerceABI
-      );
 
-      const jobId = BigInt(options.jobId);
-      const count = (await commerce.read.jobBidCount([jobId])) as bigint;
+      const commerce = getContractInstance(config.contracts.agenticCommerce, abi);
 
-      console.log(chalk.cyan('\n📊 Job Bid Count:'));
-      console.log(chalk.dim('Job ID:'), jobId.toString());
-      console.log(chalk.bold('Total Bids:'), count.toString());
+      console.log(chalk.cyan('\n📝 Registering as Evaluator...'));
+      const hash = await commerce.write.registerAsEvaluator([], { value: BigInt(0.01e18) });
+      console.log(chalk.cyan('Transaction sent:'), hash);
+
+      const receipt = await waitForTransactionReceipt(hash);
+      console.log(chalk.green('✅ Registered as evaluator!'));
+      console.log(chalk.cyan('Gas used:'), receipt.gasUsed.toString());
     } catch (error: unknown) {
       const err = error as { message?: string };
-      console.error(chalk.red('❌ Error:'), err.message);
+      console.error(chalk.red('❌ Error registering as evaluator:'), err.message);
     }
+  });
+
+// 🎯 UNREGISTER EVALUATOR COMMAND
+program
+  .command('unregister-evaluator')
+  .description('Unregister as an evaluator and recover stake')
+  .action(async () => {
+    try {
+      const opts = program.opts();
+      initWallet(undefined, opts.wallet, opts.passphrase);
+
+      if (!config.contracts.agenticCommerce || config.contracts.agenticCommerce === ZeroAddress) {
+        console.log(chalk.yellow('⚠️  Agentic Commerce not deployed yet.'));
+        return;
+      }
+
+      const abi = parseAbi([
+        'function unregisterAsEvaluator() external',
+      ]);
+
+      const commerce = getContractInstance(config.contracts.agenticCommerce, abi);
+
+      console.log(chalk.cyan('\n📝 Unregistering as Evaluator...'));
+      const hash = await commerce.write.unregisterAsEvaluator([]);
+      console.log(chalk.cyan('Transaction sent:'), hash);
+
+      const receipt = await waitForTransactionReceipt(hash);
+      console.log(chalk.green('✅ Unregistered as evaluator!'));
+      console.log(chalk.cyan('Gas used:'), receipt.gasUsed.toString());
+    } catch (error: unknown) {
+      const err = error as { message?: string };
+      console.error(chalk.red('❌ Error unregistering as evaluator:'), err.message);
+    }
+  });
+
+// 🎯 EVALUATOR POOL SIZE COMMAND
+program
+  .command('evaluator-pool-size')
+  .description('Get the number of registered evaluators')
+  .action(async () => {
+    try {
+      if (!config.contracts.agenticCommerce || config.contracts.agenticCommerce === ZeroAddress) {
+        console.log(chalk.yellow('⚠️  Agentic Commerce not deployed yet.'));
+        return;
+      }
+
+      const abi = parseAbi([
+        'function getEvaluatorPoolSize() external view returns (uint256)',
+      ]);
+
+      const commerce = getContractInstance(config.contracts.agenticCommerce, abi);
+      const size = await commerce.read.getEvaluatorPoolSize([]);
+
+      console.log(chalk.cyan(`📊 Evaluator pool size: ${size.toString()}`));
+    } catch (error: unknown) {
+      const err = error as { message?: string };
+      console.error(chalk.red('❌ Error getting pool size:'), err.message);
+    }
+  });
+
+// 🎯 CLEANUP STALE EVALUATORS COMMAND
+program
+  .command('cleanup-evaluators')
+  .description('Remove stale evaluators from the pool')
+  .action(async () => {
+    try {
+      const opts = program.opts();
+      initWallet(undefined, opts.wallet, opts.passphrase);
+
+      if (!config.contracts.agenticCommerce || config.contracts.agenticCommerce === ZeroAddress) {
+        console.log(chalk.yellow('⚠️  Agentic Commerce not deployed yet.'));
+        return;
+      }
+
+      const abi = parseAbi([
+        'function cleanupStaleEvaluators() external returns (uint256)',
+      ]);
+
+      const commerce = getContractInstance(config.contracts.agenticCommerce, abi);
+
+      console.log(chalk.cyan('\n🧹 Cleaning up stale evaluators...'));
+      const hash = await commerce.write.cleanupStaleEvaluators([]);
+      console.log(chalk.cyan('Transaction sent:'), hash);
+
+      const receipt = await waitForTransactionReceipt(hash);
+      console.log(chalk.green('✅ Stale evaluators cleaned!'));
+      console.log(chalk.cyan('Gas used:'), receipt.gasUsed.toString());
+    } catch (error: unknown) {
+      const err = error as { message?: string };
+      console.error(chalk.red('❌ Error cleaning evaluators:'), err.message);
+    }
+  });
+
+// 🎯 JOB BUDGET COMMAND
+program
+  .command('job-budget')
+  .description('Set or view the budget for a job')
+  .argument('<job-id>', 'Job ID')
+  .option('--set <amount>', 'Set budget amount (in wei)')
+  .action(async (jobId, options) => {
+    try {
+      if (!config.contracts.agenticCommerce || config.contracts.agenticCommerce === ZeroAddress) {
+        console.log(chalk.yellow('⚠️  Agentic Commerce not deployed yet.'));
+        return;
+      }
+
+      if (options.set) {
+        const opts = program.opts();
+        initWallet(undefined, opts.wallet, opts.passphrase);
+
+        const abi = parseAbi([
+          'function setBudget(uint256 jobId, uint256 amount) external',
+        ]);
+        const commerce = getContractInstance(config.contracts.agenticCommerce, abi);
+
+        console.log(chalk.cyan('\n💰 Setting Budget:'));
+        console.log(chalk.dim('Job ID:'), jobId);
+        console.log(chalk.dim('Amount:'), options.set, 'wei');
+
+        const hash = await commerce.write.setBudget([BigInt(jobId), BigInt(options.set)]);
+        console.log(chalk.cyan('Transaction sent:'), hash);
+
+        const receipt = await waitForTransactionReceipt(hash);
+        console.log(chalk.green('✅ Budget set!'));
+      } else {
+        const abi = parseAbi([
+          'function jobs(uint256) external view returns (uint256 id, address client, address provider, address evaluator, uint256 serviceId, address paymentToken, string description, uint256 budget, uint256 expiredAt, uint8 status, address hook, bytes32 deliverable)',
+        ]);
+        const commerce = getContractInstance(config.contracts.agenticCommerce, abi);
+        const job = await commerce.read.jobs([BigInt(jobId)]);
+        console.log(chalk.cyan(`💰 Budget for job #${jobId}: ${(job as any).budget?.toString() || 'N/A'} wei`));
+      }
+    } catch (error: unknown) {
+      const err = error as { message?: string };
+      console.error(chalk.red('❌ Error:', err.message));
+    }
+  });
+
+// 🎯 JOB PAYMENT TOKEN COMMAND
+program
+  .command('job-payment-token')
+  .description('Set or view the payment token for a job')
+  .argument('<job-id>', 'Job ID')
+  .option('--set <address>', 'Set payment token address')
+  .action(async (jobId, options) => {
+    try {
+      if (options.set) {
+        const opts = program.opts();
+        initWallet(undefined, opts.wallet, opts.passphrase);
+
+        const abi = parseAbi([
+          'function setPaymentToken(uint256 jobId, address paymentToken) external',
+        ]);
+        const commerce = getContractInstance(config.contracts.agenticCommerce, abi);
+
+        console.log(chalk.cyan('\n🪙 Setting Payment Token:'));
+        console.log(chalk.dim('Job ID:'), jobId);
+
+        const hash = await commerce.write.setPaymentToken([BigInt(jobId), options.set as Address]);
+        console.log(chalk.cyan('Transaction sent:'), hash);
+
+        const receipt = await waitForTransactionReceipt(hash);
+        console.log(chalk.green('✅ Payment token set!'));
+      } else {
+        const abi = parseAbi([
+          'function jobs(uint256) external view returns (uint256 id, address client, address provider, address evaluator, uint256 serviceId, address paymentToken, string description, uint256 budget, uint256 expiredAt, uint8 status, address hook, bytes32 deliverable)',
+        ]);
+        const commerce = getContractInstance(config.contracts.agenticCommerce, abi);
+        const job = await commerce.read.jobs([BigInt(jobId)]);
+        console.log(chalk.cyan(`🪙 Payment token for job #${jobId}: ${(job as any).paymentToken || 'N/A'}`));
+      }
+    } catch (error: unknown) {
+      const err = error as { message?: string };
+      console.error(chalk.red('❌ Error:', err.message));
+    }
+  });
+
+// ============================================================================
+
+// 🎯 CREATE OPEN JOB COMMAND (DEPRECATED - V6)
+program
+  .command('create-open-job')
+  .description('Create an open job for bidding (DEPRECATED - use create-bidding-session)')
+  .requiredOption('--max-budget <number>', 'Maximum budget in USDC wei (required)')
+  .requiredOption('--deadline <number>', 'Deadline in days (required)')
+  .action(async options => {
+    console.log(chalk.yellow('\n⚠️  create-open-job is deprecated.'));
+    console.log(chalk.yellow('Use "create-bidding-session" instead for the standalone BiddingSystem.'));
+    console.log(chalk.dim('Example: create-bidding-session --evaluator <addr> --max-budget <amount> --deadline <days>'));
+  });
+
+// 🎯 COMMIT BID COMMAND (DEPRECATED - V6)
+program
+  .command('commit-bid')
+  .description('Commit a sealed bid with stake (DEPRECATED - use commit-bidding)')
+  .requiredOption('--session <number>', 'Bidding session ID (required)')
+  .requiredOption('--amount <number>', 'Bid amount (required)')
+  .requiredOption('--message <string>', 'Bid message (required)')
+  .action(async options => {
+    console.log(chalk.yellow('\n⚠️  commit-bid on AgenticCommerce is deprecated.'));
+    console.log(chalk.yellow('Use "commit-bidding --session <id> --amount <amount> --message <msg>" instead.'));
+  });
+
+// 🎯 REVEAL BID COMMAND (DEPRECATED - V6)
+program
+  .command('reveal-bid')
+  .description('Reveal your committed bid (DEPRECATED - use reveal-bidding)')
+  .requiredOption('--session <number>', 'Bidding session ID (required)')
+  .action(async () => {
+    console.log(chalk.yellow('\n⚠️  reveal-bid on AgenticCommerce is deprecated.'));
+    console.log(chalk.yellow('Use "reveal-bidding --session <id> --amount <amount> --message <msg> --salt <salt>" instead.'));
+  });
+
+// 🎯 ACCEPT BID COMMAND (DEPRECATED - V6)
+program
+  .command('accept-bid')
+  .description('Accept a winning bid (DEPRECATED - use accept-bidding)')
+  .requiredOption('--session <number>', 'Bidding session ID (required)')
+  .requiredOption('--bid-id <number>', 'Bid ID (required)')
+  .action(async () => {
+    console.log(chalk.yellow('\n⚠️  accept-bid on AgenticCommerce is deprecated.'));
+    console.log(chalk.yellow('Use "accept-bidding --session <id> --bid-id <id>" instead.'));
+  });
+
+// 🎯 WITHDRAW STAKE COMMAND (DEPRECATED - V6)
+program
+  .command('withdraw-stake')
+  .description('Withdraw your stake from a job (DEPRECATED - use withdraw-bidding-stake)')
+  .requiredOption('--job-id <number>', 'Job ID (required)')
+  .action(async () => {
+    console.log(chalk.yellow('\n⚠️  withdraw-stake on AgenticCommerce is deprecated.'));
+    console.log(chalk.yellow('Use "withdraw-bidding-stake --session <id>" instead.'));
+  });
+
+// 🎯 GET MY BID COMMAND (DEPRECATED - V6)
+program
+  .command('get-my-bid')
+  .description('Get your bid for a specific job (DEPRECATED - use get-bidding-session)')
+  .requiredOption('--job-id <number>', 'Job ID (required)')
+  .action(async () => {
+    console.log(chalk.yellow('\n⚠️  get-my-bid on AgenticCommerce is deprecated.'));
+    console.log(chalk.yellow('Use "get-bidding-session --session <id>" instead.'));
+  });
+
+// 🎯 GET JOB BID COUNT COMMAND (DEPRECATED - V6)
+program
+  .command('get-job-bid-count')
+  .description('Get number of bids on a job (DEPRECATED)')
+  .requiredOption('--job-id <number>', 'Job ID (required)')
+  .action(async () => {
+    console.log(chalk.yellow('\n⚠️  get-job-bid-count is deprecated.'));
+    console.log(chalk.yellow('Bidding was moved to the standalone BiddingSystem contract.'));
   });
 
 // 🎯 GET CLIENT JOB COUNT COMMAND
@@ -3979,9 +4041,18 @@ program
     console.log(chalk.cyan('  buy-service <id>') + '       Purchase a service and create a job');
     console.log(chalk.cyan('  fund-job <id>') + '          Fund an existing job');
     console.log(chalk.cyan('  submit-deliverable <id>') + ' Submit work deliverable');
-    console.log(chalk.cyan('  approve-deliverable <id>') + ' Approve and release payment');
+    console.log(chalk.cyan('  approve-deliverable <id>') + ' Evaluator finalizes and releases payment (V9)');
+    console.log(chalk.cyan('  approve-by-client <id>') + '  Client approves delivery (V9)');
     console.log(chalk.cyan('  reject-deliverable <id>') + ' Reject and request revision');
+    console.log(chalk.cyan('  complete-after-timeout <id>') + ' Complete after dispute window');
+    console.log(chalk.cyan('  refund-expired <id>') + '     Permissionless refund for expired job');
     console.log(chalk.cyan('  job-status <id>') + '         Get job status');
+    console.log(chalk.cyan('  job-budget <id>') + '         Set or view job budget');
+    console.log(chalk.cyan('  job-payment-token <id>') + '  Set or view payment token');
+    console.log(chalk.cyan('  register-evaluator') + '      Register as evaluator (0.01 ETH)');
+    console.log(chalk.cyan('  unregister-evaluator') + '    Unregister as evaluator');
+    console.log(chalk.cyan('  evaluator-pool-size') + '     Get evaluator pool size');
+    console.log(chalk.cyan('  cleanup-evaluators') + '      Remove stale evaluators');
     console.log(chalk.cyan('  -- Review (PRD 3) --'));
     console.log(chalk.cyan('  create-proposal') + '        Create a proposal for A/B evaluation');
     console.log(
@@ -3989,14 +4060,14 @@ program
     );
     console.log(chalk.cyan('  attest-decision <id>') + '   Attest to winning evaluator');
     console.log(chalk.cyan('  proposal-status <id>') + '    Get proposal and evaluation status');
-    console.log(chalk.cyan('  -- V6 Bidding Commands --'));
-    console.log(chalk.cyan('  create-open-job') + '         Create an open job for bidding');
-    console.log(chalk.cyan('  commit-bid') + '             Commit a sealed bid with stake');
-    console.log(chalk.cyan('  reveal-bid') + '             Reveal your committed bid');
-    console.log(chalk.cyan('  accept-bid') + '             Accept a winning bid');
-    console.log(chalk.cyan('  withdraw-stake') + '         Withdraw your stake from a job');
-    console.log(chalk.cyan('  get-my-bid') + '             Get your bid for a job');
-    console.log(chalk.cyan('  get-job-bid-count') + '      Get number of bids on a job');
+    console.log(chalk.dim('  -- DEPRECATED (V6, removed from V9) --'));
+    console.log(chalk.dim('  create-open-job') + '         Use create-bidding-session instead');
+    console.log(chalk.dim('  commit-bid') + '             Use commit-bidding instead');
+    console.log(chalk.dim('  reveal-bid') + '             Use reveal-bidding instead');
+    console.log(chalk.dim('  accept-bid') + '             Use accept-bidding instead');
+    console.log(chalk.dim('  withdraw-stake') + '         Use withdraw-bidding-stake instead');
+    console.log(chalk.dim('  get-my-bid') + '             Use get-bidding-session instead');
+    console.log(chalk.dim('  get-job-bid-count') + '      Removed from V9');
     console.log(chalk.cyan('  get-client-job-count') + '   Get job count for a client');
     console.log(chalk.cyan('  -- BiddingSystem (Phase 11) --'));
     console.log(chalk.cyan('  create-bidding-session') + '  Create a new bidding session');

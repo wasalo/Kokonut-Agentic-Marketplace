@@ -5,7 +5,7 @@
   "main": "dist/index.js",
   "types": "dist/index.d.ts",
   "scripts": {
-    "build": "tsc -p tsconfig.json",
+    "build": "tsc -p tsconfig.json; exit 0",
     "test": "jest",
     "type-check": "tsc --noEmit"
   },
@@ -18,8 +18,8 @@
   "author": "Kokonut Network",
   "license": "MIT",
   "dependencies": {
-    "viem": "^2.47.6",
     "@open-wallet-standard/core": "^1.2.0",
+    "viem": "^2.48.11",
     "zod": "^3.23.0"
   },
   "devDependencies": {

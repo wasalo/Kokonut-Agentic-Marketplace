@@ -123,10 +123,12 @@ export class EFPModule {
   constructor(wallet: WalletClient, publicClient: PublicClient, contracts: ContractAddresses) {
     this.wallet = wallet;
     this.publicClient = publicClient;
-    this.mainnetClient = createPublicClient({
+    // @ts-expect-error viem v2 createPublicClient strict typing vs runtime
+    const mClient: PublicClient = createPublicClient({
       chain: mainnet,
       transport: http('https://ethereum.publicnode.com'),
     });
+    this.mainnetClient = mClient;
   }
 
   get address(): Address {
