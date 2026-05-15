@@ -1,7 +1,7 @@
 'use client';
 
 
-import { useState } from 'react';
+import { useState, useEffect } from 'react';
 import { useRouter } from 'next/navigation';
 import NextLink from 'next/link';
 import {
@@ -218,6 +218,7 @@ function LoadingSkeleton() {
 }
 
 export default function LeaderboardPage() {
+  useEffect(() => { document.title = 'Leaderboard | Kokonut'; }, []);
   const [page, setPage] = useState(0);
   const {
     entries,

@@ -89,10 +89,10 @@ function JobCard({ job }: { job: any }) {
 const ITEMS_PER_PAGE = 10;
 
 export default function JobsPage(): JSX.Element {
-  const [page, setPage] = useState(0);
+  useEffect(() => { document.title = 'Jobs | Kokonut'; }, []);
   const { address, isConnected } = useAccount();
-  const router = useRouter();
   const searchParams = useSearchParams();
+  const router = useRouter();
 
   // Enable event-driven updates for real-time job status
   useJobEvents();
@@ -119,6 +119,7 @@ export default function JobsPage(): JSX.Element {
   const [minBudget, setMinBudget] = useState('');
   const [maxBudget, setMaxBudget] = useState('');
   const [showFilters, setShowFilters] = useState(false);
+  const [page, setPage] = useState(0);
 
   // Debounce search query
   const [debouncedSearch, isSearching] = useDebounce((value: string) => {

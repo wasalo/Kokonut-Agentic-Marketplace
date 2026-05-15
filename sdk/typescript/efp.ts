@@ -123,7 +123,6 @@ export class EFPModule {
   constructor(wallet: WalletClient, publicClient: PublicClient, contracts: ContractAddresses) {
     this.wallet = wallet;
     this.publicClient = publicClient;
-    // @ts-expect-error viem v2 createPublicClient strict typing vs runtime
     const mClient: PublicClient = createPublicClient({
       chain: mainnet,
       transport: http('https://ethereum.publicnode.com'),
@@ -132,7 +131,7 @@ export class EFPModule {
   }
 
   get address(): Address {
-    return this.wallet.account.address;
+    return this.wallet.account?.address as Address;
   }
 
   async getStats(address: string): Promise<EfpStats> {
@@ -206,7 +205,7 @@ export class EFPModule {
   }
 
   async mintList(): Promise<TransactionResult> {
-    const to = this.wallet.account.address;
+    const to = this.wallet.account?.address as Address;
     const slot = BigInt(Math.floor(Math.random() * 1000000) + 1);
     const listStorageLocation = buildStorageLocation(slot);
 

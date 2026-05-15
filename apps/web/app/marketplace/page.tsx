@@ -1,5 +1,6 @@
 'use client';
 
+import { useEffect } from 'react';
 import dynamic from 'next/dynamic';
 
 const MarketplaceInner = dynamic(() => import('./marketplace-inner'), {
@@ -12,5 +13,6 @@ const MarketplaceInner = dynamic(() => import('./marketplace-inner'), {
 });
 
 export default function MarketplacePage(): JSX.Element {
+  useEffect(() => { document.title = 'Marketplace | Kokonut'; }, []);
   return <MarketplaceInner />;
 }

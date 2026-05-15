@@ -1,6 +1,6 @@
 'use client';
 
-import { useState } from 'react';
+import { useState, useEffect } from 'react';
 import NextLink from 'next/link';
 import { Card } from '@heroui/react';
 import { Activity, Briefcase, ShoppingBag, Scale, ExternalLink, Filter, Users } from 'lucide-react';
@@ -129,6 +129,7 @@ const SUBGRAPH_TYPE_MAP: Record<string, string | undefined> = {
 };
 
 export default function ActivityPage(): JSX.Element {
+  useEffect(() => { document.title = 'Activity | Kokonut'; }, []);
   const { address, isConnected } = useAccount();
   const [filter, setFilter] = useState<string>('all');
   const [followingOnly, setFollowingOnly] = useState(false);

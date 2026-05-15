@@ -18,6 +18,14 @@ export const ERROR_CODES: Record<string, ErrorResolution> = {
     actionLabel: 'Try Again',
   },
 
+  // Network Errors
+  WRONG_CHAIN: {
+    code: 'WRONG_CHAIN',
+    message: 'Wrong network detected',
+    resolution: 'Please switch your wallet to Sepolia testnet. Most Kokonut features only work on Sepolia.',
+    actionLabel: 'Switch Network',
+  },
+
   // Fund Errors
   INSUFFICIENT_FUNDS: {
     code: 'INSUFFICIENT_FUNDS',
@@ -289,24 +297,42 @@ export function getErrorResolution(error: unknown): ErrorResolution {
   if (error instanceof Error) {
     const message = error.message.toLowerCase();
 
-    // User action errors
+    // wagmi v3 structured error codes
+    const err = error as { code?: number; shortMessage?: string };
+    const code = (err as any)?.code;
+    const shortMessage = (err as any)?.shortMessage?.toLowerCase() || '';
+
+    // Check error code first for wagmi v3 structured errors
+    if (code === 4001 || code === 'ACTION_REJECTED' || shortMessage.includes('user rejected')) {
+      return ERROR_CODES.USER_REJECTED;
+    }
+    if (code === -32000 || shortMessage.includes('insufficient funds') || shortMessage.includes('gas required exceeds')) {
+      return ERROR_CODES.INSUFFICIENT_FUNDS;
+    }
+
+    // Network errors (before user action to catch chain-switch rejections)
+    if (code === 4902 || message.includes('chain mismatch') || message.includes('chain not configured') || message.includes('wallet_switch') || message.includes('wrong chain') || message.includes('unrecognized chain')) {
+      return ERROR_CODES.WRONG_CHAIN;
+    }
+
+    // User action errors (string fallback)
     if (message.includes('user rejected') || message.includes('user denied')) {
       return ERROR_CODES.USER_REJECTED;
     }
 
-    // Fund errors
+    // Fund errors (string fallback)
     if (message.includes('insufficient funds')) {
       return ERROR_CODES.INSUFFICIENT_FUNDS;
     }
-    if (message.includes('eth balance')) {
+    if (message.includes('eth balance') || message.includes('gas required')) {
       return ERROR_CODES.INSUFFICIENT_ETH;
     }
 
     // Transaction errors
-    if (message.includes('nonce')) {
+    if (code === -32003 || message.includes('nonce')) {
       return ERROR_CODES.NONCE_MISMATCH;
     }
-    if (message.includes('gas') && message.includes('estimat')) {
+    if (code === -32015 || (message.includes('gas') && message.includes('estimat'))) {
       return ERROR_CODES.GAS_ESTIMATE_FAILED;
     }
     if (message.includes('underpriced') || message.includes('fee too low')) {

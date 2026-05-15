@@ -1,17 +1,37 @@
 'use client';
 
-import { useState, type ReactNode } from 'react';
+import { useState, useEffect, type ReactNode } from 'react';
 import { QueryClient, QueryClientProvider } from '@tanstack/react-query';
-import { WagmiProvider } from 'wagmi';
+import { WagmiProvider, useAccount, useChainId } from 'wagmi';
 import { RainbowKitProvider, darkTheme } from '@rainbow-me/rainbowkit';
 import { config } from '@/lib/wagmi';
 import { DebugProvider } from '@/contexts/DebugContext';
 import { TransactionProvider as KokonutTxProvider } from '@/contexts/TransactionContext';
 import { TransactionProvider as EfpTxProvider } from 'ethereum-identity-kit';
 import { usePersonalNotifications } from '@/lib/hooks/useNotificationEvents';
+import { showToast } from '@/lib/toast';
 
 function NotificationWatcher() {
   usePersonalNotifications();
+  return null;
+}
+
+function ChainGuard() {
+  const targetChainId = 11155111; // Sepolia
+  const chainId = useChainId();
+  const { isConnected } = useAccount();
+  const [hasShown, setHasShown] = useState(false);
+
+  useEffect(() => {
+    if (isConnected && chainId && chainId !== targetChainId && !hasShown) {
+      showToast.warning('Wrong network', 'Switch to Sepolia testnet for Kokonut transactions.');
+      setHasShown(true);
+    }
+    if (chainId === targetChainId) {
+      setHasShown(false);
+    }
+  }, [chainId, isConnected, hasShown]);
+
   return null;
 }
 
@@ -46,6 +66,7 @@ export function Providers({ children }: { children: ReactNode }) {
                   borderRadius: 'large',
                 })}
               >
+                <ChainGuard />
                 <NotificationWatcher />
                 {children}
               </RainbowKitProvider>

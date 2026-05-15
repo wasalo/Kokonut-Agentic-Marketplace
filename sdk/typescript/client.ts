@@ -487,7 +487,7 @@ class IdentityModule {
   }
 
   async isRegistered(): Promise<boolean> {
-    return this.isAgent(this.wallet.account.address);
+    return this.isAgent(this.wallet.account?.address as Address);
   }
 
   async setAgentURI(agentId: number | bigint, newURI: string): Promise<TransactionResult> {
@@ -937,7 +937,7 @@ class CommerceModule {
         address: this.contracts.usdc,
         abi: USDC_ABI,
         functionName: 'allowance',
-        args: [this.wallet.account.address, this.contracts.agenticCommerce],
+        args: [this.wallet.account?.address as Address, this.contracts.agenticCommerce],
       } as any)) as unknown as bigint;
 
       if (allowance < amount) {
@@ -1395,7 +1395,7 @@ class CommerceModule {
   }
 
   async getMyJobs(): Promise<Job[]> {
-    const jobCount = await this.getClientJobCount(this.wallet.account.address as Address);
+    const jobCount = await this.getClientJobCount((this.wallet.account as any).address as Address);
     const jobs: Job[] = [];
 
     for (let i = 0n; i < jobCount; i++) {

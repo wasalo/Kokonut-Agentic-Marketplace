@@ -86,6 +86,7 @@ const BidStatusCard = dynamic(() => import('@/components/BiddingForms').then(m =
 import { StatusBadge, getJobStatusBadgeType } from '@/components/StatusBadge';
 import { Address } from '@/components/Address';
 import { ErrorDisplay } from '@/components/ErrorDisplay';
+import { showToast } from '@/lib/toast';
 import { MilestoneSection } from '@/components/MilestoneSection';
 import { useDispute, useFlagDispute, useJobMilestones } from '@/lib/hooks/useMilestoneEscrow';
 import { JobHeader } from '@/components/jobs/JobHeader';
@@ -277,7 +278,7 @@ export default function JobDetailPage({
       }
     };
 
-    void void fetchBids();
+    void fetchBids();
   }, [publicClient, job?.id, bidCount, jobIsOpen, AGENTIC_COMMERCE_ADDRESS]);
 
   const [newBudget, setNewBudget] = useState('');
@@ -318,12 +319,12 @@ export default function JobDetailPage({
     if (isTxConfirmed && txStep === 'Approving USDC') {
       setTxStep(null);
       setOptimisticApprovalSent(false);
-      // Immediately invalidate USDC allowance query so next read gets fresh value
       queryClient.invalidateQueries({
         queryKey: ['useReadContract', USDC_ADDRESS, 'allowance'],
       });
       void refetch();
     } else if (isTxConfirmed && txStep) {
+      showToast.success(`${txStep} completed!`, 'Transaction confirmed.');
       setTxStep(null);
       void refetch();
     }
@@ -447,6 +448,13 @@ export default function JobDetailPage({
     refundError ||
     completeAfterTimeoutError ||
     refundExpiredError;
+
+  // Show error toasts for transaction failures
+  useEffect(() => {
+    if (currentError) {
+      showToast.error('Transaction failed', (currentError as any).message || 'Please try again.');
+    }
+  }, [currentError]);
 
   if (isLoading) {
     return (

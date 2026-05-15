@@ -917,10 +917,10 @@ const publicClient = usePublicClient();
       }
 
       try {
-        const currentBlock = await withRetry(
+        const currentBlock = (await withRetry(
           () => publicClient.getBlockNumber(),
           { maxRetries: 2, initialDelay: 500 }
-        );
+        )) as bigint;
         let fromBlock = lastBlockRef.current;
 
         if (currentBlock <= fromBlock) return;

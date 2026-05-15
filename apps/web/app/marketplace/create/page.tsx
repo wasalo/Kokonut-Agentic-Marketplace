@@ -22,6 +22,7 @@ import { useDebug } from '@/contexts/DebugContext';
 import { validateStringLength, validateMetadataURI } from '@/lib/hooks/useValidation';
 import { useFormSubmit, formatTimeRemaining } from '@/lib/hooks/useDebounce';
 import { TransactionError } from '@/components/TransactionError';
+import { showToast } from '@/lib/toast';
 import {
   useTokenPriceConversion,
   USDC_TOKEN,
@@ -291,8 +292,15 @@ export default function CreateServicePage() {
   useEffect(() => {
     if (isServiceConfirmed && step === 'creating') {
       setStep('done');
+      showToast.success('Service created!', 'Your service is now live on the marketplace.');
     }
   }, [isServiceConfirmed, step]);
+
+  useEffect(() => {
+    if (serviceError) {
+      showToast.error('Service creation failed', serviceError.message || 'Please try again.');
+    }
+  }, [serviceError]);
 
   const handleAddTag = useCallback(
     async (agentId: number) => {
@@ -305,10 +313,7 @@ export default function CreateServicePage() {
   const performSubmit = useCallback(
     (e: React.FormEvent) => {
       e.preventDefault();
-      console.log('[CreateService] Button clicked, isConnected:', !!isConnected, 'taggedAgents:', taggedAgents.length);
-      
       if (!isConnected || taggedAgents.length === 0) {
-        console.log('[CreateService] Early return - not connected or no agents');
         return;
       }
 
@@ -323,17 +328,13 @@ export default function CreateServicePage() {
 
       setFormErrors(errors);
 
-      console.log('[CreateService] Validation errors:', errors);
-
       // Check if any errors exist
       if (Object.values(errors).some(error => error !== null)) {
         addLog('info', 'Form validation failed', errors);
-        console.log('[CreateService] Validation failed, returning early');
         return;
       }
 
       const agent = taggedAgents[0];
-      console.log('[CreateService] Proceeding with agent:', agent.id, 'formData:', formData);
       addLog('info', 'Submitting service creation', { agentId: agent.id, formData });
 
       setStep('creating');
@@ -346,7 +347,6 @@ export default function CreateServicePage() {
 
       // Payment address: use custom if provided, otherwise use user's wallet
       const paymentAddress = (formData.paymentAddress.trim() || address || ZERO_ADDRESS) as `0x${string}`;
-      console.log('[CreateService] paymentAddress:', paymentAddress);
 
       createService({
         agentId: BigInt(agent.id),
@@ -359,7 +359,6 @@ export default function CreateServicePage() {
           : formData.paymentToken.address,
         paymentAddress: paymentAddress
       });
-      console.log('[CreateService] createService called with args');
     },
     [
       isConnected,

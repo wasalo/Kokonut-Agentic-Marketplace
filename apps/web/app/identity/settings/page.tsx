@@ -32,6 +32,7 @@ import {
 // - createDeadline (was for blockchain timestamp - no longer needed)
 import { useAgentsByOwnerFromSubgraph } from '@/lib/hooks';
 import { generateAgentMetadata, decodeAgentMetadata, type AgentMetadata8004 } from '@/lib/metadata';
+import { showToast } from '@/lib/toast';
 import { EmailPreferencesForm } from '@/components/EmailPreferencesForm';
 import { PortfolioForm, type PortfolioItem } from '@/components/PortfolioForm';
 
@@ -86,6 +87,14 @@ export default function AgentSettingsPage(): JSX.Element {
 
   const { isSuccess: uriSuccess } = useWaitForTransactionReceipt({ hash: uriHash });
   const { isSuccess: metaSuccess } = useWaitForTransactionReceipt({ hash: metaHash });
+
+  useEffect(() => {
+    if (uriSuccess) showToast.success('Agent identity updated!', 'Your changes are on-chain.');
+  }, [uriSuccess]);
+
+  useEffect(() => {
+    if (metaSuccess) showToast.success('Metadata saved!', 'Your metadata has been updated.');
+  }, [metaSuccess]);
 
   const handleSetMetadata = useCallback(
     (e: React.FormEvent) => {

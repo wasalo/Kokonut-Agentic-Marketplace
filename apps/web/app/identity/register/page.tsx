@@ -1,6 +1,6 @@
 'use client';
 
-import { useState, useCallback } from 'react';
+import { useState, useCallback, useEffect } from 'react';
 import { useAccount } from 'wagmi';
 import { useRouter } from 'next/navigation';
 import { ArrowLeft, CheckCircle2, Loader2 } from 'lucide-react';
@@ -12,8 +12,10 @@ import { generateAgentMetadata, type AgentMetadata8004 } from '@/lib/metadata';
 import { useWalletAgentsFromSubgraph } from '@/lib/hooks';
 import { CONTRACT_ADDRESSES, getContractAddress } from '@/lib/contracts/config';
 import { TransactionError } from '@/components/TransactionError';
+import { showToast } from '@/lib/toast';
 import { PortfolioForm, type PortfolioItem } from '@/components/PortfolioForm';
 import { useFormSubmit, formatTimeRemaining } from '@/lib/hooks/useDebounce';
+import { validateStringLength } from '@/lib/hooks/useValidation';
 
 const ERC8004_ADDRESS = getContractAddress(
   process.env.NEXT_PUBLIC_8004_REGISTRY_ADDRESS,
@@ -30,6 +32,12 @@ interface FormData {
   portfolio: PortfolioItem[];
 }
 
+interface FormErrors {
+  name: string | null;
+  endpoint: string | null;
+  email: string | null;
+}
+
 const initialFormData: FormData = {
   name: '',
   description: '',
@@ -44,6 +52,31 @@ export default function RegisterAgentPage(): JSX.Element {
   const router = useRouter();
   const { isConnected, address } = useAccount();
   const [formData, setFormData] = useState<FormData>(initialFormData);
+  const [formErrors, setFormErrors] = useState<FormErrors>({ name: null, endpoint: null, email: null });
+
+  const validateName = useCallback((value: string) => {
+    const error = validateStringLength(value, 2, 100, 'Agent name');
+    setFormErrors(prev => ({ ...prev, name: error }));
+    return !error;
+  }, []);
+
+  const validateEndpoint = useCallback((value: string) => {
+    if (!value) { setFormErrors(prev => ({ ...prev, endpoint: null })); return true; }
+    const urlError = !value.startsWith('https://') && !value.startsWith('http://')
+      ? 'Endpoint must be a valid URL (https://...)'
+      : null;
+    setFormErrors(prev => ({ ...prev, endpoint: urlError }));
+    return !urlError;
+  }, []);
+
+  const validateEmail = useCallback((value: string) => {
+    if (!value) { setFormErrors(prev => ({ ...prev, email: null })); return true; }
+    const emailError = !value.includes('@') || !value.includes('.')
+      ? 'Please enter a valid email address'
+      : null;
+    setFormErrors(prev => ({ ...prev, email: emailError }));
+    return !emailError;
+  }, []);
 
   const { taggedAgents } = useWalletAgentsFromSubgraph(address);
   const isRegistered = taggedAgents.length > 0;
@@ -100,6 +133,18 @@ export default function RegisterAgentPage(): JSX.Element {
   const { handleSubmit, isSubmitting, timeUntilNextSubmit } = useFormSubmit(performSubmit, 2000);
 
   const isLoading = isPending || isConfirming;
+
+  useEffect(() => {
+    if (isConfirmed) {
+      showToast.success('Agent registered!', 'Your agent is now on-chain.');
+    }
+  }, [isConfirmed]);
+
+  useEffect(() => {
+    if (txError) {
+      showToast.error('Registration failed', txError.message || 'Please try again.');
+    }
+  }, [txError]);
 
   if (isConfirmed) {
     return (
@@ -184,10 +229,12 @@ export default function RegisterAgentPage(): JSX.Element {
                   id="name"
                   placeholder="e.g., Wasabi Agent"
                   value={formData.name}
-                  onChange={e => handleFieldChange('name', e.target.value)}
+                  onChange={e => { handleFieldChange('name', e.target.value); validateName(e.target.value); }}
+                  onBlur={() => validateName(formData.name)}
                   required
-                  className="w-full px-3 py-2 bg-content2 border border-divider rounded-lg text-default-700 placeholder:text-default-400 focus:outline-none focus:ring-2 focus:ring-success focus:border-transparent transition-all"
+                  className={`w-full px-3 py-2 bg-content2 border rounded-lg text-default-700 placeholder:text-default-400 focus:outline-none focus:ring-2 focus:ring-success focus:border-transparent transition-all ${formErrors.name ? 'border-danger' : 'border-divider'}`}
                 />
+                {formErrors.name && <p className="text-xs text-danger mt-1">{formErrors.name}</p>}
               </div>
 
               <div className="space-y-2">
@@ -227,9 +274,11 @@ export default function RegisterAgentPage(): JSX.Element {
                     id="endpoint"
                     placeholder="https://api.example.com"
                     value={formData.endpoint}
-                    onChange={e => handleFieldChange('endpoint', e.target.value)}
-                    className="w-full px-3 py-2 bg-content2 border border-divider rounded-lg text-default-700 placeholder:text-default-400 focus:outline-none focus:ring-2 focus:ring-success focus:border-transparent transition-all"
+                    onChange={e => { handleFieldChange('endpoint', e.target.value); validateEndpoint(e.target.value); }}
+                    onBlur={() => validateEndpoint(formData.endpoint)}
+                    className={`w-full px-3 py-2 bg-content2 border rounded-lg text-default-700 placeholder:text-default-400 focus:outline-none focus:ring-2 focus:ring-success focus:border-transparent transition-all ${formErrors.endpoint ? 'border-danger' : 'border-divider'}`}
                   />
+                  {formErrors.endpoint && <p className="text-xs text-danger mt-1">{formErrors.endpoint}</p>}
                 </div>
               </div>
 
@@ -237,14 +286,16 @@ export default function RegisterAgentPage(): JSX.Element {
                 <label htmlFor="email" className="text-sm font-medium">
                   Email (Optional)
                 </label>
-                <input
-                  type="email"
-                  id="email"
-                  placeholder="agent@example.com"
-                  value={formData.email}
-                  onChange={e => handleFieldChange('email', e.target.value)}
-                  className="w-full px-3 py-2 bg-content2 border border-divider rounded-lg text-default-700 placeholder:text-default-400 focus:outline-none focus:ring-2 focus:ring-success focus:border-transparent transition-all"
-                />
+                  <input
+                    type="email"
+                    id="email"
+                    placeholder="agent@example.com"
+                    value={formData.email}
+                    onChange={e => { handleFieldChange('email', e.target.value); validateEmail(e.target.value); }}
+                    onBlur={() => validateEmail(formData.email)}
+                    className={`w-full px-3 py-2 bg-content2 border rounded-lg text-default-700 placeholder:text-default-400 focus:outline-none focus:ring-2 focus:ring-success focus:border-transparent transition-all ${formErrors.email ? 'border-danger' : 'border-divider'}`}
+                  />
+                  {formErrors.email && <p className="text-xs text-danger mt-1">{formErrors.email}</p>}
                 <p className="text-xs text-default-400">Used for notifications and contact</p>
               </div>
 

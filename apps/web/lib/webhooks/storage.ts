@@ -50,7 +50,7 @@ export function saveWebhook(owner: string, registration: WebhookRegistration): W
   };
 
   webhooks.push(newWebhook);
-  localStorage.setItem(WEBHOOKS_KEY, JSON.stringify(webhooks));
+  try { localStorage.setItem(WEBHOOKS_KEY, JSON.stringify(webhooks)); } catch {}
 
   return newWebhook;
 }
@@ -66,7 +66,7 @@ export function updateWebhook(id: string, updates: Partial<Webhook>): Webhook | 
     ...updates,
     updatedAt: Date.now(),
   };
-  localStorage.setItem(WEBHOOKS_KEY, JSON.stringify(webhooks));
+  try { localStorage.setItem(WEBHOOKS_KEY, JSON.stringify(webhooks)); } catch {}
 
   return webhooks[index];
 }
@@ -77,7 +77,7 @@ export function deleteWebhook(id: string): boolean {
 
   if (filtered.length === webhooks.length) return false;
 
-  localStorage.setItem(WEBHOOKS_KEY, JSON.stringify(filtered));
+  try { localStorage.setItem(WEBHOOKS_KEY, JSON.stringify(filtered)); } catch {}
   return true;
 }
 

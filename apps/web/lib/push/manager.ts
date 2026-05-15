@@ -49,24 +49,26 @@ export function generateVapidKeys(): VapidKeys {
 
 export function getPublicKey(): string | null {
   if (!isBrowser()) return null;
-  return localStorage.getItem(VAPID_PUBLIC_KEY_STORAGE_KEY);
+  try { return localStorage.getItem(VAPID_PUBLIC_KEY_STORAGE_KEY); } catch { return null; }
 }
 
 export function setPublicKey(publicKey: string): void {
   if (!isBrowser()) return;
-  localStorage.setItem(VAPID_PUBLIC_KEY_STORAGE_KEY, publicKey);
+  try { localStorage.setItem(VAPID_PUBLIC_KEY_STORAGE_KEY, publicKey); } catch {}
 }
 
 export function getPushPreferences(): PushPreferences {
   if (!isBrowser()) return getDefaultPreferences();
-  const stored = localStorage.getItem(PUSH_PREFERENCES_KEY);
-  if (stored) {
-    try {
-      return JSON.parse(stored);
-    } catch {
-      return getDefaultPreferences();
+  try {
+    const stored = localStorage.getItem(PUSH_PREFERENCES_KEY);
+    if (stored) {
+      try {
+        return JSON.parse(stored);
+      } catch {
+        return getDefaultPreferences();
+      }
     }
-  }
+  } catch {}
   return getDefaultPreferences();
 }
 
@@ -80,7 +82,7 @@ function getDefaultPreferences(): PushPreferences {
 
 export function setPushPreferences(preferences: PushPreferences): void {
   if (!isBrowser()) return;
-  localStorage.setItem(PUSH_PREFERENCES_KEY, JSON.stringify(preferences));
+  try { localStorage.setItem(PUSH_PREFERENCES_KEY, JSON.stringify(preferences)); } catch {}
 }
 
 export function urlBase64ToUint8Array(base64String: string): Uint8Array {

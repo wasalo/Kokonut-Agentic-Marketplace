@@ -1,7 +1,7 @@
 'use client';
 
 import { useSearchParams, useRouter, usePathname } from 'next/navigation';
-import { useCallback, useMemo, Suspense } from 'react';
+import { useCallback, useMemo, useEffect, Suspense } from 'react';
 import {
   BarChart,
   Bar,
@@ -103,6 +103,7 @@ function AnalyticsContent({
   timeRange: TimeRange;
   onTimeRangeChange?: (range: TimeRange) => void;
 }): JSX.Element {
+  useEffect(() => { document.title = 'Analytics | Kokonut'; }, []);
   const { data, isLoading, error, refetch } = useAnalyticsFromSubgraph(timeRange);
   const rangeDays = TIME_RANGES[timeRange].days;
   const rangeLabel = timeRange === '7D' ? '7 days' : timeRange === '30D' ? '30 days' : '90 days';

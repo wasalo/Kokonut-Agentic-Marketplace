@@ -1,6 +1,6 @@
 'use client';
 
-import { useState, useCallback } from 'react';
+import { useState, useCallback, useEffect } from 'react';
 import { Card } from '@heroui/react';
 import { CheckCircle2 } from 'lucide-react';
 import { useWriteContract, useWaitForTransactionReceipt } from 'wagmi';
@@ -36,9 +36,11 @@ export function FeedbackCard({ agentId, jobId }: { agentId: bigint; jobId: bigin
     });
   }, [agentId, rating, comment, jobId, writeContract]);
 
-  if (isSuccess && !submitted) {
-    setSubmitted(true);
-  }
+  useEffect(() => {
+    if (isSuccess && !submitted) {
+      setSubmitted(true);
+    }
+  }, [isSuccess, submitted]);
 
   if (submitted) {
     return (

@@ -27,7 +27,7 @@ export default function Error({
   return (
     <div className="min-h-[60vh] flex flex-col items-center justify-center px-4">
       <div className="text-center max-w-md">
-        <h2 className="text-2xl font-bold text-red-600 mb-2">Something went wrong!</h2>
+        <h2 className="text-2xl font-bold text-danger mb-2">Something went wrong!</h2>
         <p className="text-muted-foreground mb-6">{message}</p>
         <button
           onClick={reset}

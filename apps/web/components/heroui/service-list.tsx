@@ -305,9 +305,9 @@ export function ServiceList({
     });
   }, [services, searchQuery, showActiveOnly, skillDomain, agentIdsBySkill, minPrice, maxPrice, ethToUsdcRate]);
 
-  // Apply sorting
-  useMemo(() => {
-    filteredServices.sort((a: Service, b: Service) => {
+  // Apply sorting — create a sorted copy instead of mutating in place
+  const sortedServices = useMemo(() => {
+    return [...filteredServices].sort((a: Service, b: Service) => {
       const multiplier = sortOrder === 'asc' ? 1 : -1;
       switch (sortBy) {
         case 'price': {
@@ -325,8 +325,8 @@ export function ServiceList({
   }, [filteredServices, sortBy, sortOrder, ethToUsdcRate]);
 
   // Pagination
-  const totalPages = Math.max(1, Math.ceil(filteredServices.length / ITEMS_PER_PAGE));
-  const displayServices = filteredServices.slice(page * ITEMS_PER_PAGE, (page + 1) * ITEMS_PER_PAGE);
+  const totalPages = Math.max(1, Math.ceil(sortedServices.length / ITEMS_PER_PAGE));
+  const displayServices = sortedServices.slice(page * ITEMS_PER_PAGE, (page + 1) * ITEMS_PER_PAGE);
 
   if (error) {
     return (

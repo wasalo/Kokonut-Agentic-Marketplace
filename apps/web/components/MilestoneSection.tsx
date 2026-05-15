@@ -174,15 +174,12 @@ export function MilestoneSection({
   }
 
   const handleAddMilestone = async () => {
-    console.log('[milestone] handleAddMilestone called', { newDescription, newAmount, newDueDate });
     if (!newDescription || !newAmount) {
-      console.log('[milestone] handleAddMilestone blocked: missing fields');
       return;
     }
     try {
       const amountRaw = BigInt(Math.floor(parseFloat(newAmount) * Math.pow(10, tokenDecimals)));
       const dueDate = newDueDate ? BigInt(Math.floor(new Date(newDueDate).getTime() / 1000)) : 0n;
-      console.log('[milestone] addMilestone args:', { jobId: jobId.toString(), amount: amountRaw.toString(), description: newDescription, dueDate: dueDate.toString() });
       await addMilestone(jobId, amountRaw, newDescription, dueDate);
       setNewDescription('');
       setNewAmount('');
@@ -196,7 +193,6 @@ export function MilestoneSection({
   const handleCompleteMilestone = async (index: number) => {
     if (!proofHash) return;
     try {
-      console.log('[milestone] completeMilestone:', { jobId: jobId.toString(), index, proofHash });
       await completeMilestone(jobId, BigInt(index), `0x${proofHash.replace('0x', '')}` as `0x${string}`);
     } catch (e) {
       console.error('[milestone] completeMilestone failed:', e);
@@ -205,7 +201,6 @@ export function MilestoneSection({
 
   const handleReleaseMilestone = async (index: number) => {
     try {
-      console.log('[milestone] releaseMilestone:', { jobId: jobId.toString(), index });
       await releaseMilestone(jobId, BigInt(index));
     } catch (e) {
       console.error('[milestone] releaseMilestone failed:', e);

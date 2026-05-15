@@ -105,6 +105,8 @@ export function NavbarComponent(): JSX.Element {
             <button
               className="lg:hidden p-2 text-foreground hover:bg-content2 rounded-lg transition-colors"
               onClick={toggleMenu}
+              aria-label={isMenuOpen ? 'Close navigation menu' : 'Open navigation menu'}
+              aria-expanded={isMenuOpen}
             >
               {isMenuOpen ? <X className="w-5 h-5" /> : <Menu className="w-5 h-5" />}
             </button>

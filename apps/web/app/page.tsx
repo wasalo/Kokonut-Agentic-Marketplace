@@ -1,5 +1,6 @@
 'use client';
 
+import { useEffect } from 'react';
 import NextLink from 'next/link';
 import { Card } from '@heroui/react';
 import {
@@ -85,7 +86,7 @@ function LiveStats() {
           key={item.label}
           className="text-center bg-content border border-divider rounded-xl p-6"
         >
-          <div className="w-12 h-12 mx-auto mb-3 rounded-xl bg-gradient-to-br from-[#009F4D] to-[#00c853] flex items-center justify-center">
+          <div className="w-12 h-12 mx-auto mb-3 rounded-xl bg-gradient-to-br from-primary to-emerald-400 flex items-center justify-center">
             <item.icon className="w-6 h-6 text-white" />
           </div>
           {isLoading ? (
@@ -184,8 +185,8 @@ function WhatIsHappening() {
             <span className="relative">
               What&apos;s Happening
               <span className="absolute -top-1 -right-4 flex h-3 w-3">
-                <span className="animate-ping absolute inline-flex h-full w-full rounded-full bg-[#009F4D] opacity-75"></span>
-                <span className="relative inline-flex rounded-full h-3 w-3 bg-[#009F4D]"></span>
+                <span className="animate-ping absolute inline-flex h-full w-full rounded-full bg-primary opacity-75"></span>
+                <span className="relative inline-flex rounded-full h-3 w-3 bg-primary"></span>
               </span>
             </span>
           </h2>
@@ -209,11 +210,11 @@ function WhatIsHappening() {
                 }
                 className="flex items-center gap-4 p-4 bg-content border border-divider rounded-xl hover:border-success/30 hover:shadow-sm transition-all group"
               >
-                <div className="w-10 h-10 rounded-xl bg-gradient-to-br from-[#009F4D] to-[#00c853] flex items-center justify-center shrink-0">
+                <div className="w-10 h-10 rounded-xl bg-gradient-to-br from-primary to-emerald-400 flex items-center justify-center shrink-0">
                   <Icon className="w-5 h-5 text-white" />
                 </div>
                 <div className="flex-1 min-w-0">
-                  <p className="text-sm font-medium text-foreground group-hover:text-[#009F4D] transition-colors">
+                  <p className="text-sm font-medium text-foreground group-hover:text-primary transition-colors">
                     {activityLabel(activity.type)}
                   </p>
                   <p className="text-xs text-default-500 truncate">
@@ -232,7 +233,7 @@ function WhatIsHappening() {
         <div className="text-center mt-8">
           <NextLink
             href="/activity"
-            className="inline-flex items-center gap-2 text-sm text-[#009F4D] hover:underline"
+            className="inline-flex items-center gap-2 text-sm text-primary hover:underline"
           >
             View all activity
             <ArrowRight className="w-3 h-3" />
@@ -244,29 +245,30 @@ function WhatIsHappening() {
 }
 
 export default function HomePage(): JSX.Element {
+  useEffect(() => { document.title = 'Kokonut | Agent Economy Marketplace'; }, []);
   return (
     <div className="flex flex-col">
       {/* Hero Section */}
       <section className="relative min-h-[90vh] flex items-center overflow-hidden">
-        <div className="absolute inset-0 bg-gradient-to-br from-[#009F4D]/5 via-background to-[#FFCD00]/5" />
-        <div className="absolute top-20 left-10 w-72 h-72 bg-[#009F4D]/10 rounded-full blur-3xl" />
-        <div className="absolute bottom-20 right-10 w-96 h-96 bg-[#FFCD00]/10 rounded-full blur-3xl" />
+        <div className="absolute inset-0 bg-gradient-to-br from-[#009F4D]/5 via-background to-secondary/5" />
+        <div className="absolute top-20 left-10 w-72 h-72 bg-primary/10 rounded-full blur-3xl" />
+        <div className="absolute bottom-20 right-10 w-96 h-96 bg-secondary/10 rounded-full blur-3xl" />
 
         <div className="container mx-auto px-4 relative">
           <div className="max-w-4xl mx-auto text-center">
             {/* Badge */}
-            <div className="inline-flex items-center gap-2 px-4 py-2 rounded-full bg-[#009F4D]/10 border border-[#009F4D]/20 mb-8">
+            <div className="inline-flex items-center gap-2 px-4 py-2 rounded-full bg-primary/10 border border-primary/20 mb-8">
               <span className="relative flex h-2 w-2">
-                <span className="animate-ping absolute inline-flex h-full w-full rounded-full bg-[#009F4D] opacity-75"></span>
-                <span className="relative inline-flex rounded-full h-2 w-2 bg-[#009F4D]"></span>
+                <span className="animate-ping absolute inline-flex h-full w-full rounded-full bg-primary opacity-75"></span>
+                <span className="relative inline-flex rounded-full h-2 w-2 bg-primary"></span>
               </span>
-              <span className="text-sm font-medium text-[#009F4D]">ERC-8004 Compliant</span>
+              <span className="text-sm font-medium text-primary">ERC-8004 Compliant</span>
             </div>
 
             {/* Headline */}
             <h1 className="text-5xl md:text-7xl font-bold tracking-tight mb-6">
               <span className="text-foreground">The </span>
-              <span className="bg-gradient-to-r from-[#009F4D] to-[#00c853] bg-clip-text text-transparent">
+              <span className="bg-gradient-to-r from-primary to-emerald-400 bg-clip-text text-transparent">
                 Agent Economy
               </span>
               <br />
@@ -283,14 +285,14 @@ export default function HomePage(): JSX.Element {
             <div className="flex flex-col sm:flex-row gap-4 justify-center mb-12">
               <NextLink
                 href="/identity/register"
-                className="inline-flex items-center justify-center gap-2 px-8 py-4 text-lg font-semibold bg-gradient-to-r from-[#009F4D] to-[#00c853] text-white rounded-xl hover:opacity-90 transition-opacity"
+                className="inline-flex items-center justify-center gap-2 px-8 py-4 text-lg font-semibold bg-gradient-to-r from-primary to-emerald-400 text-white rounded-xl hover:opacity-90 transition-opacity"
               >
                 Register Agent
                 <ArrowRight className="w-4 h-4" />
               </NextLink>
               <NextLink
                 href="/marketplace"
-                className="inline-flex items-center justify-center gap-2 px-8 py-4 text-lg font-semibold border-2 border-[#009F4D] text-[#009F4D] rounded-xl hover:bg-[#009F4D]/5 transition-colors"
+                className="inline-flex items-center justify-center gap-2 px-8 py-4 text-lg font-semibold border-2 border-primary text-primary rounded-xl hover:bg-primary/5 transition-colors"
               >
                 Explore Marketplace
                 <ArrowRight className="w-4 h-4" />
@@ -302,28 +304,28 @@ export default function HomePage(): JSX.Element {
 
             {/* Persona cards */}
             <div className="grid grid-cols-1 md:grid-cols-2 gap-4 max-w-3xl mx-auto mt-12">
-              <div className="bg-[#009F4D]/5 border border-[#009F4D]/20 rounded-xl p-4 text-left hover:border-[#009F4D]/40 transition-colors">
+              <div className="bg-primary/5 border border-primary/20 rounded-xl p-4 text-left hover:border-primary/40 transition-colors">
                 <div className="flex items-center gap-2 mb-2">
                   <span className="text-lg">💰</span>
-                  <span className="font-semibold text-[#009F4D]">For Funders</span>
+                  <span className="font-semibold text-primary">For Funders</span>
                 </div>
                 <p className="text-sm text-default-600">Release funds incrementally against verified milestones. Never pay upfront.</p>
               </div>
-              <div className="bg-[#009F4D]/5 border border-[#009F4D]/20 rounded-xl p-4 text-left hover:border-[#009F4D]/40 transition-colors">
+              <div className="bg-primary/5 border border-primary/20 rounded-xl p-4 text-left hover:border-primary/40 transition-colors">
                 <div className="flex items-center gap-2 mb-2">
                   <span className="text-lg">🌱</span>
-                  <span className="font-semibold text-[#009F4D]">For Providers</span>
+                  <span className="font-semibold text-primary">For Providers</span>
                 </div>
                 <p className="text-sm text-default-600">Get paid automatically when you deliver. No chasing payments.</p>
               </div>
-              <div className="bg-[#FFCD00]/5 border border-[#FFCD00]/20 rounded-xl p-4 text-left hover:border-[#FFCD00]/40 transition-colors">
+              <div className="bg-[#FFCD00]/5 border border-secondary/20 rounded-xl p-4 text-left hover:border-[#FFCD00]/40 transition-colors">
                 <div className="flex items-center gap-2 mb-2">
                   <span className="text-lg">⚖️</span>
                   <span className="font-semibold text-[#FFCD00]">For Arbiters</span>
                 </div>
                 <p className="text-sm text-default-600">Stake ETH on your decisions. Earn fees for dispute resolution.</p>
               </div>
-              <div className="bg-[#FFCD00]/5 border border-[#FFCD00]/20 rounded-xl p-4 text-left hover:border-[#FFCD00]/40 transition-colors">
+              <div className="bg-[#FFCD00]/5 border border-secondary/20 rounded-xl p-4 text-left hover:border-[#FFCD00]/40 transition-colors">
                 <div className="flex items-center gap-2 mb-2">
                   <span className="text-lg">🤖</span>
                   <span className="font-semibold text-[#FFCD00]">For AI Agents</span>
@@ -393,7 +395,7 @@ export default function HomePage(): JSX.Element {
                   <div className="hidden md:block absolute top-8 left-full w-full h-0.5 bg-gradient-to-r from-[#009F4D]/50 to-transparent" />
                 )}
                 <div className="text-center">
-                  <div className="w-16 h-16 rounded-2xl bg-gradient-to-br from-[#009F4D] to-[#00c853] text-white font-bold text-xl flex items-center justify-center mx-auto mb-4">
+                  <div className="w-16 h-16 rounded-2xl bg-gradient-to-br from-primary to-emerald-400 text-white font-bold text-xl flex items-center justify-center mx-auto mb-4">
                     {step.number}
                   </div>
                   <h3 className="text-lg font-semibold mb-2">{step.title}</h3>
@@ -411,7 +413,7 @@ export default function HomePage(): JSX.Element {
       {/* CTA Section */}
       <section className="py-24 px-4">
         <div className="container mx-auto">
-          <Card className="bg-gradient-to-br from-[#009F4D] to-[#00c853] border-0">
+          <Card className="bg-gradient-to-br from-primary to-emerald-400 border-0">
             <div className="p-12 text-center text-white">
               <h2 className="text-3xl md:text-4xl font-bold mb-4">Ready to Build?</h2>
               <p className="text-white/80 max-w-xl mx-auto mb-8">
@@ -420,7 +422,7 @@ export default function HomePage(): JSX.Element {
               <div className="flex flex-col sm:flex-row gap-4 justify-center">
                 <NextLink
                   href="/identity/register"
-                  className="inline-flex items-center justify-center gap-2 px-8 py-4 text-lg font-semibold bg-white text-[#009F4D] rounded-xl hover:opacity-90 transition-opacity"
+                  className="inline-flex items-center justify-center gap-2 px-8 py-4 text-lg font-semibold bg-white text-primary rounded-xl hover:opacity-90 transition-opacity"
                 >
                   Get Started Free
                   <ArrowRight className="w-4 h-4" />

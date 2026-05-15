@@ -52,7 +52,7 @@ export function savePushSubscription(
     subscriptions.push(newSubscription);
   }
 
-  localStorage.setItem(PUSH_SUBSCRIPTIONS_KEY, JSON.stringify(subscriptions));
+  try { localStorage.setItem(PUSH_SUBSCRIPTIONS_KEY, JSON.stringify(subscriptions)); } catch {}
 
   return newSubscription;
 }
@@ -63,10 +63,10 @@ export function deletePushSubscription(endpoint: string): boolean {
 
   if (filtered.length === subscriptions.length) return false;
 
-  localStorage.setItem(PUSH_SUBSCRIPTIONS_KEY, JSON.stringify(filtered));
+  try { localStorage.setItem(PUSH_SUBSCRIPTIONS_KEY, JSON.stringify(filtered)); } catch {}
   return true;
 }
 
 export function clearAllPushSubscriptions(): void {
-  localStorage.removeItem(PUSH_SUBSCRIPTIONS_KEY);
+  try { localStorage.removeItem(PUSH_SUBSCRIPTIONS_KEY); } catch {}
 }

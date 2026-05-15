@@ -353,7 +353,6 @@ function CreateJobContent() {
         if (fundJobNow && paymentToken.symbol === 'USDC') {
           try {
             setSubmitPhase('checking');
-            console.log('[CreateJob] Checking USDC balance on-demand...');
 
             // Step 0: Check USDC balance first
             const balance = await publicClient!.readContract({
@@ -370,7 +369,7 @@ function CreateJobContent() {
               return;
             }
 
-            console.log('[CreateJob] Checking USDC allowance on-demand...');
+            
             
             const allowance = await publicClient!.readContract({
               address: USDC_TOKEN.address,
@@ -379,13 +378,10 @@ function CreateJobContent() {
               args: [address!, AGENTIC_COMMERCE_PROXY],
             });
 
-            console.log('[CreateJob] Allowance:', allowance.toString(), 'Budget:', budgetAmount.toString());
-
             if (allowance < budgetAmount) {
               setSubmitPhase('approving');
               showToast.info('USDC approval needed', `Approving exact amount: ${budget} USDC`);
               
-              console.log('[CreateJob] Triggering USDC approval for exact amount...');
               const approveHash = await writeContractAsync({
                 address: USDC_TOKEN.address,
                 abi: erc20Abi,
@@ -393,7 +389,6 @@ function CreateJobContent() {
                 args: [AGENTIC_COMMERCE_PROXY, budgetAmount],
               });
 
-              console.log('[CreateJob] Approval hash:', approveHash);
               showToast.info('Approval submitted', 'Waiting for confirmation...');
               
               // Wait for confirmation via polling
@@ -407,7 +402,6 @@ function CreateJobContent() {
                   const receipt = await publicClient!.getTransactionReceipt({ hash: approveHash });
                   if (receipt && receipt.status === 'success') {
                     confirmed = true;
-                    console.log('[CreateJob] Approval confirmed!');
                     showToast.success('USDC approved', 'You can now create the job');
                   }
                 } catch {
@@ -593,7 +587,7 @@ const budgetInUsdc =
             {!serviceId && (
               <>
                 {/* Milestone Toggle */}
-                <div className="flex items-start gap-4 p-4 bg-[#009F4D]/5 border border-[#009F4D]/20 rounded-lg">
+                <div className="flex items-start gap-4 p-4 bg-primary/5 border border-[#009F4D]/20 rounded-lg">
                   <div className="flex-1">
                     <div className="flex items-center gap-2">
                       <Coins className="w-5 h-5 text-[#009F4D]" />
@@ -607,7 +601,7 @@ const budgetInUsdc =
                     type="button"
                     onClick={() => setUseMilestones(!useMilestones)}
                     className={`relative inline-flex h-6 w-11 items-center rounded-full transition-colors ${
-                      useMilestones ? 'bg-[#009F4D]' : 'bg-default-300'
+                      useMilestones ? 'bg-primary' : 'bg-default-300'
                     }`}
                   >
                     <span
@@ -704,7 +698,7 @@ const budgetInUsdc =
                   </p>
                 )}
                 {useMilestones && (
-                  <p className="text-xs text-[#009F4D] bg-[#009F4D]/10 p-2 rounded">
+                  <p className="text-xs text-[#009F4D] bg-primary/10 p-2 rounded">
                     💰 Funds will be held in escrow and released per milestone upon completion verification
                   </p>
                 )}
@@ -803,7 +797,7 @@ const budgetInUsdc =
               <button
                 type="submit"
                 disabled={!isConnected || isFormLoading || !isFormValid || isSubmitting || isAtLimit}
-                className="flex-1 inline-flex items-center justify-center gap-2 px-6 py-3 border-2 border-[#009F4D] text-[#009F4D] rounded-lg font-semibold hover:bg-[#009F4D]/5 transition-colors disabled:opacity-50 disabled:cursor-not-allowed"
+                className="flex-1 inline-flex items-center justify-center gap-2 px-6 py-3 border-2 border-[#009F4D] text-[#009F4D] rounded-lg font-semibold hover:bg-primary/5 transition-colors disabled:opacity-50 disabled:cursor-not-allowed"
               >
                 {submitPhase === 'checking' ? (
                   <>
