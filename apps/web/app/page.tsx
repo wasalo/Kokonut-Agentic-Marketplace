@@ -13,7 +13,6 @@ import {
   Lock,
   TrendingUp,
   Star,
-  CheckCircle2,
   Activity,
   Clock,
 } from 'lucide-react';

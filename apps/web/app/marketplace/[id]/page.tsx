@@ -17,7 +17,6 @@ import {
   Power,
   Loader2,
   Star,
-  Bookmark,
   Shield,
 } from 'lucide-react';
 import { Card } from '@heroui/react';

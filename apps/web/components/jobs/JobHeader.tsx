@@ -20,10 +20,9 @@ interface JobHeaderProps {
   isClient: boolean;
   isProvider: boolean;
   isEvaluator: boolean;
-  address?: string;
 }
 
-export function JobHeader({ job, service, isClient, isProvider, isEvaluator, address }: JobHeaderProps) {
+export function JobHeader({ job, service, isClient, isProvider, isEvaluator }: JobHeaderProps) {
   const isUSDC = job.paymentToken && job.paymentToken.toLowerCase() !== '0x0000000000000000000000000000000000000000'
     ? (SUPPORTED_TOKENS.find(t => t.address.toLowerCase() === job.paymentToken.toLowerCase())?.symbol === 'USDC')
     : true;

@@ -1,7 +1,7 @@
 'use client';
 
 import { useCallback, useEffect } from 'react';
-import { useWriteContract, useSwitchChain, useWaitForTransactionReceipt, useAccount } from 'wagmi';
+import { useWriteContract, useSwitchChain, useWaitForTransactionReceipt } from 'wagmi';
 import { padHex } from 'viem';
 import { EFP_CHAIN_ID, EFP_CONTRACTS, EFP_ACCOUNT_METADATA_ABI } from '@/lib/efp/contracts';
 import { useEfpListStatus } from './useEfpListStatus';

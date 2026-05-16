@@ -1,7 +1,7 @@
 'use client';
 
 import { useState, useCallback } from 'react';
-import { useReadContract, useWriteContract, useWaitForTransactionReceipt, UseReadContractParameters, UseWriteContractParameters } from 'wagmi';
+import { useReadContract, useWriteContract, useWaitForTransactionReceipt, UseReadContractParameters } from 'wagmi';
 import { getContractAddress } from '@/lib/contracts/config';
 import { ADMIN_REGISTRY_BLACKLIST_ABI } from '@/lib/contracts/abis';
 

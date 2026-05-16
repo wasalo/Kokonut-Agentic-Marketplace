@@ -2,7 +2,6 @@
 
 import { use, useState, useCallback, useEffect, useRef } from 'react';
 import { useQueryClient } from '@tanstack/react-query';
-import { Settings } from 'lucide-react';
 import {
   useAccount,
   useWaitForTransactionReceipt,
@@ -14,7 +13,6 @@ import NextLink from 'next/link';
 import {
   ArrowLeft,
   Loader2,
-  CheckCircle2,
   AlertCircle,
   Clock,
   DollarSign,
@@ -23,7 +21,6 @@ import {
   XSquare,
   RefreshCw,
   CircleDot,
-  Link,
   AlertTriangle,
   Gavel,
   ShieldAlert,
@@ -43,50 +40,32 @@ import {
   useSetBudget,
   useSetPaymentToken,
   useJobBidCount,
-  useUserBid,
   useWithdrawStake,
   useEvaluatorFeeEnabled,
   useCompleteAfterTimeout,
   useRefundExpired,
-  getJobStatusLabel,
   JobStatus,
   isOpenJob,
-  Job,
   Bid,
 } from '@/lib/hooks/useJobs';
 import { useWatchJob } from '@/lib/hooks/useJobEvents';
 import { useService } from '@/lib/hooks/useServices';
 import { useUSDCAllowance, useUSDCApprove, useUSDCBalance } from '@/lib/hooks/useUSDC';
-import { ERC8004_ABI } from '@/lib/8004contracts';
 import { CONTRACTS } from '@/lib/wagmi';
 import { AGENTIC_COMMERCE_ABI } from '@/lib/contracts/abis';
 import {
   PaymentTokenSelector,
   SUPPORTED_TOKENS,
   Token,
-  PaymentTokenBadge,
 } from '@/components/PaymentTokenSelector';
 import dynamic from 'next/dynamic';
-
-const CommitBidForm = dynamic(() => import('@/components/BiddingForms').then(m => m.CommitBidForm), {
-  loading: () => <div className="animate-pulse h-32 bg-content2 rounded-lg" />,
-});
-
-const RevealBidForm = dynamic(() => import('@/components/BiddingForms').then(m => m.RevealBidForm), {
-  loading: () => <div className="animate-pulse h-32 bg-content2 rounded-lg" />,
-});
 
 const AcceptBidForm = dynamic(() => import('@/components/BiddingForms').then(m => m.AcceptBidForm), {
   loading: () => <div className="animate-pulse h-32 bg-content2 rounded-lg" />,
 });
-
-const BidStatusCard = dynamic(() => import('@/components/BiddingForms').then(m => m.BidStatusCard), {
-  loading: () => <div className="animate-pulse h-24 bg-content2 rounded-lg" />,
-});
 const MilestoneSection = dynamic(() => import('@/components/MilestoneSection').then(m => m.MilestoneSection), {
   loading: () => <div className="animate-pulse h-48 bg-content2 rounded-lg" />,
 });
-import { StatusBadge, getJobStatusBadgeType } from '@/components/StatusBadge';
 import { Address } from '@/components/Address';
 import { ErrorDisplay } from '@/components/ErrorDisplay';
 import { showToast } from '@/lib/toast';
@@ -155,7 +134,7 @@ export default function JobDetailPage({
   const [showFulfillmentInput, setShowFulfillmentInput] = useState(false);
 
   // Client review state (Phase 3)
-  const [clientApproved, setClientApproved] = useState(false);
+  const [clientApproved] = useState(false);
 
   // Dispute state
   const [showDisputeForm, setShowDisputeForm] = useState(false);
@@ -481,11 +460,8 @@ export default function JobDetailPage({
     );
   }
 
-  const statusLabel = getJobStatusLabel(job.status);
-  
   const budgetDecimals = isUSDC ? 6 : 18;
   const formattedBudget = formatUnits(job.budget, budgetDecimals);
-  const deadlineDate = new Date(Number(job.expiredAt) * 1000);
 
   return (
     <div className="container mx-auto px-3 md:px-4 py-6 md:py-8">
@@ -499,7 +475,7 @@ export default function JobDetailPage({
 
       <div className="max-w-2xl mx-auto space-y-6">
         {/* Job Header */}
-        <JobHeader job={job} service={service} isClient={isClient} isProvider={isProvider} isEvaluator={isEvaluator} address={address} />
+        <JobHeader job={job} service={service} isClient={isClient} isProvider={isProvider} isEvaluator={isEvaluator} />
 
         {/* Warnings */}
         <JobWarnings job={job} isClient={isClient} isProvider={isProvider} isEvaluatorFeeEnabled={isEvaluatorFeeEnabled} address={address} />

@@ -4,7 +4,7 @@ import { useMemo, useState, useCallback, useEffect } from 'react';
 import { useAccount } from 'wagmi';
 import { useSearchParams, useRouter } from 'next/navigation';
 import NextLink from 'next/link';
-import { Plus, Code, Users, TrendingUp } from 'lucide-react';
+import { Plus, Code } from 'lucide-react';
 import { ServiceList } from '@/components/heroui/service-list';
 import { useAllServices } from '@/lib/hooks/useServicesContract';
 import { useProviderServices, useTotalServiceCount } from '@/lib/hooks/useServices';

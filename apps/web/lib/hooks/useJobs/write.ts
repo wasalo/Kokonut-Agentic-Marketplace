@@ -1,6 +1,6 @@
 import { useWriteContract } from 'wagmi';
 import { AGENTIC_COMMERCE_ABI, MILESTONE_ESCROW_ABI, BIDDING_SYSTEM_ABI } from '@/lib/contracts/abis';
-import { getContractAddress, debugLog } from '@/lib/contracts/config';
+import { getContractAddress } from '@/lib/contracts/config';
 
 const AGENTIC_COMMERCE_ADDRESS = getContractAddress('AGENTIC_COMMERCE');
 

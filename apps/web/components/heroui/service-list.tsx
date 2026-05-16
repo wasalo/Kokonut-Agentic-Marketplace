@@ -5,7 +5,6 @@ import { usePublicClient } from 'wagmi';
 import { useAllServices, Service } from '@/lib/hooks/useServicesContract';
 import { useFindSkillsByDomain } from '@/lib/hooks/useSkills';
 import { useTokenPriceConversion } from '@/lib/hooks/useTokenConversion';
-import { useAgentReputation } from '@/lib/hooks/useAgentReputation';
 import { Card } from '@heroui/react';
 import { useRouter } from 'next/navigation';
 import {

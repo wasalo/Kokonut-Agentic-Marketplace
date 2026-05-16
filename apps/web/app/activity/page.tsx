@@ -5,7 +5,7 @@ import NextLink from 'next/link';
 import { Card } from '@heroui/react';
 import { Activity, Briefcase, ShoppingBag, Scale, ExternalLink, Filter, Users } from 'lucide-react';
 import { useAccount } from 'wagmi';
-import { useEfpActivityFeed, useActivityFromSubgraph } from '@/lib/hooks';
+import { useActivityFromSubgraph } from '@/lib/hooks';
 import { StatusBadge } from '@/components/StatusBadge';
 import { Address } from '@/components/Address';
 

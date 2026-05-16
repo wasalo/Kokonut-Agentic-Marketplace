@@ -16,7 +16,7 @@ import { validateAddress, validateDeadline, validateStringLength } from '@/lib/h
 import { TransactionError } from '@/components/TransactionError';
 import { useFormSubmit, formatTimeRemaining } from '@/lib/hooks/useDebounce';
 import { useClientJobCount, MAX_JOBS_PER_CLIENT } from '@/lib/hooks/useClientJobCount';
-import { useMaxBudgetUsd, MAX_BUDGET_USD } from '@/lib/hooks/useMinBudget';
+import { useMaxBudgetUsd } from '@/lib/hooks/useMinBudget';
 import {
   useTokenPriceConversion,
   USDC_TOKEN,

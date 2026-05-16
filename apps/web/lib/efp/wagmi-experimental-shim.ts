@@ -5,7 +5,7 @@
  * The experimental features (batch writes, paymaster) are unused in Kokonut.
  */
 
-import type { UseWriteContractParameters, UseWriteContractReturnType } from 'wagmi';
+import type { UseWriteContractReturnType } from 'wagmi';
 
 export function useCapabilities(): { data: any } {
   return { data: undefined };

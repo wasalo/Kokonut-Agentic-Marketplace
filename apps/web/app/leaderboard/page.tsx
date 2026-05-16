@@ -6,12 +6,8 @@ import { useRouter } from 'next/navigation';
 import NextLink from 'next/link';
 import {
   Trophy,
-  TrendingUp,
-  TrendingDown,
-  Minus,
   Users,
   Star,
-  Clock,
   RefreshCw,
 } from 'lucide-react';
 import { Card, Button } from '@heroui/react';
@@ -66,35 +62,6 @@ function ScoreBar({ score, maxScore = 100 }: ScoreBarProps) {
       <span className="text-sm font-medium min-w-[3rem] text-right" style={{ color }}>
         {formatScore(score)}
       </span>
-    </div>
-  );
-}
-
-interface TrendBadgeProps {
-  trend: 'up' | 'down' | 'stable';
-}
-
-function TrendBadge({ trend }: TrendBadgeProps) {
-  if (trend === 'up') {
-    return (
-      <div className="flex items-center gap-1 text-success">
-        <TrendingUp className="w-4 h-4" />
-        <span className="text-xs">Rising</span>
-      </div>
-    );
-  }
-  if (trend === 'down') {
-    return (
-      <div className="flex items-center gap-1 text-danger">
-        <TrendingDown className="w-4 h-4" />
-        <span className="text-xs">Falling</span>
-      </div>
-    );
-  }
-  return (
-    <div className="flex items-center gap-1 text-default-400">
-      <Minus className="w-4 h-4" />
-      <span className="text-xs">Stable</span>
     </div>
   );
 }
@@ -219,7 +186,7 @@ function LoadingSkeleton() {
 
 export default function LeaderboardPage() {
   useEffect(() => { document.title = 'Leaderboard | Kokonut'; }, []);
-  const [page, setPage] = useState(0);
+  const [page] = useState(0);
   const {
     entries,
     isLoading,

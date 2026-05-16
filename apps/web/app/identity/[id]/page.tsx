@@ -653,7 +653,7 @@ export default function AgentDetailPage({ params }: AgentDetailPageProps) {
   const { address: connectedAddress } = useAccount();
   
   const { profile, isLoading } = useUnifiedAgentProfile(agentId, agentAddress);
-  const { owner, metadata, name, description, capabilities, isActive, services, skillIds, skills, providerJobs, clientJobs, reputationScore } = profile;
+  const { owner, metadata, services, skillIds, providerJobs, clientJobs, reputationScore } = profile;
   const { followersCount, followingCount } = useEfpStats(owner);
   
   const [activeTab, setActiveTab] = useState('overview');

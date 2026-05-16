@@ -2,7 +2,7 @@
 
 import { Card } from '@heroui/react';
 import { Loader2 } from 'lucide-react';
-import { PaymentTokenSelector, SUPPORTED_TOKENS, type Token } from '@/components/PaymentTokenSelector';
+import { PaymentTokenSelector, type Token } from '@/components/PaymentTokenSelector';
 import { type Job } from '@/lib/hooks/useJobs';
 
 interface PaymentTokenSetupModalProps {
@@ -15,7 +15,7 @@ interface PaymentTokenSetupModalProps {
 }
 
 export function PaymentTokenSetupModal({
-  job,
+  job: _job,
   selectedPaymentToken,
   setSelectedPaymentToken,
   onSetup,
