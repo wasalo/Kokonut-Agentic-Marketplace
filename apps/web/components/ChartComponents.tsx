@@ -10,32 +10,32 @@ const LoadingFallback = () => (
 );
 
 export const BarChart = dynamic(
-  () => import('recharts').then(mod => mod.BarChart),
+  () => import('recharts').then(mod => mod.BarChart) as Promise<React.ComponentType<any>>,
   { ssr: false, loading: () => <LoadingFallback /> }
 );
 
 export const Bar = dynamic(
-  () => import('recharts').then(mod => mod.Bar),
+  () => import('recharts').then(mod => mod.Bar) as Promise<React.ComponentType<any>>,
   { ssr: false, loading: () => <LoadingFallback /> }
 );
 
 export const LineChart = dynamic(
-  () => import('recharts').then(mod => mod.LineChart),
+  () => import('recharts').then(mod => mod.LineChart) as Promise<React.ComponentType<any>>,
   { ssr: false, loading: () => <LoadingFallback /> }
 );
 
 export const Line = dynamic(
-  () => import('recharts').then(mod => mod.Line),
+  () => import('recharts').then(mod => mod.Line) as Promise<React.ComponentType<any>>,
   { ssr: false, loading: () => <LoadingFallback /> }
 );
 
 export const PieChart = dynamic(
-  () => import('recharts').then(mod => mod.PieChart),
+  () => import('recharts').then(mod => mod.PieChart) as Promise<React.ComponentType<any>>,
   { ssr: false, loading: () => <LoadingFallback /> }
 );
 
 export const Pie = dynamic(
-  () => import('recharts').then(mod => mod.Pie),
+  () => import('recharts').then(mod => mod.Pie) as Promise<React.ComponentType<any>>,
   { ssr: false, loading: () => <LoadingFallback /> }
 );
 

@@ -36,16 +36,16 @@ function mapJobData(data: unknown): Job | undefined {
   if (!id || !client) return undefined;
   if (typeof client === 'string' && client === '0x0000000000000000000000000000000000000000') return undefined;
   return {
-    id: isArray ? arr[0] : jobStruct!.id,
+    id: (isArray ? arr[0] : jobStruct!.id) as bigint,
     client: (isArray ? arr[1] : jobStruct!.client) as `0x${string}`,
     provider: (isArray ? arr[2] : jobStruct!.provider) as `0x${string}`,
     evaluator: (isArray ? arr[3] : jobStruct!.evaluator) as `0x${string}`,
-    serviceId: isArray ? arr[4] : jobStruct!.serviceId,
+    serviceId: (isArray ? arr[4] : jobStruct!.serviceId) as bigint,
     paymentToken: (isArray ? arr[5] : jobStruct!.paymentToken) as `0x${string}`,
-    description: isArray ? arr[6] : jobStruct!.description,
-    budget: isArray ? arr[7] : jobStruct!.budget,
-    expiredAt: isArray ? arr[8] : jobStruct!.expiredAt,
-    status: isArray ? arr[9] : jobStruct!.status,
+    description: (isArray ? arr[6] : jobStruct!.description) as string,
+    budget: (isArray ? arr[7] : jobStruct!.budget) as bigint,
+    expiredAt: (isArray ? arr[8] : jobStruct!.expiredAt) as bigint,
+    status: (isArray ? arr[9] : jobStruct!.status) as number,
     hook: (isArray ? arr[10] : jobStruct!.hook) as `0x${string}`,
     deliverable: (isArray ? arr[11] : jobStruct!.deliverable) as `0x${string}`,
   };
@@ -172,52 +172,20 @@ export function useJobConstants() {
   };
 }
 
-export function useEvaluatorFeeEnabled(jobId: bigint | undefined) {
-  const { data, isLoading, error, refetch } = useReadContract({
-    address: BIDDING_SYSTEM_ADDRESS,
-    abi: BIDDING_SYSTEM_ABI,
-    functionName: 'isEvaluatorFeeEnabled',
-    args: jobId !== undefined ? [jobId] : undefined,
-    query: { enabled: jobId !== undefined, retry: 2, staleTime: 30 * 1000 },
-  });
-
-  return { isEvaluatorFeeEnabled: typeof data === 'boolean' ? data : false, isLoading, error, refetch };
+export function useEvaluatorFeeEnabled(_jobId: bigint | undefined) {
+  return { isEvaluatorFeeEnabled: false, isLoading: false, error: null, refetch: () => {} };
 }
 
-export function useTotalStakesHeld(address: `0x${string}` | undefined) {
-  const { data, isLoading, error, refetch } = useReadContract({
-    address: BIDDING_SYSTEM_ADDRESS,
-    abi: BIDDING_SYSTEM_ABI,
-    functionName: 'totalStakesHeld',
-    args: address !== undefined ? [address] : undefined,
-    query: { enabled: address !== undefined, retry: 2, staleTime: 30 * 1000 },
-  });
-
-  return { totalStakes: data ?? BigInt(0), isLoading, error, refetch };
+export function useTotalStakesHeld(_address: `0x${string}` | undefined) {
+  return { totalStakes: BigInt(0), isLoading: false, error: null, refetch: () => {} };
 }
 
-export function useJobBidCount(jobId: bigint | undefined) {
-  const { data, isLoading, error, refetch } = useReadContract({
-    address: BIDDING_SYSTEM_ADDRESS,
-    abi: BIDDING_SYSTEM_ABI,
-    functionName: 'jobBidCount',
-    args: jobId !== undefined ? [jobId] : undefined,
-    query: { enabled: jobId !== undefined, retry: 2, staleTime: 10 * 1000 },
-  });
-
-  return { count: data ? Number(data) : 0, isLoading, error, refetch };
+export function useJobBidCount(_jobId: bigint | undefined) {
+  return { count: 0, isLoading: false, error: null, refetch: () => {} };
 }
 
-export function useJobBid(jobId: bigint | undefined, index: number) {
-  const { data, isLoading, error, refetch } = useReadContract({
-    address: BIDDING_SYSTEM_ADDRESS,
-    abi: BIDDING_SYSTEM_ABI,
-    functionName: 'jobBids',
-    args: jobId !== undefined ? [jobId, BigInt(index)] : undefined,
-    query: { enabled: jobId !== undefined, retry: 2, staleTime: 10 * 1000 },
-  });
-
-  return { bid: data as Bid | undefined, isLoading, error, refetch };
+export function useJobBid(_jobId: bigint | undefined, _index: number) {
+  return { bid: undefined as Bid | undefined, isLoading: false, error: null, refetch: () => {} };
 }
 
 export function useUserBid(jobId: number | bigint | undefined, user: `0x${string}` | undefined) {

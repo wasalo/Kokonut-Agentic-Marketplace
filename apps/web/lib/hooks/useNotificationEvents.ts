@@ -146,20 +146,21 @@ export function useNotificationEvents() {
   const processedEventsRef = useRef<Set<string>>(new Set());
 
   const processLog = useCallback(async (log: Log) => {
-    const eventName = log.eventName;
+    const typedLog = log as Log & { eventName?: string; args?: Record<string, unknown> };
+    const eventName = typedLog.eventName;
     if (!eventName || !EVENT_HANDLERS[eventName]) return;
 
     const eventKey = `${log.transactionHash}:${log.logIndex}`;
     if (processedEventsRef.current.has(eventKey)) return;
     processedEventsRef.current.add(eventKey);
 
-    const args = log.args as Record<string, unknown>;
+    const args = typedLog.args || {};
     const handler = EVENT_HANDLERS[eventName];
 
     if (handler.notification) {
       const notification = handler.notification(args, address);
       if (notification) {
-        addNotification(notification);
+        addNotification(notification as any);
         if (address) {
           await sendNotificationEmail({ address, type: notification.type, title: notification.title, message: notification.message, link: notification.link, metadata: notification.metadata });
         }
@@ -169,7 +170,7 @@ export function useNotificationEvents() {
     if (handler.webhook) {
       const webhook = handler.webhook(args);
       if (webhook) {
-        triggerWebhooks({ event: webhook.event, data: webhook.data });
+        triggerWebhooks({ event: webhook.event as any, data: webhook.data });
       }
     }
   }, [address, addNotification]);

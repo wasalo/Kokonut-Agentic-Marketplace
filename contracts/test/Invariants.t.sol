@@ -6,8 +6,9 @@ import {AgenticCommerceV9, IAgenticCommerceV9} from "../shared/AgenticCommerceV9
 import {AgentReviewV5} from "../shared/AgentReviewV5.sol";
 import {ServiceRegistryV2} from "../shared/ServiceRegistryV2.sol";
 import {ERC1967Proxy} from "@openzeppelin/contracts/proxy/ERC1967/ERC1967Proxy.sol";
-import {TransparentUpgradeableProxy} from "@openzeppelin/contracts/proxy/transparent/TransparentUpgradeableProxy.sol";
+import {ERC1967Proxy} from "@openzeppelin/contracts/proxy/ERC1967/ERC1967Proxy.sol";
 import {MockERC20} from "./MockERC20.sol";
+import {MockIdentityRegistry} from "./MockIdentityRegistry.sol";
 
 /**
  * @title TestFixtures
@@ -20,6 +21,7 @@ contract TestFixtures is Test {
     ServiceRegistryV2 public serviceRegistry;
     ServiceRegistryV2 public serviceRegistryImpl;
     MockERC20 public usdc;
+    MockIdentityRegistry public identityRegistry;
 
     address public owner;
     address public treasury;
@@ -71,20 +73,20 @@ contract TestFixtures is Test {
         usdc.mint(client, INITIAL_USDC);
         usdc.mint(provider, INITIAL_USDC);
 
+        identityRegistry = new MockIdentityRegistry();
+
         AgenticCommerceV9 commerceImpl = new AgenticCommerceV9();
         bytes memory commerceInitData = abi.encodeCall(AgenticCommerceV9.initialize, (treasury, address(0), address(0)));
-        TransparentUpgradeableProxy commerceProxy = new TransparentUpgradeableProxy(
+        ERC1967Proxy commerceProxy = new ERC1967Proxy(
             address(commerceImpl),
-            owner,
             commerceInitData
         );
         agenticCommerceV9 = AgenticCommerceV9(payable(address(commerceProxy)));
 
         AgentReviewV5 reviewImpl = new AgentReviewV5();
         bytes memory reviewInitData = abi.encodeCall(AgentReviewV5.initialize, (owner));
-        TransparentUpgradeableProxy reviewProxy = new TransparentUpgradeableProxy(
+        ERC1967Proxy reviewProxy = new ERC1967Proxy(
             address(reviewImpl),
-            owner,
             reviewInitData
         );
         agentReview = AgentReviewV5(payable(address(reviewProxy)));
@@ -92,17 +94,23 @@ contract TestFixtures is Test {
         ServiceRegistryV2 registryImpl = new ServiceRegistryV2();
         bytes memory registryInitData = abi.encodeCall(
             ServiceRegistryV2.initialize,
-            (address(0), owner)
+            (address(identityRegistry), owner)
         );
-        TransparentUpgradeableProxy registryProxy = new TransparentUpgradeableProxy(
+        ERC1967Proxy registryProxy = new ERC1967Proxy(
             address(registryImpl),
-            owner,
             registryInitData
         );
         serviceRegistry = ServiceRegistryV2(address(registryProxy));
         serviceRegistryImpl = registryImpl;
 
         vm.stopPrank();
+
+        // Owner is already set correctly because vm.startPrank(owner) was active during initialization
+        // Set ETH minimum budget override and disable max budget check
+        vm.prank(owner);
+        agenticCommerceV9.setMinBudgetOverride(address(0), 0.0025 ether);
+        vm.prank(owner);
+        agenticCommerceV9.setMaxBudgetUsd(0);
     }
 }
 
@@ -234,21 +242,26 @@ contract FuzzAgenticCommerceV9 is TestFixtures {
 
     function testFuzz_JobLifecycleSequence(uint8 actions) public {
         vm.prank(client);
-        uint256 jobId = agenticCommerceV9.createJobV7(
+        uint256 jobId = agenticCommerceV9.createJob{value: 1 ether}(
             provider,
-            evaluator,
+            1 ether,
+            address(0),
+            0,
             block.timestamp + 7 days,
             "Test job",
+            evaluator,
             address(0),
             false,
-            false
+            true,
+            true,
+            1 ether
         );
-
-        vm.prank(client);
-        agenticCommerceV9.fund{value: 1 ether}(jobId, 1 ether);
 
         vm.prank(provider);
         agenticCommerceV9.submit(jobId, keccak256("deliverable"));
+
+        vm.prank(client);
+        agenticCommerceV9.approveByClient(jobId);
 
         vm.prank(evaluator);
         agenticCommerceV9.finalizeByEvaluator(jobId, keccak256("reason"));

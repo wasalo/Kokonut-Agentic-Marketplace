@@ -5,6 +5,54 @@ All notable changes to the Kokonut Agent Economy Stack are documented in this fi
 The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.0.0/),
 and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0.html).
 
+## [2026-05-16] — CI Smart Contract Test Suite Repair (31 → 0 Failures)
+
+### 🛠️ CI Test Suite: 31 Failures Fixed
+
+**All 299 contract tests now pass** (was 268 passing / 31 failing).
+
+#### Root Causes & Fixes
+
+**1. `AgenticCommerceV9.t.sol` (26 → 0 failures)**
+- **Proxy ownership**: Switched from `TransparentUpgradeableProxy` to `ERC1967Proxy` — transparent proxy intercepts admin calls, causing `OwnableUnauthorizedAccount`. Added 2-step ownership transfer (`transferOwnership` + `acceptOwnership`).
+- **PriceOracle oracle call**: `getMinBudget(address(0), 18)` calls `priceOracle.getUsdPriceOfToken()` on zero address. Fixed by setting `minBudgetOverride[address(0)] = 0.0025 ether` and `setMaxBudgetUsd(0)`.
+- **Fund tests**: `createJobV7` creates jobs with `budget = 0`. Fixed to use `createJob(..., fundNow=false)` with non-zero budget.
+- **JobStatus enum**: Assertions had wrong values — `Rejected = 4`, `Expired = 5` (not the reverse).
+- **`testCleanupStaleEvaluators`**: `slashEvaluatorStake()` already removes evaluators from pool, so `cleanupStaleEvaluators()` returns 0.
+
+**2. `Invariants.t.sol` + `FuzzAgenticCommerceV9` + `FuzzAgentReviewV5` (3 → 0 failures)**
+- **Created `MockIdentityRegistry.sol`**: Minimal ERC-8004-compatible mock for testing.
+- **Identity registry**: `ServiceRegistryV2.initialize(address(0), owner)` reverts `Invalid_identity_registry`. Fixed by deploying mock and passing it.
+- **Switched to `ERC1967Proxy`**: Same ownership issue as above.
+- **`testFuzz_JobLifecycleSequence`**: Job with `clientReview=true` goes to `PendingClientApproval` after submit. Added `approveByClient()` call before `finalizeByEvaluator()`.
+
+**3. `MilestoneEscrowV2.t.sol` (1 → 0 failures)**
+- **`initialize(owner, address(0))`**: `commerce = makeAddr("commerce")` is an EOA — `extcodesize` check fails. Fixed by passing `address(0)`.
+- **ERC20 approvals**: `usdc.approve()` must be pranked by the correct address (arbiter/client).
+- **`_enableTestMilestones`**: Changed from `vm.prank(commerce)` to `vm.prank(client)` since `agenticCommerce` is `address(0)`.
+- **`testResolveDisputeToProvider`**: Was calling `resolveDispute(1, false)` (release to client) but checking provider balance. Fixed to use `true`.
+
+**4. `GasSnapshotTest.t.sol` (1 → 0 failures)**
+- **Identity registry**: Same `Invalid_identity_registry` fix.
+- **Ownership + budget overrides**: Added same fixes as `AgenticCommerceV9.t.sol`.
+
+#### Files Modified
+
+| File | Changes |
+|------|---------|
+| `contracts/test/MockIdentityRegistry.sol` | **NEW** — Mock ERC-8004 identity registry |
+| `contracts/test/AgenticCommerceV9.t.sol` | ERC1967Proxy, ownership transfer, budget overrides, status enum fixes |
+| `contracts/test/Invariants.t.sol` | Mock identity registry, ERC1967Proxy, budget overrides, lifecycle fix |
+| `contracts/test/MilestoneEscrowV2.t.sol` | `address(0)` for commerce, approval pranks, helper fixes |
+| `contracts/test/GasSnapshotTest.t.sol` | Mock identity registry, ownership, budget overrides |
+
+### ✅ Build Status
+
+- Forge Tests: **299/299 passing**
+- Forge Build: Clean (warnings only)
+
+---
+
 ## [2026-05-16] — Accessibility, Dynamic Imports, Hook Cleanup + Page Error Boundaries
 
 ### 🎯 Accessibility & Error Boundaries

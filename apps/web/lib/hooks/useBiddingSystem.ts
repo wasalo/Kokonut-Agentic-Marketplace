@@ -184,7 +184,12 @@ export function useBiddingCalculateStake() {
     },
   });
 
+  const calculateStake = (maxBudget: bigint): bigint => {
+    return (maxBudget * 100n) / 10000n;
+  };
+
   return {
+    calculateStake,
     stakePerEth: data as bigint | undefined,
     isLoading,
     error,

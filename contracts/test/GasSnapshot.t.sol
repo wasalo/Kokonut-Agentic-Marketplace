@@ -6,10 +6,12 @@ import "forge-std/console.sol";
 import {AgenticCommerceV9} from "../shared/AgenticCommerceV9.sol";
 import {ServiceRegistryV2} from "../shared/ServiceRegistryV2.sol";
 import {ERC1967Proxy} from "@openzeppelin/contracts/proxy/ERC1967/ERC1967Proxy.sol";
+import {MockIdentityRegistry} from "./MockIdentityRegistry.sol";
 
 contract GasSnapshotTest is Test {
     AgenticCommerceV9 public agenticCommerce;
     ServiceRegistryV2 public serviceRegistry;
+    MockIdentityRegistry public identityRegistry;
 
     address owner = makeAddr("owner");
     address treasury = makeAddr("treasury");
@@ -25,9 +27,18 @@ contract GasSnapshotTest is Test {
         ERC1967Proxy proxy = new ERC1967Proxy(address(impl), initData);
         agenticCommerce = AgenticCommerceV9(address(proxy));
 
-        // Deploy ServiceRegistryV2
+        // Transfer ownership from test contract to owner
+        agenticCommerce.transferOwnership(owner);
+        agenticCommerce.acceptOwnership();
+
+        // Set ETH minimum budget override and disable max budget check
+        agenticCommerce.setMinBudgetOverride(address(0), 0.0025 ether);
+        agenticCommerce.setMaxBudgetUsd(0);
+
+        // Deploy ServiceRegistryV2 with mock identity registry
+        identityRegistry = new MockIdentityRegistry();
         ServiceRegistryV2 impl2 = new ServiceRegistryV2();
-        bytes memory initData2 = abi.encodeWithSelector(ServiceRegistryV2.initialize.selector, owner, address(0));
+        bytes memory initData2 = abi.encodeWithSelector(ServiceRegistryV2.initialize.selector, address(identityRegistry), owner);
         ERC1967Proxy proxy2 = new ERC1967Proxy(address(impl2), initData2);
         serviceRegistry = ServiceRegistryV2(address(proxy2));
 

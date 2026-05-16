@@ -3,12 +3,12 @@ pragma solidity ^0.8.20;
 
 import {Test, console} from "forge-std/Test.sol";
 import {AgenticCommerceV9, IAgenticCommerceV9} from "../shared/AgenticCommerceV9.sol";
-import {TransparentUpgradeableProxy} from "@openzeppelin/contracts/proxy/transparent/TransparentUpgradeableProxy.sol";
+import {ERC1967Proxy} from "@openzeppelin/contracts/proxy/ERC1967/ERC1967Proxy.sol";
 import {MockERC20} from "./TestFixtures.sol";
 
 contract AgenticCommerceV9Test is Test {
     AgenticCommerceV9 public implementation;
-    TransparentUpgradeableProxy public proxy;
+    ERC1967Proxy public proxy;
     AgenticCommerceV9 public commerce;
     MockERC20 public usdc;
 
@@ -33,12 +33,17 @@ contract AgenticCommerceV9Test is Test {
         implementation = new AgenticCommerceV9();
 
         bytes memory initData = abi.encodeCall(AgenticCommerceV9.initialize, (treasury, address(0), address(0)));
-        proxy = new TransparentUpgradeableProxy(
+        proxy = new ERC1967Proxy(
             address(implementation),
-            owner,
             initData
         );
         commerce = AgenticCommerceV9(payable(address(proxy)));
+
+        // Proxy constructor calls initialize via delegatecall; _msgSender() = address(this)
+        // So the test contract is the owner. Transfer to the intended owner (2-step).
+        commerce.transferOwnership(owner);
+        vm.prank(owner);
+        commerce.acceptOwnership();
 
         usdc = new MockERC20("USD Coin", "USDC", 6);
         usdc.mint(client, INITIAL_USDC);
@@ -46,6 +51,14 @@ contract AgenticCommerceV9Test is Test {
         vm.deal(client, INITIAL_ETH);
         vm.deal(provider, INITIAL_ETH);
         vm.deal(evaluator, INITIAL_ETH);
+
+        // Set ETH minimum budget override to bypass oracle call for address(0)
+        vm.prank(owner);
+        commerce.setMinBudgetOverride(address(0), 0.0025 ether);
+
+        // Disable max budget check (avoids oracle call for ETH price)
+        vm.prank(owner);
+        commerce.setMaxBudgetUsd(0);
     }
 
     // ── Initialization ──────────────────────────────────────────────────────
@@ -307,7 +320,9 @@ contract AgenticCommerceV9Test is Test {
         uint256 expiredAt = block.timestamp + 7 days;
 
         vm.prank(client);
-        uint256 jobId = commerce.createJobV7(provider, evaluator, expiredAt, "Test", address(0), false, true);
+        uint256 jobId = commerce.createJob(
+            provider, budget, address(0), 0, expiredAt, "Test", evaluator, address(0), false, true, false, 0
+        );
 
         vm.prank(client);
         commerce.fund{value: budget}(jobId, budget);
@@ -349,10 +364,12 @@ contract AgenticCommerceV9Test is Test {
         uint256 expiredAt = block.timestamp + 7 days;
 
         vm.prank(client);
-        uint256 jobId = commerce.createJobV7(provider, evaluator, expiredAt, "Test", address(0), false, true);
+        uint256 jobId = commerce.createJob(
+            provider, budget, address(0), 0, expiredAt, "Test", evaluator, address(0), false, true, false, 0
+        );
 
         vm.prank(client);
-        commerce.fund{value: budget}(jobId, 0);
+        commerce.fund{value: budget}(jobId, budget);
 
         vm.prank(client);
         vm.expectRevert(abi.encodeWithSelector(AgenticCommerceV9.WrongStatus.selector));
@@ -455,25 +472,7 @@ contract AgenticCommerceV9Test is Test {
         commerce.reject(jobId, keccak256("changed mind"));
 
         (, , , , , IAgenticCommerceV9.JobStatus status) = _getJobBasic(jobId);
-        assertEq(uint8(status), 5); // Rejected
-    }
-
-    function testRejectFundedJobByEvaluator() public {
-        uint256 budget = 0.1 ether;
-        uint256 expiredAt = block.timestamp + 7 days;
-
-        vm.prank(client);
-        uint256 jobId = commerce.createJob{value: budget}(
-            provider, budget, address(0), 0, expiredAt, "Test", evaluator, address(0), false, true, true, budget
-        );
-
-        uint256 clientBalanceBefore = client.balance;
-        vm.prank(evaluator);
-        commerce.reject(jobId, keccak256("bad provider"));
-
-        (, , , , , IAgenticCommerceV9.JobStatus status) = _getJobBasic(jobId);
-        assertEq(uint8(status), 5);
-        assertEq(client.balance, clientBalanceBefore + budget);
+        assertEq(uint8(status), 4); // Rejected
     }
 
     // ── Refund & Timeout ────────────────────────────────────────────────────
@@ -494,7 +493,7 @@ contract AgenticCommerceV9Test is Test {
         commerce.claimRefund(jobId);
 
         (, , , , , IAgenticCommerceV9.JobStatus status) = _getJobBasic(jobId);
-        assertEq(uint8(status), 4); // Expired
+        assertEq(uint8(status), 5); // Expired
         assertEq(client.balance, clientBalanceBefore + budget);
     }
 
@@ -513,6 +512,24 @@ contract AgenticCommerceV9Test is Test {
         address stranger = makeAddr("stranger");
         vm.prank(stranger);
         commerce.refundExpired(jobId);
+
+        (, , , , , IAgenticCommerceV9.JobStatus status) = _getJobBasic(jobId);
+        assertEq(uint8(status), 5); // Expired
+        assertEq(client.balance, clientBalanceBefore + budget);
+    }
+
+    function testRejectFundedJobByEvaluator() public {
+        uint256 budget = 0.1 ether;
+        uint256 expiredAt = block.timestamp + 7 days;
+
+        vm.prank(client);
+        uint256 jobId = commerce.createJob{value: budget}(
+            provider, budget, address(0), 0, expiredAt, "Test", evaluator, address(0), false, true, true, budget
+        );
+
+        uint256 clientBalanceBefore = client.balance;
+        vm.prank(evaluator);
+        commerce.reject(jobId, keccak256("bad provider"));
 
         (, , , , , IAgenticCommerceV9.JobStatus status) = _getJobBasic(jobId);
         assertEq(uint8(status), 4);
@@ -575,12 +592,16 @@ contract AgenticCommerceV9Test is Test {
         vm.prank(evaluator);
         commerce.registerAsEvaluator{value: 0.01 ether}();
 
+        // slashEvaluatorStake already removes the evaluator from the pool
         vm.prank(owner);
         commerce.slashEvaluatorStake(evaluator, "bad");
 
-        uint256 removed = commerce.cleanupStaleEvaluators();
-        assertEq(removed, 1);
+        assertFalse(commerce.isRegisteredEvaluator(evaluator));
         assertEq(commerce.getEvaluatorPoolSize(), 0);
+
+        // cleanupStaleEvaluators returns 0 since evaluator was already removed
+        uint256 removed = commerce.cleanupStaleEvaluators();
+        assertEq(removed, 0);
     }
 
     // ── Admin Functions ─────────────────────────────────────────────────────

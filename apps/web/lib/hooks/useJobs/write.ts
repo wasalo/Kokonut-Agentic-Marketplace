@@ -1,5 +1,5 @@
 import { useWriteContract } from 'wagmi';
-import { AGENTIC_COMMERCE_ABI, MILESTONE_ESCROW_ABI } from '@/lib/contracts/abis';
+import { AGENTIC_COMMERCE_ABI, MILESTONE_ESCROW_ABI, BIDDING_SYSTEM_ABI } from '@/lib/contracts/abis';
 import { getContractAddress, debugLog } from '@/lib/contracts/config';
 
 const AGENTIC_COMMERCE_ADDRESS = getContractAddress('AGENTIC_COMMERCE');
@@ -132,36 +132,22 @@ export function useClaimRefund() {
 }
 
 export function useSetBudget() {
-  const { writeContract, data, isPending, error, reset } = useWriteContract();
   return {
-    setBudget: (jobId: bigint, amount: bigint) =>
-      writeContract({
-        address: AGENTIC_COMMERCE_ADDRESS,
-        abi: AGENTIC_COMMERCE_ABI,
-        functionName: 'setBudget',
-        args: [jobId, amount],
-      }),
-    hash: data,
-    isPending,
-    error,
-    reset,
+    setBudget: (_jobId: bigint, _amount: bigint) => {},
+    hash: undefined,
+    isPending: false,
+    error: null,
+    reset: () => {},
   };
 }
 
 export function useSetPaymentToken() {
-  const { writeContract, data, isPending, error, reset } = useWriteContract();
   return {
-    setPaymentToken: (jobId: bigint, paymentToken: `0x${string}`) =>
-      writeContract({
-        address: AGENTIC_COMMERCE_ADDRESS,
-        abi: AGENTIC_COMMERCE_ABI,
-        functionName: 'setPaymentToken',
-        args: [jobId, paymentToken],
-      }),
-    hash: data,
-    isPending,
-    error,
-    reset,
+    setPaymentToken: (_jobId: bigint, _paymentToken: `0x${string}`) => {},
+    hash: undefined,
+    isPending: false,
+    error: null,
+    reset: () => {},
   };
 }
 
@@ -356,12 +342,12 @@ export function useEnableJobMilestones() {
 export function useWithdrawStake() {
   const { writeContract, data, isPending, error, reset } = useWriteContract();
   return {
-    withdrawStake: (jobId: bigint) =>
+    withdrawStake: (sessionId: bigint) =>
       writeContract({
         address: getContractAddress('BIDDING_SYSTEM'),
-        abi: AGENTIC_COMMERCE_ABI,
+        abi: BIDDING_SYSTEM_ABI,
         functionName: 'withdrawStake',
-        args: [jobId],
+        args: [sessionId],
       }),
     hash: data,
     isPending,

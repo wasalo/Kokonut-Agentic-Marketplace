@@ -8,3 +8,4 @@ export {
   useProviderServicesContract,
   useServiceContract,
 } from './useServices';
+export type { Service } from './useServices';

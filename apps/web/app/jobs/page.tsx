@@ -14,9 +14,9 @@ import { Card } from '@heroui/react';
 import NextLink from 'next/link';
 import { formatUnits } from 'viem';
 import {
-  useJobsFromEvents,
-  JobStatus,
-} from '@/lib/hooks/useJobsEvents';
+  useJobs,
+} from '@/lib/hooks/useJobs';
+import { JobStatus } from '@/lib/types/contracts';
 import { useJobEvents } from '@/lib/hooks/useJobEvents';
 import { useJobBookmarks, useBookmarkCounts } from '@/lib/hooks/useBookmarks';
 import { useService } from '@/lib/hooks/useServices';
@@ -131,7 +131,7 @@ export default function JobsPage(): JSX.Element {
     debouncedSearch(searchQuery);
   }, [searchQuery, debouncedSearch]);
 
-  const { jobs, isLoading } = useJobsFromEvents();
+  const { jobs, isLoading } = useJobs(0, 100);
   const { stats: subgraphStats, isLoading: isStatsLoading } = useJobStatsFromSubgraph();
 
   // Filter jobs

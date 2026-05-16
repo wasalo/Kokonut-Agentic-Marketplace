@@ -23,7 +23,7 @@ import {
   useSetAgentURI,
   useSetAgentMetadata,
   useAgentStats,
-} from '@/lib/hooks/useAgents';
+} from '@/lib/hooks/useAgentSettings';
 
 // Note: Removed unused imports:
 // - useGenerateWalletSignature (was for Agent Wallet - EIP-712 broken)

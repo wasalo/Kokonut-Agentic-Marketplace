@@ -3,8 +3,44 @@
 import { useState, useEffect } from 'react';
 import Link from 'next/link';
 import { useEnsName, useChainId } from 'wagmi';
-import { ExternalLink } from 'lucide-react';
-import { CopyButton } from './ui/copy-button';
+import { ExternalLink, Check, Copy } from 'lucide-react';
+
+function CopyButton({ text, className = '' }: { text: string; variant?: string; size?: string; className?: string }) {
+  const [copied, setCopied] = useState(false);
+
+  const handleCopy = async () => {
+    try {
+      await navigator.clipboard.writeText(text);
+      setCopied(true);
+      setTimeout(() => setCopied(false), 2000);
+    } catch {
+      // Fallback for older browsers
+      const textarea = document.createElement('textarea');
+      textarea.value = text;
+      document.body.appendChild(textarea);
+      textarea.select();
+      document.execCommand('copy');
+      document.body.removeChild(textarea);
+      setCopied(true);
+      setTimeout(() => setCopied(false), 2000);
+    }
+  };
+
+  return (
+    <button
+      type="button"
+      onClick={handleCopy}
+      className={`inline-flex items-center justify-center rounded transition-colors ${className}`}
+      title={copied ? 'Copied!' : 'Copy address'}
+    >
+      {copied ? (
+        <Check className="w-3 h-3 text-success" />
+      ) : (
+        <Copy className="w-3 h-3 text-default-400 hover:text-default-600" />
+      )}
+    </button>
+  );
+}
 
 interface AddressProps {
   address: `0x${string}` | string;
