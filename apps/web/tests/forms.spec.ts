@@ -52,7 +52,7 @@ test.describe('Form Validation - Job Creation', () => {
   });
 
   test('shows milestone toggle', async ({ page }) => {
-    const toggle = page.locator('text=Milestone-Based Payment');
+    const toggle = page.getByText('Milestone-Based Payment');
     await expect(toggle).toBeVisible();
   });
 
@@ -123,7 +123,7 @@ test.describe('Form Validation - Service Creation', () => {
 
 test.describe('Form Validation - Agent Registration', () => {
   test.beforeEach(async ({ page }) => {
-    await page.goto('/identity/register', { waitUntil: 'networkidle' });
+    await page.goto('/identity/register', { waitUntil: 'domcontentloaded' });
   });
 
   test('shows registration form', async ({ page }) => {
@@ -169,8 +169,8 @@ test.describe('Form Validation - Proposal/Review Creation', () => {
   });
 
   test('shows evaluator visibility options', async ({ page }) => {
-    await expect(page.locator('text=Public')).toBeVisible();
-    await expect(page.locator('text=Private')).toBeVisible();
+    await expect(page.getByText('Public')).toBeVisible();
+    await expect(page.getByText('Private')).toBeVisible();
   });
 });
 

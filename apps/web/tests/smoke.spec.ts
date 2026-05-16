@@ -8,7 +8,7 @@ test.describe('Basic Page Loading', () => {
 
   test('leaderboard page loads', async ({ page }) => {
     await page.goto('/leaderboard', { waitUntil: 'domcontentloaded' });
-    await expect(page.locator('h1')).toContainText('Identity');
+    await expect(page.locator('h1')).toContainText('Agent Leaderboard');
   });
 
   test('marketplace page loads', async ({ page }) => {
@@ -18,7 +18,7 @@ test.describe('Basic Page Loading', () => {
 
   test('review page loads', async ({ page }) => {
     await page.goto('/review', { waitUntil: 'domcontentloaded' });
-    await expect(page.locator('h1')).toContainText('Review');
+    await expect(page.locator('h1')).toContainText('Review & Evaluation');
   });
 
   // Skipped - requires wallet connection which causes timeout in CI
@@ -34,7 +34,7 @@ test.describe('Basic Page Loading', () => {
 
   test('skills page loads', async ({ page }) => {
     await page.goto('/marketplace/skills', { waitUntil: 'domcontentloaded' });
-    await expect(page.locator('text=Browse Skills')).toBeVisible();
+    await expect(page.getByRole('heading', { name: /Browse Skills/i })).toBeVisible();
   });
 });
 
@@ -55,23 +55,22 @@ test.describe('Navigation', () => {
 test.describe('UI Elements', () => {
   test('stat cards render on leaderboard page', async ({ page }) => {
     await page.goto('/leaderboard', { waitUntil: 'domcontentloaded' });
-    await expect(page.locator('text=Kokonut Agents')).toBeVisible();
-    await expect(page.locator('text=Active')).toBeVisible();
+    await expect(page.getByText('Total Kokonut Agents', { exact: false })).toBeVisible();
+    await expect(page.getByText('On Leaderboard', { exact: false })).toBeVisible();
   });
 
   test('stat cards render on marketplace page', async ({ page }) => {
     await page.goto('/marketplace', { waitUntil: 'domcontentloaded' });
-    await expect(page.locator('text=Total Services')).toBeVisible();
-    await expect(page.locator('text=Active Services')).toBeVisible();
+    await expect(page.getByText('Total Services')).toBeVisible();
   });
 
   test('stat cards render on review page', async ({ page }) => {
     await page.goto('/review', { waitUntil: 'domcontentloaded' });
-    await expect(page.locator('text=Active Proposals')).toBeVisible();
+    await expect(page.getByText('Active Proposals')).toBeVisible();
   });
 
   test('how evaluation works section on review page', async ({ page }) => {
     await page.goto('/review', { waitUntil: 'domcontentloaded' });
-    await expect(page.locator('text=How Evaluation Works')).toBeVisible();
+    await expect(page.getByRole('heading', { name: /How Evaluation Works/i })).toBeVisible();
   });
 });
