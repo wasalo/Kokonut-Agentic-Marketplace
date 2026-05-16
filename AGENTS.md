@@ -85,8 +85,7 @@
 > - **Phase 29b: Lazy On-Demand USDC Approval (April 28, 2026) [COMPLETE]**:
 >   - **Problem**: Proactive `useReadContract` hook for USDC allowance was hanging indefinitely
 >   - **Solution**: Lazy on-demand approval - only checks when user clicks "Create Job"
->   - **New Hook**: `useTokenAllowance.ts` - Token allowance checking and approval utilities
->   - **Flow**: User clicks "Create Job" → Check allowance → Approve if needed → Create job
+>   - **Flow**: User clicks "Create Job" → Check allowance via `publicClient.readContract` → Approve if needed → Create job
 >   - **UI**: Single "Create Job" button with phase states (Checking → Approving → Creating)
 >   - **Implementation**: `publicClient.readContract` inside `performSubmit` + `writeContractAsync`
 >   - **Polling**: Manual confirmation polling (2s intervals, 60 attempts max)
@@ -1042,60 +1041,30 @@ function getProposal(uint256 proposalId) returns (Proposal memory)
 
 ---
 
-### Token Allowance Hooks
+### Token Approval Flow
 
-**File:** `lib/hooks/useTokenAllowance.ts`
-
-Utilities for checking and approving ERC20 token allowances:
+Token approvals are handled inline during job creation (lazy on-demand), not via a dedicated hook:
 
 ```typescript
-// Check token allowance
-import { useTokenAllowance } from '@/lib/hooks/useTokenAllowance';
+// Inside job creation form's performSubmit
+const allowance = await publicClient.readContract({
+  address: USDC_ADDRESS,
+  abi: ERC20_ABI,
+  functionName: 'allowance',
+  args: [userAddress, AGENTIC_COMMERCE_PROXY],
+});
 
-function MyComponent() {
-  const { allowance, isLoading, error, refetch } = useTokenAllowance(USDC_TOKEN);
-  
-  // allowance: bigint - current allowance amount
-  // isLoading: boolean - checking state
-  // error: any - error if check failed
-  // refetch: () => void - manually refresh allowance
+if (allowance < budget) {
+  await writeContractAsync({
+    address: USDC_ADDRESS,
+    abi: ERC20_ABI,
+    functionName: 'approve',
+    args: [AGENTIC_COMMERCE_PROXY, budget], // exact amount, not unlimited
+  });
 }
 ```
-
-```typescript
-// Approve token spending - EXACT AMOUNT (secure)
-import { useApproveSpend } from '@/lib/hooks/useTokenAllowance';
-
-function MyComponent() {
-  const { approve, isPending, isSuccess, error } = useApproveSpend();
-  
-  const handleApprove = async () => {
-    // Approve ONLY the exact amount needed - not unlimited!
-    const budgetAmount = 100000000n; // 100 USDC (6 decimals)
-    await approve(USDC_TOKEN, AGENTIC_COMMERCE_PROXY, budgetAmount);
-  };
-}
-```
-
-**Parameters:**
-| Parameter | Type | Default | Description |
-|-----------|------|---------|-------------|
-| `token` | `Token` | required | Token to check/approve (USDC, etc.) |
-| `spender` | `0x${string}` | `0x4c592510e4FAbbEEA8D7142dE1f38d548b500e7f` | Contract to approve |
-| `amount` | `bigint` | required | **Exact amount** to approve (security best practice) |
 
 **Security Note:** We use exact-amount approvals (not unlimited) to minimize risk. If the contract is compromised, only the job budget is at risk, not your entire token balance.
-
-**Returns:**
-| Property | Type | Description |
-|----------|------|-------------|
-| `allowance` | `bigint` | Current allowance for spender |
-| `isLoading` | `boolean` | True while checking allowance |
-| `isPending` | `boolean` | True while approval tx pending |
-| `isConfirming` | `boolean` | True while waiting for confirmation |
-| `isSuccess` | `boolean` | True after confirmation |
-| `error` | `Error \| null` | Error object if failed |
-| `refetch` | `() => void` | Manually refresh allowance |
 
 ---
 
