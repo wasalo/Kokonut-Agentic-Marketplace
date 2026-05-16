@@ -33,13 +33,6 @@ test.describe('Visual Regression Tests', () => {
   });
 
   test('leaderboard page loads', async ({ page }) => {
-    await page.goto('/leaderboard');
-    // Wait for network to be idle
-    await page.waitForLoadState('networkidle');
-    await page.screenshot({ path: 'tests/snapshots/leaderboard.png', fullPage: true });
-  });
-
-  test('leaderboard page loads', async ({ page }) => {
     await page.goto('/leaderboard', { waitUntil: 'domcontentloaded' });
     await expect(page.locator('text=Agent Leaderboard')).toBeVisible();
 
