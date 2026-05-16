@@ -288,7 +288,7 @@
 >   - **JSDoc**: Added @swagger annotations to API routes
 > - **Code Consolidation (April 11, 2026)**:
 >   - **Type Deduplication**: Created `lib/types/contracts.ts` with centralized Service, Job, Proposal interfaces
->   - **Hook Factories**: New reusable patterns in `lib/hooks/factories/` (api.ts, useWriteAction.ts, useCounter.ts, useEntity.ts, useEntityList.ts)
+>   - **Hook Utilities**: New reusable patterns (useCounter.ts, useEntity.ts)
 >   - **UI Components**: New components - copy-button, empty-state, filter-panel, pagination
 >   - **Removed Unused**: Deleted shadcn/ui button.tsx and card.tsx (not imported anywhere)
 >   - **StatusBadge**: Added usdc/eth token status types
@@ -302,8 +302,6 @@
 >   - **package.json**: Fixed duplicate devDependencies, aligned versions
 > - **TypeScript Fixes (April 12, 2026)**:
 >   - Fixed Button variant types in filter-panel.tsx, pagination.tsx
->   - Fixed useEntityList.ts generic type issues
->   - Fixed useWriteAction.ts return type casting
 >   - Added Card imports to marketplace/page.tsx, analytics/page.tsx
 >   - All 27 errors resolved - 0 errors now
 > - **Phase 19: Production Readiness (April 2026)**:
@@ -325,7 +323,6 @@
 >   - **AgenticCommerceV6**: Upgraded to `0xEecC615310f6A6144eeA0F235E83b7BD391EC251`
 >   - **AgentReviewV5**: Upgraded to `0xB93A8Ef6DBD364A4e936bE53061099864465B678`
 >   - **Error Handling**: Added ERROR_CODES mapping with resolution steps in toast.ts
->   - **Transaction Progress**: New TransactionProgress component with toast-based lifecycle tracking
 >   - **Skeleton Loaders**: New reusable Skeletons.tsx component
 >   - **Documentation**: New docs/ERROR_CODES.md, docs/SEARCH.md, docs/ACCESSIBILITY.md
 > - **Phase 17: Developer Experience (April 2026)**:
@@ -395,8 +392,7 @@
 > - **Phase 7**: Admin dashboard (`/admin`), ETH funding with balance display, job filters (My Jobs, Open for Bidding), evaluator conflict warnings
 > - **Phase 6**: AgenticCommerceV6 deployed with ERC-2771 meta-transactions, evaluator fees (1%), loser stake withdrawal
 > - **Phase 5**: Open job bidding with sealed bids (1% stake, 1 hour reveal window)
-> - **Phase 4**: Complete test suite with 228 passing tests (V6: 15, V5: 33, ServiceRegistryV2: 35)
-> - **Phase 4+**: AgentReviewV5 tests added (31 passing tests)
+> - **Phase 4**: Complete test suite with 299 test functions (V6: 18, V5: 33, ServiceRegistryV2: 35, Invariants/Fuzz: 79+)
 > - **Phase 3**: Comprehensive event system for real-time tracking with enhanced security
 > - **Phase 2**: DoS prevention with O(1) optimizations and client-side validation
 
@@ -511,6 +507,32 @@ Explore the agent ecosystem and track rankings:
 | Agent Leaderboard  | `/leaderboard` | Ranked agent listings by health score    |
 | Networks           | `/networks`    | Multi-chain network overview (25 chains) |
 | Marketplace        | `/marketplace` | Browse available services                |
+| Marketplace Skills | `/marketplace/skills` | Skill discovery page              |
+| Featured Agents    | `/featured`    | Featured agents directory                |
+
+### Bidding & Governance
+
+| Page               | URL            | Purpose                                  |
+| ------------------ | -------------- | ---------------------------------------- |
+| Bidding Sessions   | `/bidding`     | List active bidding sessions             |
+| Create Bidding     | `/bidding/create` | Start a new bidding session           |
+| Bidding Detail     | `/bidding/[id]` | View/manage bidding session             |
+| Governance         | `/governance`  | SlashManager multisig UI                 |
+
+### Communication & Notifications
+
+| Page               | URL            | Purpose                                  |
+| ------------------ | -------------- | ---------------------------------------- |
+| Notifications      | `/notifications` | Notification center with filters       |
+| EFP Setup          | `/efp/setup`   | Ethereum Follow Protocol setup wizard    |
+
+### Information Pages
+
+| Page               | URL            | Purpose                                  |
+| ------------------ | -------------- | ---------------------------------------- |
+| About              | `/about`       | About the Kokonut platform               |
+| Contracts          | `/contracts`   | Contract address reference               |
+| API Docs           | `/api-docs`    | Swagger interactive API documentation    |
 
 ---
 
@@ -725,6 +747,29 @@ pnpm run cli -- create-proposal --title "Evaluation" --reward 0.01
 
 # Check jobs
 pnpm run cli -- list-jobs --json
+
+# Evaluator Pool Management
+pnpm run cli -- register-evaluator            # Register as evaluator (0.01 ETH stake)
+pnpm run cli -- unregister-evaluator          # Unregister and recover stake
+pnpm run cli -- evaluator-pool-size           # Get current pool size
+pnpm run cli -- cleanup-stale-evaluators      # Remove blacklisted/unregistered evaluators
+
+# Job Lifecycle
+pnpm run cli -- job-budget <jobId>            # Get job budget details
+pnpm run cli -- job-payment-token <jobId>     # Get job payment token
+pnpm run cli -- approve-by-client <jobId>     # Client approve delivery
+pnpm run cli -- complete-after-timeout <jobId> # Complete job after timeout
+pnpm run cli -- refund-expired <jobId>        # Trigger refund for expired job
+
+# EFP Social Graph
+pnpm run cli -- efp stats <address>           # Get EFP follower stats
+pnpm run cli -- efp followers <address>       # List followers
+pnpm run cli -- efp following <address>       # List following
+pnpm run cli -- efp follow <address>          # Follow an address
+pnpm run cli -- efp unfollow <address>        # Unfollow an address
+pnpm run cli -- efp mint-list                 # Mint a new EFP list NFT
+pnpm run cli -- efp set-primary <listId>      # Set primary list
+pnpm run cli -- efp status <listId>           # Get EFP list status
 ```
 
 ---
@@ -1043,6 +1088,91 @@ function MyComponent() {
 
 ---
 
+### EFP Social Graph Hooks
+
+**Directory:** `lib/hooks/useEfp*.ts`
+
+| Hook | Purpose |
+|------|---------|
+| `useEfpStats(address)` | Get follower/following counts for an address |
+| `useEfpFollowers(address)` | Get list of followers |
+| `useEfpFollowing(address)` | Get list of accounts being followed |
+| `useEfpFollowState(follower, followee)` | Check if one address follows another |
+| `useEfpMutuals(address1, address2)` | Check mutual follower status |
+| `useEfpRecommended()` | Get recommended accounts to follow |
+| `useEfpListStatus(listId)` | Get EFP list status |
+| `useEfpMintList()` | Mint a new EFP list NFT |
+| `useEfpSetPrimary(listId)` | Set primary list |
+| `useEfpListOps()` | Encode list operations |
+| `useEfpActivityFeed()` | Get EFP activity feed |
+
+### Subgraph-Powered Hooks
+
+**Directory:** `lib/hooks/`
+
+| Hook | Purpose |
+|------|---------|
+| `useActivityFromSubgraph(actor, type)` | Activity feed with filters |
+| `useAgentsByOwnerFromSubgraph(owner)` | Owner-filtered agent listing |
+| `useWalletAgentsFromSubgraph(wallet)` | Wallet agents with metadata decoding |
+| `useUnifiedAgentProfile(agentId, address)` | Agent + services + skills + reviews |
+| `useAnalyticsFromSubgraph(timeRange)` | Real time-series analytics |
+| `useLeaderboardFromSubgraph(page, limit)` | Paginated leaderboard |
+| `useJobStatsFromSubgraph()` | Job statistics from subgraph |
+| `useKokonutStats()` | Platform-wide Kokonut stats |
+
+### Contract Interaction Hooks
+
+**Directory:** `lib/hooks/`
+
+| Hook | Purpose |
+|------|---------|
+| `useBiddingSystem` | BiddingSystem contract interactions |
+| `useCommitReveal` | CommitReveal contract interactions |
+| `useMilestoneEscrow` | MilestoneEscrowV2 contract interactions |
+| `usePriceOracle` | PriceOracleV2 contract interactions |
+| `useProposals` | AgentReviewV5 proposal interactions |
+| `useSlashManager` | SlashManager multisig interactions |
+| `useSkills` | AgentSkillRegistryV2 interactions |
+| `useUSDC` | USDC ERC20 interactions |
+| `useAgenticCommerceAdmin` | AgenticCommerceV9 admin functions |
+| `useAdminBlacklist` | AdminRegistry blacklist management |
+| `useServicesContract` | ServiceRegistryV2 interactions |
+| `useTokenConversion` | Token price conversion via oracle |
+| `useX402Payment` | x402 payment protocol interactions |
+
+### Utility Hooks
+
+**Directory:** `lib/hooks/`
+
+| Hook | Purpose |
+|------|---------|
+| `useAccessibility` | Accessibility utilities (focus trap, skip link, announce) |
+| `useAddKokonutTag` | Add Kokonut tag to metadata |
+| `useBookmarks` | localStorage bookmark management |
+| `useChainlinkPrice` | Fetch Chainlink price feeds |
+| `useClientJobCount` | Track client's job count |
+| `useIsMounted` | Check if component is still mounted |
+| `useNetworkStats` | Network statistics |
+| `useServiceEvents` | Service event tracking |
+| `useViewportPagination` | Viewport-based pagination |
+| `useWebhooks` | Webhook management |
+
+### useJobs Module (Refactored)
+
+**Directory:** `lib/hooks/useJobs/`
+
+The monolithic `useJobs.ts` has been refactored into a modular directory structure:
+
+| File | Purpose |
+|------|---------|
+| `useJobs/index.ts` | Re-exports for backward compatibility |
+| `useJobs/read.ts` | Contract read hooks (`useJob`, `useJobs`, `useJobCount`) |
+| `useJobs/write.ts` | Contract write hooks (`useCreateJob`, `useFundJob`, etc.) |
+| `useJobs/utils.ts` | Data mappers (`mapJobData`, `mapJobMilestonesDetails`) |
+
+---
+
 ## Contract Configuration
 
 ### Automatic Fallback Addresses
@@ -1055,13 +1185,25 @@ const CONTRACT_ADDRESSES = {
   sepolia: {
     erc8004Registry: '0x8004A818BFB912233c491871b3d84c89A494BD9e',
     erc8004Reputation: '0x8004B663056A597Dffe9eCcC1965A193B7388713',
+    adminRegistry: '0xC81C864CEAb6231ad764cf9867e031D8b6dee41d', // UUPS Proxy
     serviceRegistry: '0x62E1eeEa1A2Ab987004F35bDA430457Ed6077201', // ServiceRegistryV2 Proxy (UUPS)
+    serviceRegistryImpl: '0xb75B02D4523171ABdB6f5bcB9D60903ed3e30fAD',
     agenticCommerce: '0x4c592510e4FAbbEEA8D7142dE1f38d548b500e7f', // AgenticCommerceV9 (UUPS Proxy)
+    agenticCommerceImpl: '0xbc8068fcc7124960d96fbee106112c5654de63b8',
     agentReview: '0x5CDb592Fd37749bF87448FBf5725D1Cd986dd1Cb', // AgentReviewV5 (UUPS Proxy)
+    agentReviewImpl: '0x1c3513BC838059e2Fa71e60e92317Eef51688B6e',
     skillRegistry: '0xA84684261558f342d6871DD2CFef90A2117Aa20A', // AgentSkillRegistryV2 (UUPS Proxy)
+    skillRegistryImpl: '0x656B6520CE44Bb0Fb08552274Be3a9B11aaa3569',
     priceOracle: '0x32fD2A54B722D2048A052fD0456004483a683aFE', // PriceOracleV2 (UUPS Proxy)
-    commitReveal: '0x6CEd1574A3dF7ec646e43DD8408300117c453Aa3',
-    slashManager: '0x7Cf955900FD7a12680E90D834eAf19346f5DBcf9',
+    priceOracleImpl: '0x34344702fe257aEB4FdD73F5c51f5DdE0168a652',
+    biddingSystem: '0x32c9d069a248a619d3EAc4D1FC76F2639AaBeF04',
+    biddingSystemImpl: '0x0eE5E780bbbBA610D0B1926a3993A2aa0B1B9812',
+    commitReveal: '0x85F193670fCb7B0c97D55E70Bf2a950b1065Fb3a',
+    commitRevealImpl: '0x0456fb2B6ef68B9133B22809D48D4f3748bEf87C',
+    slashManager: '0x1B8373cDF4f2eD740c3478e0129f0B8494CE4Fa3',
+    slashManagerImpl: '0x865ebF8EaC43FE343985058e56E08aAB4E605214',
+    milestoneEscrow: '0xd4Fdc345b1c6aF1B4Cc84339bcB251B33527Eb45',
+    milestoneEscrowImpl: '0xb7b801a1cfff3ad295063cd75b751c47e0f76b7f',
     usdc: '0x1c7D4B196Cb0C7B01d743Fbc6116a902379C7238',
   },
 };
@@ -1407,7 +1549,7 @@ Phase 3 introduces comprehensive event tracking, optimized caching, and security
 
 ## Phase 4: Comprehensive Test Suite (March 2026)
 
-Phase 4 delivers a complete test suite with 201 passing tests and 80%+ code coverage for all core contracts.
+Phase 4 delivers a complete test suite with 299 test functions and 80%+ code coverage for all core contracts.
 
 ### Test Coverage Summary
 
@@ -1417,7 +1559,7 @@ Phase 4 delivers a complete test suite with 201 passing tests and 80%+ code cove
 | AgentReviewV5     | 91%+     | 33      | ✅     |
 | ServiceRegistryV2 | 83%+     | 35      | ✅     |
 | Invariants/Fuzz   | N/A      | 79      | ✅     |
-| **Total**         | **87%+** | **165** | ✅     |
+| **Total**         | **87%+** | **299** | ✅     |
 
 ### Test Infrastructure
 

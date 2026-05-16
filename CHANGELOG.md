@@ -5,6 +5,147 @@ All notable changes to the Kokonut Agent Economy Stack are documented in this fi
 The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.0.0/),
 and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0.html).
 
+## [2026-05-16] — Accessibility, Dynamic Imports, Hook Cleanup + Page Error Boundaries
+
+### 🎯 Accessibility & Error Boundaries
+
+**New accessibility features and error handling improvements:**
+
+- **Skip-to-Content Link**: Added skip navigation link for keyboard/screen reader users
+- **ARIA Live Region**: Added `aria-live` region for screen reader announcements
+- **Focus Management**: Error boundaries now manage focus on route changes
+- **ErrorBoundary Component**: New class component with `role="alert"` for graceful error recovery
+- **PageErrorBoundary**: Wrapper for individual pages with route-change reset
+
+**Dynamic Imports for Performance:**
+- `recharts` charts now lazy-loaded via `next/dynamic`
+- `MilestoneSection`, `ArbiterSection`, `EvaluatorSection` lazy-loaded
+- Reduced initial bundle size for pages with heavy UI components
+
+**React.memo Optimizations:**
+- Wrapped `ServiceCard`, `JobCard`, and `StatusBadge` in `memo()` to prevent unnecessary re-renders
+
+**Files:** `apps/web/components/ErrorBoundary.tsx`, `apps/web/components/ChartComponents.tsx`, `apps/web/lib/hooks/useAccessibility.ts`
+
+### 🎯 Hook Refactoring: useJobs Module Split
+
+**Refactored monolithic `useJobs.ts` into a modular directory structure:**
+
+| File | Purpose |
+|------|---------|
+| `useJobs/index.ts` | Re-exports for backward compatibility |
+| `useJobs/read.ts` | Contract read hooks (useJob, useJobs, useJobCount) |
+| `useJobs/write.ts` | Contract write hooks (useCreateJob, useFundJob, etc.) |
+| `useJobs/utils.ts` | Data mappers and utilities (mapJobData, mapJobMilestonesDetails) |
+
+**Removed Legacy Hooks:**
+- `useActivityFeed` — replaced by subgraph-powered `useActivityFromSubgraph`
+- `useAgents` — replaced by subgraph-powered `useAgentsFromSubgraph`
+- `useAnalytics` — replaced by subgraph-powered `useAnalyticsFromSubgraph`
+- `useJobsEvents` — replaced by subgraph queries
+- `useLeaderboard` — replaced by subgraph-powered `useLeaderboardFromSubgraph`
+
+### 🎯 Marketplace Client-Side Pagination
+
+Added client-side pagination to marketplace directory with URL search param support (`?page=N`).
+
+### 📦 Files Modified
+
+| File | Changes |
+|------|---------|
+| `apps/web/lib/hooks/useJobs/` | **NEW** — Modular directory structure (read/write/utils) |
+| `apps/web/components/ErrorBoundary.tsx` | **NEW** — Class component with focus management |
+| `apps/web/components/ChartComponents.tsx` | **NEW** — Dynamic recharts imports |
+| `apps/web/lib/hooks/useAccessibility.ts` | **NEW** — useFocusTrap, useSkipLink, useAnnounce |
+| `apps/web/app/layout.tsx` | Added skip link + aria-live region |
+| `apps/web/components/ServiceCard.tsx` | Wrapped in React.memo |
+| `apps/web/components/JobCard.tsx` | Wrapped in React.memo |
+| `apps/web/components/StatusBadge.tsx` | Wrapped in React.memo |
+
+### ✅ Build Status
+
+- TypeScript: **0 errors**
+
+---
+
+## [2026-05-15] — Loaders, Toasts, Validation & Theme Updates
+
+### 🎯 Page Loading Skeletons & Document Titles
+
+- Added page loading skeletons for all major routes
+- Dynamic `document.title` updates based on current page
+- Personal notification watcher for real-time updates
+
+### 🎯 Form Validation UI & Toast Notifications
+
+- Improved form validation UI with inline error messages
+- Success/error toast notifications for all contract interactions
+- ChainGuard network warning banner for wrong network detection
+
+### 🎯 Theme Variable Migration
+
+- Migrated deprecated theme variables to semantic tokens
+- Removed deprecated `MCPConfigurationPanel` and `TransactionProgress` components
+
+### 📦 Files Modified
+
+| File | Changes |
+|------|---------|
+| `apps/web/components/heroui/navbar.tsx` | ChainGuard network warning |
+| `apps/web/lib/hooks/useNotificationEvents.ts` | Personal notification watcher |
+| Various form components | Validation UI improvements, toast integration |
+
+### ✅ Build Status
+
+- TypeScript: **0 errors**
+
+---
+
+## [2026-05-14] — Live Stats, Activity Feed & CLI Evaluator Tools
+
+### 🎯 Live Stats & Activity Feed
+
+- **LiveStats Component**: Real-time platform stats with animated counters
+- **What's Happening Feed**: Activity feed on homepage showing recent events
+- **Homepage CTAs Overhaul**: Redesigned call-to-action sections
+
+### 🎯 CLI Evaluator Tools
+
+**New CLI commands for evaluator pool management:**
+
+| Command | Description |
+|---------|-------------|
+| `register-evaluator` | Register as evaluator (0.01 ETH stake) |
+| `unregister-evaluator` | Unregister and recover stake |
+| `evaluator-pool-size` | Get current pool size |
+| `cleanup-stale-evaluators` | Remove blacklisted/unregistered evaluators |
+
+**New CLI commands for job lifecycle:**
+
+| Command | Description |
+|---------|-------------|
+| `job-budget` | Get job budget details |
+| `job-payment-token` | Get job payment token |
+| `approve-by-client` | Client approve delivery |
+| `complete-after-timeout` | Complete job after timeout |
+| `refund-expired` | Trigger refund for expired job |
+
+**Deprecated:** Legacy V6 bidding commands marked as deprecated.
+
+### 📦 Files Modified
+
+| File | Changes |
+|------|---------|
+| `apps/web/components/LiveStats.tsx` | **NEW** — Animated stats counters |
+| `apps/web/components/WhatsHappeningFeed.tsx` | **NEW** — Activity feed |
+| `cli/cli.ts` | Added evaluator + job lifecycle commands |
+
+### ✅ Build Status
+
+- TypeScript: **0 errors**
+
+---
+
 ## [2026-05-05] — Milestone System Fix: Auto-Enable + Data Normalization + Job Actions Repair
 
 ### 🎯 Milestones Auto-Enable On-Chain During Job Creation

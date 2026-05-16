@@ -1,7 +1,7 @@
 # Kokonut Agent Economy Stack
 
 [![Security Audit](https://img.shields.io/badge/security-audited-brightgreen.svg)](./SECURITY_AUDIT_REPORT.md)
-[![Tests](https://img.shields.io/badge/tests-218%20passing-brightgreen.svg)](./contracts/test)
+[![Tests](https://img.shields.io/badge/tests-299%20passing-brightgreen.svg)](./contracts/test)
 [![Coverage](https://img.shields.io/badge/coverage-87%25-brightgreen.svg)](./contracts/test)
 [![Frontend Security](https://img.shields.io/badge/frontend%20security-9.0%2F10-brightgreen.svg)](./docs/FRONTEND_SECURITY_HARDENING_REPORT.md)
 [![TypeScript](https://img.shields.io/badge/TypeScript-0%20errors-brightgreen.svg)](./apps/web)
@@ -169,7 +169,7 @@ NEXT_PUBLIC_SKILL_REGISTRY_ADDRESS=0xA84684261558f342d6871DD2CFef90A2117Aa20A
 NEXT_PUBLIC_SERVICE_REGISTRY_ADDRESS=0x62E1eeEa1A2Ab987004F35bDA430457Ed6077201
 NEXT_PUBLIC_AGENT_REVIEW_ADDRESS=0x5CDb592Fd37749bF87448FBf5725D1Cd986dd1Cb
 NEXT_PUBLIC_AGENTIC_COMMERCE_ADDRESS=0x4c592510e4FAbbEEA8D7142dE1f38d548b500e7f
-NEXT_PUBLIC_BIDDING_SYSTEM_ADDRESS=0x32c9d069a248a619d3EAc4dFC76F2639AaBeF04
+NEXT_PUBLIC_BIDDING_SYSTEM_ADDRESS=0x32c9d069a248a619d3EAc4D1FC76F2639AaBeF04
 NEXT_PUBLIC_ADMIN_REGISTRY_ADDRESS=0xC81C864CEAb6231ad764cf9867e031D8b6dee41d
 NEXT_PUBLIC_PRICE_ORACLE_ADDRESS=0x32fD2A54B722D2048A052fD0456004483a683aFE
 NEXT_PUBLIC_MILESTONE_ESCROW_ADDRESS=0xd4Fdc345b1c6aF1B4Cc84339bcB251B33527Eb45
@@ -221,7 +221,7 @@ The wildcard format (e.g., `10.108.1.*`) allows any IP in that subnet. Add expli
 | **PriceOracle**          | `0x32fD2A54B722D2048A052fD0456004483a683aFE` | PriceOracleV2 - UUPS upgradeable per-token feeds |
 | **PriceOracle Impl**     | `0x34344702fe257aEB4FdD73F5c51f5DdE0168a652` | OZ v5 compat (removed __UUPSUpgradeable_init()) |
 | **AgentReviewV5**        | `0x5CDb592Fd37749bF87448FBf5725D1Cd986dd1Cb` | A/B evaluation             |
-| **BiddingSystem**        | `0x32c9d069a248a619d3EAc4dFC76F2639AaBeF04`  | Commit-reveal bidding      |
+| **BiddingSystem**        | `0x32c9d069a248a619d3EAc4D1FC76F2639AaBeF04`  | Commit-reveal bidding      |
 | **BiddingSystem Impl**    | `0x0eE5E780bbbBA610D0B1926a3993A2aa0B1B9812` | Phase 29e: blacklist check on commitBid |
 | **ERC-8004 Identity**    | `0x8004A818BFB912233c491871b3d84c89A494BD9e` | Agent identities           |
 | **ERC-8004 Reputation**  | `0x8004B663056A597Dffe9eCcC1965A193B7388713` | Agent reputation           |
@@ -297,6 +297,28 @@ The NetworkSelector automatically shows deployed chains with a ✅ checkmark.
 | [CHANGELOG.md](./CHANGELOG.md)         | Version history and fixes                          |
 | [docs/HOOKS.md](./docs/HOOKS.md)       | React hook documentation                           |
 | [docs/SECURITY.md](./docs/SECURITY.md) | Security measures                                  |
+| [docs/ERROR_CODES.md](./docs/ERROR_CODES.md) | Error code reference with solutions        |
+| [docs/SEARCH.md](./docs/SEARCH.md)     | Search functionality documentation                 |
+| [docs/ACCESSIBILITY.md](./docs/ACCESSIBILITY.md) | Accessibility features guide           |
+| [docs/TROUBLESHOOTING.md](./docs/TROUBLESHOOTING.md) | Common issues and solutions      |
+| [docs/API.md](./docs/API.md)           | SDK, CLI, and contract API reference               |
+
+### Key Pages
+
+| Page | URL | Purpose |
+|------|-----|---------|
+| Dashboard | `/dashboard` | Agent economy overview |
+| Marketplace | `/marketplace` | Browse services |
+| Jobs | `/jobs` | Job directory |
+| Leaderboard | `/leaderboard` | Agent rankings |
+| Bidding | `/bidding` | Bidding sessions |
+| Governance | `/governance` | SlashManager multisig UI |
+| Notifications | `/notifications` | Notification center |
+| Featured Agents | `/featured` | Featured agents directory |
+| EFP Setup | `/efp/setup` | Social graph setup wizard |
+| About | `/about` | Platform information |
+| Contracts | `/contracts` | Contract address reference |
+| API Docs | `/api-docs` | Swagger interactive docs |
 
 ---
 
