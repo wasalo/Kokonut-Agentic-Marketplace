@@ -1322,11 +1322,28 @@ program
         fundNow,
         fundAmount,
       ], { value: fundNow && service.paymentToken === zeroAddress ? service.price : 0n });
-      await waitForTransactionReceipt(jobHash);
+      const receipt = await waitForTransactionReceipt(jobHash);
+
+      // Extract jobId from JobCreated event
+      let createdJobId: string | undefined;
+      for (const log of receipt.logs) {
+        try {
+          const parsed = parseLog({ log, abi: agenticCommerceABI });
+          if (parsed && parsed.eventName === 'JobCreated') {
+            createdJobId = (parsed.args as { jobId: bigint }).jobId.toString();
+            break;
+          }
+        } catch (e) {
+          // Ignore non-relevant logs
+        }
+      }
 
       console.log(chalk.green('✅ Budget set!'));
-      console.log(chalk.cyan('Now approve USDC and fund the job:'));
-      console.log(chalk.dim(`  pnpm run cli -- fund-job ${jobId}`));
+      if (createdJobId) {
+        console.log(chalk.cyan('Job ID:'), createdJobId);
+        console.log(chalk.cyan('Now approve USDC and fund the job:'));
+        console.log(chalk.dim(`  pnpm run cli -- fund-job ${createdJobId}`));
+      }
     } catch (error) {
       console.error(chalk.red('❌ Error buying service:'), error.message);
     }

@@ -11,6 +11,10 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 **All 299 contract tests now pass** (was 268 passing / 31 failing).
 
+### 🔧 CLI TypeScript Fix
+
+- **`cli/cli.ts`**: Fixed `TS2304: Cannot find name 'jobId'` in `buy-service` command — `jobId` was never extracted from the `JobCreated` event after `createJob()` transaction. Now captures receipt, parses event logs, and extracts `jobId` following the same pattern used by other CLI commands (agent registration, service creation, etc.).
+
 #### Root Causes & Fixes
 
 **1. `AgenticCommerceV9.t.sol` (26 → 0 failures)**

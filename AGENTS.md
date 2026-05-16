@@ -15,7 +15,8 @@
 >   - **JobStatus enum**: Fixed assertion values — `Rejected = 4`, `Expired = 5`
 >   - **Fund tests**: Changed `createJobV7` (zero budget) to `createJob(..., fundNow=false)` with non-zero budget
 >   - **MilestoneEscrowV2**: Changed `initialize(owner, address(0))` to skip EOA code-size check; fixed ERC20 approval pranks
->   - **Files**: `contracts/test/MockIdentityRegistry.sol` (NEW), `AgenticCommerceV9.t.sol`, `Invariants.t.sol`, `MilestoneEscrowV2.t.sol`, `GasSnapshot.t.sol`
+>   - **CLI fix**: `cli/cli.ts` — Fixed `TS2304: Cannot find name 'jobId'` in `buy-service` command by extracting `jobId` from `JobCreated` event logs
+>   - **Files**: `contracts/test/MockIdentityRegistry.sol` (NEW), `AgenticCommerceV9.t.sol`, `Invariants.t.sol`, `MilestoneEscrowV2.t.sol`, `GasSnapshot.t.sol`, `cli/cli.ts`
 
 > - **Phase 29h: Milestone System Fix + Job Actions Repair (May 5, 2026) [COMPLETE]**:
 >   - **Milestones Auto-Enable**: `createJob` flow now calls `enableMilestones()` on-chain when toggle is ON (was only redirecting before)
