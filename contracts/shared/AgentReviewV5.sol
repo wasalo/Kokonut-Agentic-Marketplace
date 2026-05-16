@@ -205,6 +205,7 @@ contract AgentReviewV5 is IAgentReviewV5, ContextUpgradeable, Ownable2StepUpgrad
     error AgentReviewV5_Transfer_failed();
     error AgentReviewV5_Zero_address();
     error AgentReviewV5_Zero_amount();
+    error AgentReviewV5_Eth_transfer_failed();
     uint256 public constant MAX_EVALUATORS_PER_PROPOSAL = 5;
     uint256 public constant MIN_STAKE = 0.001 ether;
     uint256 public constant SLASH_PERCENTAGE = 5000;
@@ -721,6 +722,6 @@ contract AgentReviewV5 is IAgentReviewV5, ContextUpgradeable, Ownable2StepUpgrad
     function _sendEth(address to, uint256 amount) internal {
         if (amount == 0) return;
         (bool success, ) = payable(to).call{value: amount}("");
-        require(success, "ETH transfer failed");
+        if (!success) revert AgentReviewV5_Eth_transfer_failed();
     }
 }

@@ -86,18 +86,20 @@ export default function MarketplaceInner() {
   const searchParams = useSearchParams();
 
   const providerParam = searchParams.get('provider');
+  const pageParam = parseInt(searchParams.get('page') || '0', 10);
 
   const { services: providerServices, isLoading: isProviderLoading } = useProviderServices(
     providerParam && providerParam.startsWith('0x') ? (providerParam as `0x${string}`) : undefined
   );
 
-  const { services: allMarketServices, isLoading: isAllLoading } = useAllServices();
+  const { services: allMarketServices, isLoading: isAllLoading, page: currentPage, pageSize } = useAllServices(pageParam);
 
   const { count: totalCount, isLoading: isTotalCountLoading } = useTotalServiceCount();
 
   const services = providerParam ? providerServices : allMarketServices;
   const isServicesLoading = providerParam ? isProviderLoading : isAllLoading;
   const activeServicesCount = services.length;
+  const totalPages = totalCount ? Math.ceil(totalCount / pageSize) : 1;
 
   const uniqueProviders = useMemo(() => new Set(services.map(s => s.provider.toLowerCase())).size, [services]);
   const avgPrice = useMemo(() => {
@@ -248,6 +250,36 @@ export default function MarketplaceInner() {
             sortBy={sortBy}
             sortOrder={sortOrder}
           />
+
+          {!providerParam && totalPages > 1 && (
+            <div className="flex items-center justify-center gap-2 mt-8">
+              <button
+                onClick={() => {
+                  const params = new URLSearchParams(searchParams.toString());
+                  params.set('page', String(Math.max(0, currentPage - 1)));
+                  router.push(`/marketplace?${params.toString()}`);
+                }}
+                disabled={currentPage === 0}
+                className="px-4 py-2 rounded-lg border border-divider disabled:opacity-50 disabled:cursor-not-allowed hover:bg-content2 transition-colors text-sm"
+              >
+                Previous
+              </button>
+              <span className="text-sm text-default-500">
+                Page {currentPage + 1} of {totalPages}
+              </span>
+              <button
+                onClick={() => {
+                  const params = new URLSearchParams(searchParams.toString());
+                  params.set('page', String(Math.min(totalPages - 1, currentPage + 1)));
+                  router.push(`/marketplace?${params.toString()}`);
+                }}
+                disabled={currentPage >= totalPages - 1}
+                className="px-4 py-2 rounded-lg border border-divider disabled:opacity-50 disabled:cursor-not-allowed hover:bg-content2 transition-colors text-sm"
+              >
+                Next
+              </button>
+            </div>
+          )}
         </>
       )}
     </div>

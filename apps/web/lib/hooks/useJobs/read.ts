@@ -1,0 +1,261 @@
+import { useReadContract, useReadContracts } from 'wagmi';
+import { AGENTIC_COMMERCE_ABI, BIDDING_SYSTEM_ABI } from '@/lib/contracts/abis';
+import { getContractAddress, debugLog } from '@/lib/contracts/config';
+import type { Job, JobStatusType, JobTypeType, Bid } from '@/lib/types/contracts';
+import { JobStatus, JobType } from '@/lib/types/contracts';
+
+const AGENTIC_COMMERCE_ADDRESS = getContractAddress('AGENTIC_COMMERCE');
+const BIDDING_SYSTEM_ADDRESS = getContractAddress('BIDDING_SYSTEM');
+const MAX_JOB_BATCH = 50;
+
+export type { Job, JobStatusType, JobTypeType, Bid };
+export { JobStatus, JobType };
+
+interface JobStruct {
+  id: bigint;
+  client: `0x${string}`;
+  provider: `0x${string}`;
+  evaluator: `0x${string}`;
+  serviceId: bigint;
+  paymentToken: `0x${string}`;
+  description: string;
+  budget: bigint;
+  expiredAt: bigint;
+  status: number;
+  hook: `0x${string}`;
+  deliverable: `0x${string}`;
+}
+
+function mapJobData(data: unknown): Job | undefined {
+  if (!data || typeof data !== 'object') return undefined;
+  const arr = data as unknown[];
+  const isArray = Array.isArray(data);
+  const jobStruct = isArray ? null : (data as JobStruct);
+  const id = isArray ? arr[0] : jobStruct?.id;
+  const client = isArray ? arr[1] : jobStruct?.client;
+  if (!id || !client) return undefined;
+  if (typeof client === 'string' && client === '0x0000000000000000000000000000000000000000') return undefined;
+  return {
+    id: isArray ? arr[0] : jobStruct!.id,
+    client: (isArray ? arr[1] : jobStruct!.client) as `0x${string}`,
+    provider: (isArray ? arr[2] : jobStruct!.provider) as `0x${string}`,
+    evaluator: (isArray ? arr[3] : jobStruct!.evaluator) as `0x${string}`,
+    serviceId: isArray ? arr[4] : jobStruct!.serviceId,
+    paymentToken: (isArray ? arr[5] : jobStruct!.paymentToken) as `0x${string}`,
+    description: isArray ? arr[6] : jobStruct!.description,
+    budget: isArray ? arr[7] : jobStruct!.budget,
+    expiredAt: isArray ? arr[8] : jobStruct!.expiredAt,
+    status: isArray ? arr[9] : jobStruct!.status,
+    hook: (isArray ? arr[10] : jobStruct!.hook) as `0x${string}`,
+    deliverable: (isArray ? arr[11] : jobStruct!.deliverable) as `0x${string}`,
+  };
+}
+
+export function useJobCount() {
+  debugLog('contracts', 'useJobCount: Fetching jobCounter from', AGENTIC_COMMERCE_ADDRESS);
+
+  const { data, isLoading, error, refetch } = useReadContract({
+    address: AGENTIC_COMMERCE_ADDRESS,
+    abi: AGENTIC_COMMERCE_ABI,
+    functionName: 'jobCounter',
+    query: { retry: 2, staleTime: 30 * 1000 },
+  });
+
+  if (error) debugLog('errors', 'useJobCount: Error fetching jobCounter', error);
+  if (data) debugLog('contracts', 'useJobCount: Retrieved jobCounter', Number(data));
+
+  return { count: data ? Number(data) : 0, isLoading, error, refetch };
+}
+
+export function useJob(jobId: number | bigint | undefined) {
+  const id = jobId !== undefined ? (typeof jobId === 'bigint' ? jobId : BigInt(jobId)) : undefined;
+
+  const { data, isLoading, error, refetch } = useReadContract({
+    address: AGENTIC_COMMERCE_ADDRESS,
+    abi: AGENTIC_COMMERCE_ABI,
+    functionName: 'jobs',
+    args: id !== undefined ? [id] : undefined,
+    query: { retry: 2, staleTime: 10 * 1000, enabled: id !== undefined },
+  });
+
+  return { job: mapJobData(data), isLoading, error, refetch };
+}
+
+export function useJobs(start: number = 0, count: number = 20) {
+  const safeCount = Math.min(count, MAX_JOB_BATCH);
+  if (count > MAX_JOB_BATCH) {
+    console.warn(`useJobs: Requested ${count} jobs but capped at ${MAX_JOB_BATCH}. Use pagination for large datasets.`);
+  }
+
+  const jobQueries = [];
+  const endIndex = start + safeCount;
+  for (let i = start; i < endIndex; i++) {
+    jobQueries.push({
+      address: AGENTIC_COMMERCE_ADDRESS,
+      abi: AGENTIC_COMMERCE_ABI,
+      functionName: 'jobs' as const,
+      args: [BigInt(i)],
+    });
+  }
+
+  const { data: results, isLoading, error, refetch } = useReadContracts({
+    contracts: jobQueries,
+    query: { retry: 2, staleTime: 30 * 1000 },
+  });
+
+  if (!results || results.length === 0) {
+    return { jobs: [] as Job[], isLoading, error, refetch, totalCount: 0 };
+  }
+
+  const jobs: Job[] = [];
+  for (let i = 0; i < results.length; i++) {
+    const result = results[i];
+    if (result.status === 'success') {
+      const mapped = mapJobData(result.result);
+      if (mapped) jobs.push(mapped);
+    }
+  }
+
+  return { jobs, isLoading, error, refetch, totalCount: safeCount };
+}
+
+export function useUserJobs(
+  user: `0x${string}` | undefined,
+  role: 'client' | 'provider' | 'evaluator' | 'all' = 'all'
+) {
+  const { jobs, isLoading, error, refetch } = useJobs(0, 100);
+
+  if (!user) {
+    return { jobs: [] as Job[], isLoading: false, error: null, refetch };
+  }
+
+  const filteredJobs = jobs.filter(job => {
+    if (role === 'all') {
+      return job.client === user || job.provider === user || job.evaluator === user;
+    }
+    return job[role] === user;
+  });
+
+  return { jobs: filteredJobs, isLoading, error, refetch };
+}
+
+export function useActiveJobCount() {
+  const { jobs, isLoading: isJobsLoading } = useJobs(0, 100);
+  const activeJobs = jobs.filter(
+    job =>
+      job.status === JobStatus.Open ||
+      job.status === JobStatus.Funded ||
+      job.status === JobStatus.Submitted
+  );
+  return { count: activeJobs.length, isLoading: isJobsLoading };
+}
+
+export function useJobConstants() {
+  const { data: revealWindow, isLoading: isRevealLoading } = useReadContract({
+    address: BIDDING_SYSTEM_ADDRESS,
+    abi: BIDDING_SYSTEM_ABI,
+    functionName: 'revealWindow',
+    query: { staleTime: 60 * 60 * 1000 },
+  });
+
+  const { data: minEthPayment, isLoading: isMinEthLoading } = useReadContract({
+    address: AGENTIC_COMMERCE_ADDRESS,
+    abi: AGENTIC_COMMERCE_ABI,
+    functionName: 'MIN_ETH_PAYMENT',
+    query: { staleTime: 60 * 60 * 1000 },
+  });
+
+  return {
+    revealWindow: typeof revealWindow === 'bigint' ? Number(revealWindow) : 3600,
+    minEthPayment: minEthPayment ?? BigInt(5000000000000000),
+    isLoading: isRevealLoading || isMinEthLoading,
+  };
+}
+
+export function useEvaluatorFeeEnabled(jobId: bigint | undefined) {
+  const { data, isLoading, error, refetch } = useReadContract({
+    address: BIDDING_SYSTEM_ADDRESS,
+    abi: BIDDING_SYSTEM_ABI,
+    functionName: 'isEvaluatorFeeEnabled',
+    args: jobId !== undefined ? [jobId] : undefined,
+    query: { enabled: jobId !== undefined, retry: 2, staleTime: 30 * 1000 },
+  });
+
+  return { isEvaluatorFeeEnabled: typeof data === 'boolean' ? data : false, isLoading, error, refetch };
+}
+
+export function useTotalStakesHeld(address: `0x${string}` | undefined) {
+  const { data, isLoading, error, refetch } = useReadContract({
+    address: BIDDING_SYSTEM_ADDRESS,
+    abi: BIDDING_SYSTEM_ABI,
+    functionName: 'totalStakesHeld',
+    args: address !== undefined ? [address] : undefined,
+    query: { enabled: address !== undefined, retry: 2, staleTime: 30 * 1000 },
+  });
+
+  return { totalStakes: data ?? BigInt(0), isLoading, error, refetch };
+}
+
+export function useJobBidCount(jobId: bigint | undefined) {
+  const { data, isLoading, error, refetch } = useReadContract({
+    address: BIDDING_SYSTEM_ADDRESS,
+    abi: BIDDING_SYSTEM_ABI,
+    functionName: 'jobBidCount',
+    args: jobId !== undefined ? [jobId] : undefined,
+    query: { enabled: jobId !== undefined, retry: 2, staleTime: 10 * 1000 },
+  });
+
+  return { count: data ? Number(data) : 0, isLoading, error, refetch };
+}
+
+export function useJobBid(jobId: bigint | undefined, index: number) {
+  const { data, isLoading, error, refetch } = useReadContract({
+    address: BIDDING_SYSTEM_ADDRESS,
+    abi: BIDDING_SYSTEM_ABI,
+    functionName: 'jobBids',
+    args: jobId !== undefined ? [jobId, BigInt(index)] : undefined,
+    query: { enabled: jobId !== undefined, retry: 2, staleTime: 10 * 1000 },
+  });
+
+  return { bid: data as Bid | undefined, isLoading, error, refetch };
+}
+
+export function useUserBid(jobId: number | bigint | undefined, user: `0x${string}` | undefined) {
+  const id = jobId !== undefined ? (typeof jobId === 'bigint' ? jobId : BigInt(jobId)) : undefined;
+
+  const { data, isLoading, error, refetch } = useReadContract({
+    address: BIDDING_SYSTEM_ADDRESS,
+    abi: BIDDING_SYSTEM_ABI,
+    functionName: 'getUserBid',
+    args: id !== undefined && user !== undefined ? [id, user] : undefined,
+    query: { enabled: id !== undefined && user !== undefined, retry: 2, staleTime: 10 * 1000 },
+  });
+
+  const bidData = data as Bid | undefined;
+  const hasBid = bidData && typeof bidData === 'object' && 'bidId' in bidData && bidData.bidId > BigInt(0);
+
+  return { bid: bidData, hasBid, isLoading, error, refetch };
+}
+
+export function useEvaluatorPoolSize() {
+  const { data, isLoading, error, refetch } = useReadContract({
+    address: AGENTIC_COMMERCE_ADDRESS,
+    abi: AGENTIC_COMMERCE_ABI,
+    functionName: 'getEvaluatorPoolSize',
+    query: { retry: 2, staleTime: 60 * 1000 },
+  });
+
+  return { count: data ? Number(data) : 0, isLoading, error, refetch };
+}
+
+export function useEvaluatorStatus(address: `0x${string}` | undefined) {
+  const { data, isLoading, error, refetch } = useReadContract({
+    address: AGENTIC_COMMERCE_ADDRESS,
+    abi: AGENTIC_COMMERCE_ABI,
+    functionName: 'isEvaluator',
+    args: address ? [address] : undefined,
+    query: { retry: 2, staleTime: 60 * 1000, enabled: !!address },
+  });
+
+  return { isEvaluator: data || false, isLoading, error, refetch };
+}

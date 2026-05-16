@@ -15,12 +15,18 @@ import {
   Activity,
 } from 'lucide-react';
 import NextLink from 'next/link';
+import dynamicImport from 'next/dynamic';
 import { useUserJobs, getJobStatusLabel } from '@/lib/hooks/useJobs';
 import { useProposalCount, useProposals } from '@/lib/hooks/useProposals';
 import { useActivityFromSubgraph } from '@/lib/hooks';
 import { Address } from '@/components/Address';
-import { ArbiterSection } from '@/components/ArbiterSection';
-import { EvaluatorSection } from '@/components/EvaluatorSection';
+
+const ArbiterSection = dynamicImport(() => import('@/components/ArbiterSection').then(m => m.ArbiterSection), {
+  loading: () => <div className="animate-pulse h-40 bg-content2 rounded-lg" />,
+});
+const EvaluatorSection = dynamicImport(() => import('@/components/EvaluatorSection').then(m => m.EvaluatorSection), {
+  loading: () => <div className="animate-pulse h-32 bg-content2 rounded-lg" />,
+});
 
 function WalletConnectPrompt() {
   return (

@@ -21,14 +21,14 @@ import { useJobEvents } from '@/lib/hooks/useJobEvents';
 import { useJobBookmarks, useBookmarkCounts } from '@/lib/hooks/useBookmarks';
 import { useService } from '@/lib/hooks/useServices';
 import { GridSkeleton } from '@/components/Skeletons';
-import { useState, useCallback, useEffect } from 'react';
+import { useState, useCallback, useEffect, memo } from 'react';
 import { StatusBadge, getJobStatusBadgeType } from '@/components/StatusBadge';
 import { useDebounce } from '@/lib/hooks/useDebounce';
 import { EmptyStateJobs } from '@/components/ui/empty-state';
 import { Pagination } from '@/components/ui/pagination';
 import { useJobStatsFromSubgraph } from '@/lib/hooks/useJobStatsFromSubgraph';
 
-function JobCard({ job }: { job: any }) {
+const JobCard = memo(function JobCard({ job }: { job: any }) {
   const { service } = useService(job.serviceId ?? BigInt(0));
   const { isBookmarked, toggleBookmark } = useJobBookmarks();
   const { getJobCount } = useBookmarkCounts();
@@ -84,7 +84,7 @@ function JobCard({ job }: { job: any }) {
       </div>
     </Card>
   );
-}
+});
 
 const ITEMS_PER_PAGE = 10;
 

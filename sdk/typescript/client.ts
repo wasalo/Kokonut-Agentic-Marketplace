@@ -3,10 +3,25 @@
  * Type-safe client for interacting with the Kokonut Agent Economy Stack
  */
 
-import { createPublicClient, createWalletClient, http, custom, type Address, parseAbi } from 'viem';
+import { createPublicClient, createWalletClient, http, custom, type Address } from 'viem';
 import { privateKeyToAccount } from 'viem/accounts';
 import { EFPModule } from './efp';
 import { SubgraphModule } from './subgraph';
+import {
+  IDENTITY_REGISTRY_ABI,
+  LEGACY_REPUTATION_ABI,
+  SERVICE_REGISTRY_ABI,
+  AGENTIC_COMMERCE_ABI,
+  AGENT_REVIEW_ABI,
+  USDC_ABI,
+  MILESTONE_ESCROW_ABI,
+  BIDDING_SYSTEM_ABI,
+  AGENT_SKILL_REGISTRY_ABI,
+  PRICE_ORACLE_ABI,
+  COMMIT_REVEAL_ABI,
+  SLASH_MANAGER_ABI,
+  ADMIN_REGISTRY_ABI,
+} from './abis';
 import type {
   SDKConfig,
   NetworkName,
@@ -37,231 +52,7 @@ import type {
 } from './types';
 import { NETWORKS } from './types';
 
-// ============================================================================
-// Network Configurations (imported from types)
-// ============================================================================
-
-// ============================================================================
-// ABIs (Minimal for SDK operations)
-// ============================================================================
-
-const IDENTITY_REGISTRY_ABI = parseAbi([
-  'function register(string agentURI) external returns (uint256 agentId)',
-  'function getAgent(uint256 agentId) external view returns (address owner, string memory agentURI, address agentWallet, bool isActive)',
-  'function isAgent(address agentAddress) external view returns (bool)',
-  'function getCurrentAgentId() external view returns (uint256)',
-  'function setAgentURI(uint256 agentId, string calldata newURI) external',
-  'function getMetadata(uint256 agentId, string calldata metadataKey) external view returns (bytes memory)',
-  'function setMetadata(uint256 agentId, string calldata metadataKey, bytes calldata metadataValue) external',
-  'function getAgentWallet(uint256 agentId) external view returns (address)',
-  'function setAgentWallet(uint256 agentId, address newWallet, uint256 deadline, bytes calldata signature) external',
-  'function unsetAgentWallet(uint256 agentId) external',
-  'event Registered(uint256 indexed agentId, string agentURI, address indexed owner)',
-  'event AgentURIUpdated(uint256 indexed agentId, string newURI)',
-  'event MetadataUpdated(uint256 indexed agentId, string key)',
-  'event AgentWalletUpdated(uint256 indexed agentId, address indexed oldWallet, address indexed newWallet)',
-] as const);
-
-const LEGACY_REPUTATION_ABI = parseAbi([
-  'function submitFeedback(address agent, uint256 taskId, int256 rating, string calldata metadataURI) external returns (uint256)',
-  'function getAgentReputation(address agent) external view returns (int256 average, uint256 total, uint256 providers)',
-] as const);
-
-const SERVICE_REGISTRY_ABI = parseAbi([
-  'function createService(uint256 agentId, string calldata name, string calldata description, string calldata metadataURI, uint256 price, address paymentToken) external returns (uint256 serviceId)',
-  'function updateService(uint256 serviceId, string calldata name, string calldata description, string calldata metadataURI, uint256 price) external',
-  'function deactivateService(uint256 serviceId) external',
-  'function activateService(uint256 serviceId) external',
-  'function getService(uint256 serviceId) external view returns ((uint256 id, address provider, uint256 agentId, string name, string description, string metadataURI, uint256 price, address paymentToken, bool isActive, uint256 createdAt))',
-  'function getServices(uint256 start, uint256 count) external view returns (uint256[] memory)',
-  'function getActiveServiceCount() external view returns (uint256)',
-  'function getProviderServices(address provider) external view returns (uint256[] memory)',
-  'function getServicesByAgent(uint256 agentId) external view returns (uint256[] memory)',
-  'function getServiceCounter() external view returns (uint256)',
-  'event ServiceCreated(uint256 indexed serviceId, address indexed provider, uint256 indexed agentId, string name, uint256 price)',
-  'event ServiceUpdated(uint256 indexed serviceId)',
-  'event ServiceDeactivated(uint256 indexed serviceId)',
-  'event ServiceActivated(uint256 indexed serviceId)',
-] as const);
-
-const AGENTIC_COMMERCE_ABI = parseAbi([
-  // V9 Functions
-  'function createJob(address provider, uint256 budget, address paymentToken, uint256 serviceId, uint256 expiredAt, string calldata description, address evaluator, address hook, bool evaluatorFee, bool clientReview_, bool fundNow, uint256 fundAmount) external payable returns (uint256 jobId)',
-  'function createJobV7(address provider, address evaluator, uint256 expiredAt, string calldata description, address hook, bool evaluatorFee, bool clientReview) external returns (uint256 jobId)',
-  'function createJobWithRandomEvaluator(address provider, uint256 expiredAt, string calldata description, address hook, bool evaluatorFee, bool clientReview) external returns (uint256 jobId)',
-  'function setBudget(uint256 jobId, uint256 amount) external',
-  'function fund(uint256 jobId, uint256 expectedBudget) external payable',
-  'function submit(uint256 jobId, bytes32 deliverable) external',
-  'function reject(uint256 jobId, bytes32 reason) external',
-  'function claimRefund(uint256 jobId) external',
-  'function refundExpired(uint256 jobId) external',
-  'function completeAfterTimeout(uint256 jobId, bytes32 reason) external',
-  'function setDisputeWindow(uint256 jobId, uint256 window) external',
-  'function setNonResponsiveSlashBP(uint256 jobId, uint256 slashBP) external',
-  'function approveByClient(uint256 jobId) external',
-  'function finalizeByEvaluator(uint256 jobId, bytes32 reason) external',
-  'function setPaymentToken(uint256 jobId, address paymentToken) external',
-  // V9: Budget Limits
-  'function getMinBudget(address token, uint8 decimals) external view returns (uint256)',
-  'function setMinBudgetUsd(uint256 newMin) external',
-  'function setMaxBudgetUsd(uint256 newMax) external',
-  'function setMinBudgetOverride(address token, uint256 minAmount) external',
-  'function setStablecoin(address token, bool isStable) external',
-  'function setPriceOracle(address _priceOracle) external',
-  'function maxBudgetUsd() external view returns (uint256)',
-  // V9: Evaluator Pool
-  'function registerAsEvaluator() external payable',
-  'function unregisterAsEvaluator() external',
-  'function cleanupStaleEvaluators() external returns (uint256 removedCount)',
-  'function getEvaluatorPoolSize() external view returns (uint256)',
-  'function finalizeRandomEvaluator(uint256 jobId, bytes32 salt) external',
-  'function slashEvaluatorStake(address evaluator, string calldata reason) external',
-  // View Functions (V9: uses `jobs` not `getJob`)
-  'function jobs(uint256) external view returns (uint256 id, address client, address provider, address evaluator, uint256 serviceId, address paymentToken, string description, uint256 budget, uint256 expiredAt, uint8 status, address hook, bytes32 deliverable)',
-  'function jobCounter() external view returns (uint256)',
-  'function getClientJobCount(address client) external view returns (uint256)',
-  'function isEvaluatorFeeEnabled(uint256 jobId) external view returns (bool)',
-  'function isEvaluator(address account) external view returns (bool)',
-  'function evaluatorStakes(address evaluator) external view returns (uint256)',
-  'function evaluatorCommits(uint256 jobId) external view returns (bytes32 commitHash, uint256 commitBlock, bool revealed)',
-  'function jobCreationBlock(uint256 jobId) external view returns (uint256)',
-  'function hasClientApproved(uint256 jobId) external view returns (bool)',
-  'function isClientReviewRequired(uint256 jobId) external view returns (bool)',
-  'function minBudgetUsd() external view returns (uint256)',
-  'function minBudgetOverride(address token) external view returns (uint256)',
-  'function isStablecoin(address token) external view returns (bool)',
-  'function allowedTokens(address token) external view returns (bool)',
-  'function priceOracle() external view returns (address)',
-  'function paused() external view returns (bool)',
-  // Admin Functions
-  'function setPlatformTreasury(address treasury) external',
-  'function setAdminRegistry(address _adminRegistry) external',
-  'function setAllowedToken(address token, bool allowed) external',
-  'function pause() external',
-  'function unpause() external',
-  // Events
-  'event JobCreated(uint256 indexed jobId, address indexed client, address indexed provider, address evaluator, uint256 serviceId, uint256 expiredAt, bool evaluatorFee, bool clientReview, bool randomEvaluator)',
-  'event BudgetSet(uint256 indexed jobId, uint256 amount)',
-  'event JobFunded(uint256 indexed jobId, address indexed client, uint256 amount)',
-  'event JobSubmitted(uint256 indexed jobId, address indexed provider, bytes32 deliverable)',
-  'event JobCompleted(uint256 indexed jobId, address indexed by, address indexed provider, uint256 evaluatorFee)',
-  'event PaymentReleased(uint256 indexed jobId, uint256 providerAmount, uint256 platformFee, uint256 evaluatorFee)',
-  'event JobRejected(uint256 indexed jobId, address indexed rejector, bytes32 reason)',
-  'event Refunded(uint256 indexed jobId, address indexed client, uint256 amount)',
-  'event PermissionlessRefund(uint256 indexed jobId, address indexed client, address indexed caller, uint256 amount)',
-  'event JobExpired(uint256 indexed jobId)',
-  'event JobStatusChanged(uint256 indexed jobId, uint8 oldStatus, uint8 newStatus, address changedBy, uint256 timestamp)',
-  'event DisputeWindowSet(uint256 indexed jobId, uint256 window)',
-  'event NonResponsiveSlashSet(uint256 indexed jobId, uint256 slashBP)',
-  'event EvaluatorSlashedForInactivity(uint256 indexed jobId, address indexed evaluator, uint256 slashAmount)',
-  'event StaleEvaluatorsCleaned(uint256 removedCount)',
-  'event EvaluatorSlashed(address indexed evaluator, uint256 stake, string reason)',
-  'event PlatformTreasurySet(address indexed oldTreasury, address indexed newTreasury)',
-  'event AdminRegistrySet(address indexed oldRegistry, address indexed newRegistry)',
-  'event PriceOracleSet(address indexed oldOracle, address indexed newOracle)',
-  'event MaxBudgetChanged(uint256 oldMax, uint256 newMax)',
-] as const);
-
-const AGENT_REVIEW_ABI = parseAbi([
-  // V5 Functions (correct contract function names)
-  'function createProposal(string calldata title, string calldata description, string calldata criteriaURI, uint256 reward, uint256 decisionDeadline) external payable returns (uint256 proposalId)',
-  'function submitEvaluation(uint256 proposalId, int256 confidenceScore, string calldata reasoningURI) external payable',
-  'function attestDecision(uint256 proposalId, address winningEvaluator) external',
-  'function slashEvaluator(address evaluator, uint256 proposalId, string calldata reason) external',
-  'function claimReward(uint256 proposalId) external',
-  'function releaseStake(uint256 proposalId) external',
-  'function cancelProposal(uint256 proposalId) external',
-  'function getProposal(uint256 proposalId) external view returns ((uint256 id, address proposer, string title, string description, string criteriaURI, uint256 reward, uint8 status, uint256 createdAt, uint256 decisionDeadline, address winningEvaluator))',
-  'function getEvaluation(uint256 proposalId, address evaluator) external view returns ((uint256 proposalId, address evaluator, int256 confidenceScore, string reasoningURI, uint256 stakeAmount, bool isFinal, bool rewardClaimed, bool stakeReleased, uint256 submittedAt, uint256 rewardAmount))',
-  'function getProposalEvaluators(uint256 proposalId) external view returns (address[] memory)',
-  'function getEvaluatorCount(uint256 proposalId) external view returns (uint256)',
-  'function finalizeDecision(uint256 proposalId) external',
-  'function calculateMedianScore(uint256 proposalId) external view returns (int256)',
-  'function slashTreasury() external view returns (address)',
-  // V5: Admin functions
-  'function setSlashManager(address slashManager_) external',
-  'function setAdminRegistry(address _adminRegistry) external',
-  'function withdrawETH(address payable to, uint256 amount) external',
-  'function getTotalLockedETH() external view returns (uint256 totalLocked)',
-  'function setSlashTreasury(address treasury_) external',
-  'function setDefaultSlashPercentage(uint256 slashBP) external',
-  // Events
-  'event ProposalCreated(uint256 indexed proposalId, address indexed proposer, string title, uint256 reward)',
-  'event EvaluationSubmitted(uint256 indexed proposalId, address indexed evaluator, int256 confidenceScore, uint256 stakeAmount)',
-  'event DecisionAttested(uint256 indexed proposalId, address indexed attestor, address indexed winningEvaluator)',
-  'event EvaluatorSlashed(address indexed evaluator, uint256 slashAmount, string reason)',
-  'event RewardClaimed(uint256 indexed proposalId, address indexed evaluator, uint256 amount)',
-  'event StakeReleased(uint256 indexed proposalId, address indexed evaluator, uint256 amount)',
-  'event ProposalStatusChanged(uint256 indexed proposalId, uint8 indexed oldStatus, uint8 indexed newStatus, uint256 timestamp)',
-  'event ProposalCancelledByProposer(uint256 indexed proposalId, address indexed proposer, uint256 refundAmount)',
-  'event EvaluationFinalized(uint256 indexed proposalId, address indexed evaluator, bool isWinner)',
-  'event SlashManagerSet(address indexed slashManager)',
-  'event ETHWithdrawn(address indexed to, uint256 amount)',
-] as const);
-
-const USDC_ABI = parseAbi([
-  'function approve(address spender, uint256 amount) external returns (bool)',
-  'function balanceOf(address account) external view returns (uint256)',
-  'function allowance(address owner, address spender) external view returns (uint256)',
-] as const);
-
-const MILESTONE_ESCROW_ABI = parseAbi([
-  // Initialization
-  'function initialize(address initialOwner, address _agenticCommerce) external',
-  // Configuration
-  'function setAgenticCommerce(address _agenticCommerce) external',
-  'function agenticCommerce() external view returns (address)',
-  'function setArbiterFee(address token, uint256 fee) external',
-  'function setArbiterStake(address token, uint256 stake) external',
-  'function setSupportedToken(address token, bool supported) external',
-  // Constants
-  'function SLASH_PERCENT() external view returns (uint256)',
-  'function MAX_MILESTONES_PER_JOB() external view returns (uint256)',
-  'function ARBITER_RESPONSE_WINDOW() external view returns (uint256)',
-  // Milestone Management
-  'function enableMilestones(uint256 jobId, address client, address provider, address paymentToken, uint256 totalBudget) external',
-  'function addMilestone(uint256 jobId, uint256 amount, string calldata description, uint256 dueDate) external',
-  'function submitMilestone(uint256 jobId, uint256 milestoneIndex, bytes32 proofHash) external',
-  'function releaseMilestone(uint256 jobId, uint256 milestoneIndex) external',
-  'function getJobMilestones(uint256 jobId) external view returns ((string description, uint256 amount, uint256 dueDate, bool completed, bool released, bytes32 proofHash)[] memory)',
-  'function getMilestoneCount(uint256 jobId) external view returns (uint256)',
-  'function jobMilestones(uint256) external view returns (address client, address provider, address paymentToken, uint256 totalBudget, bool usesMilestones)',
-  'function milestoneTotalAmount(uint256) external view returns (uint256)',
-  // Arbiter System (V2: ERC20 staking)
-  'function registerAsArbiter(address token, uint256 amount) external',
-  'function unregisterAsArbiter() external',
-  'function getArbiterStake(address arbiter) external view returns (uint256)',
-  'function getArbiterStakeToken(address arbiter) external view returns (address)',
-  'function getArbiters() external view returns (address[] memory)',
-  'function arbiterPool(uint256) external view returns (address)',
-  'function arbiterStakes(address) external view returns (uint256)',
-  'function isRegisteredArbiter(address) external view returns (bool)',
-  'function slashArbiter(address arbiter, string calldata reason) external',
-  'function withdrawToken(address token, uint256 amount) external',
-  // Dispute System (V2: ERC20 fee)
-  'function flagDispute(uint256 jobId, uint256 milestoneIndex) external',
-  'function submitEvidence(uint256 jobId, bytes32 evidenceHash) external',
-  'function resolveDispute(uint256 jobId, bool releaseToProvider) external',
-  'function getDispute(uint256 jobId) external view returns (uint256 jobId, address flagger, address arbiter, uint256 flaggedAt, bool resolved, bool releaseToProvider, uint256 feePaid, uint256 milestoneIndex)',
-  'function getActiveDisputes() external view returns (uint256[] memory)',
-  // Events
-  'event MilestoneEnabled(uint256 indexed jobId)',
-  'event MilestoneAdded(uint256 indexed jobId, uint256 indexed milestoneIndex, string description, uint256 amount)',
-  'event MilestoneCompleted(uint256 indexed jobId, uint256 indexed milestoneIndex, bytes32 proofHash)',
-  'event MilestoneReleased(uint256 indexed jobId, uint256 indexed milestoneIndex, uint256 amount)',
-  'event MilestoneNotReleased(uint256 indexed jobId, uint256 indexed milestoneIndex, string reason)',
-  'event ArbiterRegistered(address indexed arbiter, address token, uint256 stake)',
-  'event ArbiterUnregistered(address indexed arbiter, address token, uint256 refundedStake)',
-  'event DisputeFlagged(uint256 indexed jobId, address indexed flagger, address token, uint256 fee)',
-  'event EvidenceSubmitted(uint256 indexed jobId, address indexed submitter, bytes32 evidenceHash)',
-  'event DisputeResolved(uint256 indexed jobId, bool releasedToProvider, address indexed arbiter, address token, uint256 arbiterFee)',
-  'event ArbiterSlashed(address indexed arbiter, uint256 slashedAmount, string reason)',
-  'event ArbiterAssigned(uint256 indexed jobId, address indexed arbiter)',
-  'event AgenticCommerceSet(address indexed oldAddress, address indexed newAddress)',
-  'event ArbiterFeeUpdated(address indexed token, uint256 newFee)',
-  'event ArbiterStakeUpdated(address indexed token, uint256 newStake)',
-  'event TokenSupportUpdated(address indexed token, bool supported)',
-] as const);
+// ABIs imported from ./abis.ts
 
 // ============================================================================
 // KokonutClient
@@ -270,12 +61,12 @@ const MILESTONE_ESCROW_ABI = parseAbi([
 export class KokonutClient {
   private wallet: any;
   private publicClient: any;
-  private chain: any; // Keep as any if dynamic, or refine
+  private chain: any;
   private network: NetworkName;
   public contracts: ContractAddresses;
+  public readOnly: boolean;
   private eventHandlers: Map<SDKEventName, Set<SDKEventHandler>> = new Map();
 
-  // Contract instances
   public identity: IdentityModule;
   public reputation: ReputationModule;
   public services: ServicesModule;
@@ -294,34 +85,35 @@ export class KokonutClient {
 
   constructor(config: SDKConfig) {
     this.network = config.network || 'sepolia';
+    this.readOnly = config.readOnly ?? false;
     const networkConfig = NETWORKS[this.network];
     this.contracts = { ...networkConfig.contracts, ...config.contracts };
-    // eslint-disable-next-line @typescript-eslint/no-explicit-any
     this.chain = { id: networkConfig.chainId };
 
     const rpcUrl = config.rpcUrl || networkConfig.rpcUrl;
 
-    if (typeof config.wallet === 'string') {
+    this.publicClient = createPublicClient({
+      chain: networkConfig as any,
+      transport: http(rpcUrl),
+    });
+
+    if (this.readOnly) {
+      this.wallet = null;
+    } else if (typeof config.wallet === 'string') {
       const account = privateKeyToAccount(config.wallet as `0x${string}`);
       this.wallet = createWalletClient({
         account,
         chain: networkConfig as any,
         transport: http(rpcUrl),
       });
-      this.publicClient = createPublicClient({
-        chain: networkConfig as any,
-        transport: http(rpcUrl),
-      });
-    } else {
+    } else if (config.wallet) {
       this.wallet = createWalletClient({
         account: config.wallet,
         chain: networkConfig as any,
         transport: http(rpcUrl),
       });
-      this.publicClient = createPublicClient({
-        chain: networkConfig as any,
-        transport: http(rpcUrl),
-      });
+    } else {
+      this.wallet = null;
     }
 
 
@@ -340,27 +132,32 @@ export class KokonutClient {
     this.efp = new EFPModule(this.wallet, this.publicClient, this.contracts);
     this.subgraph = new SubgraphModule();
 
-    this.setupEventListeners();
+    if (!this.readOnly) {
+      this.setupEventListeners();
+    }
   }
 
-  get address(): Address {
-    return this.wallet.account.address;
+  get address(): Address | undefined {
+    return this.wallet?.account?.address;
   }
 
-  async getBalance(): Promise<bigint> {
-    return this.publicClient.getBalance({ address: this.address });
+  async getBalance(address?: Address): Promise<bigint> {
+    const addr = address || this.address;
+    if (!addr) throw new Error('No address provided for balance check');
+    return this.publicClient.getBalance({ address: addr });
   }
 
-  async getUSDCBalance(): Promise<bigint> {
+  async getUSDCBalance(address?: Address): Promise<bigint> {
+    const addr = address || this.address;
+    if (!addr) throw new Error('No address provided for balance check');
     const usdcAddress = this.contracts.usdc as Address;
     if (!usdcAddress) throw new Error('USDC contract address not found for this network');
 
-    const abi = parseAbi(['function balanceOf(address) view returns (uint256)']);
     return (await this.publicClient.readContract({
       address: usdcAddress,
-      abi,
+      abi: USDC_ABI,
       functionName: 'balanceOf',
-      args: [this.address],
+      args: [addr],
     } as any)) as unknown as bigint;
   }
 
@@ -1762,20 +1559,7 @@ interface Skill {
   registeredAt: bigint;
 }
 
-const AGENT_SKILL_REGISTRY_ABI = parseAbi([
-  'function registerSkill(uint256 agentId, string calldata name, string calldata version, string calldata description, string calldata endpoint, string[] calldata domains) external returns (uint256 skillId)',
-  'function updateSkill(uint256 skillId, string calldata name, string calldata version, string calldata description, string calldata endpoint, string[] calldata domains) external',
-  'function getAgentSkills(uint256 agentId) external view returns (uint256[] memory)',
-  'function getSkill(uint256 skillId) external view returns ((uint256 agentId, string name, string version, string description, string endpoint, string[] domains, bool isActive, address registeredBy, uint256 registeredAt))',
-  'function getSkillData(uint256 skillId) external view returns ((uint256 id, uint256 agentId, string name, string version, string description, string endpoint, string[] domains, bool isActive, address registeredBy, uint256 registeredAt))',
-  'function deactivateSkill(uint256 skillId) external',
-  'function getTotalSkillCount() external view returns (uint256)',
-  'function getAgentSkillCount(uint256 agentId) external view returns (uint256)',
-  'function findSkillsByDomain(string calldata domain) external view returns (uint256[] memory)',
-  'event SkillRegistered(uint256 indexed agentId, uint256 indexed skillId, string name, string version, address indexed registeredBy)',
-  'event SkillUpdated(uint256 indexed skillId, string name, string version)',
-  'event SkillDeactivated(uint256 indexed skillId, address indexed deactivatedBy)',
-]);
+// ABIs imported from ./abis.ts
 
 class SkillsModule {
   private wallet: ReturnType<typeof createWalletClient>;
@@ -1938,25 +1722,6 @@ class SkillsModule {
 // PriceOracle Module
 // ============================================================================
 
-const PRICE_ORACLE_ABI = parseAbi([
-  'function getUsdPriceOfToken(address token) external view returns (int256)',
-  'function getTokenAmountForUsd(uint256 usdAmount, address token) external view returns (uint256)',
-  'function getUsdAmountForTokens(uint256 tokenAmount, address token) external view returns (uint256)',
-  'function isStale(address token) external view returns (bool)',
-  'function priceFeeds(address token) external view returns (address)',
-  'function feedDecimals(address token) external view returns (uint8)',
-  'function isStablecoin(address token) external view returns (bool)',
-  'function ethPriceFeed() external view returns (address)',
-  'function ethFeedDecimals() external view returns (uint8)',
-  'function getPriceFeed(address token) external view returns (address)',
-  'function getTokenInfo(address token) external view returns (address feed, uint8 decimals, bool stable)',
-  'function setPriceFeed(address token, address feed, uint8 decimals) external',
-  'function removePriceFeed(address token) external',
-  'function setEthPriceFeed(address feed, uint8 decimals) external',
-  'function setStablecoin(address token, bool isStable) external',
-  'function batchSetPriceFeeds(address[] calldata tokens, address[] calldata feeds, uint8[] calldata decimals_) external',
-]);
-
 class PriceOracleModule {
   private publicClient: ReturnType<typeof createPublicClient>;
   private contracts: ContractAddresses;
@@ -2040,12 +1805,6 @@ class PriceOracleModule {
 // CommitReveal Module
 // ============================================================================
 
-const COMMIT_REVEAL_ABI = parseAbi([
-  'function commit(bytes32 commitment) external',
-  'function reveal(string calldata data, uint256 nonce, uint256 serviceId) external',
-  'function getCommitment(address user, uint256 nonce) external view returns (bytes32)',
-]);
-
 class CommitRevealModule {
   private wallet: ReturnType<typeof createWalletClient>;
   private publicClient: ReturnType<typeof createPublicClient>;
@@ -2115,21 +1874,6 @@ interface SlashProposal {
   confirmations: number;
   isExecuted: boolean;
 }
-
-const SLASH_MANAGER_ABI = parseAbi([
-  'function createProposal(address evaluator, uint256 proposalId, uint256 amount, string calldata reason) external returns (bytes32)',
-  'function confirmProposal(bytes32 proposalId) external',
-  'function executeSlash(bytes32 proposalHash) external',
-  'function cancelProposal(bytes32 proposalHash) external',
-  'function getProposal(bytes32 proposalHash) external view returns (address evaluator, uint256 proposalId, uint256 amount, string reason, uint256 createdAt, uint256 executeAfter, uint256 confirmations, bool executed)',
-  'function isSigner(address account) external view returns (bool)',
-  'function hasConfirmed(bytes32 proposalHash, address signer) external view returns (bool)',
-  'function addSigner(address signer) external',
-  'function removeSigner(address signer) external',
-  'function setAgentReview(address _agentReview) external',
-  'function pause() external',
-  'function unpause() external',
-]);
 
 class SlashManagerModule {
   private wallet: ReturnType<typeof createWalletClient>;
@@ -2309,34 +2053,6 @@ interface BidInfo {
   stakeWithdrawn: boolean;
   timestamp: bigint;
 }
-
-const BIDDING_SYSTEM_ABI = parseAbi([
-  'function createBiddingSession(address evaluator, uint256 maxBudget, uint256 deadline, bytes calldata metadata, uint256 serviceId) external payable returns (uint256 sessionId)',
-  'function commitBid(uint256 sessionId, bytes32 commitHash) external payable',
-  'function revealBid(uint256 sessionId, uint256 amount, string calldata message, bytes32 salt) external',
-  'function acceptBid(uint256 sessionId, uint256 bidId) external',
-  'function rejectBid(uint256 sessionId, uint256 bidId, string calldata reason) external',
-  'function withdrawStake(uint256 sessionId) external',
-  'function claimStake(uint256 sessionId) external',
-  'function createJobAndFund(uint256 sessionId, uint256 jobExpiredAt, string calldata description) external payable returns (uint256 jobId)',
-  'function cancelSession(uint256 sessionId) external',
-  'function extendRevealWindow(uint256 sessionId, uint256 additionalSeconds) external',
-  'function getSession(uint256 sessionId) external view returns ((uint256 id, address creator, address evaluator, uint256 maxBudget, uint256 deadline, uint256 revealWindowEnd, bytes metadata, uint256 serviceId, uint256 jobId, address winner, uint256 winningBidId, bool jobCreated, uint8 status))',
-  'function getUserBid(uint256 sessionId, address user) external view returns ((uint256 bidId, address bidder, uint256 proposedAmount, uint256 stake, string message, bytes32 commitHash, bool revealed, bool accepted, bool stakeWithdrawn, uint256 timestamp))',
-  'function sessionCounter() external view returns (uint256)',
-  'function calculateStake(uint256 maxBudget) external pure returns (uint256)',
-  'function commerce() external view returns (address)',
-  'function treasury() external view returns (address)',
-  'function owner() external view returns (address)',
-  'event BiddingSessionCreated(uint256 indexed sessionId, address indexed creator, address indexed evaluator, uint256 maxBudget, uint256 deadline, uint256 serviceId)',
-  'event BidCommitted(uint256 indexed sessionId, address indexed bidder, bytes32 commitHash, uint256 stakeAmount)',
-  'event BidRevealed(uint256 indexed sessionId, address indexed bidder, uint256 proposedAmount, string message)',
-  'event BidAccepted(uint256 indexed sessionId, address indexed winner, uint256 amount, uint256 bidId)',
-  'event StakeWithdrawn(uint256 indexed sessionId, address indexed bidder, uint256 amount)',
-  'event StakeClaimed(uint256 indexed sessionId, address indexed winner, uint256 amount)',
-  'event JobCreatedFromSession(uint256 indexed sessionId, uint256 indexed jobId, address indexed winner, uint256 amount)',
-  'event SessionCancelled(uint256 indexed sessionId, address indexed canceller)',
-] as const);
 
 class BiddingSystemModule {
   private wallet: ReturnType<typeof createWalletClient>;
@@ -2941,27 +2657,6 @@ class MilestoneModule {
     } as any)) as unknown as bigint[];
   }
 }
-
-
-const ADMIN_REGISTRY_ABI = parseAbi([
-  'function setSlashManager(address _slashManager) external',
-  'function slashManager() external view returns (address)',
-  'function blacklistAgent(uint256 agentId, string calldata reason) external',
-  'function unblacklistAgent(uint256 agentId) external',
-  'function blacklistWallet(address wallet, string calldata reason) external',
-  'function unblacklistWallet(address wallet) external',
-  'function slashAndBlacklistAgent(uint256 agentId, string calldata reason) external',
-  'function setFeaturedAgent(uint256 agentId, bool isFeatured) external',
-  'function isAgentBlacklistedActive(uint256 agentId) external view returns (bool)',
-  'function isWalletBlacklistedActive(address wallet) external view returns (bool)',
-  'function getBlacklistedAgentCount() external view returns (uint256)',
-  'function getBlacklistedWalletCount() external view returns (uint256)',
-  'function getAllBlacklistedAgents() external view returns (uint256[])',
-  'function getAllBlacklistedWallets() external view returns (address[])',
-  'function getFeaturedAgents() external view returns (uint256[])',
-  'function pause() external',
-  'function unpause() external',
-]);
 
 class AdminRegistryModule {
   private wallet: any;

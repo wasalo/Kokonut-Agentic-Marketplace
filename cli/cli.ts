@@ -1322,7 +1322,7 @@ program
         fundNow,
         fundAmount,
       ], { value: fundNow && service.paymentToken === zeroAddress ? service.price : 0n });
-      await waitForTransactionReceipt(budgetHash);
+      await waitForTransactionReceipt(jobHash);
 
       console.log(chalk.green('✅ Budget set!'));
       console.log(chalk.cyan('Now approve USDC and fund the job:'));
@@ -4007,6 +4007,121 @@ program
       console.log(chalk.cyan('Transaction sent:'), hash);
       await waitForTransactionReceipt(hash);
       console.log(chalk.green('✅ Dispute flagged!'));
+    } catch (error: unknown) {
+      const err = error as { message?: string };
+      console.error(chalk.red('❌ Error:'), err.message);
+    }
+  });
+
+// ============================================================================
+// V9 Multi-Token Budget Commands
+// ============================================================================
+
+program
+  .command('get-min-budget')
+  .description('Get minimum budget for a token (V9)')
+  .requiredOption('--token <address>', 'Token address (0x0 for ETH)')
+  .option('--decimals <number>', 'Token decimals (6 for USDC, 18 for ETH)', '18')
+  .action(async (opts) => {
+    try {
+      const abi = parseAbi([
+        'function getMinBudget(address token, uint8 decimals) external view returns (uint256)',
+      ]);
+      const commerce = getContractInstance(config.contracts.agenticCommerce, abi);
+      const result = await commerce.read.getMinBudget([opts.token as Address, parseInt(opts.decimals)]);
+      console.log(chalk.green('✓ Minimum budget:'), result);
+    } catch (error: unknown) {
+      const err = error as { message?: string };
+      console.error(chalk.red('❌ Error:'), err.message);
+    }
+  });
+
+program
+  .command('max-budget-usd')
+  .description('Get maximum budget in USD (V9)')
+  .action(async () => {
+    try {
+      const abi = parseAbi(['function maxBudgetUsd() external view returns (uint256)']);
+      const commerce = getContractInstance(config.contracts.agenticCommerce, abi);
+      const result = await commerce.read.maxBudgetUsd();
+      console.log(chalk.green('✓ Max budget (USD):'), result);
+    } catch (error: unknown) {
+      const err = error as { message?: string };
+      console.error(chalk.red('❌ Error:'), err.message);
+    }
+  });
+
+program
+  .command('min-budget-usd')
+  .description('Get minimum budget in USD (V9)')
+  .action(async () => {
+    try {
+      const abi = parseAbi(['function minBudgetUsd() external view returns (uint256)']);
+      const commerce = getContractInstance(config.contracts.agenticCommerce, abi);
+      const result = await commerce.read.minBudgetUsd();
+      console.log(chalk.green('✓ Min budget (USD):'), result);
+    } catch (error: unknown) {
+      const err = error as { message?: string };
+      console.error(chalk.red('❌ Error:'), err.message);
+    }
+  });
+
+program
+  .command('is-stablecoin')
+  .description('Check if token is marked as stablecoin (V9)')
+  .requiredOption('--token <address>', 'Token address')
+  .action(async (opts) => {
+    try {
+      const abi = parseAbi(['function isStablecoin(address token) external view returns (bool)']);
+      const commerce = getContractInstance(config.contracts.agenticCommerce, abi);
+      const result = await commerce.read.isStablecoin([opts.token as Address]);
+      console.log(chalk.green('✓ Is stablecoin:'), result);
+    } catch (error: unknown) {
+      const err = error as { message?: string };
+      console.error(chalk.red('❌ Error:'), err.message);
+    }
+  });
+
+program
+  .command('is-token-allowed')
+  .description('Check if token is on allowlist (V9)')
+  .requiredOption('--token <address>', 'Token address')
+  .action(async (opts) => {
+    try {
+      const abi = parseAbi(['function allowedTokens(address token) external view returns (bool)']);
+      const commerce = getContractInstance(config.contracts.agenticCommerce, abi);
+      const result = await commerce.read.allowedTokens([opts.token as Address]);
+      console.log(chalk.green('✓ Is allowed:'), result);
+    } catch (error: unknown) {
+      const err = error as { message?: string };
+      console.error(chalk.red('❌ Error:'), err.message);
+    }
+  });
+
+program
+  .command('get-price-oracle')
+  .description('Get price oracle address (V9)')
+  .action(async () => {
+    try {
+      const abi = parseAbi(['function priceOracle() external view returns (address)']);
+      const commerce = getContractInstance(config.contracts.agenticCommerce, abi);
+      const result = await commerce.read.priceOracle();
+      console.log(chalk.green('✓ Price oracle:'), result);
+    } catch (error: unknown) {
+      const err = error as { message?: string };
+      console.error(chalk.red('❌ Error:'), err.message);
+    }
+  });
+
+program
+  .command('is-paused')
+  .description('Check if AgenticCommerce is paused')
+  .action(async () => {
+    try {
+      const abi = parseAbi(['function paused() external view returns (bool)']);
+      const commerce = getContractInstance(config.contracts.agenticCommerce, abi);
+      const result = await commerce.read.paused();
+      console.log(chalk.green('✓ Is paused:'), result);
     } catch (error: unknown) {
       const err = error as { message?: string };
       console.error(chalk.red('❌ Error:'), err.message);

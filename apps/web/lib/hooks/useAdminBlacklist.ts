@@ -1,7 +1,7 @@
 'use client';
 
 import { useState, useCallback } from 'react';
-import { useReadContract, useWriteContract, useWaitForTransactionReceipt } from 'wagmi';
+import { useReadContract, useWriteContract, useWaitForTransactionReceipt, UseReadContractParameters, UseWriteContractParameters } from 'wagmi';
 import { getContractAddress } from '@/lib/contracts/config';
 import { ADMIN_REGISTRY_BLACKLIST_ABI } from '@/lib/contracts/abis';
 
@@ -19,21 +19,26 @@ export interface BlacklistEntry {
 export function useAdminBlacklist() {
   const [error, setError] = useState<string | null>(null);
 
-  // Read: Get blacklisted agent count
-  const { data: agentCount, refetch: refetchAgentCount } = useReadContract({
+  const readConfig: Omit<UseReadContractParameters<typeof ADMIN_REGISTRY_BLACKLIST_ABI, 'getBlacklistedAgentCount'>, 'query'> = {
     address: ADMIN_REGISTRY_ADDRESS,
     abi: ADMIN_REGISTRY_BLACKLIST_ABI,
     functionName: 'getBlacklistedAgentCount',
-  } as any);
+  };
+  const { data: agentCount, refetch: refetchAgentCount } = useReadContract({
+    ...readConfig,
+    query: { retry: 2 },
+  });
 
-  // Read: Get blacklisted wallet count
-  const { data: walletCount, refetch: refetchWalletCount } = useReadContract({
+  const readWalletConfig: Omit<UseReadContractParameters<typeof ADMIN_REGISTRY_BLACKLIST_ABI, 'getBlacklistedWalletCount'>, 'query'> = {
     address: ADMIN_REGISTRY_ADDRESS,
     abi: ADMIN_REGISTRY_BLACKLIST_ABI,
     functionName: 'getBlacklistedWalletCount',
-  } as any);
+  };
+  const { data: walletCount, refetch: refetchWalletCount } = useReadContract({
+    ...readWalletConfig,
+    query: { retry: 2 },
+  });
 
-  // Write: Blacklist agent
   const { writeContract: blacklistAgent, data: agentHash } = useWriteContract();
   const { isLoading: isBlacklistingAgent, isSuccess: agentBlacklisted } = useWaitForTransactionReceipt({
     hash: agentHash,
@@ -48,7 +53,7 @@ export function useAdminBlacklist() {
           abi: ADMIN_REGISTRY_BLACKLIST_ABI,
           functionName: 'blacklistAgent',
           args: [agentId, reason],
-        } as any);
+        });
       } catch (err) {
         setError(err instanceof Error ? err.message : 'Failed to blacklist agent');
       }
@@ -56,7 +61,6 @@ export function useAdminBlacklist() {
     [blacklistAgent]
   );
 
-  // Write: Unblacklist agent
   const { writeContract: unblacklistAgent, data: unagentHash } = useWriteContract();
   const { isLoading: isUnblacklistingAgent, isSuccess: agentUnblacklisted } = useWaitForTransactionReceipt({
     hash: unagentHash,
@@ -71,7 +75,7 @@ export function useAdminBlacklist() {
           abi: ADMIN_REGISTRY_BLACKLIST_ABI,
           functionName: 'unblacklistAgent',
           args: [agentId],
-        } as any);
+        });
       } catch (err) {
         setError(err instanceof Error ? err.message : 'Failed to unblacklist agent');
       }
@@ -79,7 +83,6 @@ export function useAdminBlacklist() {
     [unblacklistAgent]
   );
 
-  // Write: Blacklist wallet
   const { writeContract: blacklistWallet, data: walletHash } = useWriteContract();
   const { isLoading: isBlacklistingWallet, isSuccess: walletBlacklisted } = useWaitForTransactionReceipt({
     hash: walletHash,
@@ -94,7 +97,7 @@ export function useAdminBlacklist() {
           abi: ADMIN_REGISTRY_BLACKLIST_ABI,
           functionName: 'blacklistWallet',
           args: [wallet, reason],
-        } as any);
+        });
       } catch (err) {
         setError(err instanceof Error ? err.message : 'Failed to blacklist wallet');
       }
@@ -102,7 +105,6 @@ export function useAdminBlacklist() {
     [blacklistWallet]
   );
 
-  // Write: Unblacklist wallet
   const { writeContract: unblacklistWallet, data: unwalletHash } = useWriteContract();
   const { isLoading: isUnblacklistingWallet, isSuccess: walletUnblacklisted } = useWaitForTransactionReceipt({
     hash: unwalletHash,
@@ -117,7 +119,7 @@ export function useAdminBlacklist() {
           abi: ADMIN_REGISTRY_BLACKLIST_ABI,
           functionName: 'unblacklistWallet',
           args: [wallet],
-        } as any);
+        });
       } catch (err) {
         setError(err instanceof Error ? err.message : 'Failed to unblacklist wallet');
       }
@@ -161,8 +163,9 @@ export function useIsAgentBlacklisted(agentId: bigint | undefined) {
     args: agentId !== undefined ? [agentId] : undefined,
     query: {
       enabled: agentId !== undefined,
+      retry: 2,
     },
-  } as any);
+  });
 
   return { isBlacklisted: data, isLoading, error };
 }
@@ -175,8 +178,9 @@ export function useIsWalletBlacklisted(wallet: `0x${string}` | undefined) {
     args: wallet !== undefined ? [wallet] : undefined,
     query: {
       enabled: wallet !== undefined,
+      retry: 2,
     },
-  } as any);
+  });
 
   return { isBlacklisted: data, isLoading, error };
 }

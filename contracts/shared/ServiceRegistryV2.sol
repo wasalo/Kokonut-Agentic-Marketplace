@@ -110,6 +110,7 @@ contract ServiceRegistryV2 is
     error ServiceRegistryV2__Price_required();
     error ServiceRegistryV2__Service_inactive();
     error ServiceRegistryV2__Wallet_blacklisted();
+    error ServiceRegistryV2__Eth_transfer_failed();
     
     struct ServiceData {
         address provider;
@@ -512,6 +513,6 @@ contract ServiceRegistryV2 is
     function _sendEth(address to, uint256 amount) internal {
         if (amount == 0) return;
         (bool success, ) = payable(to).call{value: amount}("");
-        require(success, "ETH transfer failed");
+        if (!success) revert ServiceRegistryV2__Eth_transfer_failed();
     }
 }

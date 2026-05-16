@@ -1,6 +1,6 @@
 'use client';
 
-import { useState, useEffect, useMemo } from 'react';
+import { useState, useEffect, useMemo, memo } from 'react';
 import { usePublicClient } from 'wagmi';
 import { useAllServices, Service } from '@/lib/hooks/useServicesContract';
 import { useFindSkillsByDomain } from '@/lib/hooks/useSkills';
@@ -59,7 +59,7 @@ function EmptyState() {
   );
 }
 
-function ServiceCard({
+const ServiceCard = memo(function ServiceCard({
   service,
   providerName,
   providerReputation,
@@ -210,7 +210,7 @@ function ServiceCard({
       </div>
     </Card>
   );
-}
+});
 
 interface ServiceListProps {
   searchQuery?: string;

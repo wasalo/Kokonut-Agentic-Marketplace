@@ -1,9 +1,8 @@
-import { useReadContract, useReadContracts, useWriteContract, usePublicClient } from 'wagmi';
-import { useState, useEffect, useCallback } from 'react';
+import { useReadContract, useReadContracts, useWriteContract } from 'wagmi';
+import { useCallback } from 'react';
 import { parseEther } from 'viem';
 import { SERVICE_REGISTRY_ABI } from '@/lib/contracts/abis';
 import { getContractAddress } from '@/lib/contracts/config';
-import { debugLog } from '@/lib/debug';
 import type { Service } from '@/lib/types/contracts';
 
 const SERVICE_REGISTRY_ADDRESS = getContractAddress('SERVICE_REGISTRY');
@@ -55,50 +54,20 @@ function mapServiceData(id: bigint, data: unknown): Service | null {
 }
 
 export function useActiveServiceCount() {
-  const publicClient = usePublicClient();
-  const [count, setCount] = useState(0);
-  const [isLoading, setIsLoading] = useState(true);
-  const [error, setError] = useState<Error | null>(null);
-
-  const fetchCount = useCallback(async () => {
-    if (!publicClient) {
-      debugLog('hooks', 'useActiveServiceCount: No publicClient yet');
-      return;
-    }
-
-    setIsLoading(true);
-    setError(null);
-
-    try {
-      debugLog('hooks', 'useActiveServiceCount: Fetching from contract', SERVICE_REGISTRY_ADDRESS);
-
-      const result = await publicClient.readContract({
-        address: SERVICE_REGISTRY_ADDRESS,
-        abi: SERVICE_REGISTRY_ABI,
-        functionName: 'getActiveServiceCount',
-      });
-
-      const countValue = result ? Number(result) : 0;
-      debugLog('hooks', `useActiveServiceCount: Retrieved count: ${countValue}`);
-      setCount(countValue);
-    } catch (err) {
-      console.error('useActiveServiceCount: Error fetching count', err);
-      setError(err instanceof Error ? err : new Error('Failed to fetch count'));
-      setCount(0);
-    } finally {
-      setIsLoading(false);
-    }
-  }, [publicClient]);
-
-  useEffect(() => {
-    fetchCount();
-  }, [fetchCount]);
+  const { data, isLoading, error, refetch } = useReadContract({
+    address: SERVICE_REGISTRY_ADDRESS,
+    abi: SERVICE_REGISTRY_ABI,
+    functionName: 'getActiveServiceCount',
+    query: {
+      staleTime: 60000,
+    },
+  });
 
   return {
-    count,
+    count: data ? Number(data) : 0,
     isLoading,
-    error,
-    refetch: fetchCount,
+    error: error as Error | null,
+    refetch,
   };
 }
 
@@ -229,8 +198,55 @@ export function useProviderServices(providerAddress: `0x${string}` | undefined) 
   };
 }
 
-export function useAgentServices(_agentId?: number) {
-  return useProviderServices(undefined); // Simplified - would need contract query
+export function useAgentServices(agentId: number | bigint | undefined) {
+  const id = agentId !== undefined
+    ? (typeof agentId === 'bigint' ? agentId : BigInt(agentId))
+    : undefined;
+
+  const { data: serviceIds, isLoading: idsLoading } = useReadContract({
+    address: SERVICE_REGISTRY_ADDRESS,
+    abi: SERVICE_REGISTRY_ABI,
+    functionName: 'getServicesByAgent',
+    args: id !== undefined ? [id] : undefined,
+    query: {
+      enabled: id !== undefined,
+    },
+  });
+
+  const ids = (serviceIds as bigint[] | undefined) || [];
+
+  const queries = ids.map(sid => ({
+    address: SERVICE_REGISTRY_ADDRESS,
+    abi: SERVICE_REGISTRY_ABI,
+    functionName: 'getService' as const,
+    args: [sid],
+  }));
+
+  const { data: results, isLoading, error, refetch } = useReadContracts({
+    contracts: queries,
+    query: {
+      enabled: queries.length > 0,
+      staleTime: 60000,
+    },
+  });
+
+  const services: Service[] = [];
+  if (results) {
+    for (let i = 0; i < results.length; i++) {
+      const result = results[i];
+      if (result.status === 'success' && result.result) {
+        const service = mapServiceData(ids[i], result.result);
+        if (service) services.push(service);
+      }
+    }
+  }
+
+  return {
+    services,
+    isLoading: isLoading || idsLoading,
+    error: error as Error | null,
+    refetch,
+  };
 }
 
 export function useCreateService() {
@@ -358,4 +374,34 @@ export function useDeactivateService() {
     error: error as Error | null,
     reset,
   };
+}
+
+// ============================================================================
+// Consolidated aliases (replaces useServicesContract.ts)
+// ============================================================================
+
+/**
+ * Alias for useServices — kept for backward compatibility with useServicesContract.ts consumers.
+ */
+export function useServicesContract(start = 0, count = 20) {
+  return useServices(start, count);
+}
+
+const MAX_SERVICE_BATCH = 50;
+
+export function useAllServices(page = 0, pageSize = 20) {
+  const safePageSize = Math.min(pageSize, MAX_SERVICE_BATCH);
+  const start = page * safePageSize;
+  const { services, isLoading, error, refetch, totalCount } = useServices(start, safePageSize);
+  const activeServices = services.filter(s => s.isActive);
+  return { services: activeServices, isLoading, error, refetch, totalCount, page, pageSize: safePageSize };
+}
+
+export function useServiceContract(serviceId: bigint | number | undefined) {
+  const { service, isLoading, error, refetch } = useService(serviceId);
+  return { service, isLoading, error, refetch };
+}
+
+export function useProviderServicesContract(provider: `0x${string}` | undefined) {
+  return useProviderServices(provider);
 }

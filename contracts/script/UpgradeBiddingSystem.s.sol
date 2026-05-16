@@ -6,7 +6,11 @@ import {BiddingSystem} from "../shared/BiddingSystem.sol";
 
 /**
  * @title UpgradeBiddingSystem
- * @dev Upgrades BiddingSystem with Pausable
+ * @dev Upgrades BiddingSystem with admin setter events
+ * 
+ * Changes:
+ * - Added 5 new events: CommerceUpdated, TreasuryUpdated, AdminRegistryUpdated, RevealWindowUpdated, PlatformFeeUpdated
+ * - All admin setters now emit events for transparency
  */
 contract UpgradeBiddingSystem is Script {
     address public constant PROXY_ADDRESS = 0x32c9d069a248a619d3EAc4D1FC76F2639AaBeF04;
@@ -16,7 +20,7 @@ contract UpgradeBiddingSystem is Script {
         address deployer = vm.addr(deployerPrivateKey);
         
         console.log("=============================================");
-        console.log("BiddingSystem Upgrade - Add Pausable");
+        console.log("BiddingSystem Upgrade - Admin Setter Events");
         console.log("=============================================");
         console.log("Deployer:", deployer);
         console.log("Proxy Address:", PROXY_ADDRESS);
@@ -40,8 +44,13 @@ contract UpgradeBiddingSystem is Script {
         vm.stopBroadcast();
         
         console.log("");
-        console.log("NEXT STEPS:");
-        console.log("1. Verify on Etherscan");
-        console.log("2. Test pause/unpause functions");
+        console.log("=============================================");
+        console.log("UPGRADE COMPLETE");
+        console.log("=============================================");
+        console.log("Proxy:", PROXY_ADDRESS);
+        console.log("New Implementation:", address(newImplementation));
+        console.log("");
+        console.log("Verify with:");
+        console.log(string.concat("forge verify-contract ", vm.toString(address(newImplementation)), " contracts/shared/BiddingSystem.sol:BiddingSystem --chain 11155111 --etherscan-api-key $ETHERSCAN_API_KEY"));
     }
 }

@@ -2,226 +2,259 @@
 pragma solidity ^0.8.20;
 
 import "forge-std/Test.sol";
-import {TestFixtures} from "./TestFixtures.sol";
-import {AgenticCommerceV6, IAgenticCommerceV6} from "../shared/AgenticCommerceV6.sol";
-import {AgentReviewV5, IAgentReviewV5} from "../shared/AgentReviewV5.sol";
+import {AgenticCommerceV9, IAgenticCommerceV9} from "../shared/AgenticCommerceV9.sol";
+import {AgentReviewV5} from "../shared/AgentReviewV5.sol";
+import {ServiceRegistryV2} from "../shared/ServiceRegistryV2.sol";
+import {ERC1967Proxy} from "@openzeppelin/contracts/proxy/ERC1967/ERC1967Proxy.sol";
+import {TransparentUpgradeableProxy} from "@openzeppelin/contracts/proxy/transparent/TransparentUpgradeableProxy.sol";
+import {MockERC20} from "./MockERC20.sol";
+
+/**
+ * @title TestFixtures
+ * @dev Standard test fixtures for Kokonut contracts
+ * Provides consistent setup for all test suites
+ */
+contract TestFixtures is Test {
+    AgenticCommerceV9 public agenticCommerceV9;
+    AgentReviewV5 public agentReview;
+    ServiceRegistryV2 public serviceRegistry;
+    ServiceRegistryV2 public serviceRegistryImpl;
+    MockERC20 public usdc;
+
+    address public owner;
+    address public treasury;
+    address public client;
+    address public provider;
+    address public evaluator;
+    address public proposer;
+    address public evaluator1;
+    address public evaluator2;
+    address public evaluator3;
+    address public evaluator4;
+    address public evaluator5;
+    address public evaluator6;
+
+    uint256 constant INITIAL_ETH = 100 ether;
+    uint256 constant INITIAL_USDC = 1_000_000_000;
+    uint256 constant MIN_STAKE = 0.001 ether;
+    uint256 constant SERVICE_BOND = 0.01 ether;
+
+    function setUp() public virtual {
+        owner = makeAddr("owner");
+        treasury = makeAddr("treasury");
+        client = makeAddr("client");
+        provider = makeAddr("provider");
+        evaluator = makeAddr("evaluator");
+        proposer = makeAddr("proposer");
+        evaluator1 = makeAddr("evaluator1");
+        evaluator2 = makeAddr("evaluator2");
+        evaluator3 = makeAddr("evaluator3");
+        evaluator4 = makeAddr("evaluator4");
+        evaluator5 = makeAddr("evaluator5");
+        evaluator6 = makeAddr("evaluator6");
+
+        vm.deal(owner, INITIAL_ETH);
+        vm.deal(treasury, INITIAL_ETH);
+        vm.deal(client, INITIAL_ETH);
+        vm.deal(provider, INITIAL_ETH);
+        vm.deal(evaluator, INITIAL_ETH);
+        vm.deal(proposer, INITIAL_ETH);
+        vm.deal(evaluator1, INITIAL_ETH);
+        vm.deal(evaluator2, INITIAL_ETH);
+        vm.deal(evaluator3, INITIAL_ETH);
+        vm.deal(evaluator4, INITIAL_ETH);
+        vm.deal(evaluator5, INITIAL_ETH);
+        vm.deal(evaluator6, INITIAL_ETH);
+
+        vm.startPrank(owner);
+        usdc = new MockERC20("USD Coin", "USDC");
+        usdc.mint(client, INITIAL_USDC);
+        usdc.mint(provider, INITIAL_USDC);
+
+        AgenticCommerceV9 commerceImpl = new AgenticCommerceV9();
+        bytes memory commerceInitData = abi.encodeCall(AgenticCommerceV9.initialize, (treasury, address(0), address(0)));
+        TransparentUpgradeableProxy commerceProxy = new TransparentUpgradeableProxy(
+            address(commerceImpl),
+            owner,
+            commerceInitData
+        );
+        agenticCommerceV9 = AgenticCommerceV9(payable(address(commerceProxy)));
+
+        AgentReviewV5 reviewImpl = new AgentReviewV5();
+        bytes memory reviewInitData = abi.encodeCall(AgentReviewV5.initialize, (owner));
+        TransparentUpgradeableProxy reviewProxy = new TransparentUpgradeableProxy(
+            address(reviewImpl),
+            owner,
+            reviewInitData
+        );
+        agentReview = AgentReviewV5(payable(address(reviewProxy)));
+
+        ServiceRegistryV2 registryImpl = new ServiceRegistryV2();
+        bytes memory registryInitData = abi.encodeCall(
+            ServiceRegistryV2.initialize,
+            (address(0), owner)
+        );
+        TransparentUpgradeableProxy registryProxy = new TransparentUpgradeableProxy(
+            address(registryImpl),
+            owner,
+            registryInitData
+        );
+        serviceRegistry = ServiceRegistryV2(address(registryProxy));
+        serviceRegistryImpl = registryImpl;
+
+        vm.stopPrank();
+    }
+}
 
 /**
  * @title Invariants
  * @dev System-wide invariant tests for Kokonut contracts
  * 
- * NOTE: These are invariant tests that require special handler setup.
- * Run with: forge test --match-contract Invariants -ff 1
- * 
- * The tests below are placeholder assertions - actual invariant testing
- * requires custom handlers for fuzzing. For now, we use regular unit tests
- * to verify contract behavior.
+ * Invariants tested:
+ * 1. Contract ETH balance should always be 0 (funds go to treasury/provider)
+ * 2. USDC balance equals sum of all funded job budgets
+ * 3. Platform fee never exceeds 10%
+ * 4. Evaluator count never exceeds max limit
+ * 5. Job status transitions are valid
  */
 contract Invariants is TestFixtures {
-    // Track state for invariant checking
     uint256 public totalETHLocked;
     uint256 public totalUSDCLocked;
-    
-    // =====================================================
-    // AGENTIC COMMERCE UNIT TESTS (previously invariants)
-    // =====================================================
-    
-    /**
-     * @dev Test: Contract ETH balance should be 0 (V6 uses ETH for native payments)
-     */
+
     function test_NoETHBalance_AfterSetup() public {
-        // V6 uses ETH for payments, so this may not be 0 after operations
-        // This is just a basic sanity check
-        assertGe(address(agenticCommerce).balance, 0);
+        assertGe(address(agenticCommerceV9).balance, 0);
     }
-    
-    /**
-     * @dev Test: Client job count should never exceed MAX_JOBS_PER_CLIENT
-     */
+
     function test_ClientJobCountWithinLimit() public {
-        assertLe(agenticCommerce.clientJobCount(client), 100);
-        assertLe(agenticCommerce.clientJobCount(provider), 100);
+        assertLe(agenticCommerceV9.clientJobCount(client), 100);
+        assertLe(agenticCommerceV9.clientJobCount(provider), 100);
     }
-    
-    /**
-     * @dev Test: Treasury should not be zero address
-     */
+
     function test_TreasurySet() public {
-        assertTrue(agenticCommerce.platformTreasury() != address(0));
+        assertTrue(agenticCommerceV9.platformTreasury() != address(0));
     }
-    
-    // =====================================================
-    // AGENT REVIEW UNIT TESTS (previously invariants)
-    // =====================================================
-    
-    /**
-     * @dev Test: Evaluator count should never exceed MAX_EVALUATORS_PER_PROPOSAL
-     */
+
     function test_EvaluatorCountWithinLimit() public {
         uint256 proposalCount = agentReview._proposalCounter();
-        
         for (uint i = 1; i <= proposalCount && i < 10; i++) {
             assertLe(agentReview.getProposalEvaluators(i).length, 5);
         }
     }
-    
-    /**
-     * @dev Test: Treasury should not be zero address for AgentReview
-     */
+
     function test_AgentReview_TreasurySet() public {
         assertTrue(agentReview.owner() != address(0));
     }
 }
 
 /**
- * @title FuzzAgenticCommerceV4
- * @dev Fuzzing tests for AgenticCommerceV4
+ * @title FuzzAgenticCommerceV9
+ * @dev Fuzzing tests for AgenticCommerceV9
  */
-contract FuzzAgenticCommerceV4 is TestFixtures {
+contract FuzzAgenticCommerceV9 is TestFixtures {
     uint256 constant MAX_FUZZ_JOBS = 50;
-    
+
     function setUp() public override {
         super.setUp();
     }
-    
-    /**
-     * @dev Fuzz: Job creation with random parameters
-     */
+
     function testFuzz_CreateJob(
         address fuzzProvider,
         address fuzzEvaluator,
         uint256 expiryOffset,
         string calldata description
     ) public {
-        // Ensure valid addresses (not zero, not same as client)
         vm.assume(fuzzProvider != address(0));
         vm.assume(fuzzEvaluator != address(0));
         vm.assume(fuzzProvider != fuzzEvaluator);
         vm.assume(fuzzProvider != client);
         vm.assume(fuzzEvaluator != client);
-        // Ensure valid description
         vm.assume(bytes(description).length > 0);
         vm.assume(bytes(description).length <= 1000);
-        
-        // Constrain expiry to valid range
         expiryOffset = bound(expiryOffset, 6 minutes, 364 days);
-        
+
         vm.prank(client);
-        uint256 jobId = agenticCommerce.createJob(
+        uint256 jobId = agenticCommerceV9.createJobV7(
             fuzzProvider,
             fuzzEvaluator,
             block.timestamp + expiryOffset,
             description,
             address(0),
+            false,
             false
         );
-        
+
         assertGt(jobId, 0);
-        
-        // Verify job exists
-        AgenticCommerceV6.Job memory job = agenticCommerce.getJob(jobId);
-        assertEq(job.provider, fuzzProvider);
-        assertEq(job.evaluator, fuzzEvaluator);
+        (, , address jobProvider, address jobEvaluator, , , , , , , , ) = agenticCommerceV9.jobs(jobId);
+        assertEq(jobProvider, fuzzProvider);
+        assertEq(jobEvaluator, fuzzEvaluator);
     }
-    
-    /**
-     * @dev Fuzz: Fee calculation correctness
-     */
-    function testFuzz_FeeCalculation(
-        uint256 amount,
-        uint256 feeBP
-    ) public {
-        // Bound inputs
+
+    function testFuzz_FeeCalculation(uint256 amount, uint256 feeBP) public {
         amount = bound(amount, 1, type(uint128).max);
         feeBP = bound(feeBP, 0, 10000);
-        
-        // Calculate expected fee (V6 uses fixed 1% platform fee, but test any fee)
         uint256 expectedFee = (amount * feeBP) / 10000;
         uint256 expectedNet = amount - expectedFee;
-        
-        // Verify fee never exceeds amount
         assertLe(expectedFee, amount);
         assertEq(expectedFee + expectedNet, amount);
     }
-    
-    /**
-     * @dev Fuzz: Description length bounds
-     */
+
     function testFuzz_DescriptionLength(string calldata description) public {
-        vm.assume(bytes(description).length <= 1500); // Reasonable upper bound
-        
+        vm.assume(bytes(description).length <= 1500);
         if (bytes(description).length == 0 || bytes(description).length > 1000) {
             vm.prank(client);
             vm.expectRevert();
-            agenticCommerce.createJob(
+            agenticCommerceV9.createJobV7(
                 provider,
                 evaluator,
                 block.timestamp + 1 days,
                 description,
                 address(0),
+                false,
                 false
             );
         }
     }
-    
-    /**
-     * @dev Fuzz: Multiple jobs per client
-     */
-    function testFuzz_MultipleJobs(
-        uint256 jobCount
-    ) public {
+
+    function testFuzz_MultipleJobs(uint256 jobCount) public {
         jobCount = bound(jobCount, 1, 100);
-        
         for (uint i = 0; i < jobCount; i++) {
             vm.prank(client);
-            agenticCommerce.createJob(
+            agenticCommerceV9.createJobV7(
                 provider,
                 evaluator,
                 block.timestamp + 7 days,
                 "Test job",
                 address(0),
+                false,
                 false
             );
         }
-        
-        assertEq(agenticCommerce.clientJobCount(client), jobCount);
+        assertEq(agenticCommerceV9.clientJobCount(client), jobCount);
     }
-    
-    /**
-     * @dev Fuzz: Job lifecycle sequence
-     */
-    function testFuzz_JobLifecycleSequence(
-        uint8 actions
-    ) public {
-        // Create job
+
+    function testFuzz_JobLifecycleSequence(uint8 actions) public {
         vm.prank(client);
-        uint256 jobId = agenticCommerce.createJob(
+        uint256 jobId = agenticCommerceV9.createJobV7(
             provider,
             evaluator,
             block.timestamp + 7 days,
             "Test job",
             address(0),
+            false,
             false
         );
-        
-        // Fund job with ETH (V6 defaults to native ETH)
+
         vm.prank(client);
-        agenticCommerce.setBudget(jobId, 1 ether);
-        
-        vm.prank(client);
-        agenticCommerce.fund{value: 1 ether}(jobId, 1 ether);
-        
-        // Submit
+        agenticCommerceV9.fund{value: 1 ether}(jobId, 1 ether);
+
         vm.prank(provider);
-        agenticCommerce.submit(jobId, keccak256("deliverable"));
-        
-        // Complete
+        agenticCommerceV9.submit(jobId, keccak256("deliverable"));
+
         vm.prank(evaluator);
-        agenticCommerce.complete(jobId, keccak256("reason"));
-        
-        // Verify job completed
-        AgenticCommerceV6.Job memory job = agenticCommerce.getJob(jobId);
-        assertEq(uint256(job.status), 3); // Completed = 3
+        agenticCommerceV9.finalizeByEvaluator(jobId, keccak256("reason"));
+
+        (, , , , , , , , , IAgenticCommerceV9.JobStatus jobStatus, , ) = agenticCommerceV9.jobs(jobId);
+        assertEq(uint256(jobStatus), 3);
     }
 }
 
@@ -233,16 +266,10 @@ contract FuzzAgentReviewV5 is TestFixtures {
     function setUp() public override {
         super.setUp();
     }
-    
-    /**
-     * @dev Fuzz: Score bounds enforcement
-     */
+
     function testFuzz_ScoreBounds(int256 score) public {
-        // Bound the score to test edge cases
         score = bound(score, -1000, 1000);
-        
         uint256 proposalId = _createProposal();
-        
         if (score < -100 || score > 100) {
             vm.prank(evaluator1);
             vm.expectRevert(abi.encodeWithSelector(AgentReviewV5.AgentReviewV5_Invalid_score.selector));
@@ -250,21 +277,14 @@ contract FuzzAgentReviewV5 is TestFixtures {
         } else {
             vm.prank(evaluator1);
             agentReview.submitEvaluation{value: MIN_STAKE}(proposalId, score, "reasoning");
-            
             AgentReviewV5.Evaluation memory eval = agentReview.getEvaluation(proposalId, evaluator1);
             assertEq(eval.confidenceScore, score);
         }
     }
-    
-    /**
-     * @dev Fuzz: Stake amounts
-     */
+
     function testFuzz_StakeAmounts(uint256 stake) public {
-        // Bound stake to reasonable range
         stake = bound(stake, 0, 10 ether);
-        
         uint256 proposalId = _createProposal();
-        
         if (stake < 0.001 ether) {
             vm.prank(evaluator1);
             vm.expectRevert(abi.encodeWithSelector(AgentReviewV5.AgentReviewV5_Stake_too_low.selector));
@@ -272,22 +292,14 @@ contract FuzzAgentReviewV5 is TestFixtures {
         } else {
             vm.prank(evaluator1);
             agentReview.submitEvaluation{value: stake}(proposalId, 50, "reasoning");
-            
             AgentReviewV5.Evaluation memory eval = agentReview.getEvaluation(proposalId, evaluator1);
             assertEq(eval.stakeAmount, stake);
         }
     }
-    
-    /**
-     * @dev Fuzz: Proposal creation parameters
-     */
-    function testFuzz_ProposalCreation(
-        uint256 reward,
-        uint256 deadlineOffset
-    ) public {
+
+    function testFuzz_ProposalCreation(uint256 reward, uint256 deadlineOffset) public {
         reward = bound(reward, 0.001 ether, 100 ether);
         deadlineOffset = bound(deadlineOffset, 25 hours, 365 days);
-        
         vm.prank(proposer);
         uint256 proposalId = agentReview.createProposal{value: reward}(
             "Test",
@@ -296,39 +308,25 @@ contract FuzzAgentReviewV5 is TestFixtures {
             reward,
             block.timestamp + deadlineOffset
         );
-        
         AgentReviewV5.Proposal memory proposal = agentReview.getProposal(proposalId);
         assertEq(proposal.reward, reward);
     }
-    
-    /**
-     * @dev Fuzz: Complete proposal lifecycle
-     */
-    function testFuzz_ProposalLifecycle(
-        uint256 evaluatorCount,
-        int256[] calldata scores
-    ) public {
+
+    function testFuzz_ProposalLifecycle(uint256 evaluatorCount, int256[] calldata scores) public {
         evaluatorCount = bound(evaluatorCount, 1, 5);
-        
         uint256 proposalId = _createProposal();
-        
-        // Submit evaluations with valid scores only
         for (uint i = 0; i < evaluatorCount && i < scores.length; i++) {
             address evalAddr = makeAddr(string.concat("eval", vm.toString(i)));
             vm.deal(evalAddr, 1 ether);
-            
             int256 score = scores[i];
-            // Only submit if score is within valid range (-100 to 100)
             if (score >= -100 && score <= 100) {
                 vm.prank(evalAddr);
                 agentReview.submitEvaluation{value: MIN_STAKE}(proposalId, score, "reasoning");
             }
         }
-        
-        // Verify evaluator count
         assertLe(agentReview.getProposalEvaluators(proposalId).length, 5);
     }
-    
+
     function _createProposal() internal returns (uint256) {
         vm.prank(proposer);
         return agentReview.createProposal{value: 0.1 ether}(

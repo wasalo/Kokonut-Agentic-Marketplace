@@ -19,7 +19,7 @@ async function query<T>(query: string, variables: Record<string, unknown> = {}):
 
   if (!response.ok) throw new Error(`GraphQL error: ${response.status}`);
 
-  const json: GraphQLResponse<T> = await response.json();
+  const json = (await response.json()) as GraphQLResponse<T>;
   if (json.errors) throw new Error(`GraphQL error: ${json.errors[0].message}`);
 
   return json.data as T;

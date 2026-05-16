@@ -171,6 +171,10 @@ describe.skip('SDK Integration Tests - Sepolia', () => {
       }
 
       try {
+        if (!client.address) {
+          console.log('\n⚠️  No address available - skipping');
+          return;
+        }
         const count = await client.commerce.getClientJobCount(client.address);
         expect(typeof count).toBe('number');
         console.log('\n📋 Client job count:', count);

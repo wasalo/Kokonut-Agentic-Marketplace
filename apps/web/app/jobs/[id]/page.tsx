@@ -83,11 +83,13 @@ const AcceptBidForm = dynamic(() => import('@/components/BiddingForms').then(m =
 const BidStatusCard = dynamic(() => import('@/components/BiddingForms').then(m => m.BidStatusCard), {
   loading: () => <div className="animate-pulse h-24 bg-content2 rounded-lg" />,
 });
+const MilestoneSection = dynamic(() => import('@/components/MilestoneSection').then(m => m.MilestoneSection), {
+  loading: () => <div className="animate-pulse h-48 bg-content2 rounded-lg" />,
+});
 import { StatusBadge, getJobStatusBadgeType } from '@/components/StatusBadge';
 import { Address } from '@/components/Address';
 import { ErrorDisplay } from '@/components/ErrorDisplay';
 import { showToast } from '@/lib/toast';
-import { MilestoneSection } from '@/components/MilestoneSection';
 import { useDispute, useFlagDispute, useJobMilestones } from '@/lib/hooks/useMilestoneEscrow';
 import { JobHeader } from '@/components/jobs/JobHeader';
 import { JobWarnings } from '@/components/jobs/JobWarnings';

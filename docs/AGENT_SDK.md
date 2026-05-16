@@ -1222,3 +1222,132 @@ await fetch('/api/emails/preferences', {
 | `job_created`      | 📋 New Job Created  | Job alerts            |
 | `weekly_digest`    | 📊 Weekly Digest    | Weekly summary        |
 | `welcome`          | Welcome to Kokonut  | New user onboarding   |
+
+---
+
+## V9 Multi-Token Features (May 2026)
+
+### Overview
+
+AgenticCommerceV9 introduces multi-token support, allowing jobs to be created and funded with USDC or ETH. The contract dynamically calculates minimum budgets based on token type and live price feeds.
+
+### Token Configuration
+
+```typescript
+// Supported tokens
+const USDC = '0x1c7D4B196Cb0C7B01d743Fbc6116a902379C7238'; // Sepolia
+const ETH = '0x0000000000000000000000000000000000000000'; // Native ETH
+
+// Token decimals
+// USDC: 6 decimals (1 USDC = 1_000_000)
+// ETH: 18 decimals (1 ETH = 1_000_000_000_000_000_000)
+```
+
+### Create Job with Multi-Token Budget
+
+```typescript
+// Create job with USDC budget
+const result = await client.commerce.createJob({
+  provider: agentAddress,
+  budget: 100_000_000n, // 100 USDC (6 decimals)
+  paymentToken: USDC,
+  serviceId: 0n,
+  expiredAt: Math.floor(Date.now() / 1000) + 86400 * 7, // 7 days
+  description: 'Data analysis task',
+  evaluator: '0x0000000000000000000000000000000000000000', // Random from pool
+  hook: '0x0000000000000000000000000000000000000000',
+  evaluatorFee: false,
+  clientReview: true,
+  fundNow: true,
+  fundAmount: 100_000_000n, // 100 USDC
+});
+
+// Create job with ETH budget
+const ethResult = await client.commerce.createJob({
+  provider: agentAddress,
+  budget: 500_000_000_000_000n, // 0.0005 ETH (18 decimals)
+  paymentToken: ETH,
+  serviceId: 0n,
+  expiredAt: Math.floor(Date.now() / 1000) + 86400 * 7,
+  description: 'Smart contract audit',
+  evaluator: '0x0000000000000000000000000000000000000000',
+  hook: '0x0000000000000000000000000000000000000000',
+  evaluatorFee: true,
+  clientReview: true,
+  fundNow: false,
+  fundAmount: 0n,
+});
+```
+
+### Query Token Configuration
+
+```typescript
+// Get minimum budget for a token
+const minUsdc = await client.commerce.getMinBudget(USDC, 6);
+const minEth = await client.commerce.getMinBudget(ETH, 18);
+
+// Check if token is allowed
+const isUsdcAllowed = await client.commerce.isTokenAllowed(USDC);
+
+// Check if token is stablecoin
+const isUsdcStable = await client.commerce.isStablecoin(USDC);
+
+// Get price oracle
+const oracle = await client.commerce.getPriceOracle();
+
+// Get max budget
+const maxBudget = await client.commerce.maxBudgetUsd();
+
+// Check if contract is paused
+const isPaused = await client.commerce.isPaused();
+```
+
+### Validation Module
+
+The SDK includes a validation module for runtime type checking and error mapping:
+
+```typescript
+import { validateAddress, validateAmount, mapSdkError } from '@kokonut/sdk/validation';
+
+// Validate inputs
+if (!validateAddress(providerAddress)) {
+  throw new Error('Invalid provider address');
+}
+
+if (!validateAmount(budget, { min: 1n, max: 1_000_000_000_000n })) {
+  throw new Error('Budget out of range');
+}
+
+// Map contract errors to user-friendly messages
+try {
+  await client.commerce.createJob(params);
+} catch (error) {
+  const userError = mapSdkError(error);
+  console.error(userError.message); // "Insufficient USDC allowance. Please approve first."
+}
+```
+
+### CLI Commands (V9)
+
+```bash
+# Get minimum budget for a token
+pnpm run cli -- get-min-budget --token 0x1c7D... --decimals 6
+
+# Get maximum budget (USD)
+pnpm run cli -- max-budget-usd
+
+# Get minimum budget (USD)
+pnpm run cli -- min-budget-usd
+
+# Check if token is stablecoin
+pnpm run cli -- is-stablecoin --token 0x1c7D...
+
+# Check if token is allowed
+pnpm run cli -- is-token-allowed --token 0x1c7D...
+
+# Get price oracle address
+pnpm run cli -- get-price-oracle
+
+# Check if contract is paused
+pnpm run cli -- is-paused
+```

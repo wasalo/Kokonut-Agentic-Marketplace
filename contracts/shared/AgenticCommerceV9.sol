@@ -140,6 +140,10 @@ contract AgenticCommerceV9 is
     error SlashBPTooHigh();
     error DecimalsQueryFailed(address token);
     error InvalidDecimals(address token, uint8 decimals);
+    error EthTransferFailed();
+    error RefundFailed();
+    error StakeRefundFailed();
+    error StakeTransferFailed();
 
     /***********************************/
     /* Modifiers */
@@ -432,7 +436,7 @@ contract AgenticCommerceV9 is
                 uint256 excess = msg.value - amountToFund;
                 if (excess > 0) {
                     (bool success, ) = payable(_msgSender()).call{value: excess}("");
-                    require(success, "Refund failed");
+                    if (!success) revert RefundFailed();
                 }
             } else {
                 // ERC20
@@ -613,7 +617,7 @@ contract AgenticCommerceV9 is
             uint256 excess = msg.value - cachedBudget;
             if (excess > 0) {
                 (bool successExcess, ) = payable(_msgSender()).call{value: excess}("");
-                require(successExcess, "ETH transfer failed");
+                if (!successExcess) revert EthTransferFailed();
             }
         } else {
             if (msg.value != 0) revert InvalidJob();
@@ -749,7 +753,7 @@ contract AgenticCommerceV9 is
         if (to == address(0)) revert ZeroAddress();
         if (address(token) == address(0)) {
             (bool success, ) = payable(to).call{value: amount}("");
-            require(success, "ETH transfer failed");
+            if (!success) revert EthTransferFailed();
         } else {
             token.safeTransfer(to, amount);
         }
@@ -983,7 +987,7 @@ contract AgenticCommerceV9 is
         
         if (stake > 0) {
             (bool success, ) = payable(msg.sender).call{value: stake}("");
-            require(success, "Stake refund failed");
+            if (!success) revert StakeRefundFailed();
         }
         
         emit EvaluatorUnregistered(msg.sender);
@@ -1015,7 +1019,7 @@ contract AgenticCommerceV9 is
         // Transfer slashed stake to platform treasury
         if (platformTreasury != address(0)) {
             (bool success, ) = payable(platformTreasury).call{value: stake}("");
-            require(success, "Stake transfer failed");
+            if (!success) revert StakeTransferFailed();
         }
         
         emit EvaluatorSlashed(evaluator, stake, reason);

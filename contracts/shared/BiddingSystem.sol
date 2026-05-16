@@ -634,6 +634,7 @@ contract BiddingSystem is
     
     function setCommerce(address commerce_) external onlyOwner {
         if (!(commerce_ != address(0))) revert BiddingSystem__Zero_commerce();
+        emit CommerceUpdated(commerce, commerce_);
         commerce = commerce_;
     }
     
@@ -644,6 +645,7 @@ contract BiddingSystem is
     
     function setTreasury(address treasury_) external onlyOwner {
         if (!(treasury_ != address(0))) revert BiddingSystem__Zero_treasury();
+        emit TreasuryUpdated(treasury, treasury_);
         treasury = treasury_;
     }
 
@@ -652,11 +654,13 @@ contract BiddingSystem is
         uint256 size;
         assembly { size := extcodesize(_adminRegistry) }
         if (size == 0) revert BiddingSystem__Zero_address();
+        emit AdminRegistryUpdated(adminRegistry, _adminRegistry);
         adminRegistry = _adminRegistry;
     }
     
     function setRevealWindow(uint256 window_) external onlyOwner {
         if (!(window_ >= 15 minutes && window_ <= 24 hours)) revert BiddingSystem__Invalid_window();
+        emit RevealWindowUpdated(revealWindow, window_);
         revealWindow = window_;
     }
     
@@ -667,6 +671,7 @@ contract BiddingSystem is
     
     function setPlatformFeeBP(uint256 basisPoints_) external onlyOwner {
         if (!(basisPoints_ <= 1000)) revert BiddingSystem__Max_10_fee(); // Max 10%
+        emit PlatformFeeUpdated(platformFeeBP, basisPoints_);
         platformFeeBP = basisPoints_;
     }
     

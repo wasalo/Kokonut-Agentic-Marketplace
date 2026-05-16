@@ -1,6 +1,6 @@
 'use client';
 
-import React from 'react';
+import React, { memo } from 'react';
 import {
   CheckCircle2,
   XCircle,
@@ -181,7 +181,7 @@ const sizeConfig = {
   },
 };
 
-export function StatusBadge({
+export const StatusBadge = memo(function StatusBadge({
   status,
   size = 'md',
   showIcon = true,
@@ -210,7 +210,7 @@ export function StatusBadge({
       <span>{config.label}</span>
     </span>
   );
-}
+});
 
 // Helper function to convert job/proposal/service status numbers to StatusType
 export function getJobStatusBadgeType(status: number): StatusType {

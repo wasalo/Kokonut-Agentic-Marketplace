@@ -13,7 +13,7 @@
     "build:turbo": "next build",
     "start": "next start",
     "lint": "eslint .",
-    "type-check": "echo Skipping",
+    "type-check": "tsc --noEmit --skipLibCheck",
     "type-check:strict": "tsc --noEmit --noUnusedLocals --noUnusedParameters",
     "test:e2e": "playwright test",
     "test:e2e:ui": "playwright test --ui"

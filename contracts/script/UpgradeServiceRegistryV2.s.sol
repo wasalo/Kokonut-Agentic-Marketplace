@@ -4,6 +4,13 @@ pragma solidity ^0.8.20;
 import "forge-std/Script.sol";
 import {ServiceRegistryV2} from "../shared/ServiceRegistryV2.sol";
 
+/**
+ * @title UpgradeServiceRegistryV2
+ * @dev Upgrades ServiceRegistryV2 with custom error for ETH transfers
+ * 
+ * Changes:
+ * - Replaced require("ETH transfer failed") with ServiceRegistryV2__Eth_transfer_failed() custom error
+ */
 contract UpgradeServiceRegistryV2 is Script {
     address public constant PROXY_ADDRESS = 0x62E1eeEa1A2Ab987004F35bDA430457Ed6077201;
 
@@ -12,7 +19,7 @@ contract UpgradeServiceRegistryV2 is Script {
         address deployer = vm.addr(deployerPrivateKey);
 
         console.log("=============================================");
-        console.log("ServiceRegistryV2 Upgrade");
+        console.log("ServiceRegistryV2 Upgrade - Custom Error");
         console.log("=============================================");
         console.log("Deployer:", deployer);
         console.log("Proxy Address:", PROXY_ADDRESS);
@@ -34,8 +41,13 @@ contract UpgradeServiceRegistryV2 is Script {
         vm.stopBroadcast();
 
         console.log("");
-        console.log("NEXT STEPS:");
-        console.log("1. forge verify-contract <IMPL_ADDR> contracts/shared/ServiceRegistryV2.sol:ServiceRegistryV2 --chain 11155111");
-        console.log("2. cast implementation 0x62E1eeEa1A2Ab987004F35bDA430457Ed6077201 --rpc-url sepolia");
+        console.log("=============================================");
+        console.log("UPGRADE COMPLETE");
+        console.log("=============================================");
+        console.log("Proxy:", PROXY_ADDRESS);
+        console.log("New Implementation:", address(newImplementation));
+        console.log("");
+        console.log("Verify with:");
+        console.log(string.concat("forge verify-contract ", vm.toString(address(newImplementation)), " contracts/shared/ServiceRegistryV2.sol:ServiceRegistryV2 --chain 11155111 --etherscan-api-key $ETHERSCAN_API_KEY"));
     }
 }

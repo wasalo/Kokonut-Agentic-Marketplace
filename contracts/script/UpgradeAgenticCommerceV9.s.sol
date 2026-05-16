@@ -6,7 +6,11 @@ import {AgenticCommerceV9} from "../shared/AgenticCommerceV9.sol";
 
 /**
  * @title UpgradeAgenticCommerceV9
- * @dev Upgrades AgenticCommerceV9 with hook validation + randomness warning docs
+ * @dev Upgrades AgenticCommerceV9 with custom errors for ETH transfers
+ * 
+ * Changes:
+ * - Replaced require() strings with custom errors: EthTransferFailed, RefundFailed, StakeRefundFailed, StakeTransferFailed
+ * - Gas savings + consistent error handling
  */
 contract UpgradeAgenticCommerceV9 is Script {
     address public constant PROXY_ADDRESS = 0x4c592510e4FAbbEEA8D7142dE1f38d548b500e7f;
@@ -16,12 +20,11 @@ contract UpgradeAgenticCommerceV9 is Script {
         address deployer = vm.addr(deployerPrivateKey);
         
         console.log("=============================================");
-        console.log("AgenticCommerceV9 Upgrade - VULN-09/12 + VULN-03");
+        console.log("AgenticCommerceV9 Upgrade - Custom Errors");
         console.log("=============================================");
         console.log("Deployer:", deployer);
         console.log("Proxy Address:", PROXY_ADDRESS);
         
-        // 1. Deploy new implementation
         console.log("[1/2] Deploying new implementation...");
         
         vm.startBroadcast(deployerPrivateKey);
@@ -30,7 +33,6 @@ contract UpgradeAgenticCommerceV9 is Script {
         
         console.log("    New Implementation:", address(newImplementation));
         
-        // 2. Upgrade proxy
         console.log("[2/2] Upgrading proxy...");
         
         AgenticCommerceV9(PROXY_ADDRESS).upgradeToAndCall(address(newImplementation), "");
@@ -40,8 +42,13 @@ contract UpgradeAgenticCommerceV9 is Script {
         vm.stopBroadcast();
         
         console.log("");
-        console.log("NEXT STEPS:");
-        console.log("1. Verify on Etherscan");
-        console.log("2. Test hook validation (createJob with EOA hook should revert)");
+        console.log("=============================================");
+        console.log("UPGRADE COMPLETE");
+        console.log("=============================================");
+        console.log("Proxy:", PROXY_ADDRESS);
+        console.log("New Implementation:", address(newImplementation));
+        console.log("");
+        console.log("Verify with:");
+        console.log(string.concat("forge verify-contract ", vm.toString(address(newImplementation)), " contracts/shared/AgenticCommerceV9.sol:AgenticCommerceV9 --chain 11155111 --etherscan-api-key $ETHERSCAN_API_KEY"));
     }
 }

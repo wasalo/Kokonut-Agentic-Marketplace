@@ -73,10 +73,11 @@ export interface ContractAddresses {
 export type NetworkName = 'sepolia' | 'mainnet';
 
 export interface SDKConfig {
-  wallet: viemAddress | PrivateKeyAccount;
+  wallet?: viemAddress | PrivateKeyAccount;
   network?: NetworkName;
   rpcUrl?: string;
   contracts?: Partial<ContractAddresses>;
+  readOnly?: boolean;
 }
 
 // ============================================================================

@@ -128,6 +128,12 @@ interface IBiddingSystem {
         uint256 newRevealWindowEnd
     );
     
+    event CommerceUpdated(address indexed oldCommerce, address indexed newCommerce);
+    event TreasuryUpdated(address indexed oldTreasury, address indexed newTreasury);
+    event AdminRegistryUpdated(address indexed oldRegistry, address indexed newRegistry);
+    event RevealWindowUpdated(uint256 oldWindow, uint256 newWindow);
+    event PlatformFeeUpdated(uint256 oldFeeBP, uint256 newFeeBP);
+    
     /***********************************/
     /* Errors */
     /***********************************/

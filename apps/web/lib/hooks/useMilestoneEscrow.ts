@@ -40,20 +40,49 @@ export interface Dispute {
 // viem v2 returns tuple/struct data as arrays, not objects with named properties.
 // These mappers handle both array and object formats defensively.
 
+interface JobMilestonesStruct {
+  client: string;
+  provider: string;
+  paymentToken: string;
+  totalBudget: bigint;
+  usesMilestones: boolean;
+}
+
+interface MilestoneStruct {
+  description: string;
+  amount: bigint;
+  dueDate: bigint;
+  completed: boolean;
+  released: boolean;
+  proofHash: string;
+}
+
+interface DisputeStruct {
+  jobId: bigint;
+  flagger: string;
+  arbiter: string;
+  flaggedAt: bigint;
+  resolved: boolean;
+  releaseToProvider: boolean;
+  feePaid: bigint;
+  milestoneIndex: bigint;
+}
+
 function mapJobMilestonesDetails(data: unknown): JobMilestones | undefined {
   if (!data || typeof data !== 'object') return undefined;
   const arr = data as unknown[];
   const isArray = Array.isArray(data);
-  const client = isArray ? arr[0] : (data as any).client;
+  const struct = isArray ? null : (data as JobMilestonesStruct);
+  const client = isArray ? arr[0] : struct?.client;
   if (!client || (typeof client === 'string' && client === '0x0000000000000000000000000000000000000000')) {
     return undefined;
   }
   return {
     client: client as string,
-    provider: (isArray ? arr[1] : (data as any).provider) as string,
-    paymentToken: (isArray ? arr[2] : (data as any).paymentToken) as string,
-    totalBudget: (isArray ? arr[3] : (data as any).totalBudget) as bigint,
-    usesMilestones: (isArray ? arr[4] : (data as any).usesMilestones) as boolean,
+    provider: (isArray ? arr[1] : struct!.provider) as string,
+    paymentToken: (isArray ? arr[2] : struct!.paymentToken) as string,
+    totalBudget: (isArray ? arr[3] : struct!.totalBudget) as bigint,
+    usesMilestones: (isArray ? arr[4] : struct!.usesMilestones) as boolean,
   };
 }
 
@@ -61,13 +90,14 @@ function mapMilestone(data: unknown): Milestone | undefined {
   if (!data || typeof data !== 'object') return undefined;
   const arr = data as unknown[];
   const isArray = Array.isArray(data);
+  const struct = isArray ? null : (data as MilestoneStruct);
   return {
-    description: (isArray ? arr[0] : (data as any).description) as string,
-    amount: (isArray ? arr[1] : (data as any).amount) as bigint,
-    dueDate: (isArray ? arr[2] : (data as any).dueDate) as bigint,
-    completed: (isArray ? arr[3] : (data as any).completed) as boolean,
-    released: (isArray ? arr[4] : (data as any).released) as boolean,
-    proofHash: (isArray ? arr[5] : (data as any).proofHash) as string,
+    description: (isArray ? arr[0] : struct!.description) as string,
+    amount: (isArray ? arr[1] : struct!.amount) as bigint,
+    dueDate: (isArray ? arr[2] : struct!.dueDate) as bigint,
+    completed: (isArray ? arr[3] : struct!.completed) as boolean,
+    released: (isArray ? arr[4] : struct!.released) as boolean,
+    proofHash: (isArray ? arr[5] : struct!.proofHash) as string,
   };
 }
 
@@ -75,19 +105,20 @@ function mapDispute(data: unknown): Dispute | undefined {
   if (!data || typeof data !== 'object') return undefined;
   const arr = data as unknown[];
   const isArray = Array.isArray(data);
-  const flagger = isArray ? arr[1] : (data as any).flagger;
+  const struct = isArray ? null : (data as DisputeStruct);
+  const flagger = isArray ? arr[1] : struct?.flagger;
   if (!flagger || (typeof flagger === 'string' && flagger === '0x0000000000000000000000000000000000000000')) {
     return undefined;
   }
   return {
-    jobId: (isArray ? arr[0] : (data as any).jobId) as bigint,
+    jobId: (isArray ? arr[0] : struct!.jobId) as bigint,
     flagger: flagger as string,
-    arbiter: (isArray ? arr[2] : (data as any).arbiter) as string,
-    flaggedAt: (isArray ? arr[3] : (data as any).flaggedAt) as bigint,
-    resolved: (isArray ? arr[4] : (data as any).resolved) as boolean,
-    releaseToProvider: (isArray ? arr[5] : (data as any).releaseToProvider) as boolean,
-    feePaid: (isArray ? arr[6] : (data as any).feePaid) as bigint,
-    milestoneIndex: (isArray ? arr[7] : (data as any).milestoneIndex) as bigint,
+    arbiter: (isArray ? arr[2] : struct!.arbiter) as string,
+    flaggedAt: (isArray ? arr[3] : struct!.flaggedAt) as bigint,
+    resolved: (isArray ? arr[4] : struct!.resolved) as boolean,
+    releaseToProvider: (isArray ? arr[5] : struct!.releaseToProvider) as boolean,
+    feePaid: (isArray ? arr[6] : struct!.feePaid) as bigint,
+    milestoneIndex: (isArray ? arr[7] : struct!.milestoneIndex) as bigint,
   };
 }
 

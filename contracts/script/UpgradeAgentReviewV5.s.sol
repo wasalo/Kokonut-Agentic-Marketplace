@@ -4,6 +4,13 @@ pragma solidity ^0.8.20;
 import "forge-std/Script.sol";
 import {AgentReviewV5} from "../shared/AgentReviewV5.sol";
 
+/**
+ * @title UpgradeAgentReviewV5
+ * @dev Upgrades AgentReviewV5 with custom error for ETH transfers
+ * 
+ * Changes:
+ * - Replaced require("ETH transfer failed") with AgentReviewV5_Eth_transfer_failed() custom error
+ */
 contract UpgradeAgentReviewV5 is Script {
     address public constant PROXY_ADDRESS = 0x5CDb592Fd37749bF87448FBf5725D1Cd986dd1Cb;
 
@@ -12,7 +19,7 @@ contract UpgradeAgentReviewV5 is Script {
         address deployer = vm.addr(deployerPrivateKey);
 
         console.log("=============================================");
-        console.log("AgentReviewV5 Upgrade - OZ v5 __UUPSUpgradeable_init() removal");
+        console.log("AgentReviewV5 Upgrade - Custom Error");
         console.log("=============================================");
         console.log("Deployer:", deployer);
         console.log("Proxy Address:", PROXY_ADDRESS);
@@ -34,8 +41,13 @@ contract UpgradeAgentReviewV5 is Script {
         vm.stopBroadcast();
 
         console.log("");
-        console.log("NEXT STEPS:");
-        console.log("1. forge verify-contract <IMPL_ADDR> contracts/shared/AgentReviewV5.sol:AgentReviewV5 --chain 11155111");
-        console.log("2. cast implementation 0x5CDb592Fd37749bF87448FBf5725D1Cd986dd1Cb --rpc-url sepolia");
+        console.log("=============================================");
+        console.log("UPGRADE COMPLETE");
+        console.log("=============================================");
+        console.log("Proxy:", PROXY_ADDRESS);
+        console.log("New Implementation:", address(newImplementation));
+        console.log("");
+        console.log("Verify with:");
+        console.log(string.concat("forge verify-contract ", vm.toString(address(newImplementation)), " contracts/shared/AgentReviewV5.sol:AgentReviewV5 --chain 11155111 --etherscan-api-key $ETHERSCAN_API_KEY"));
     }
 }

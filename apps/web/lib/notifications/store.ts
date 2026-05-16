@@ -1,6 +1,7 @@
 'use client';
 
 import { create } from 'zustand';
+import { persist, createJSONStorage } from 'zustand/middleware';
 import type { Notification, NotificationPreferences } from './types';
 
 const MAX_NOTIFICATIONS = 100;
@@ -37,91 +38,87 @@ function generateId(): string {
   return `${Date.now()}-${Math.random().toString(36).substring(2, 9)}`;
 }
 
+function cleanup(notifications: Notification[]): Notification[] {
+  const now = Date.now();
+  const cutoffTime = now - NOTIFICATION_RETENTION_DAYS * 24 * 60 * 60 * 1000;
+  return notifications
+    .filter(n => n.timestamp > cutoffTime || n.persistent)
+    .slice(0, MAX_NOTIFICATIONS);
+}
+
+function countUnread(notifications: Notification[]): number {
+  return notifications.filter(n => !n.read).length;
+}
+
 export const useNotificationStore = create<NotificationState>()(
-  (set) => ({
-    notifications: [],
-    unreadCount: 0,
-    preferences: defaultPreferences,
+  persist(
+    (set) => ({
+      notifications: [],
+      unreadCount: 0,
+      preferences: defaultPreferences,
 
-    addNotification: notification => {
-      const now = Date.now();
-      const cutoffTime = now - NOTIFICATION_RETENTION_DAYS * 24 * 60 * 60 * 1000;
-
-      const newNotification: Notification = {
-        ...notification,
-        id: generateId(),
-        timestamp: now,
-        read: false,
-      };
-
-      set(state => {
-        let notifications = [newNotification, ...state.notifications];
-
-        notifications = notifications.filter(n => n.timestamp > cutoffTime || n.persistent);
-
-        if (notifications.length > MAX_NOTIFICATIONS) {
-          notifications = notifications.slice(0, MAX_NOTIFICATIONS);
-        }
-
-        return {
-          notifications,
-          unreadCount: notifications.filter(n => !n.read).length,
+      addNotification: notification => {
+        const now = Date.now();
+        const newNotification: Notification = {
+          ...notification,
+          id: generateId(),
+          timestamp: now,
+          read: false,
         };
-      });
-    },
 
-    markAsRead: id => {
-      set(state => {
-        const notifications = state.notifications.map(n =>
-          n.id === id ? { ...n, read: true } : n
-        );
-        return {
-          notifications,
-          unreadCount: notifications.filter(n => !n.read).length,
-        };
-      });
-    },
+        set(state => {
+          const notifications = cleanup([newNotification, ...state.notifications]);
+          return { notifications, unreadCount: countUnread(notifications) };
+        });
+      },
 
-    markAllAsRead: () => {
-      set(state => ({
-        notifications: state.notifications.map(n => ({ ...n, read: true })),
-        unreadCount: 0,
-      }));
-    },
+      markAsRead: id => {
+        set(state => {
+          const notifications = state.notifications.map(n =>
+            n.id === id ? { ...n, read: true } : n
+          );
+          return { notifications, unreadCount: countUnread(notifications) };
+        });
+      },
 
-    removeNotification: id => {
-      set(state => {
-        const notifications = state.notifications.filter(n => n.id !== id);
-        return {
-          notifications,
-          unreadCount: notifications.filter(n => !n.read).length,
-        };
-      });
-    },
+      markAllAsRead: () => {
+        set(state => ({
+          notifications: state.notifications.map(n => ({ ...n, read: true })),
+          unreadCount: 0,
+        }));
+      },
 
-    clearAll: () => {
-      set({ notifications: [], unreadCount: 0 });
-    },
+      removeNotification: id => {
+        set(state => {
+          const notifications = state.notifications.filter(n => n.id !== id);
+          return { notifications, unreadCount: countUnread(notifications) };
+        });
+      },
 
-    updatePreferences: preferences => {
-      set(state => ({
-        preferences: { ...state.preferences, ...preferences },
-      }));
-    },
+      clearAll: () => {
+        set({ notifications: [], unreadCount: 0 });
+      },
 
-    cleanupOldNotifications: () => {
-      const now = Date.now();
-      const cutoffTime = now - NOTIFICATION_RETENTION_DAYS * 24 * 60 * 60 * 1000;
+      updatePreferences: preferences => {
+        set(state => ({
+          preferences: { ...state.preferences, ...preferences },
+        }));
+      },
 
-      set(state => {
-        const notifications = state.notifications.filter(
-          n => n.timestamp > cutoffTime || n.persistent
-        );
-        return {
-          notifications,
-          unreadCount: notifications.filter(n => !n.read).length,
-        };
-      });
-    },
-  })
+      cleanupOldNotifications: () => {
+        set(state => {
+          const notifications = cleanup(state.notifications);
+          return { notifications, unreadCount: countUnread(notifications) };
+        });
+      },
+    }),
+    {
+      name: 'kokonut-notifications',
+      storage: createJSONStorage(() => localStorage),
+      partialize: (state) => ({
+        notifications: state.notifications.slice(0, 50),
+        preferences: state.preferences,
+      }),
+    }
+  )
 );

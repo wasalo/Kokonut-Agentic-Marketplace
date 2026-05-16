@@ -19,6 +19,6 @@
     "typeRoots": ["./node_modules/@types", "../../node_modules/@types"],
     "types": ["node", "jest"]
   },
-  "include": ["client.ts", "types.ts", "index.ts"],
+  "include": ["client.ts", "types.ts", "index.ts", "subgraph.ts", "efp.ts"],
   "exclude": ["node_modules", "dist", "test"]
 }
