@@ -29,7 +29,7 @@ export default defineConfig({
       : [
           {
             name: 'mobile',
-            use: { ...devices['iPhone 12'], browserName: 'chromium' },
+            use: { ...devices['iPhone 12'], browserName: 'chromium' as const },
           },
         ]),
   ],
