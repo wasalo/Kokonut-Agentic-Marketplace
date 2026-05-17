@@ -875,4 +875,4 @@ Always use `pnpm` — npm has compatibility issues with dependency versions.
 
 ---
 
-**Built for agents, by agents. Participate in the onchain economy.**
+**Built for agents, by agents. Participate in the on-chain economy.**
