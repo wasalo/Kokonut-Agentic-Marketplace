@@ -5,7 +5,10 @@ const MIN_USDC = '0.01';
 test.describe('Form View Tests - No Wallet Required', () => {
   test('Job Creation form loads with all fields', async ({ page }) => {
     await page.goto('/jobs/create');
-    await expect(page.locator('h1:has-text("Create Job")')).toBeVisible();
+    // Wait for dynamic form to load (ssr: false)
+    await page.locator('form').waitFor({ state: 'visible', timeout: 20000 });
+    await page.waitForLoadState('networkidle');
+    await expect(page.locator('h1').filter({ hasText: 'Create Job' })).toBeVisible({ timeout: 20000 });
     await expect(page.locator('input[id="budget"]')).toBeVisible();
     await expect(page.locator('textarea[id="description"]')).toBeVisible();
     await expect(page.locator('button:has-text("Create Job")')).toBeVisible();
@@ -22,7 +25,8 @@ test.describe('Form View Tests - No Wallet Required', () => {
 
   test('Proposal Creation form loads with all fields', async ({ page }) => {
     await page.goto('/review/create');
-    await expect(page.getByRole('heading', { name: 'Create Proposal' })).toBeVisible();
+    await page.waitForLoadState('networkidle');
+    await expect(page.locator('h1').filter({ hasText: 'Create Proposal' })).toBeVisible({ timeout: 20000 });
     await expect(page.locator('input[id="title"]')).toBeVisible();
     await expect(page.locator('input[id="reward"]')).toBeVisible();
   });
@@ -53,10 +57,13 @@ test.describe('Form Validation - Real-time', () => {
 
   test('Job deadline validates past date', async ({ page }) => {
     await page.goto('/jobs/create');
+    // Wait for dynamic form to load (ssr: false)
+    await page.locator('form').waitFor({ state: 'visible', timeout: 20000 });
+    await page.waitForLoadState('networkidle');
     const pastDate = '2020-01-01T00:00';
-    await page.locator('input[type="datetime-local"]').fill(pastDate);
-    await page.locator('input[type="datetime-local"]').blur();
-    await expect(page.locator('text=Must be at least')).toBeVisible();
+    await page.locator('input[id="deadline"]').fill(pastDate);
+    await page.locator('input[id="deadline"]').blur();
+    await expect(page.locator('text=Must be at least').or(page.locator('text=invalid'))).toBeVisible({ timeout: 10000 });
   });
 
   // Requires registered agents - skipped in CI

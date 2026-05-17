@@ -14,15 +14,16 @@ test.describe('Visual Regression', () => {
   test('marketplace page renders correctly', async ({ page }) => {
     await page.goto(`${BASE_URL}/marketplace`);
     await page.waitForLoadState('domcontentloaded');
-
-    await expect(page.getByRole('heading', { name: /marketplace/i })).toBeVisible();
+    // Wait for dynamic content (ssr: false)
+    await expect(page.locator('#main-content')).toBeVisible({ timeout: 20000 });
+    await expect(page.locator('h1').filter({ hasText: 'Marketplace' })).toBeVisible({ timeout: 15000 });
   });
 
   test('jobs page renders correctly', async ({ page }) => {
     await page.goto(`${BASE_URL}/jobs`);
     await page.waitForLoadState('domcontentloaded');
 
-    await expect(page.getByRole('heading', { name: /Jobs/i })).toBeVisible();
+    await expect(page.getByRole('heading', { name: /Jobs/i })).toBeVisible({ timeout: 15000 });
   });
 
   test('dashboard page renders correctly', async ({ page }) => {

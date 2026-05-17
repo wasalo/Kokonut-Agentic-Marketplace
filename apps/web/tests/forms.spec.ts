@@ -3,10 +3,13 @@ import { test, expect } from '@playwright/test';
 test.describe('Form Validation - Job Creation', () => {
   test.beforeEach(async ({ page }) => {
     await page.goto('/jobs/create');
+    // Wait for dynamic form to load (ssr: false)
+    await page.locator('form').waitFor({ state: 'visible', timeout: 20000 });
+    await page.waitForLoadState('networkidle');
   });
 
   test('shows disabled state when wallet not connected', async ({ page }) => {
-    const submitButton = page.locator('button:has-text("Create Job")');
+    const submitButton = page.getByRole('button', { name: /Create Job/i });
     await expect(submitButton).toBeDisabled();
   });
 
@@ -36,8 +39,8 @@ test.describe('Form Validation - Job Creation', () => {
 
   test('shows validation error for deadline in past', async ({ page }) => {
     const pastDate = new Date(Date.now() - 60000).toISOString().slice(0, 16);
-    await page.fill('input[type="datetime-local"]', pastDate);
-    await page.locator('input[type="datetime-local"]').blur();
+    await page.getByLabel(/Deadline|Date|Time/i).fill(pastDate);
+    await page.getByLabel(/Deadline|Date|Time/i).blur();
 
     const error = page.locator('text=Must be at least');
     await expect(error).toBeVisible();
@@ -45,7 +48,7 @@ test.describe('Form Validation - Job Creation', () => {
 
   test('shows validation error for description too long', async ({ page }) => {
     const longDescription = 'x'.repeat(1001);
-    await page.fill('textarea[id="description"]', longDescription);
+    await page.locator('textarea[id="description"]').fill(longDescription);
 
     const counter = page.locator('text=/1000/');
     await expect(counter).toBeVisible();
@@ -67,6 +70,7 @@ test.describe('Form Validation - Job Creation', () => {
 test.describe('Form Validation - Service Creation', () => {
   test.beforeEach(async ({ page }) => {
     await page.goto('/marketplace/create');
+    await page.waitForLoadState('networkidle');
   });
 
   // Requires registered agents - skipped in CI
@@ -124,10 +128,11 @@ test.describe('Form Validation - Service Creation', () => {
 test.describe('Form Validation - Agent Registration', () => {
   test.beforeEach(async ({ page }) => {
     await page.goto('/identity/register', { waitUntil: 'domcontentloaded' });
+    await page.waitForLoadState('networkidle');
   });
 
   test('shows registration form', async ({ page }) => {
-    await expect(page.locator('h1:has-text("Register Agent")')).toBeVisible({ timeout: 10000 });
+    await expect(page.getByRole('heading', { name: /Register Agent/i })).toBeVisible({ timeout: 15000 });
   });
 
   test('shows agent name input', async ({ page }) => {
@@ -154,10 +159,11 @@ test.describe('Form Validation - Agent Registration', () => {
 test.describe('Form Validation - Proposal/Review Creation', () => {
   test.beforeEach(async ({ page }) => {
     await page.goto('/review/create');
+    await page.waitForLoadState('networkidle');
   });
 
   test('shows disabled state when wallet not connected', async ({ page }) => {
-    const submitButton = page.locator('button:has-text("Create Proposal")');
+    const submitButton = page.getByRole('button', { name: /Create Proposal/i });
     await expect(submitButton).toBeDisabled();
   });
 
@@ -177,6 +183,7 @@ test.describe('Form Validation - Proposal/Review Creation', () => {
 test.describe('Form Validation - Bidding Session Creation', () => {
   test.beforeEach(async ({ page }) => {
     await page.goto('/bidding/create');
+    await page.waitForLoadState('networkidle');
   });
 
   // Requires wallet connection - skipped in CI
@@ -224,6 +231,7 @@ test.describe('Form Validation - Bidding Session Creation', () => {
 test.describe('Form Validation - Skill Registration', () => {
   test.beforeEach(async ({ page }) => {
     await page.goto('/dashboard/skills');
+    await page.waitForLoadState('networkidle');
   });
 
   // Requires wallet connection - skipped in CI
@@ -252,6 +260,7 @@ test.describe('Form Validation - Skill Registration', () => {
 test.describe('Form Validation - Webhook Creation', () => {
   test.beforeEach(async ({ page }) => {
     await page.goto('/dashboard/webhooks');
+    await page.waitForLoadState('networkidle');
   });
 
   // Requires wallet connection - skipped in CI

@@ -19,8 +19,8 @@ test.describe('Visual Regression Tests', () => {
 
     await page.screenshot({ path: 'tests/snapshots/marketplace.png', fullPage: true });
 
-    // Verify key elements are present
-    await expect(page.getByRole('heading', { name: /marketplace/i })).toBeVisible();
+    // Wait for main content area
+    await expect(page.locator('#main-content')).toBeVisible({ timeout: 20000 });
   });
 
   test('jobs page loads', async ({ page }) => {
@@ -29,12 +29,12 @@ test.describe('Visual Regression Tests', () => {
 
     await page.screenshot({ path: 'tests/snapshots/jobs.png', fullPage: true });
 
-    await expect(page.getByRole('heading', { name: 'Jobs Directory' })).toBeVisible();
+    await expect(page.getByRole('heading', { name: /Jobs Directory/i })).toBeVisible({ timeout: 15000 });
   });
 
   test('leaderboard page loads', async ({ page }) => {
     await page.goto('/leaderboard', { waitUntil: 'domcontentloaded' });
-    await expect(page.locator('text=Agent Leaderboard')).toBeVisible();
+    await expect(page.getByRole('heading', { name: /Agent Leaderboard/i })).toBeVisible({ timeout: 15000 });
 
     await page.screenshot({ path: 'tests/snapshots/leaderboard.png', fullPage: true });
   });

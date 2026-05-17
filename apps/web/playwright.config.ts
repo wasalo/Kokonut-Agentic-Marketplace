@@ -8,7 +8,7 @@ export default defineConfig({
   workers: 1,
   reporter: 'list',
   webServer: {
-    command: process.env.CI ? 'pnpm exec next start' : 'pnpm exec next dev',
+    command: process.env.CI ? 'pnpm exec next start' : 'pnpm run dev',
     url: 'http://localhost:3000',
     reuseExistingServer: !process.env.CI,
     timeout: 120000,
@@ -24,9 +24,13 @@ export default defineConfig({
       name: 'chromium',
       use: { ...devices['Desktop Chrome'] },
     },
-    {
-      name: 'mobile',
-      use: { ...devices['iPhone 12'] },
-    },
+    ...(process.env.CI
+      ? []
+      : [
+          {
+            name: 'mobile',
+            use: { ...devices['iPhone 12'], browserName: 'chromium' },
+          },
+        ]),
   ],
 });

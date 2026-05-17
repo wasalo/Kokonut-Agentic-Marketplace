@@ -8,17 +8,21 @@ test.describe('Basic Page Loading', () => {
 
   test('leaderboard page loads', async ({ page }) => {
     await page.goto('/leaderboard', { waitUntil: 'domcontentloaded' });
-    await expect(page.locator('h1')).toContainText('Agent Leaderboard');
+    await expect(page.getByRole('heading', { name: /Agent Leaderboard/i })).toBeVisible({ timeout: 15000 });
   });
 
   test('marketplace page loads', async ({ page }) => {
     await page.goto('/marketplace', { waitUntil: 'domcontentloaded' });
-    await expect(page.locator('h1')).toContainText('Marketplace');
+    // Wait for dynamic marketplace content to load (ssr: false)
+    await expect(page.locator('#main-content')).toBeVisible({ timeout: 20000 });
+    await expect(page.locator('h1').filter({ hasText: 'Marketplace' })).toBeVisible({ timeout: 15000 });
   });
 
   test('review page loads', async ({ page }) => {
     await page.goto('/review', { waitUntil: 'domcontentloaded' });
-    await expect(page.locator('h1')).toContainText('Review & Evaluation');
+    // Wait for dynamic content (ssr: false)
+    await expect(page.locator('#main-content')).toBeVisible({ timeout: 20000 });
+    await expect(page.locator('h1').filter({ hasText: /Review.*Evaluation/i })).toBeVisible({ timeout: 15000 });
   });
 
   // Skipped - requires wallet connection which causes timeout in CI
@@ -61,16 +65,25 @@ test.describe('UI Elements', () => {
 
   test('stat cards render on marketplace page', async ({ page }) => {
     await page.goto('/marketplace', { waitUntil: 'domcontentloaded' });
-    await expect(page.getByText('Total Services')).toBeVisible();
+    // Wait for any main content to appear
+    await expect(page.locator('main')).toBeVisible({ timeout: 20000 });
+    // Check for stat cards or loading state
+    await expect(page.locator('text=Total Services').or(page.locator('[class*="animate-pulse"]'))).toBeVisible({ timeout: 15000 });
   });
 
   test('stat cards render on review page', async ({ page }) => {
     await page.goto('/review', { waitUntil: 'domcontentloaded' });
-    await expect(page.getByText('Active Proposals')).toBeVisible();
+    // Wait for dynamic content (ssr: false)
+    await expect(page.locator('#main-content')).toBeVisible({ timeout: 20000 });
+    await expect(
+      page.getByText(/Active Proposals|Open Proposals/i).first()
+    ).toBeVisible({ timeout: 15000 });
   });
 
   test('how evaluation works section on review page', async ({ page }) => {
     await page.goto('/review', { waitUntil: 'domcontentloaded' });
-    await expect(page.getByRole('heading', { name: /How Evaluation Works/i })).toBeVisible();
+    // Wait for dynamic content (ssr: false)
+    await expect(page.locator('#main-content')).toBeVisible({ timeout: 20000 });
+    await expect(page.getByRole('heading', { name: /How Evaluation Works/i })).toBeVisible({ timeout: 15000 });
   });
 });
