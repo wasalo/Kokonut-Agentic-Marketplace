@@ -2,8 +2,8 @@ import { test, expect } from '@playwright/test';
 
 test.describe('Visual Regression Tests', () => {
   test('homepage renders correctly', async ({ page }) => {
-    await page.goto('/');
-    await page.waitForLoadState('networkidle');
+    await page.goto('/', { waitUntil: 'domcontentloaded' });
+    await page.getByRole('navigation').waitFor({ timeout: 15000 });
 
     // Take a screenshot for comparison
     await page.screenshot({ path: 'tests/snapshots/homepage.png', fullPage: true });
@@ -14,22 +14,17 @@ test.describe('Visual Regression Tests', () => {
   });
 
   test('marketplace page loads', async ({ page }) => {
-    await page.goto('/marketplace');
-    await page.waitForLoadState('networkidle');
+    await page.goto('/marketplace', { waitUntil: 'domcontentloaded' });
+    await expect(page.locator('#main-content')).toBeVisible({ timeout: 20000 });
 
     await page.screenshot({ path: 'tests/snapshots/marketplace.png', fullPage: true });
-
-    // Wait for main content area
-    await expect(page.locator('#main-content')).toBeVisible({ timeout: 20000 });
   });
 
   test('jobs page loads', async ({ page }) => {
-    await page.goto('/jobs');
-    await page.waitForLoadState('networkidle');
+    await page.goto('/jobs', { waitUntil: 'domcontentloaded' });
+    await expect(page.getByRole('heading', { name: /Jobs Directory/i })).toBeVisible({ timeout: 15000 });
 
     await page.screenshot({ path: 'tests/snapshots/jobs.png', fullPage: true });
-
-    await expect(page.getByRole('heading', { name: /Jobs Directory/i })).toBeVisible({ timeout: 15000 });
   });
 
   test('leaderboard page loads', async ({ page }) => {
@@ -40,16 +35,16 @@ test.describe('Visual Regression Tests', () => {
   });
 
   test('dashboard redirects when not connected', async ({ page }) => {
-    await page.goto('/dashboard');
-    await page.waitForLoadState('networkidle');
+    await page.goto('/dashboard', { waitUntil: 'domcontentloaded' });
+    await page.waitForTimeout(2000);
 
     await page.screenshot({ path: 'tests/snapshots/dashboard.png', fullPage: true });
   });
 
   test('mobile viewport renders correctly', async ({ page }) => {
     await page.setViewportSize({ width: 375, height: 667 });
-    await page.goto('/marketplace');
-    await page.waitForLoadState('networkidle');
+    await page.goto('/marketplace', { waitUntil: 'domcontentloaded' });
+    await expect(page.locator('#main-content')).toBeVisible({ timeout: 20000 });
 
     await page.screenshot({
       path: 'tests/snapshots/marketplace-mobile.png',
@@ -58,8 +53,8 @@ test.describe('Visual Regression Tests', () => {
   });
 
   test('dark mode renders correctly', async ({ page }) => {
-    await page.goto('/marketplace');
-    await page.waitForLoadState('networkidle');
+    await page.goto('/marketplace', { waitUntil: 'domcontentloaded' });
+    await expect(page.locator('#main-content')).toBeVisible({ timeout: 20000 });
 
     // Toggle dark mode if available
     const themeButton = page.getByRole('button', { name: /theme/i }).first();
@@ -74,8 +69,8 @@ test.describe('Visual Regression Tests', () => {
 
 test.describe('Component Visual Tests', () => {
   test('service card component', async ({ page }) => {
-    await page.goto('/marketplace');
-    await page.waitForLoadState('networkidle');
+    await page.goto('/marketplace', { waitUntil: 'domcontentloaded' });
+    await expect(page.locator('#main-content')).toBeVisible({ timeout: 20000 });
 
     // Wait for services to load
     const serviceCard = page.locator('[class*="card"]').first();
@@ -85,8 +80,8 @@ test.describe('Component Visual Tests', () => {
   });
 
   test('job card component', async ({ page }) => {
-    await page.goto('/jobs');
-    await page.waitForLoadState('networkidle');
+    await page.goto('/jobs', { waitUntil: 'domcontentloaded' });
+    await expect(page.getByRole('heading', { name: /Jobs Directory/i })).toBeVisible({ timeout: 15000 });
 
     const jobCard = page.locator('[class*="card"]').first();
     if (await jobCard.isVisible()) {

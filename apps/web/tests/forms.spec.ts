@@ -2,10 +2,9 @@ import { test, expect } from '@playwright/test';
 
 test.describe('Form Validation - Job Creation', () => {
   test.beforeEach(async ({ page }) => {
-    await page.goto('/jobs/create');
+    await page.goto('/jobs/create', { waitUntil: 'domcontentloaded' });
     // Wait for dynamic form to load (ssr: false)
     await page.locator('form').waitFor({ state: 'visible', timeout: 20000 });
-    await page.waitForLoadState('networkidle');
   });
 
   test('shows disabled state when wallet not connected', async ({ page }) => {
@@ -69,8 +68,8 @@ test.describe('Form Validation - Job Creation', () => {
 
 test.describe('Form Validation - Service Creation', () => {
   test.beforeEach(async ({ page }) => {
-    await page.goto('/marketplace/create');
-    await page.waitForLoadState('networkidle');
+    await page.goto('/marketplace/create', { waitUntil: 'domcontentloaded' });
+    await page.getByRole('heading', { name: /Create Service/i }).waitFor({ timeout: 15000 });
   });
 
   // Requires registered agents - skipped in CI
@@ -128,7 +127,7 @@ test.describe('Form Validation - Service Creation', () => {
 test.describe('Form Validation - Agent Registration', () => {
   test.beforeEach(async ({ page }) => {
     await page.goto('/identity/register', { waitUntil: 'domcontentloaded' });
-    await page.waitForLoadState('networkidle');
+    await page.getByRole('heading', { name: /Register Agent/i }).waitFor({ timeout: 15000 });
   });
 
   test('shows registration form', async ({ page }) => {
@@ -158,8 +157,8 @@ test.describe('Form Validation - Agent Registration', () => {
 
 test.describe('Form Validation - Proposal/Review Creation', () => {
   test.beforeEach(async ({ page }) => {
-    await page.goto('/review/create');
-    await page.waitForLoadState('networkidle');
+    await page.goto('/review/create', { waitUntil: 'domcontentloaded' });
+    await page.getByRole('heading', { name: /Create Proposal/i }).waitFor({ timeout: 15000 });
   });
 
   test('shows disabled state when wallet not connected', async ({ page }) => {
@@ -182,8 +181,8 @@ test.describe('Form Validation - Proposal/Review Creation', () => {
 
 test.describe('Form Validation - Bidding Session Creation', () => {
   test.beforeEach(async ({ page }) => {
-    await page.goto('/bidding/create');
-    await page.waitForLoadState('networkidle');
+    await page.goto('/bidding/create', { waitUntil: 'domcontentloaded' });
+    await page.getByRole('heading', { name: /Create Bidding/i }).waitFor({ timeout: 15000 });
   });
 
   // Requires wallet connection - skipped in CI
@@ -230,8 +229,8 @@ test.describe('Form Validation - Bidding Session Creation', () => {
 
 test.describe('Form Validation - Skill Registration', () => {
   test.beforeEach(async ({ page }) => {
-    await page.goto('/dashboard/skills');
-    await page.waitForLoadState('networkidle');
+    await page.goto('/dashboard/skills', { waitUntil: 'domcontentloaded' });
+    await page.getByRole('heading', { name: /Skill/i }).waitFor({ timeout: 15000 });
   });
 
   // Requires wallet connection - skipped in CI
@@ -259,8 +258,8 @@ test.describe('Form Validation - Skill Registration', () => {
 
 test.describe('Form Validation - Webhook Creation', () => {
   test.beforeEach(async ({ page }) => {
-    await page.goto('/dashboard/webhooks');
-    await page.waitForLoadState('networkidle');
+    await page.goto('/dashboard/webhooks', { waitUntil: 'domcontentloaded' });
+    await page.getByRole('heading', { name: /Webhook/i }).waitFor({ timeout: 15000 });
   });
 
   // Requires wallet connection - skipped in CI
