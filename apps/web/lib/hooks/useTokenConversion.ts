@@ -106,7 +106,7 @@ export function useTokenPriceConversion() {
 
   const ethToUsdcRate = ethPriceInUsd ?? null;
 
-  return {
+  return useMemo(() => ({
     isLoading,
     ethPriceInUsd,
     ethToUsdcRate,
@@ -117,7 +117,18 @@ export function useTokenPriceConversion() {
     getUsdValue,
     formatAmount,
     formatUsdValue,
-  };
+  }), [
+    isLoading,
+    ethPriceInUsd,
+    ethToUsdcRate,
+    isStale,
+    updatedAt,
+    convertToUsdc,
+    convertFromUsdc,
+    getUsdValue,
+    formatAmount,
+    formatUsdValue,
+  ]);
 }
 
 export function useJobBudgetConversion(paymentToken: Token, budget: bigint) {

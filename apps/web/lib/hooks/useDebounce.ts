@@ -30,6 +30,15 @@ export function useDebounce<T extends (...args: any[]) => any>(
     [callback, delay]
   ) as T;
 
+  // Cleanup on unmount
+  useEffect(() => {
+    return () => {
+      if (timeoutRef.current) {
+        clearTimeout(timeoutRef.current);
+      }
+    };
+  }, []);
+
   return [debouncedCallback, isPending];
 }
 

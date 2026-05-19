@@ -1,6 +1,6 @@
 'use client';
 
-import { useState, useEffect, useCallback } from 'react';
+import { useState, useEffect, useCallback, useRef } from 'react';
 import { usePublicClient, useReadContract } from 'wagmi';
 import { parseAbiItem } from 'viem';
 import { ERC8004_ABI } from '@/lib/8004contracts';
@@ -40,6 +40,7 @@ export function useWalletAgentsWithDetails(
   const [agents, setAgents] = useState<AgentWithDetails[]>([]);
   const [isLoading, setIsLoading] = useState(false);
   const [error, setError] = useState<Error | null>(null);
+  const lastFetchedRef = useRef<string>('');
 
   // Step 1: Check balance
   const { data: balance, isLoading: isLoadingBalance } = useReadContract({
@@ -185,7 +186,11 @@ export function useWalletAgentsWithDetails(
     });
 
     if (publicClient && ownerAddress && balance !== undefined) {
-      fetchAgents();
+      const fetchKey = `${ownerAddress}-${balance.toString()}`;
+      if (lastFetchedRef.current !== fetchKey) {
+        lastFetchedRef.current = fetchKey;
+        fetchAgents();
+      }
     }
   }, [publicClient, ownerAddress, balance, fetchAgents]);
 
