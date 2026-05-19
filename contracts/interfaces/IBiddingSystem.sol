@@ -54,6 +54,7 @@ interface IBiddingSystem {
         bytes32 commitHash;
         bool revealed;
         bool accepted;
+        bool rejected;
         bool stakeWithdrawn;
         uint256 timestamp;
     }
@@ -121,6 +122,10 @@ interface IBiddingSystem {
     event SessionCancelled(
         uint256 indexed sessionId,
         address indexed canceller
+    );
+    
+    event SessionCompleted(
+        uint256 indexed sessionId
     );
     
     event RevealWindowExtended(
@@ -226,12 +231,6 @@ interface IBiddingSystem {
      */
     function withdrawStake(uint256 sessionId) external;
     
-    /**
-     * @dev Winner claims their stake back
-     * @param sessionId The bidding session ID
-     */
-    function claimStake(uint256 sessionId) external;
-    
     /***********************************/
     /* Job Creation & Integration */
     /***********************************/
@@ -258,6 +257,8 @@ interface IBiddingSystem {
      */
     function cancelSession(uint256 sessionId) external;
     
+    function completeSession(uint256 sessionId) external;
+    
     /**
      * @dev Extend reveal window if needed
      * @param sessionId The bidding session ID
@@ -281,8 +282,6 @@ interface IBiddingSystem {
     /***********************************/
     
     function setCommerce(address commerce_) external;
-    function setServiceRegistry(address registry_) external;
     function setRevealWindow(uint256 window_) external;
-    function setMinStakeBP(uint256 basisPoints_) external;
     function withdrawPlatformFees(address payable to, uint256 amount) external;
 }

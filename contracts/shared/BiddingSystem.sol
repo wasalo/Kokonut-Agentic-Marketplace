@@ -88,6 +88,7 @@ contract BiddingSystem is
     error BiddingSystem__Zero_evaluator();
     error BiddingSystem__Zero_owner();
     error BiddingSystem__Zero_treasury();
+    error BiddingSystem__Extension_too_long();
     /***********************************/
     /* Constants */
     /***********************************/
@@ -100,6 +101,7 @@ contract BiddingSystem is
     uint256 public constant MIN_JOB_EXPIRY = 5 minutes;
     uint256 public constant MAX_JOB_EXPIRY = 365 days;
     uint256 public constant ETH_PLATFORM_FEE_BP = 100; // 1% platform fee
+    uint256 public constant MAX_REVEAL_EXTENSION = 7 days;
     
     /***********************************/
     /* Storage */
@@ -293,6 +295,7 @@ contract BiddingSystem is
             commitHash: commitHash,
             revealed: false,
             accepted: false,
+            rejected: false,
             stakeWithdrawn: false,
             timestamp: block.timestamp
         }));
@@ -392,8 +395,15 @@ contract BiddingSystem is
         Bid storage bid = sessionBids[sessionId][bidId - 1];
         if (!(bid.revealed)) revert BiddingSystem__Bid_not_revealed();
         if (!(!bid.accepted)) revert BiddingSystem__Bid_already_accepted();
+        if (!(bid.rejected == false)) revert BiddingSystem__Bid_already_accepted();
         
-        bid.accepted = true; // Mark as rejected
+        // Mark as rejected and return stake
+        bid.rejected = true;
+        uint256 stake = bid.stake;
+        bid.stake = 0;
+        totalStakesHeld[sessionId] -= stake;
+        
+        _sendEth(bid.bidder, stake);
         
         emit BidRejected(sessionId, bidId, bid.bidder, reason);
     }
@@ -415,7 +425,8 @@ contract BiddingSystem is
         
         if (!(bid.stake > 0)) revert BiddingSystem__No_stake_to_withdraw();
         if (!(!bid.stakeWithdrawn)) revert BiddingSystem__Stake_already_withdrawn();
-        if (!(!bid.accepted)) revert BiddingSystem__No_stake_to_withdraw();
+        if (!(bid.accepted == false)) revert BiddingSystem__No_stake_to_withdraw();
+        if (!(bid.rejected == false)) revert BiddingSystem__No_stake_to_withdraw();
         
         // Check reveal window closed
         if (session.status == SessionStatus.Active || session.status == SessionStatus.BiddingClosed) {
@@ -430,27 +441,6 @@ contract BiddingSystem is
         _sendEth(msg.sender, amount);
         
         emit StakeWithdrawn(sessionId, msg.sender, amount);
-    }
-    
-    function claimStake(uint256 sessionId) external nonReentrant {
-        Session storage session = sessions[sessionId];
-        
-        if (!(session.id != 0)) revert BiddingSystem__Invalid_session();
-        if (!(session.status == SessionStatus.WinnerSelected)) revert BiddingSystem__No_winner();
-        if (!(session.winner == msg.sender)) revert BiddingSystem__Not_the_winner();
-        
-        uint256 bidIndex = bidderToBidIndex[sessionId][msg.sender];
-        Bid storage bid = sessionBids[sessionId][bidIndex - 1];
-        
-        if (!(bid.stake > 0)) revert BiddingSystem__No_stake_to_claim();
-        
-        uint256 amount = bid.stake;
-        bid.stake = 0;
-        totalStakesHeld[sessionId] -= amount;
-        
-        _sendEth(msg.sender, amount);
-        
-        emit StakeClaimed(sessionId, msg.sender, amount);
     }
     
     /***********************************/
@@ -553,6 +543,17 @@ contract BiddingSystem is
         emit SessionCancelled(sessionId, msg.sender);
     }
     
+    function completeSession(uint256 sessionId) external nonReentrant {
+        Session storage session = sessions[sessionId];
+        
+        if (!(session.id != 0)) revert BiddingSystem__Invalid_session();
+        if (!(session.status == SessionStatus.JobCreated)) revert BiddingSystem__Wrong_status();
+        
+        session.status = SessionStatus.Completed;
+        
+        emit SessionCompleted(sessionId);
+    }
+    
     function extendRevealWindow(uint256 sessionId, uint256 additionalSeconds) 
         external 
         onlySessionCreator(sessionId) 
@@ -562,6 +563,7 @@ contract BiddingSystem is
         if (!(session.id != 0)) revert BiddingSystem__Invalid_session();
         if (!(block.timestamp >= session.deadline)) revert BiddingSystem__Deadline_not_passed();
         if (!(block.timestamp < session.revealWindowEnd)) revert BiddingSystem__Reveal_window_already_closed();
+        if (!(additionalSeconds <= MAX_REVEAL_EXTENSION)) revert BiddingSystem__Extension_too_long();
         
         session.revealWindowEnd += additionalSeconds;
         
@@ -593,6 +595,7 @@ contract BiddingSystem is
                 commitHash: bytes32(0),
                 revealed: false,
                 accepted: false,
+                rejected: false,
                 stakeWithdrawn: false,
                 timestamp: 0
             });
@@ -638,11 +641,6 @@ contract BiddingSystem is
         commerce = commerce_;
     }
     
-    function setServiceRegistry(address registry_) external onlyOwner {
-        // Reserved for future ServiceRegistry integration
-        // Not implemented in V1
-    }
-    
     function setTreasury(address treasury_) external onlyOwner {
         if (!(treasury_ != address(0))) revert BiddingSystem__Zero_treasury();
         emit TreasuryUpdated(treasury, treasury_);
@@ -662,11 +660,6 @@ contract BiddingSystem is
         if (!(window_ >= 15 minutes && window_ <= 24 hours)) revert BiddingSystem__Invalid_window();
         emit RevealWindowUpdated(revealWindow, window_);
         revealWindow = window_;
-    }
-    
-    function setMinStakeBP(uint256 basisPoints_) external onlyOwner {
-        // Reserved for future configuration
-        // MIN_STAKE_BP is constant in V1
     }
     
     function setPlatformFeeBP(uint256 basisPoints_) external onlyOwner {

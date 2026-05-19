@@ -5,6 +5,7 @@ import { useAccount } from 'wagmi';
 import { useWaitForTransactionReceipt } from 'wagmi';
 import { Loader2, AlertTriangle, CheckCircle2, Lock, Eye, Trophy } from 'lucide-react';
 import { Card } from '@heroui/react';
+import { keccak256, encodeAbiParameters, parseEther } from 'viem';
 import {
   useCommitBid,
   useRevealBid,
@@ -66,8 +67,13 @@ export function CommitBidForm({ job, onSuccess }: CommitBidFormProps) {
   useEffect(() => {
     if (bidAmount && salt) {
       const amountUsdc = BigInt(Math.floor(parseFloat(bidAmount) * 1e6));
-      const hash = keccak256Hex(abiEncode(amountUsdc, bidMessage, salt));
-      setCommitHash(hash as `0x${string}`);
+      const hash = keccak256(
+        encodeAbiParameters(
+          [{ type: 'uint256' }, { type: 'string' }, { type: 'bytes32' }],
+          [amountUsdc, bidMessage, salt]
+        )
+      );
+      setCommitHash(hash);
     }
   }, [bidAmount, bidMessage, salt]);
 
@@ -482,31 +488,5 @@ export function BidStatusCard({ bid }: { bid: Bid }) {
         </p>
       </div>
     </Card>
-  );
-}
-
-function keccak256Hex(data: string): string {
-  if (typeof window !== 'undefined' && window.crypto?.subtle) {
-    const encoder = new TextEncoder();
-    const dataBuffer = encoder.encode(data);
-    return window.crypto.subtle.digest('SHA-256', dataBuffer).then(buf => {
-      return (
-        '0x' +
-        Array.from(new Uint8Array(buf))
-          .map(b => b.toString(16).padStart(2, '0'))
-          .join('')
-      );
-    }) as unknown as string;
-  }
-  return '0x' + '0'.repeat(64);
-}
-
-function abiEncode(amount: bigint, message: string, salt: string): string {
-  return (
-    '0x' +
-    amount.toString(16).padStart(64, '0') +
-    message.length.toString(16).padStart(64, '0') +
-    Buffer.from(message).toString('hex').padEnd(64, '0') +
-    salt.replace('0x', '').padEnd(64, '0')
   );
 }

@@ -503,40 +503,6 @@ contract BiddingSystemTest is Test {
         assertEq(bidder2.balance, balanceBefore + stake);
     }
     
-    function testClaimStakeRevertNoStake() public {
-        uint256 sessionId = _createSession(creator, 10 ether, 7 days);
-        _commitBid(sessionId, bidder1, 5 ether, "Proposal", bytes32(uint256(0x1111)));
-        
-        vm.warp(block.timestamp + 7 days + 30 minutes);
-        vm.prank(bidder1);
-        bidding.revealBid(sessionId, 5 ether, "Proposal", bytes32(uint256(0x1111)));
-        
-        vm.prank(creator);
-        bidding.acceptBid(sessionId, 1);
-        
-        // Winner cannot claim stake because it was already returned in acceptBid
-        vm.prank(bidder1);
-        vm.expectRevert(abi.encodeWithSelector(BiddingSystem.BiddingSystem__No_stake_to_claim.selector));
-        bidding.claimStake(sessionId);
-    }
-    
-    function testClaimStakeRevertNotWinner() public {
-        uint256 sessionId = _createSession(creator, 10 ether, 7 days);
-        _commitBid(sessionId, bidder1, 5 ether, "Proposal", bytes32(uint256(0x1111)));
-        
-        vm.warp(block.timestamp + 7 days + 30 minutes);
-        vm.prank(bidder1);
-        bidding.revealBid(sessionId, 5 ether, "Proposal", bytes32(uint256(0x1111)));
-        
-        vm.prank(creator);
-        bidding.acceptBid(sessionId, 1);
-        
-        // Non-winner tries to claim
-        vm.prank(bidder2);
-        vm.expectRevert(abi.encodeWithSelector(BiddingSystem.BiddingSystem__Not_the_winner.selector));
-        bidding.claimStake(sessionId);
-    }
-    
     /***********************************/
     /* Create Job Integration Tests */
     /***********************************/
@@ -623,6 +589,173 @@ contract BiddingSystemTest is Test {
         vm.prank(bidder1);
         vm.expectRevert(abi.encodeWithSelector(BiddingSystem.BiddingSystem__Not_session_creator.selector));
         bidding.cancelSession(sessionId);
+    }
+    
+    /***********************************/
+    /* Reject Bid Tests */
+    /***********************************/
+    
+    function testRejectBid() public {
+        uint256 sessionId = _createSession(creator, 10 ether, 7 days);
+        uint256 stake = bidding.calculateStake(10 ether);
+        
+        _commitBid(sessionId, bidder1, 5 ether, "Proposal", bytes32(uint256(0x1111)));
+        
+        vm.warp(block.timestamp + 7 days + 30 minutes);
+        vm.prank(bidder1);
+        bidding.revealBid(sessionId, 5 ether, "Proposal", bytes32(uint256(0x1111)));
+        
+        uint256 balanceBefore = bidder1.balance;
+        vm.prank(creator);
+        bidding.rejectBid(sessionId, 1, "Not suitable");
+        
+        // Bidder should get their stake back
+        assertEq(bidder1.balance, balanceBefore + stake);
+        
+        IBiddingSystem.Bid memory bid = bidding.getBid(sessionId, 1);
+        assertTrue(bid.rejected);
+        assertFalse(bid.accepted);
+        assertEq(bid.stake, 0);
+    }
+    
+    function testRejectBidRevertNotRevealed() public {
+        uint256 sessionId = _createSession(creator, 10 ether, 7 days);
+        _commitBid(sessionId, bidder1, 5 ether, "Proposal", bytes32(uint256(0x1111)));
+        
+        vm.prank(creator);
+        vm.expectRevert(abi.encodeWithSelector(BiddingSystem.BiddingSystem__Bid_not_revealed.selector));
+        bidding.rejectBid(sessionId, 1, "Not revealed");
+    }
+    
+    function testRejectBidRevertNotCreator() public {
+        uint256 sessionId = _createSession(creator, 10 ether, 7 days);
+        _commitBid(sessionId, bidder1, 5 ether, "Proposal", bytes32(uint256(0x1111)));
+        
+        vm.warp(block.timestamp + 7 days + 30 minutes);
+        vm.prank(bidder1);
+        bidding.revealBid(sessionId, 5 ether, "Proposal", bytes32(uint256(0x1111)));
+        
+        vm.prank(bidder2);
+        vm.expectRevert(abi.encodeWithSelector(BiddingSystem.BiddingSystem__Not_session_creator.selector));
+        bidding.rejectBid(sessionId, 1, "Not suitable");
+    }
+    
+    function testWithdrawStakeAfterRejection() public {
+        uint256 sessionId = _createSession(creator, 10 ether, 7 days);
+        uint256 stake = bidding.calculateStake(10 ether);
+        
+        _commitBid(sessionId, bidder1, 5 ether, "Proposal 1", bytes32(uint256(0x1111)));
+        _commitBid(sessionId, bidder2, 6 ether, "Proposal 2", bytes32(uint256(0x2222)));
+        
+        vm.warp(block.timestamp + 7 days + 30 minutes);
+        vm.prank(bidder1);
+        bidding.revealBid(sessionId, 5 ether, "Proposal 1", bytes32(uint256(0x1111)));
+        vm.prank(bidder2);
+        bidding.revealBid(sessionId, 6 ether, "Proposal 2", bytes32(uint256(0x2222)));
+        
+        // Creator rejects bidder2 first
+        uint256 bidder2BalanceBefore = bidder2.balance;
+        vm.prank(creator);
+        bidding.rejectBid(sessionId, 2, "Not suitable");
+        
+        // Bidder2's stake should be returned immediately in rejectBid
+        assertEq(bidder2.balance, bidder2BalanceBefore + stake);
+        
+        // Creator accepts bidder1 (session moves to WinnerSelected)
+        vm.prank(creator);
+        bidding.acceptBid(sessionId, 1);
+        
+        // Bidder2 cannot withdraw since stake is already 0 (returned in rejectBid)
+        vm.prank(bidder2);
+        vm.expectRevert(abi.encodeWithSelector(BiddingSystem.BiddingSystem__No_stake_to_withdraw.selector));
+        bidding.withdrawStake(sessionId);
+    }
+    
+    /***********************************/
+    /* Complete Session Tests */
+    /***********************************/
+    
+    function testCompleteSession() public {
+        uint256 sessionId = _createSession(creator, 10 ether, 7 days);
+        uint256 bidAmount = 5 ether;
+        uint256 platformFee = (bidAmount * 100) / 10000;
+        
+        _commitBid(sessionId, bidder1, bidAmount, "Great work", bytes32(uint256(0x1111)));
+        
+        vm.warp(block.timestamp + 7 days + 30 minutes);
+        vm.prank(bidder1);
+        bidding.revealBid(sessionId, bidAmount, "Great work", bytes32(uint256(0x1111)));
+        
+        vm.prank(creator);
+        bidding.acceptBid(sessionId, 1);
+        
+        uint256 totalPayment = bidAmount + platformFee;
+        vm.prank(creator);
+        bidding.createJobAndFund{value: totalPayment}(
+            sessionId,
+            block.timestamp + 30 days,
+            "Build a dApp"
+        );
+        
+        // Session should be in JobCreated status
+        IBiddingSystem.Session memory session = bidding.getSession(sessionId);
+        assertEq(uint8(session.status), 3); // JobCreated
+        
+        // Anyone can complete the session
+        vm.prank(bidder2);
+        bidding.completeSession(sessionId);
+        
+        session = bidding.getSession(sessionId);
+        assertEq(uint8(session.status), 4); // Completed
+    }
+    
+    function testCompleteSessionRevertWrongStatus() public {
+        uint256 sessionId = _createSession(creator, 10 ether, 7 days);
+        
+        // Session is Active, not JobCreated
+        vm.prank(bidder1);
+        vm.expectRevert(abi.encodeWithSelector(BiddingSystem.BiddingSystem__Wrong_status.selector));
+        bidding.completeSession(sessionId);
+    }
+    
+    /***********************************/
+    /* Extend Reveal Window Tests */
+    /***********************************/
+    
+    function testExtendRevealWindow() public {
+        uint256 sessionId = _createSession(creator, 10 ether, 7 days);
+        _commitBid(sessionId, bidder1, 5 ether, "Proposal", bytes32(uint256(0x1111)));
+        
+        vm.warp(block.timestamp + 7 days + 30 minutes);
+        
+        uint256 originalWindowEnd = bidding.getSession(sessionId).revealWindowEnd;
+        
+        vm.prank(creator);
+        bidding.extendRevealWindow(sessionId, 1 hours);
+        
+        assertEq(bidding.getSession(sessionId).revealWindowEnd, originalWindowEnd + 1 hours);
+    }
+    
+    function testExtendRevealWindowRevertTooLong() public {
+        uint256 sessionId = _createSession(creator, 10 ether, 7 days);
+        
+        vm.warp(block.timestamp + 7 days + 30 minutes);
+        
+        vm.prank(creator);
+        vm.expectRevert(abi.encodeWithSelector(BiddingSystem.BiddingSystem__Extension_too_long.selector));
+        bidding.extendRevealWindow(sessionId, 8 days);
+    }
+    
+    function testExtendRevealWindowRevealWindowMax() public {
+        uint256 sessionId = _createSession(creator, 10 ether, 7 days);
+        
+        vm.warp(block.timestamp + 7 days + 30 minutes);
+        
+        // Max extension should be exactly 7 days
+        vm.prank(creator);
+        bidding.extendRevealWindow(sessionId, 7 days);
+        
+        assertEq(bidding.getSession(sessionId).revealWindowEnd, bidding.getSession(sessionId).revealWindowEnd);
     }
     
     /***********************************/

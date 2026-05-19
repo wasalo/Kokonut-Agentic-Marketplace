@@ -59,7 +59,12 @@ export default function BiddingSessionDetailPage({
 
   const [commitAmount, setCommitAmount] = useState('');
   const [commitMessage, setCommitMessage] = useState('');
-  const [commitSalt, setCommitSalt] = useState('');
+  const [commitSalt, setCommitSalt] = useState(() => {
+    if (typeof window !== 'undefined') {
+      return localStorage.getItem(`bidding-salt-${id}`) || '';
+    }
+    return '';
+  });
   const [revealAmount, setRevealAmount] = useState('');
   const [revealMessage, setRevealMessage] = useState('');
   const [extendSeconds, setExtendSeconds] = useState('3600');
@@ -78,12 +83,17 @@ export default function BiddingSessionDetailPage({
       encodePacked(['uint256', 'string', 'bytes32'], [amount, commitMessage, saltHash])
     );
 
+    // Persist salt for reveal phase
+    if (typeof window !== 'undefined') {
+      localStorage.setItem(`bidding-salt-${id}`, commitSalt);
+    }
+
     commitBid({
       sessionId,
       commitHash: commitHashValue as `0x${string}`,
       stake,
     });
-  }, [sessionId, commitAmount, commitMessage, commitSalt, stake, session, commitBid]);
+  }, [sessionId, commitAmount, commitMessage, commitSalt, stake, session, commitBid, id]);
 
   const handleRevealBid = useCallback(() => {
     if (!revealAmount || !session) return;
@@ -287,9 +297,12 @@ export default function BiddingSessionDetailPage({
                   type="text"
                   value={commitSalt}
                   onChange={e => setCommitSalt(e.target.value)}
-                  placeholder="Random string"
+                  placeholder="Random string (SAVE THIS FOR REVEAL)"
                   className="w-full px-4 py-2 bg-content1 border border-divider rounded-lg focus:outline-none focus:border-[#009F4D]"
                 />
+                <p className="text-xs text-warning mt-1">
+                  You MUST remember this salt to reveal your bid
+                </p>
               </div>
             </div>
             <div className="flex items-center justify-between">
@@ -317,6 +330,15 @@ export default function BiddingSessionDetailPage({
                 )}
               </button>
             </div>
+            {commitSalt && (
+              <div className="mt-4 p-3 bg-content2 rounded-lg border border-divider">
+                <p className="text-xs text-default-500 mb-1">Your saved salt (auto-stored):</p>
+                <p className="text-sm font-mono break-all">{commitSalt}</p>
+                <p className="text-xs text-default-400 mt-1">
+                  This is stored in your browser. Copy it somewhere safe as backup.
+                </p>
+              </div>
+            )}
           </div>
         )}
 
@@ -328,6 +350,12 @@ export default function BiddingSessionDetailPage({
               <p className="text-default-500">
                 The bidding deadline has passed. Reveal your bid to be considered.
               </p>
+              {commitSalt && (
+                <div className="p-3 bg-content2 rounded-lg border border-divider">
+                  <p className="text-xs text-default-500 mb-1">Your stored salt:</p>
+                  <p className="text-sm font-mono break-all">{commitSalt}</p>
+                </div>
+              )}
               <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
                 <div>
                   <label className="text-sm font-medium mb-1 block">Amount (ETH)</label>
