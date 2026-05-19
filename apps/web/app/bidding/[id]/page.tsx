@@ -5,17 +5,18 @@ import { useAccount, useBalance } from 'wagmi';
 import { ArrowLeft, Loader2, CheckCircle, AlertCircle } from 'lucide-react';
 import { Card } from '@heroui/react';
 import NextLink from 'next/link';
-import { formatEther, parseEther, keccak256, toHex, encodePacked } from 'viem';
+import { formatEther, parseEther, keccak256, encodeAbiParameters } from 'viem';
 import {
   useBiddingSession,
   useBiddingUserBid,
   useBiddingAcceptBid,
   useBiddingWithdrawStake,
-  useBiddingClaimStake,
   useBiddingCancelSession,
   useBiddingExtendRevealWindow,
   useBiddingCommitBid,
   useBiddingRevealBid,
+  useBiddingRejectBid,
+  useBiddingCompleteSession,
   SessionStatus,
   SessionStatusType,
 } from '@/lib/hooks/useBiddingSystem';
@@ -46,7 +47,6 @@ export default function BiddingSessionDetailPage({
     withdrawStake,
     isPending: isWithdrawPending,
   } = useBiddingWithdrawStake();
-  const { claimStake, isPending: isClaimPending } = useBiddingClaimStake();
   const { cancelSession, isPending: isCancelPending } = useBiddingCancelSession();
   const {
     extendRevealWindow,
@@ -54,6 +54,8 @@ export default function BiddingSessionDetailPage({
   } = useBiddingExtendRevealWindow();
   const { commitBid, isPending: isCommitPending } = useBiddingCommitBid();
   const { revealBid, isPending: isRevealPending } = useBiddingRevealBid();
+  const { rejectBid, isPending: isRejectPending } = useBiddingRejectBid();
+  const { completeSession, isPending: isCompletePending } = useBiddingCompleteSession();
 
   const { data: ethBalance } = useBalance({ address });
 
@@ -78,9 +80,11 @@ export default function BiddingSessionDetailPage({
     if (!commitAmount || !commitSalt || !session) return;
 
     const amount = parseEther(commitAmount);
-    const saltHash = keccak256(toHex(commitSalt));
     const commitHashValue = keccak256(
-      encodePacked(['uint256', 'string', 'bytes32'], [amount, commitMessage, saltHash])
+      encodeAbiParameters(
+        [{ type: 'uint256' }, { type: 'string' }, { type: 'bytes32' }],
+        [amount, commitMessage, commitSalt as `0x${string}`]
+      )
     );
 
     // Persist salt for reveal phase
@@ -99,13 +103,12 @@ export default function BiddingSessionDetailPage({
     if (!revealAmount || !session) return;
 
     const amount = parseEther(revealAmount);
-    const saltHash = keccak256(toHex(commitSalt || 'default-salt'));
 
     revealBid({
       sessionId,
       amount,
       message: revealMessage,
-      salt: saltHash,
+      salt: commitSalt as `0x${string}`,
     });
   }, [sessionId, revealAmount, revealMessage, commitSalt, session, revealBid]);
 
@@ -118,13 +121,18 @@ export default function BiddingSessionDetailPage({
     withdrawStake(sessionId);
   }, [sessionId, withdrawStake]);
 
-  const handleClaimStake = useCallback(() => {
-    claimStake(sessionId);
-  }, [sessionId, claimStake]);
-
   const handleCancelSession = useCallback(() => {
     cancelSession(sessionId);
   }, [sessionId, cancelSession]);
+
+  const handleCompleteSession = useCallback(() => {
+    completeSession(sessionId);
+  }, [sessionId, completeSession]);
+
+  const handleRejectBid = useCallback(() => {
+    if (!userBid) return;
+    rejectBid({ sessionId, bidId: userBid.bidId, reason: 'Bid rejected by session creator' });
+  }, [sessionId, userBid, rejectBid]);
 
   const handleExtendWindow = useCallback(() => {
     extendRevealWindow({ sessionId, additionalSeconds: BigInt(extendSeconds) });
@@ -251,6 +259,12 @@ export default function BiddingSessionDetailPage({
                 <div className="mt-4 p-4 bg-[#009F4D]/10 rounded-lg">
                   <CheckCircle className="w-5 h-5 text-[#009F4D] mb-2" />
                   <p className="font-semibold text-[#009F4D]">You are the winner!</p>
+                </div>
+              )}
+              {userBid.rejected && (
+                <div className="mt-4 p-4 bg-danger/10 rounded-lg">
+                  <AlertCircle className="w-5 h-5 text-danger mb-2" />
+                  <p className="font-semibold text-danger">Your bid was rejected.</p>
                 </div>
               )}
             </div>
@@ -411,6 +425,19 @@ export default function BiddingSessionDetailPage({
                 )}
               </button>
               <button
+                onClick={handleRejectBid}
+                disabled={!userBid || userBid.rejected || isRejectPending}
+                className="px-6 py-2 bg-warning text-white font-medium rounded-lg hover:opacity-80 transition-colors disabled:opacity-50 disabled:cursor-not-allowed"
+              >
+                {isRejectPending ? (
+                  <Loader2 className="w-4 h-4 animate-spin inline" />
+                ) : userBid?.rejected ? (
+                  'Rejected'
+                ) : (
+                  'Reject Bid'
+                )}
+              </button>
+              <button
                 onClick={handleCancelSession}
                 disabled={isCancelPending}
                 className="px-6 py-2 bg-danger text-white font-medium rounded-lg hover:opacity-80 transition-colors disabled:opacity-50 disabled:cursor-not-allowed"
@@ -441,14 +468,28 @@ export default function BiddingSessionDetailPage({
 
         {isWinner && userBid && userBid.stake > 0n && !userBid.stakeWithdrawn && (
           <button
-            onClick={handleClaimStake}
-            disabled={isClaimPending}
+            onClick={handleWithdrawStake}
+            disabled={isWithdrawPending}
             className="px-6 py-2 bg-[#009F4D] text-white font-medium rounded-lg hover:bg-[#008F3D] transition-colors disabled:opacity-50 disabled:cursor-not-allowed"
           >
-            {isClaimPending ? (
+            {isWithdrawPending ? (
               <Loader2 className="w-4 h-4 animate-spin inline" />
             ) : (
-              'Claim Stake (as Job Funding)'
+              'Withdraw Stake'
+            )}
+          </button>
+        )}
+
+        {isCreator && session.status === SessionStatus.JobCreated && (
+          <button
+            onClick={handleCompleteSession}
+            disabled={isCompletePending}
+            className="px-6 py-2 bg-[#009F4D] text-white font-medium rounded-lg hover:bg-[#008F3D] transition-colors disabled:opacity-50 disabled:cursor-not-allowed"
+          >
+            {isCompletePending ? (
+              <Loader2 className="w-4 h-4 animate-spin inline" />
+            ) : (
+              'Complete Session'
             )}
           </button>
         )}

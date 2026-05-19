@@ -66,7 +66,8 @@ export interface Bid {
   commitHash: `0x${string}`;
   revealed: boolean;
   accepted: boolean;
-  withdrawn: boolean;
+  rejected: boolean;
+  stakeWithdrawn: boolean;
   timestamp: bigint;
 }
 

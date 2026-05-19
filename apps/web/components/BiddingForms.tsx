@@ -66,11 +66,11 @@ export function CommitBidForm({ job, onSuccess }: CommitBidFormProps) {
 
   useEffect(() => {
     if (bidAmount && salt) {
-      const amountUsdc = BigInt(Math.floor(parseFloat(bidAmount) * 1e6));
+      const amountEth = parseEther(bidAmount);
       const hash = keccak256(
         encodeAbiParameters(
           [{ type: 'uint256' }, { type: 'string' }, { type: 'bytes32' }],
-          [amountUsdc, bidMessage, salt]
+          [amountEth, bidMessage, salt]
         )
       );
       setCommitHash(hash);
@@ -125,14 +125,14 @@ export function CommitBidForm({ job, onSuccess }: CommitBidFormProps) {
       <div className="space-y-4">
         <div className="p-3 bg-content2 rounded-lg">
           <p className="text-xs text-default-500">Maximum Budget</p>
-          <p className="font-medium">${(Number(maxBudget) / 1e6).toFixed(2)} USDC</p>
+          <p className="font-medium">{Number(maxBudget) / 1e18} ETH</p>
         </div>
 
         <div className="p-3 bg-warning-50 border border-warning-200 rounded-lg">
           <div className="flex items-center gap-2">
             <AlertTriangle className="w-4 h-4 text-warning" />
             <p className="text-sm font-medium text-warning">
-              Stake Required: {stakeFormatted} USDC
+              Stake Required: {stakeFormatted}
             </p>
           </div>
           <p className="text-xs text-default-500 mt-1">
@@ -141,18 +141,18 @@ export function CommitBidForm({ job, onSuccess }: CommitBidFormProps) {
         </div>
 
         <div className="space-y-2">
-          <label className="text-sm font-medium">Your Bid Amount (USDC)</label>
+          <label className="text-sm font-medium">Your Bid Amount (ETH)</label>
           <input
             type="number"
-            step="0.01"
-            min={MIN_BUDGET_USDC}
-            max={(Number(maxBudget) / 1e6).toFixed(2)}
+            step="0.001"
+            min="0.001"
+            max={(Number(maxBudget) / 1e18).toFixed(3)}
             value={bidAmount}
             onChange={e => setBidAmount(e.target.value)}
-            placeholder="0.00"
+            placeholder="0.000"
             className="w-full px-3 py-2 bg-content2 border border-divider rounded-lg"
           />
-          {bidAmount && parseFloat(bidAmount) > Number(maxBudget) / 1e6 && (
+          {bidAmount && parseFloat(bidAmount) > Number(maxBudget) / 1e18 && (
             <p className="text-xs text-danger">Bid exceeds maximum budget</p>
           )}
         </div>
@@ -200,10 +200,10 @@ export function CommitBidForm({ job, onSuccess }: CommitBidFormProps) {
               Wait {formatTimeRemaining(timeUntilNextSubmit)}...
             </>
           ) : (
-            <>
-              <Lock className="w-4 h-4" />
-              Commit Bid (Stake {stakeFormatted} USDC)
-            </>
+              <>
+                <Lock className="w-4 h-4" />
+                Commit Bid (Stake {stakeFormatted})
+              </>
           )}
         </button>
       </div>
@@ -240,9 +240,9 @@ export function RevealBidForm({ job, onSuccess }: RevealBidFormProps) {
       return;
     }
 
-    const amountUsdc = BigInt(Math.floor(parseFloat(bidAmount) * 1e6));
+    const amountEth = parseEther(bidAmount);
 
-    revealBid(job.id, amountUsdc, bidMessage, salt as `0x${string}`);
+    revealBid(job.id, amountEth, bidMessage, salt as `0x${string}`);
   }, [userBid, job.id, bidAmount, bidMessage, salt, revealBid]);
 
   const isLoading = isPending || isConfirming;
@@ -276,13 +276,13 @@ export function RevealBidForm({ job, onSuccess }: RevealBidFormProps) {
           </div>
 
           <div className="space-y-2">
-            <label className="text-sm font-medium">Bid Amount (USDC)</label>
+            <label className="text-sm font-medium">Bid Amount (ETH)</label>
             <input
               type="number"
-              step="0.01"
+              step="0.001"
               value={bidAmount}
               onChange={e => setBidAmount(e.target.value)}
-              placeholder="0.00"
+              placeholder="0.000"
               className="w-full px-3 py-2 bg-content2 border border-divider rounded-lg"
             />
           </div>
@@ -400,10 +400,10 @@ export function AcceptBidForm({ job, bids, onSuccess }: AcceptBidFormProps) {
                 <div className="flex items-start justify-between">
                   <div>
                     <p className="font-medium">
-                      ${(Number(bid.proposedAmount) / 1e6).toFixed(2)} USDC
+                      {Number(bid.proposedAmount) / 1e18} ETH
                     </p>
                     <p className="text-xs text-default-400 mt-0.5">
-                      ≈ {formatUsdValue(bid.proposedAmount, USDC_TOKEN)} USD
+                      ≈ {formatUsdValue(bid.proposedAmount, ETH_TOKEN)} USD
                     </p>
                     <p className="text-xs text-default-500 mt-1">
                       Bidder: <Address address={bid.bidder as `0x${string}`} truncate />
@@ -474,7 +474,7 @@ export function BidStatusCard({ bid }: { bid: Bid }) {
       {bid.revealed ? (
         <div className="space-y-1">
           <p className="text-lg font-semibold">
-            ${(Number(bid.proposedAmount) / 1e6).toFixed(2)} USDC
+            {Number(bid.proposedAmount) / 1e18} ETH
           </p>
           {bid.message && <p className="text-sm text-default-500">{bid.message}</p>}
         </div>
@@ -484,7 +484,7 @@ export function BidStatusCard({ bid }: { bid: Bid }) {
 
       <div className="mt-3 pt-3 border-t border-divider">
         <p className="text-xs text-default-500">
-          Stake: ${(Number(bid.stake) / 1e6).toFixed(2)} USDC
+          Stake: {Number(bid.stake) / 1e18} ETH
         </p>
       </div>
     </Card>

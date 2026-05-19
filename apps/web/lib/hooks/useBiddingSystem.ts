@@ -42,6 +42,7 @@ export interface BidInfo {
   commitHash: `0x${string}`;
   revealed: boolean;
   accepted: boolean;
+  rejected: boolean;
   stakeWithdrawn: boolean;
   timestamp: bigint;
 }
@@ -375,32 +376,6 @@ export function useBiddingWithdrawStake() {
   };
 }
 
-export function useBiddingClaimStake() {
-  const { data: hash, isPending, writeContract, error: writeError } = useWriteContract();
-
-  const { isLoading: isConfirming, isSuccess: isConfirmed } = useWaitForTransactionReceipt({
-    hash,
-  });
-
-  function claimStake(sessionId: bigint) {
-    writeContract({
-      address: BIDDING_SYSTEM_ADDRESS,
-      abi: BIDDING_SYSTEM_ABI,
-      functionName: 'claimStake',
-      args: [sessionId],
-    });
-  }
-
-  return {
-    claimStake,
-    hash,
-    isPending,
-    isConfirming,
-    isConfirmed,
-    writeError,
-  };
-}
-
 export function useBiddingCreateJobAndFund() {
   const { data: hash, isPending, writeContract, error: writeError } = useWriteContract();
 
@@ -480,6 +455,32 @@ export function useBiddingExtendRevealWindow() {
 
   return {
     extendRevealWindow,
+    hash,
+    isPending,
+    isConfirming,
+    isConfirmed,
+    writeError,
+  };
+}
+
+export function useBiddingCompleteSession() {
+  const { data: hash, isPending, writeContract, error: writeError } = useWriteContract();
+
+  const { isLoading: isConfirming, isSuccess: isConfirmed } = useWaitForTransactionReceipt({
+    hash,
+  });
+
+  function completeSession(sessionId: bigint) {
+    writeContract({
+      address: BIDDING_SYSTEM_ADDRESS,
+      abi: BIDDING_SYSTEM_ABI,
+      functionName: 'completeSession',
+      args: [sessionId],
+    });
+  }
+
+  return {
+    completeSession,
     hash,
     isPending,
     isConfirming,

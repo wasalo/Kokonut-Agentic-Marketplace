@@ -50,6 +50,10 @@ export { JobStatus, JobType } from './read';
 
 export {
   useBiddingCalculateStake as useCalculateStake,
+  useBiddingRejectBid,
+  useBiddingExtendRevealWindow,
+  useBiddingCancelSession,
+  useBiddingCompleteSession,
 } from '../useBiddingSystem';
 
 import {
