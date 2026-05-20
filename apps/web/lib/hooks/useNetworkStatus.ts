@@ -63,6 +63,7 @@ export function useNetworkStatusWithCallback<T>(
 
   useEffect(() => {
     callback(isOnline);
+  // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [isOnline, callback, ...deps]);
 }
 

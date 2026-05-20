@@ -3,6 +3,7 @@
 import { usePathname } from 'next/navigation';
 import { useEffect, type ReactNode } from 'react';
 import { ErrorBoundary } from '@/components/ErrorBoundary';
+import Link from 'next/link';
 
 interface PageErrorBoundaryProps {
   children: ReactNode;
@@ -22,12 +23,12 @@ export function PageErrorBoundary({ children }: PageErrorBoundaryProps) {
         <div role="alert" className="container mx-auto px-4 py-16 text-center" aria-live="polite">
           <h1 className="text-2xl font-bold mb-4">Page Error</h1>
           <p className="text-default-500 mb-6">This page encountered an unexpected error.</p>
-          <a
+          <Link
             href="/"
             className="inline-flex items-center gap-2 px-6 py-3 bg-success text-white rounded-lg hover:opacity-90 transition-opacity"
           >
             Return Home
-          </a>
+          </Link>
         </div>
       }
     >

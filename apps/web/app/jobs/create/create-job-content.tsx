@@ -4,7 +4,7 @@ import { useState, useCallback, useEffect } from 'react';
 import { useAccount, useWaitForTransactionReceipt, usePublicClient, useWriteContract } from 'wagmi';
 import { erc20Abi, formatUnits } from 'viem';
 import { useRouter, useSearchParams } from 'next/navigation';
-import { ArrowLeft, Loader2, ShieldCheck, AlertTriangle, Coins } from 'lucide-react';
+import { ArrowLeft, Loader2, ShieldCheck, AlertTriangle, Coins, AlertCircle } from 'lucide-react';
 import NextLink from 'next/link';
 import { Card } from '@heroui/react';
 import { useService } from '@/lib/hooks/useServices';
@@ -93,7 +93,7 @@ function CreateJobContent() {
   const serviceId = serviceIdParam ? BigInt(serviceIdParam) : undefined;
   const { service } = useService(serviceId ?? BigInt(0));
 
-  const { formatUsdValue, ethToUsdcRate } = useTokenPriceConversion();
+  useTokenPriceConversion();
 
   const {
     count: jobCount,
@@ -115,7 +115,8 @@ function CreateJobContent() {
   const [clientReview] = useState(true);
   const [fundJobNow, setFundJobNow] = useState(false);
 
-  const { maxBudgetUsd } = useMaxBudgetUsd();
+  // maxBudgetUsd is enforced on-chain by AgenticCommerceV9 — no frontend guard needed
+  useMaxBudgetUsd();
 
   // Static per-token minimum budgets (replaces dynamic contract call for better UX)
   const MIN_BUDGETS: Record<string, { min: number; label: string }> = {
@@ -440,7 +441,6 @@ function CreateJobContent() {
       provider,
       budget,
       paymentToken,
-      minBudgetInToken,
       validateDeadlineField,
       validateBudgetField,
       createJobV8,
@@ -484,14 +484,6 @@ const handleBudgetChange = (e: React.ChangeEvent<HTMLInputElement>) => {
   setBudget(e.target.value);
   validateBudgetField(e.target.value);
 };
-
-const budgetInUsdc =
-    budget && parseFloat(budget || '0') > 0
-      ? formatUsdValue(
-          BigInt(Math.floor(parseFloat(budget || '0') * 10 ** paymentToken.decimals)),
-          paymentToken
-        )
-      : null;
 
   return (
     <div className="container mx-auto px-4 py-8">
@@ -667,7 +659,7 @@ const budgetInUsdc =
               <div className="flex justify-between items-center bg-content2 p-4 rounded-xl border border-divider">
                 <span className="font-medium text-default-700">Predefined Service Price</span>
                 <span className="text-xl font-bold text-[#009F4D]">
-                  {servicePriceRaw} USDC
+                  {(Number(service?.price || 0) / 1e6).toFixed(2)} USDC
                 </span>
               </div>
             ) : (
@@ -689,6 +681,9 @@ const budgetInUsdc =
                   />
                 </div>
                 {renderBudgetWarning()}
+                {budgetError && (
+                  <p className="text-danger text-xs mt-1">{budgetError}</p>
+                )}
                 <p className="text-default-400 text-xs mt-2">
                   Funds are held securely in a smart contract escrow.
                 </p>
