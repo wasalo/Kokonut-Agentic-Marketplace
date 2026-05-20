@@ -670,6 +670,7 @@ const handleBudgetChange = (e: React.ChangeEvent<HTMLInputElement>) => {
                 <div className="relative flex items-center">
                   <span className="absolute left-4 text-default-400 font-medium">$</span>
                   <input
+                    id="budget"
                     type="number"
                     step="0.01"
                     min={minBudgetInToken}
