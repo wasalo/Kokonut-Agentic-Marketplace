@@ -6,7 +6,7 @@ import { JobStatus, JobType } from '@/lib/types/contracts';
 
 const AGENTIC_COMMERCE_ADDRESS = getContractAddress('AGENTIC_COMMERCE');
 const BIDDING_SYSTEM_ADDRESS = getContractAddress('BIDDING_SYSTEM');
-const MAX_JOB_BATCH = 50;
+const MAX_JOB_BATCH = 200;
 
 export type { Job, JobStatusType, JobTypeType, Bid };
 export { JobStatus, JobType };
@@ -82,29 +82,38 @@ export function useJob(jobId: number | bigint | undefined) {
 }
 
 export function useJobs(start: number = 0, count: number = 20) {
+  const { data: jobCounter } = useReadContract({
+    address: AGENTIC_COMMERCE_ADDRESS,
+    abi: AGENTIC_COMMERCE_ABI,
+    functionName: 'jobCounter',
+    query: { staleTime: 10 * 1000 },
+  });
+
+  const totalJobs = jobCounter ? Number(jobCounter) : 0;
   const safeCount = Math.min(count, MAX_JOB_BATCH);
-  if (count > MAX_JOB_BATCH) {
-    console.warn(`useJobs: Requested ${count} jobs but capped at ${MAX_JOB_BATCH}. Use pagination for large datasets.`);
-  }
 
   const jobQueries = [];
-  const endIndex = start + safeCount;
-  for (let i = start; i < endIndex; i++) {
-    jobQueries.push({
-      address: AGENTIC_COMMERCE_ADDRESS,
-      abi: AGENTIC_COMMERCE_ABI,
-      functionName: 'jobs' as const,
-      args: [BigInt(i)],
-    });
+  const startId = totalJobs - start;
+  const endId = Math.max(1, startId - safeCount + 1);
+
+  if (totalJobs > 0 && startId >= 1) {
+    for (let i = startId; i >= endId; i--) {
+      jobQueries.push({
+        address: AGENTIC_COMMERCE_ADDRESS,
+        abi: AGENTIC_COMMERCE_ABI,
+        functionName: 'jobs' as const,
+        args: [BigInt(i)],
+      });
+    }
   }
 
   const { data: results, isLoading, error, refetch } = useReadContracts({
     contracts: jobQueries,
-    query: { retry: 2, staleTime: 30 * 1000 },
+    query: { retry: 2, staleTime: 30 * 1000, enabled: jobQueries.length > 0 },
   });
 
   if (!results || results.length === 0) {
-    return { jobs: [] as Job[], isLoading, error, refetch, totalCount: 0 };
+    return { jobs: [] as Job[], isLoading: isLoading || (!jobCounter && totalJobs === 0), error, refetch, totalCount: totalJobs };
   }
 
   const jobs: Job[] = [];
@@ -116,7 +125,7 @@ export function useJobs(start: number = 0, count: number = 20) {
     }
   }
 
-  return { jobs, isLoading, error, refetch, totalCount: safeCount };
+  return { jobs, isLoading, error, refetch, totalCount: totalJobs };
 }
 
 export function useUserJobs(

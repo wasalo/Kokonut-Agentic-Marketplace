@@ -53,6 +53,7 @@ interface IServiceRegistryV2 {
     function getServicesByAgent(uint256 agentId) external view returns (uint256[] memory);
     function getActiveServiceCount() external view returns (uint256);
     function getServices(uint256 start, uint256 count) external view returns (uint256[] memory);
+    function refundServiceBond(uint256 serviceId) external;
     
     event ServiceCreated(
         uint256 indexed serviceId,

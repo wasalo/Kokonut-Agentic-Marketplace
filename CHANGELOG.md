@@ -5,6 +5,19 @@ All notable changes to the Kokonut Agent Economy Stack are documented in this fi
 The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.0.0/),
 and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0.html).
 
+## [2026-05-19] — Phase 30: Smart Contract Limits & Marketplace UI Refinements
+
+### 🛠️ Smart Contract Size Fix
+
+- **AgenticCommerceV9 Optimization**: Reduced `optimizer_runs` from `20000` to `200` to successfully bypass the EIP-170 smart contract size limit of 24.576 KB. The contract shrunk from 26.4 KB to 22.0 KB.
+
+### 🎯 Marketplace UI/UX Bug Fixes
+
+- **Service Purchases Crash Resolved**: Fixed a critical frontend rendering crash (`BigInt(NaN)`) that occurred when a predefined service was bought. Empty string budgets are now parsed safely.
+- **Creator Stake Withdrawals**: Built and exposed the `withdrawCreatorStake` hook in `useBiddingSystem.ts`. Bidding session creators can now manually withdraw their stakes if their session is cancelled.
+- **Service Payment Address Updates**: Added the `useSetPaymentAddress` hook to `useServices.ts` allowing providers to re-route payments securely.
+- **Deprecated Hook Removal**: Eliminated `useCreateJobWithRandomEvaluator` from `create-job-content.tsx` and updated to `useCreateJobV8`.
+
 ## [2026-05-16] — CI Smart Contract Test Suite Repair (31 → 0 Failures)
 
 ### 🛠️ CI Test Suite: 31 Failures Fixed

@@ -17,6 +17,7 @@ import {
   useBiddingRevealBid,
   useBiddingRejectBid,
   useBiddingCompleteSession,
+  useBiddingWithdrawCreatorStake,
   SessionStatus,
   SessionStatusType,
 } from '@/lib/hooks/useBiddingSystem';
@@ -56,6 +57,10 @@ export default function BiddingSessionDetailPage({
   const { revealBid, isPending: isRevealPending } = useBiddingRevealBid();
   const { rejectBid, isPending: isRejectPending } = useBiddingRejectBid();
   const { completeSession, isPending: isCompletePending } = useBiddingCompleteSession();
+  const {
+    withdrawCreatorStake,
+    isPending: isCreatorWithdrawPending,
+  } = useBiddingWithdrawCreatorStake();
 
   const { data: ethBalance } = useBalance({ address });
 
@@ -120,6 +125,10 @@ export default function BiddingSessionDetailPage({
   const handleWithdrawStake = useCallback(() => {
     withdrawStake(sessionId);
   }, [sessionId, withdrawStake]);
+
+  const handleWithdrawCreatorStake = useCallback(() => {
+    withdrawCreatorStake(sessionId);
+  }, [sessionId, withdrawCreatorStake]);
 
   const handleCancelSession = useCallback(() => {
     cancelSession(sessionId);
@@ -490,6 +499,20 @@ export default function BiddingSessionDetailPage({
               <Loader2 className="w-4 h-4 animate-spin inline" />
             ) : (
               'Complete Session'
+            )}
+          </button>
+        )}
+
+        {isCreator && (session.status === SessionStatus.Completed || session.status === SessionStatus.Cancelled) && (
+          <button
+            onClick={handleWithdrawCreatorStake}
+            disabled={isCreatorWithdrawPending}
+            className="px-6 py-2 bg-[#009F4D] text-white font-medium rounded-lg hover:bg-[#008F3D] transition-colors disabled:opacity-50 disabled:cursor-not-allowed"
+          >
+            {isCreatorWithdrawPending ? (
+              <Loader2 className="w-4 h-4 animate-spin inline" />
+            ) : (
+              'Withdraw Creator Stake'
             )}
           </button>
         )}

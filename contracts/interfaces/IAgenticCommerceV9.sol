@@ -44,6 +44,22 @@ interface IAgenticCommerceV9 {
         uint256 fundAmount
     ) external payable returns (uint256 jobId);
     
+    function createJobForClient(
+        address client,
+        address provider,
+        uint256 budget,
+        address paymentToken,
+        uint256 serviceId,
+        uint256 expiredAt,
+        string calldata description,
+        address evaluator,
+        address hook,
+        bool evaluatorFee,
+        bool clientReview_,
+        bool fundNow,
+        uint256 fundAmount
+    ) external payable returns (uint256 jobId);
+    
     function createJobV7(
         address provider,
         address evaluator,

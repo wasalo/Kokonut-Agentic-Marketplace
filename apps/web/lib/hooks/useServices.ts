@@ -324,6 +324,31 @@ export function useUpdateService() {
   };
 }
 
+export function useSetPaymentAddress() {
+  const { writeContract, data, isPending, error, reset } = useWriteContract();
+
+  const setPaymentAddress = useCallback(
+    async (args: { serviceId: bigint; paymentAddress: `0x${string}` }) => {
+      const tx = await writeContract({
+        address: SERVICE_REGISTRY_ADDRESS,
+        abi: SERVICE_REGISTRY_ABI,
+        functionName: 'setPaymentAddress',
+        args: [args.serviceId, args.paymentAddress],
+      });
+      return tx;
+    },
+    [writeContract]
+  );
+
+  return {
+    setPaymentAddress,
+    hash: data,
+    isPending,
+    error: error as Error | null,
+    reset,
+  };
+}
+
 export function useActivateService() {
   const { writeContract, data, isPending, error, reset } = useWriteContract();
 

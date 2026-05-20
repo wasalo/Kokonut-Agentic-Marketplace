@@ -231,6 +231,12 @@ interface IBiddingSystem {
      */
     function withdrawStake(uint256 sessionId) external;
     
+    /**
+     * @dev Withdraw the session creator's stake after job creation or cancellation (as fallback/safety mechanism).
+     * @param sessionId The bidding session ID
+     */
+    function withdrawCreatorStake(uint256 sessionId) external;
+    
     /***********************************/
     /* Job Creation & Integration */
     /***********************************/

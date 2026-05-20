@@ -132,22 +132,36 @@ export function useClaimRefund() {
 }
 
 export function useSetBudget() {
+  const { writeContract, data, isPending, error, reset } = useWriteContract();
   return {
-    setBudget: (_jobId: bigint, _amount: bigint) => {},
-    hash: undefined,
-    isPending: false,
-    error: null,
-    reset: () => {},
+    setBudget: (jobId: bigint, amount: bigint) =>
+      writeContract({
+        address: AGENTIC_COMMERCE_ADDRESS,
+        abi: AGENTIC_COMMERCE_ABI,
+        functionName: 'setBudget',
+        args: [jobId, amount],
+      }),
+    hash: data,
+    isPending,
+    error,
+    reset,
   };
 }
 
 export function useSetPaymentToken() {
+  const { writeContract, data, isPending, error, reset } = useWriteContract();
   return {
-    setPaymentToken: (_jobId: bigint, _paymentToken: `0x${string}`) => {},
-    hash: undefined,
-    isPending: false,
-    error: null,
-    reset: () => {},
+    setPaymentToken: (jobId: bigint, paymentToken: `0x${string}`) =>
+      writeContract({
+        address: AGENTIC_COMMERCE_ADDRESS,
+        abi: AGENTIC_COMMERCE_ABI,
+        functionName: 'setPaymentToken',
+        args: [jobId, paymentToken],
+      }),
+    hash: data,
+    isPending,
+    error,
+    reset,
   };
 }
 
@@ -195,30 +209,6 @@ export function useRefundExpired() {
         abi: AGENTIC_COMMERCE_ABI,
         functionName: 'refundExpired',
         args: [jobId],
-      }),
-    hash: data,
-    isPending,
-    error,
-    reset,
-  };
-}
-
-export function useCreateJobWithRandomEvaluator() {
-  const { writeContract, data, isPending, error, reset } = useWriteContract();
-  return {
-    createJobWithRandomEvaluator: (
-      provider: `0x${string}`,
-      expiredAt: bigint,
-      description: string,
-      hook: `0x${string}` = '0x0000000000000000000000000000000000000000',
-      evaluatorFee: boolean = false,
-      clientReview: boolean = true
-    ) =>
-      writeContract({
-        address: AGENTIC_COMMERCE_ADDRESS,
-        abi: AGENTIC_COMMERCE_ABI,
-        functionName: 'createJobWithRandomEvaluator',
-        args: [provider, expiredAt, description, hook, evaluatorFee, clientReview],
       }),
     hash: data,
     isPending,

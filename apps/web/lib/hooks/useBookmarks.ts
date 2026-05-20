@@ -1,6 +1,6 @@
 'use client';
 
-import { useCallback, useEffect, useState } from 'react';
+import { useCallback, useEffect, useState, useMemo } from 'react';
 
 const JOBS_KEY = 'kokonut_bookmarks_jobs';
 const SERVICES_KEY = 'kokonut_bookmarks_services';
@@ -89,14 +89,23 @@ export function useJobBookmarks() {
     });
   }, []);
 
-  return {
+  const bookmarkedIds = useMemo(() => [...bookmarks], [bookmarks]);
+
+  return useMemo(() => ({
     bookmarks,
-    bookmarkedIds: [...bookmarks],
+    bookmarkedIds,
     isBookmarked,
     getCount,
     toggleBookmark,
     isLoaded,
-  };
+  }), [
+    bookmarks,
+    bookmarkedIds,
+    isBookmarked,
+    getCount,
+    toggleBookmark,
+    isLoaded,
+  ]);
 }
 
 export function useServiceBookmarks() {
@@ -127,14 +136,23 @@ export function useServiceBookmarks() {
     });
   }, []);
 
-  return {
+  const bookmarkedIds = useMemo(() => [...bookmarks], [bookmarks]);
+
+  return useMemo(() => ({
     bookmarks,
-    bookmarkedIds: [...bookmarks],
+    bookmarkedIds,
     isBookmarked,
     getCount,
     toggleBookmark,
     isLoaded,
-  };
+  }), [
+    bookmarks,
+    bookmarkedIds,
+    isBookmarked,
+    getCount,
+    toggleBookmark,
+    isLoaded,
+  ]);
 }
 
 export function useBookmarkCounts() {
@@ -153,11 +171,14 @@ export function useBookmarkCounts() {
     return () => clearInterval(interval);
   }, [refresh]);
 
-  return {
+  const getJobCount = useCallback((id: string) => counts.jobs[id] || 0, [counts.jobs]);
+  const getServiceCount = useCallback((id: string) => counts.services[id] || 0, [counts.services]);
+
+  return useMemo(() => ({
     jobCounts: counts.jobs,
     serviceCounts: counts.services,
-    getJobCount: (id: string) => counts.jobs[id] || 0,
-    getServiceCount: (id: string) => counts.services[id] || 0,
+    getJobCount,
+    getServiceCount,
     refresh,
-  };
+  }), [counts.jobs, counts.services, getJobCount, getServiceCount, refresh]);
 }

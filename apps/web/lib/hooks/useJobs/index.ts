@@ -27,7 +27,6 @@ export {
   useFundJobWithETH,
   useCompleteAfterTimeout,
   useRefundExpired,
-  useCreateJobWithRandomEvaluator,
   useCreateJobV8,
   useCreateJobV7,
   useRegisterAsEvaluator,

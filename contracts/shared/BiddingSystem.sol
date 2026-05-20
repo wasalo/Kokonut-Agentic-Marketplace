@@ -443,6 +443,27 @@ contract BiddingSystem is
         emit StakeWithdrawn(sessionId, msg.sender, amount);
     }
     
+    /**
+     * @dev Withdraw the session creator's stake after job creation or cancellation (as fallback/safety mechanism).
+     */
+    function withdrawCreatorStake(uint256 sessionId) external nonReentrant onlySessionCreator(sessionId) {
+        Session storage session = sessions[sessionId];
+        if (!(session.id != 0)) revert BiddingSystem__Invalid_session();
+        
+        // Allowed if job is created or session is cancelled
+        if (!(session.status == SessionStatus.JobCreated || session.status == SessionStatus.Completed || session.status == SessionStatus.Cancelled)) {
+            revert BiddingSystem__Wrong_status();
+        }
+        
+        uint256 creatorStake = calculateStake(session.maxBudget);
+        if (!(totalStakesHeld[sessionId] >= creatorStake)) revert BiddingSystem__No_stake_to_withdraw();
+        
+        totalStakesHeld[sessionId] -= creatorStake;
+        _sendEth(session.creator, creatorStake);
+        
+        emit StakeWithdrawn(sessionId, session.creator, creatorStake);
+    }
+    
     /***********************************/
     /* Job Creation & Integration */
     /***********************************/
@@ -466,8 +487,9 @@ contract BiddingSystem is
         
         if (!(msg.value >= totalPayment)) revert BiddingSystem__Insufficient_payment();
         
-        // Create job in AgenticCommerceV9 with budget at creation
-        jobId = IAgenticCommerceV9(commerce).createJob{value: bidAmount}(
+        // Create job in AgenticCommerceV9 with budget at creation for the session creator (client)
+        jobId = IAgenticCommerceV9(commerce).createJobForClient{value: bidAmount}(
+            msg.sender,           // client (session creator)
             session.winner,       // provider
             bidAmount,            // budget
             address(0),           // paymentToken: ETH
@@ -490,7 +512,6 @@ contract BiddingSystem is
         // Pay platform fee
         uint256 fee = (bidAmount * platformFeeBP) / FEE_DENOMINATOR;
         if (fee > 0) {
-            _sendEth(treasury, fee);
             totalAccumulatedFees += fee;
         }
         
@@ -506,6 +527,13 @@ contract BiddingSystem is
             sessionBids[sessionId][session.winningBidId - 1].stake = 0;
             totalStakesHeld[sessionId] -= winStake;
             _sendEth(session.winner, winStake);
+        }
+
+        // Return creator's session stake
+        uint256 creatorStake = calculateStake(session.maxBudget);
+        if (creatorStake > 0 && totalStakesHeld[sessionId] >= creatorStake) {
+            totalStakesHeld[sessionId] -= creatorStake;
+            _sendEth(session.creator, creatorStake);
         }
         
         emit JobCreatedFromSession(sessionId, jobId, session.winner, bidAmount);
@@ -538,6 +566,9 @@ contract BiddingSystem is
         
         // Return creator's session stake
         uint256 creatorStake = calculateStake(session.maxBudget);
+        if (creatorStake > 0 && totalStakesHeld[sessionId] >= creatorStake) {
+            totalStakesHeld[sessionId] -= creatorStake;
+        }
         _sendEth(msg.sender, creatorStake);
         
         emit SessionCancelled(sessionId, msg.sender);

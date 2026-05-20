@@ -9,12 +9,13 @@
 
 > **✨ Recent Changes:**
 
+> - **Phase 30: Smart Contract Limits & Marketplace UI Refinements (May 19, 2026) [COMPLETE]**:
+>   - **AgenticCommerceV9 Size Fix**: Reduced `optimizer_runs` from `20000` to `200` to safely bypass the EIP-170 limit of 24.576 KB (shrank from 26.4 KB to 22.0 KB).
+>   - **BiddingSystem Enhancements**: Deployed updated `BiddingSystem` with proxy ownership and `withdrawCreatorStake` method. Added a conditional UI button for session creators to withdraw their stakes manually upon cancellation.
+>   - **Payment Routing Integration**: Added `useSetPaymentAddress` hook to Service hooks. 
+>   - **UI Logic Fixes**: Patched a critical `NaN` parsing bug causing crashes during service purchases with implicit budgets. Replaced deprecated Random Evaluator hook with proper `useCreateJobV8` zero-address handling.
+
 > - **Phase 29j: E2E Test Suite Stabilization (May 17, 2026) [COMPLETE]**:
->   - **56 tests pass, 0 failures** on chromium (was 6 failing from `networkidle` timeouts)
->   - **Root Cause**: `waitForLoadState('networkidle')` never resolves on pages with background polling/analytics
->   - **Fix**: Replaced all `networkidle` with `domcontentloaded` + explicit element waits across 3 test files
->   - **Mobile project**: Conditionally excluded from CI via `process.env.CI` check in `playwright.config.ts`
->   - **Files**: `apps/web/tests/forms.spec.ts`, `apps/web/tests/submission.spec.ts`, `apps/web/tests/visual-regression.spec.ts`
 
 > - **Phase 29i: CI Smart Contract Test Suite Repair (May 16, 2026) [COMPLETE]**:
 >   - **All 299 tests pass** (was 268 passing / 31 failing across 5 test suites)
@@ -665,12 +666,12 @@ function setAgentWallet(uint256 agentId, address newWallet, uint256 deadline, by
 ```solidity
 // V9: Budget at creation with optional immediate funding
 function createJob(address provider, uint256 budget, address paymentToken, uint256 serviceId, uint256 expiredAt, string description, address evaluator, address hook, bool evaluatorFee, bool clientReview_, bool fundNow, uint256 fundAmount) external payable returns (uint256 jobId)
+function createJobForClient(address client, address provider, uint256 budget, address paymentToken, uint256 serviceId, uint256 expiredAt, string description, address evaluator, address hook, bool evaluatorFee, bool clientReview_, bool fundNow, uint256 fundAmount) external payable returns (uint256 jobId)
 
 // V9: Backward compatible V7 signature
 function createJobV7(address provider, address evaluator, uint256 expiredAt, string description, address hook, bool evaluatorFee, bool clientReview) external returns (uint256 jobId)
 
-// V9: Client Review Flow
-function createJobWithRandomEvaluator(address provider, uint256 expiredAt, string description, address hook, bool evaluatorFee, bool clientReview) external returns (uint256 jobId)
+// V9: Lifecycle & Funding
 function fund(uint256 jobId, uint256 expectedBudget) external payable
 function submit(uint256 jobId, bytes32 deliverable) external
 function approveByClient(uint256 jobId) external
@@ -729,6 +730,7 @@ function commitBid(uint256 sessionId, bytes32 commitHash) payable
 function revealBid(uint256 sessionId, uint256 amount, string message, bytes32 salt)
 function acceptBid(uint256 sessionId, uint256 bidId)
 function withdrawStake(uint256 sessionId)
+function withdrawCreatorStake(uint256 sessionId)
 function claimStake(uint256 sessionId)
 function cancelSession(uint256 sessionId)
 function getSession(uint256 sessionId) returns (Session memory)

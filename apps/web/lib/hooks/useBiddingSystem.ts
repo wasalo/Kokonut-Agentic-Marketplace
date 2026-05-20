@@ -372,7 +372,33 @@ export function useBiddingWithdrawStake() {
     isPending,
     isConfirming,
     isConfirmed,
-    writeError,
+    error: writeError as Error | null,
+  };
+}
+
+export function useBiddingWithdrawCreatorStake() {
+  const { data: hash, isPending, writeContract, error: writeError } = useWriteContract();
+
+  const { isLoading: isConfirming, isSuccess: isConfirmed } = useWaitForTransactionReceipt({
+    hash,
+  });
+
+  function withdrawCreatorStake(sessionId: bigint) {
+    writeContract({
+      address: BIDDING_SYSTEM_ADDRESS,
+      abi: BIDDING_SYSTEM_ABI,
+      functionName: 'withdrawCreatorStake',
+      args: [sessionId],
+    });
+  }
+
+  return {
+    withdrawCreatorStake,
+    hash,
+    isPending,
+    isConfirming,
+    isConfirmed,
+    error: writeError as Error | null,
   };
 }
 

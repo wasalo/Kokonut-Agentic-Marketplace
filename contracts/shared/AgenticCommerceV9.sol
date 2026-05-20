@@ -12,6 +12,7 @@ import {IACPHook} from "./IACPHook.sol";
 import {IAgenticCommerceV9} from "../interfaces/IAgenticCommerceV9.sol";
 import {IPriceOracleV2} from "../interfaces/IPriceOracleV2.sol";
 import {AdminRegistry} from "./AdminRegistry.sol";
+import {IServiceRegistryV2} from "./ServiceRegistryV2.sol";
 
 /**
  * @title AgenticCommerceV9
@@ -341,6 +342,70 @@ contract AgenticCommerceV9 is
         bool fundNow,
         uint256 fundAmount
     ) external payable nonReentrant whenNotPaused returns (uint256 jobId) {
+        return _createJob(
+            _msgSender(),
+            provider,
+            budget,
+            paymentToken,
+            serviceId,
+            expiredAt,
+            description,
+            evaluator,
+            hook,
+            evaluatorFee,
+            clientReview_,
+            fundNow,
+            fundAmount
+        );
+    }
+
+    function createJobForClient(
+        address client,
+        address provider,
+        uint256 budget,
+        address paymentToken,
+        uint256 serviceId,
+        uint256 expiredAt,
+        string calldata description,
+        address evaluator,
+        address hook,
+        bool evaluatorFee,
+        bool clientReview_,
+        bool fundNow,
+        uint256 fundAmount
+    ) external payable nonReentrant whenNotPaused returns (uint256 jobId) {
+        return _createJob(
+            client,
+            provider,
+            budget,
+            paymentToken,
+            serviceId,
+            expiredAt,
+            description,
+            evaluator,
+            hook,
+            evaluatorFee,
+            clientReview_,
+            fundNow,
+            fundAmount
+        );
+    }
+
+    function _createJob(
+        address client,
+        address provider,
+        uint256 budget,
+        address paymentToken,
+        uint256 serviceId,
+        uint256 expiredAt,
+        string calldata description,
+        address evaluator,
+        address hook,
+        bool evaluatorFee,
+        bool clientReview_,
+        bool fundNow,
+        uint256 fundAmount
+    ) internal returns (uint256 jobId) {
         // Validate inputs
         _validateJobCreation(provider, evaluator, expiredAt, description, hook);
         
@@ -357,7 +422,7 @@ contract AgenticCommerceV9 is
         
         // Blacklist check with P7-01 try/catch
         if (adminRegistry != address(0)) {
-            try AdminRegistry(adminRegistry).isWalletBlacklistedActive(_msgSender()) returns (bool isBlacklisted) {
+            try AdminRegistry(adminRegistry).isWalletBlacklistedActive(client) returns (bool isBlacklisted) {
                 if (isBlacklisted) revert ClientBlacklisted();
             } catch {
                 emit BlacklistCheckFailed(adminRegistry);
@@ -379,8 +444,8 @@ contract AgenticCommerceV9 is
             }
         }
 
-        if (clientJobCount[_msgSender()] >= MAX_JOBS_PER_CLIENT) {
-            revert MaxJobsPerClient(_msgSender(), clientJobCount[_msgSender()]);
+        if (clientJobCount[client] >= MAX_JOBS_PER_CLIENT) {
+            revert MaxJobsPerClient(client, clientJobCount[client]);
         }
 
         jobId = ++jobCounter;
@@ -406,7 +471,7 @@ contract AgenticCommerceV9 is
         
         jobs[jobId] = Job({
             id: jobId,
-            client: _msgSender(),
+            client: client,
             provider: provider,
             evaluator: finalEvaluator,
             serviceId: serviceId,
@@ -421,8 +486,8 @@ contract AgenticCommerceV9 is
         
         evaluatorFeeEnabled[jobId] = evaluatorFee;
         requiresClientReview[jobId] = clientReview_;
-        jobClient[jobId] = _msgSender();
-        clientJobCount[_msgSender()]++;
+        jobClient[jobId] = client;
+        clientJobCount[client]++;
         
         // Handle immediate funding
         if (fundNow) {
@@ -455,7 +520,7 @@ contract AgenticCommerceV9 is
             emit JobFunded(jobId, _msgSender(), amountToFund);
         }
         
-        emit JobCreated(jobId, _msgSender(), provider, budget, expiredAt, evaluatorFee, clientReview_, isRandomEvaluator);
+        emit JobCreated(jobId, client, provider, budget, expiredAt, evaluatorFee, clientReview_, isRandomEvaluator);
     }
 
     /**
@@ -733,6 +798,11 @@ contract AgenticCommerceV9 is
 
         _transferPayment(job.paymentToken, job.provider, providerPayment);
 
+        // Refund service listing bond if serviceId is provided and registry is configured
+        if (serviceRegistry != address(0) && job.serviceId > 0) {
+            try IServiceRegistryV2(serviceRegistry).refundServiceBond(job.serviceId) {} catch {}
+        }
+
         emit PaymentReleased(jobId, providerPayment, platformFee, evaluatorFeeAmount);
         emit JobStatusChanged(jobId, oldStatus, JobStatus.Completed, _msgSender(), block.timestamp);
     }
@@ -907,6 +977,11 @@ contract AgenticCommerceV9 is
         }
         if (net > 0) {
             _transferPayment(paymentToken, prov, net);
+        }
+
+        // Refund service listing bond if serviceId is provided and registry is configured
+        if (serviceRegistry != address(0) && job.serviceId > 0) {
+            try IServiceRegistryV2(serviceRegistry).refundServiceBond(job.serviceId) {} catch {}
         }
 
         emit JobCompleted(jobId, _msgSender(), job.provider, slashAmount);
@@ -1210,6 +1285,21 @@ contract AgenticCommerceV9 is
     }
 
     /**
+     * @dev Set the ServiceRegistry address.
+     * @param _registry New ServiceRegistry address.
+     */
+    function setServiceRegistry(address _registry) external onlyOwner {
+        if (_registry != address(0)) {
+            uint256 size;
+            assembly { size := extcodesize(_registry) }
+            if (size == 0) revert InvalidHook();
+        }
+        address oldRegistry = serviceRegistry;
+        serviceRegistry = _registry;
+        emit ServiceRegistrySet(oldRegistry, _registry);
+    }
+
+    /**
      * @dev Set the PriceOracle address.
      * @param _priceOracle New PriceOracle address.
      */
@@ -1262,6 +1352,7 @@ contract AgenticCommerceV9 is
     // Admin Events
     event PlatformTreasurySet(address indexed oldTreasury, address indexed newTreasury);
     event AdminRegistrySet(address indexed oldRegistry, address indexed newRegistry);
+    event ServiceRegistrySet(address indexed oldRegistry, address indexed newRegistry);
     event PriceOracleSet(address indexed oldOracle, address indexed newOracle);
 
     // Job Lifecycle Events (ported from V6)
@@ -1280,7 +1371,9 @@ contract AgenticCommerceV9 is
 
     // C-01: Toggle — when true, blacklist check failures revert instead of failing open
     bool public blacklistCheckRequired;
+
+    address public serviceRegistry;
     
     /// @dev Storage gap for upgrade safety
-    uint256[49] private __gap;
+    uint256[48] private __gap;
 }

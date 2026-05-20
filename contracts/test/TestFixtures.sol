@@ -389,6 +389,35 @@ contract MockAgenticCommerceV9 {
         emit JobCreated(jobId, msg.sender, provider, evaluator, expiredAt);
     }
 
+    function createJobForClient(
+        address client,
+        address provider,
+        uint256 budget,
+        address, /* paymentToken */
+        uint256, /* serviceId */
+        uint256 expiredAt,
+        string calldata,
+        address evaluator,
+        address, /* hook */
+        bool, /* evaluatorFee */
+        bool, /* clientReview_ */
+        bool, /* fundNow */
+        uint256 /* fundAmount */
+    ) external payable returns (uint256 jobId) {
+        jobId = ++jobCounter;
+        jobs[jobId] = MockJob({
+            id: jobId,
+            client: client,
+            provider: provider,
+            evaluator: evaluator,
+            budget: budget,
+            expiredAt: expiredAt,
+            funded: msg.value > 0
+        });
+
+        emit JobCreated(jobId, client, provider, evaluator, expiredAt);
+    }
+
     function setBudget(uint256 jobId, uint256 amount) external {
         jobs[jobId].budget = amount;
     }

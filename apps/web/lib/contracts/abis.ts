@@ -107,6 +107,8 @@ export const AGENTIC_COMMERCE_ABI = parseAbi([
   'function reject(uint256 jobId, bytes32 reason) external',
   'function claimRefund(uint256 jobId) external',
   'function refundExpired(uint256 jobId) external',
+  'function setBudget(uint256 jobId, uint256 amount) external',
+  'function setPaymentToken(uint256 jobId, address paymentToken) external',
   'function setDisputeWindow(uint256 jobId, uint256 window) external',
   'function setNonResponsiveSlashBP(uint256 jobId, uint256 slashBP) external',
   'function jobs(uint256) external view returns (uint256 id, address client, address provider, address evaluator, uint256 serviceId, address paymentToken, string description, uint256 budget, uint256 expiredAt, uint8 status, address hook, bytes32 deliverable)',
@@ -142,6 +144,9 @@ export const AGENTIC_COMMERCE_ABI = parseAbi([
   'function priceOracle() external view returns (address)',
   'function setAllowedToken(address token, bool allowed) external',
   'function allowedTokens(address token) external view returns (bool)',
+  'function serviceRegistry() external view returns (address)',
+  'function setServiceRegistry(address _serviceRegistry) external',
+  'function createJobForClient(address client, address provider, uint256 budget, address paymentToken, uint256 serviceId, uint256 expiredAt, string description, address evaluator, address hook, bool evaluatorFee, bool clientReview, bool fundNow, uint256 fundAmount) external payable returns (uint256 jobId)',
 ]);
 
 export const AGENT_REVIEW_ABI = parseAbi([
@@ -289,7 +294,9 @@ export const BIDDING_SYSTEM_ABI = parseAbi([
   'function revealBid(uint256 sessionId, uint256 amount, string message, bytes32 salt) external',
   'function acceptBid(uint256 sessionId, uint256 bidId) external',
   'function rejectBid(uint256 sessionId, uint256 bidId, string reason) external',
+  'function withdrawCreatorStake(uint256 sessionId) external',
   'function withdrawStake(uint256 sessionId) external',
+
   'function completeSession(uint256 sessionId) external',
   'function createJobAndFund(uint256 sessionId, uint256 jobExpiredAt, string description) external payable returns (uint256 jobId)',
   'function cancelSession(uint256 sessionId) external',
