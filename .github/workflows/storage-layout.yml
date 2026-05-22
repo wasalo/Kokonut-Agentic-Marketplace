@@ -9,6 +9,9 @@ on:
     paths:
       - 'contracts/**/*.sol'
 
+env:
+  FORCE_JAVASCRIPT_ACTIONS_TO_NODE24: true
+
 jobs:
   storage-layout:
     runs-on: ubuntu-latest
