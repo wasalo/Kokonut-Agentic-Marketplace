@@ -2,10 +2,10 @@
 pragma solidity ^0.8.20;
 
 import "forge-std/Test.sol";
+import "forge-std/StdInvariant.sol";
 import {AgenticCommerceV9, IAgenticCommerceV9} from "../shared/AgenticCommerceV9.sol";
 import {AgentReviewV5} from "../shared/AgentReviewV5.sol";
 import {ServiceRegistryV2} from "../shared/ServiceRegistryV2.sol";
-import {ERC1967Proxy} from "@openzeppelin/contracts/proxy/ERC1967/ERC1967Proxy.sol";
 import {ERC1967Proxy} from "@openzeppelin/contracts/proxy/ERC1967/ERC1967Proxy.sol";
 import {MockERC20, MockPriceOracle} from "./TestFixtures.sol";
 import {MockIdentityRegistry} from "./MockIdentityRegistry.sol";
@@ -118,41 +118,86 @@ contract TestFixtures is Test {
 
 /**
  * @title Invariants
- * @dev System-wide invariant tests for Kokonut contracts
- * 
- * Invariants tested:
- * 1. Contract ETH balance should always be 0 (funds go to treasury/provider)
- * 2. USDC balance equals sum of all funded job budgets
- * 3. Platform fee never exceeds 10%
- * 4. Evaluator count never exceeds max limit
- * 5. Job status transitions are valid
+ * @dev System-wide invariant tests using Foundry StdInvariant + targetContract(address(this))
+ *
+ * The fuzzer calls the public handler functions directly on this contract,
+ * then checks all invariant_* functions after each call sequence.
  */
-contract Invariants is TestFixtures {
-    uint256 public totalETHLocked;
-    uint256 public totalUSDCLocked;
+contract Invariants is StdInvariant, TestFixtures {
+    uint256 public jobId;
 
-    function test_NoETHBalance_AfterSetup() public {
-        assertGe(address(agenticCommerceV9).balance, 0);
+    function setUp() public override {
+        super.setUp();
+        vm.deal(client, 1000 ether);
+        vm.deal(provider, 1000 ether);
+        vm.deal(evaluator, 1000 ether);
+        vm.deal(address(this), 1000 ether);
+        targetContract(address(this));
     }
 
-    function test_ClientJobCountWithinLimit() public {
-        assertLe(agenticCommerceV9.clientJobCount(client), 100);
-        assertLe(agenticCommerceV9.clientJobCount(provider), 100);
+    // ── Fuzzer-callable handler functions ──
+
+    function createJob(uint256 expiryOffset) external {
+        expiryOffset = bound(expiryOffset, 6 minutes, 30 days);
+        vm.prank(client);
+        jobId = agenticCommerceV9.createJob{value: 1 ether}(
+            provider,
+            1 ether,
+            address(0),
+            0,
+            block.timestamp + expiryOffset,
+            "Test",
+            evaluator,
+            address(0),
+            false,
+            true,
+            true,
+            1 ether
+        );
     }
 
-    function test_TreasurySet() public {
+    function submitJob() external {
+        if (jobId == 0) return;
+        vm.prank(provider);
+        try agenticCommerceV9.submit(jobId, keccak256("deliverable")) {} catch {}
+    }
+
+    function approveByClient() external {
+        if (jobId == 0) return;
+        vm.prank(client);
+        try agenticCommerceV9.approveByClient(jobId) {} catch {}
+    }
+
+    function finalizeByEvaluator() external {
+        if (jobId == 0) return;
+        vm.prank(evaluator);
+        try agenticCommerceV9.finalizeByEvaluator(jobId, keccak256("reason")) {} catch {}
+    }
+
+    // ── Invariant checks (run after every fuzzer call sequence) ──
+
+    function invariant_JobStatus_AlwaysValid() public {
+        if (jobId == 0) return;
+        (,,,,,,,,, IAgenticCommerceV9.JobStatus status,,) = agenticCommerceV9.jobs(jobId);
+        uint256 s = uint256(status);
+        assertTrue(s <= 6, "Invalid job status");
+    }
+
+    function invariant_Treasury_AlwaysSet() public {
         assertTrue(agenticCommerceV9.platformTreasury() != address(0));
     }
 
-    function test_EvaluatorCountWithinLimit() public {
-        uint256 proposalCount = agentReview._proposalCounter();
-        for (uint i = 1; i <= proposalCount && i < 10; i++) {
-            assertLe(agentReview.getProposalEvaluators(i).length, 5);
-        }
+    function invariant_Owner_AlwaysSet() public {
+        assertTrue(agenticCommerceV9.owner() != address(0));
     }
 
-    function test_AgentReview_TreasurySet() public {
-        assertTrue(agentReview.owner() != address(0));
+    function invariant_EvaluatorPool_Bounded() public {
+        assertLe(agenticCommerceV9.getEvaluatorPoolSize(), 50);
+    }
+
+    function invariant_TotalLockedETH_NoOverflow() public {
+        uint256 totalLocked = agenticCommerceV9.totalLockedETH();
+        assertLe(totalLocked, address(agenticCommerceV9).balance);
     }
 }
 

@@ -24,6 +24,7 @@ import {
   Token,
 } from '@/lib/hooks/useTokenConversion';
 import { showToast } from '@/lib/toast';
+import { Address } from '@/components/Address';
 import { AddressInput } from '@/components/AddressInput';
 import { formatAddress } from '@/lib/utils';
 
@@ -510,7 +511,7 @@ const handleBudgetChange = (e: React.ChangeEvent<HTMLInputElement>) => {
                 <h3 className="font-semibold">{service.name}</h3>
                 <p className="text-sm text-default-500 mt-0.5">{service.description}</p>
                 <p className="text-xs text-default-400 mt-1">
-                  Provider: {formatAddress(service.provider)}
+                  Provider: <Address address={service.provider} truncate />
                 </p>
                 <p className="text-xs text-default-400 mt-1">
                   Job Budget:{' '}

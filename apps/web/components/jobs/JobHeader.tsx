@@ -7,6 +7,7 @@ import { formatUnits } from 'viem';
 import { StatusBadge, getJobStatusBadgeType } from '@/components/StatusBadge';
 import { Address } from '@/components/Address';
 import { PaymentTokenBadge, SUPPORTED_TOKENS } from '@/components/PaymentTokenSelector';
+import { useTokenPriceConversion, ETH_TOKEN, USDC_TOKEN } from '@/lib/hooks/useTokenConversion';
 import type { Job } from '@/lib/types/contracts';
 
 interface Service {
@@ -28,6 +29,9 @@ export function JobHeader({ job, service, isClient, isProvider, isEvaluator }: J
     : true;
   const budgetDecimals = isUSDC ? 6 : 18;
   const formattedBudget = formatUnits(job.budget, budgetDecimals);
+  const token = isUSDC ? USDC_TOKEN : ETH_TOKEN;
+  const { formatUsdValue, isLoading: isPriceLoading } = useTokenPriceConversion();
+  const usdValue = formatUsdValue(job.budget, token);
   const deadlineDate = new Date(Number(job.expiredAt) * 1000);
   const isExpired = Date.now() / 1000 > Number(job.expiredAt);
   const { isEnabled: isEvaluatorFeeEnabled } = { isEnabled: false };
@@ -77,6 +81,9 @@ export function JobHeader({ job, service, isClient, isProvider, isEvaluator }: J
           <div className="flex flex-wrap items-center gap-2">
             <p className="text-lg font-semibold text-success">
               {isUSDC ? `$${formattedBudget}` : `${formattedBudget} ETH`}
+              {!isUSDC && !isPriceLoading && usdValue !== '$0.00' && (
+                <span className="text-sm text-default-400 ml-2">({usdValue} USD)</span>
+              )}
             </p>
             {job.paymentToken && job.paymentToken !== '0x0000000000000000000000000000000000000000' && (
               <PaymentTokenBadge

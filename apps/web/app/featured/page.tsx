@@ -2,7 +2,7 @@
 
 import { useAdminRegistry } from '@/lib/hooks';
 import { useAgentReputation } from '@/lib/hooks/useAgentReputation';
-import { formatAddress } from '@/lib/utils';
+import { Address } from '@/components/Address';
 
 export default function FeaturedAgentsPage() {
   const { featuredAgents, isLoadingFeaturedAgents } = useAdminRegistry();
@@ -39,7 +39,7 @@ function AgentCard({ agentId }: { agentId: number }) {
       <div className="flex items-start justify-between">
         <div>
           <h3 className="text-xl font-semibold">Agent {agentId}</h3>
-          <p className="text-gray-600">{formatAddress(`0x${agentId.toString(16)}`)}</p>
+          <p className="text-gray-600"><Address address={`0x${agentId.toString(16)}` as `0x${string}`} truncate /></p>
         </div>
         <div className="text-right">
           <span className="text-2xl font-bold text-blue-600">{score}</span>

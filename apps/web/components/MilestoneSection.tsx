@@ -10,6 +10,11 @@ import {
 } from 'lucide-react';
 import { formatUnits } from 'viem';
 import {
+  useTokenPriceConversion,
+  ETH_TOKEN,
+  USDC_TOKEN,
+} from '@/lib/hooks/useTokenConversion';
+import {
   useJobMilestones,
   useJobMilestonesDetails,
   useCompleteMilestone,
@@ -69,6 +74,8 @@ export function MilestoneSection({
 
   const { symbol: tokenSymbol, decimals: tokenDecimals } = getTokenInfo(paymentToken);
   const isTerminal = isTerminalStatus(jobStatus);
+  const token = tokenSymbol === 'ETH' ? ETH_TOKEN : USDC_TOKEN;
+  const { formatUsdValue, isLoading: isPriceLoading } = useTokenPriceConversion();
 
   const {
     completeMilestone,
@@ -221,6 +228,11 @@ export function MilestoneSection({
           {details && details.totalBudget !== undefined && (
             <div className="text-sm text-default-500">
               Total: {formatUnits(details.totalBudget ?? 0n, tokenDecimals)} {tokenSymbol}
+              {tokenSymbol !== 'USDC' && !isPriceLoading && (
+                <span className="text-xs text-default-400 ml-1">
+                  ({formatUsdValue(details.totalBudget ?? 0n, token)} USD)
+                </span>
+              )}
             </div>
           )}
           {isClient && !showAddForm && !isTerminal && (
@@ -345,6 +357,11 @@ export function MilestoneSection({
                   <p className="text-sm text-default-600 mt-1">{milestone.description}</p>
                   <p className="text-lg font-semibold text-primary mt-2">
                     {formatUnits(milestone.amount ?? 0n, tokenDecimals)} {tokenSymbol}
+                    {tokenSymbol !== 'USDC' && !isPriceLoading && (
+                      <span className="text-xs text-default-400 ml-1">
+                        ({formatUsdValue(milestone.amount ?? 0n, token)} USD)
+                      </span>
+                    )}
                   </p>
                   {milestone.dueDate > 0 && (
                     <div className="flex items-center gap-1 text-xs text-default-400 mt-2">

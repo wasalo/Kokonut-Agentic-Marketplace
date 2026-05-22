@@ -6,8 +6,8 @@ import Link from 'next/link';
 import { Card, Badge, Skeleton } from '@heroui/react';
 import { useUnifiedAgentProfile, useEfpStats } from '@/lib/hooks';
 
-import { formatAddress } from '@/lib/utils';
 import { useAccount } from 'wagmi';
+import { Address } from '@/components/Address';
 import { FollowButton, FollowersYouKnow, FollowersAndFollowing, FollowerTag } from 'ethereum-identity-kit';
 
 import { 
@@ -17,8 +17,6 @@ import {
   Star,
   Plug,
   ExternalLink,
-  Copy,
-  Check,
   User,
   Code,
   Activity,
@@ -47,18 +45,9 @@ function AgentHeader({
   followersCount: number;
   followingCount: number;
 }) {
-  const [copied, setCopied] = useState(false);
   const agentName = metadata?.name || `Agent #${agentId}`;
   const agentDescription = metadata?.description || '';
   const capabilities = metadata?.capabilities || [];
-  
-  const copyAddress = () => {
-    if (owner) {
-      navigator.clipboard.writeText(owner);
-      setCopied(true);
-      setTimeout(() => setCopied(false), 2000);
-    }
-  };
 
   return (
     <div className="bg-gradient-to-br from-content2 to-content3 border border-divider rounded-xl md:rounded-2xl p-4 md:p-6 mb-4 md:mb-6">
@@ -152,21 +141,7 @@ function AgentHeader({
             {owner && (
               <div className="flex items-center gap-1.5 md:gap-2">
                 <Wallet className="w-3.5 md:w-4 text-default-400" />
-                <button 
-                  onClick={copyAddress}
-                  className="text-default-500 hover:text-foreground transition-colors flex items-center gap-1"
-                >
-                  <span className="font-mono text-xs">{formatAddress(owner)}</span>
-                  {copied ? <Check className="w-3 h-3 text-success" /> : <Copy className="w-3 h-3" />}
-                </button>
-                <a 
-                  href={`https://sepolia.etherscan.io/address/${owner}`}
-                  target="_blank"
-                  rel="noopener noreferrer"
-                  className="text-default-400 hover:text-foreground"
-                >
-                  <ExternalLink className="w-3 h-3" />
-                </a>
+                <Address address={owner as `0x${string}`} truncate />
               </div>
             )}
             <Link 

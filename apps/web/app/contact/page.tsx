@@ -4,6 +4,7 @@ import { useState } from 'react';
 import { Button, Card } from '@heroui/react';
 import { MessageSquare } from 'lucide-react';
 import { useAccount } from 'wagmi';
+import { Address } from '@/components/Address';
 
 export default function ContactPage() {
   const { isConnected, address } = useAccount();
@@ -135,7 +136,7 @@ export default function ContactPage() {
 
       {isConnected && address && (
         <div className="mt-4 text-center text-xs text-default-400">
-          Connected wallet: {address.slice(0, 6)}...{address.slice(-4)}
+          Connected wallet: <Address address={address} truncate />
         </div>
       )}
     </div>

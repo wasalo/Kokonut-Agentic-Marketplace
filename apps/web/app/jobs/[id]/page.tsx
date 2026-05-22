@@ -48,6 +48,7 @@ import {
   isOpenJob,
   Bid,
 } from '@/lib/hooks/useJobs';
+import { useTokenPriceConversion, ETH_TOKEN } from '@/lib/hooks/useTokenConversion';
 import { useWatchJob } from '@/lib/hooks/useJobEvents';
 import { useService } from '@/lib/hooks/useServices';
 import { useUSDCAllowance, useUSDCApprove, useUSDCBalance } from '@/lib/hooks/useUSDC';
@@ -119,6 +120,7 @@ export default function JobDetailPage({
   } = useSetPaymentToken();
   const [showPaymentTokenModal, setShowPaymentTokenModal] = useState(false);
   const [selectedPaymentToken, setSelectedPaymentToken] = useState<Token>(SUPPORTED_TOKENS[0]); // Default to USDC
+  const { formatUsdValue, isLoading: isPriceLoading } = useTokenPriceConversion();
 
   const [txStep, setTxStep] = useState<string | null>(null);
 
@@ -407,19 +409,6 @@ export default function JobDetailPage({
     hasActiveDispute ||
     canFlagDispute ||
     isTerminal;
-
-  const anyPending =
-    isFundPending ||
-    isFundETHPending ||
-    isSubmitPending ||
-    isApproveByClientPending ||
-    isFinalizePending ||
-    isRejectPending ||
-    isRefundPending ||
-    isWithdrawPending ||
-    isCompleteAfterTimeoutPending ||
-    isRefundExpiredPending ||
-    isEvaluating;
   const currentError =
     fundError ||
     submitError ||
@@ -643,7 +632,7 @@ export default function JobDetailPage({
                       });
                     }
                   }}
-                  disabled={anyPending || !!txStep || isApprovePending || isFundPending || isApprovingAndFunding || isPaymentTokenPending}
+                  disabled={!!txStep || isApprovePending || isFundPending || isFundETHPending || isApprovingAndFunding || isPaymentTokenPending}
                   className="w-full flex items-center gap-3 p-4 border border-success/30 rounded-lg hover:bg-success/5 transition-colors disabled:opacity-50"
                 >
                   {!isUSDC ? (
@@ -665,6 +654,9 @@ export default function JobDetailPage({
                       {isUSDC 
                         ? `$${formattedBudget} USDC` 
                         : `${formatUnits(job.budget, 18)} ETH`} into escrow
+                      {!isUSDC && !isPriceLoading && (
+                        <span className="ml-1">({formatUsdValue(job.budget, ETH_TOKEN)} USD)</span>
+                      )}
                     </p>
                   </div>
                   {(isApprovingAndFunding || isFundPending) && (
@@ -679,7 +671,7 @@ export default function JobDetailPage({
                 {!showFulfillmentInput ? (
                   <button
                     onClick={() => setShowFulfillmentInput(true)}
-                    disabled={anyPending || !!txStep}
+                    disabled={isSubmitPending || !!txStep}
                     className="w-full flex items-center gap-3 p-4 border border-primary/30 rounded-lg hover:bg-primary/5 transition-colors disabled:opacity-50"
                   >
                     <Send className="w-5 h-5 text-primary" />
@@ -717,8 +709,8 @@ export default function JobDetailPage({
                             submitJob(job.id, deliverableHash);
                           })
                         }
-                        disabled={anyPending || !!txStep || !fulfillmentText.trim()}
-                        className="flex-1 px-4 py-2 bg-primary text-white rounded-lg font-medium hover:opacity-90 disabled:opacity-50"
+                    disabled={isSubmitPending || !!txStep || !fulfillmentText.trim()}
+                    className="flex-1 px-4 py-2 bg-primary text-white rounded-lg font-medium hover:opacity-90 disabled:opacity-50"
                       >
                         {isSubmitPending ? 'Submitting...' : 'Submit'}
                       </button>
@@ -732,7 +724,7 @@ export default function JobDetailPage({
             {job.status === JobStatus.PendingClientApproval && isClient && (
               <button
                 onClick={handleClientApprove}
-                disabled={anyPending || !!txStep}
+                disabled={isApproveByClientPending || !!txStep}
                 className="w-full flex items-center gap-3 p-4 border border-primary/30 rounded-lg hover:bg-primary/5 transition-colors disabled:opacity-50"
               >
                 <CheckSquare className="w-5 h-5 text-primary" />
@@ -749,7 +741,7 @@ export default function JobDetailPage({
             {job.status === JobStatus.Submitted && isClient && (
               <button
                 onClick={handleClientApprove}
-                disabled={anyPending || !!txStep || clientApproved}
+                disabled={isApproveByClientPending || !!txStep || clientApproved}
                 className="w-full flex items-center gap-3 p-4 border border-primary/30 rounded-lg hover:bg-primary/5 transition-colors disabled:opacity-50"
               >
                 <CheckSquare className="w-5 h-5 text-primary" />
@@ -771,7 +763,7 @@ export default function JobDetailPage({
                         finalizeByEvaluator(job.id, keccak256(toHex('approved')))
                       )
                     }
-                    disabled={anyPending || !!txStep}
+                    disabled={isFinalizePending || !!txStep}
                     className="w-full flex items-center gap-3 p-4 border border-success/30 rounded-lg hover:bg-success/5 transition-colors disabled:opacity-50"
                   >
                     <CheckSquare className="w-5 h-5 text-success" />
@@ -787,7 +779,7 @@ export default function JobDetailPage({
                 <div className="space-y-2">
                   <button
                     onClick={handleEvaluate}
-                    disabled={anyPending || !!txStep || isEvaluating}
+                    disabled={!!txStep || isEvaluating}
                     className="w-full flex items-center gap-3 p-3 border border-divider rounded-lg hover:bg-content2 transition-colors disabled:opacity-50"
                   >
                     <Loader2 className={`w-4 h-4 ${isEvaluating ? 'animate-spin' : ''}`} />
@@ -841,7 +833,7 @@ export default function JobDetailPage({
                       rejectJob(job.id, keccak256(toHex('rejected')))
                     )
                   }
-                  disabled={anyPending || !!txStep}
+                  disabled={isRejectPending || !!txStep}
                   className="w-full flex items-center gap-3 p-4 border border-danger/30 rounded-lg hover:bg-danger/5 transition-colors disabled:opacity-50"
                 >
                   <XSquare className="w-5 h-5 text-danger" />
@@ -856,7 +848,7 @@ export default function JobDetailPage({
               (job.status === JobStatus.Funded || job.status === JobStatus.Submitted) && (
                 <button
                   onClick={() => handleAction('Claiming refund', () => claimRefund(job.id))}
-                  disabled={anyPending || !!txStep}
+                  disabled={isRefundPending || !!txStep}
                   className="w-full flex items-center gap-3 p-4 border border-warning/30 rounded-lg hover:bg-warning/5 transition-colors disabled:opacity-50"
                 >
                   <RefreshCw className="w-5 h-5 text-warning" />
@@ -875,7 +867,7 @@ export default function JobDetailPage({
                 onClick={() =>
                   handleAction('Completing job after timeout', () => completeAfterTimeout(job.id))
                 }
-                disabled={anyPending || !!txStep || isCompleteAfterTimeoutPending}
+                disabled={!!txStep || isCompleteAfterTimeoutPending}
                 className="w-full flex items-center gap-3 p-4 border border-primary/30 rounded-lg hover:bg-primary/5 transition-colors disabled:opacity-50"
               >
                 <Clock className="w-5 h-5 text-primary" />
@@ -897,7 +889,7 @@ export default function JobDetailPage({
                   onClick={() =>
                     handleAction('Triggering permissionless refund', () => refundExpired(job.id))
                   }
-                  disabled={anyPending || !!txStep || isRefundExpiredPending}
+                  disabled={!!txStep || isRefundExpiredPending}
                   className="w-full flex items-center gap-3 p-4 border border-danger/30 rounded-lg hover:bg-danger/5 transition-colors disabled:opacity-50"
                 >
                   <RefreshCw className="w-5 h-5 text-danger" />
