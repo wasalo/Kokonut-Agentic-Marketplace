@@ -183,6 +183,9 @@ contract AgenticCommerceV9 is
     }
     
     function initialize(address _platformTreasury, address _adminRegistry, address _priceOracle) external initializer {
+        if (_platformTreasury == address(0)) revert ZeroAddress();
+        if (_priceOracle == address(0)) revert ZeroAddress();
+        
         __Context_init();
         __Ownable_init(_msgSender());
         __Pausable_init();
@@ -1187,17 +1190,18 @@ contract AgenticCommerceV9 is
      * @param entropy Pre-computed entropy (blockhash of commit block).
      */
     function _selectRandomEvaluator(uint256 jobId, bytes32 entropy) internal view returns (address evaluator) {
-        if (evaluatorPool.length == 0) revert NoEvaluatorsAvailable();
+        uint256 poolLength = evaluatorPool.length;
+        if (poolLength == 0) revert NoEvaluatorsAvailable();
 
         uint256 randomIndex = uint256(keccak256(abi.encodePacked(
             entropy,
             jobId,
-            evaluatorPool.length
-        ))) % evaluatorPool.length;
+            poolLength
+        ))) % poolLength;
 
         evaluator = evaluatorPool[randomIndex];
         if (!isRegisteredEvaluator[evaluator]) {
-            for (uint256 i = 0; i < evaluatorPool.length; i++) {
+            for (uint256 i = 0; i < poolLength; i++) {
                 if (isRegisteredEvaluator[evaluatorPool[i]]) {
                     return evaluatorPool[i];
                 }

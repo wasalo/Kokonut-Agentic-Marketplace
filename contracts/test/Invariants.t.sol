@@ -7,7 +7,7 @@ import {AgentReviewV5} from "../shared/AgentReviewV5.sol";
 import {ServiceRegistryV2} from "../shared/ServiceRegistryV2.sol";
 import {ERC1967Proxy} from "@openzeppelin/contracts/proxy/ERC1967/ERC1967Proxy.sol";
 import {ERC1967Proxy} from "@openzeppelin/contracts/proxy/ERC1967/ERC1967Proxy.sol";
-import {MockERC20} from "./MockERC20.sol";
+import {MockERC20, MockPriceOracle} from "./TestFixtures.sol";
 import {MockIdentityRegistry} from "./MockIdentityRegistry.sol";
 
 /**
@@ -21,6 +21,7 @@ contract TestFixtures is Test {
     ServiceRegistryV2 public serviceRegistry;
     ServiceRegistryV2 public serviceRegistryImpl;
     MockERC20 public usdc;
+    MockPriceOracle public priceOracle;
     MockIdentityRegistry public identityRegistry;
 
     address public owner;
@@ -69,14 +70,15 @@ contract TestFixtures is Test {
         vm.deal(evaluator6, INITIAL_ETH);
 
         vm.startPrank(owner);
-        usdc = new MockERC20("USD Coin", "USDC");
+        usdc = new MockERC20("USD Coin", "USDC", 6);
         usdc.mint(client, INITIAL_USDC);
         usdc.mint(provider, INITIAL_USDC);
 
         identityRegistry = new MockIdentityRegistry();
+        priceOracle = new MockPriceOracle();
 
         AgenticCommerceV9 commerceImpl = new AgenticCommerceV9();
-        bytes memory commerceInitData = abi.encodeCall(AgenticCommerceV9.initialize, (treasury, address(0), address(0)));
+        bytes memory commerceInitData = abi.encodeCall(AgenticCommerceV9.initialize, (treasury, address(0), address(priceOracle)));
         ERC1967Proxy commerceProxy = new ERC1967Proxy(
             address(commerceImpl),
             commerceInitData

@@ -81,7 +81,6 @@ contract MilestoneEscrow is
     
     // Job milestone data
     mapping(uint256 => JobMilestones) public jobMilestones;
-    uint256 public jobCounter;
     
     // Arbiter system
     address[] public arbiterPool;
@@ -145,6 +144,8 @@ contract MilestoneEscrow is
     /***********************************/
     
     function initialize(address initialOwner, address _agenticCommerce) public initializer {
+        if (initialOwner == address(0)) revert ZeroAddress();
+        if (_agenticCommerce == address(0)) revert ZeroAddress();
         __Context_init();
         __Ownable_init(initialOwner);
         __Pausable_init();
@@ -165,6 +166,7 @@ contract MilestoneEscrow is
     /***********************************/
 
     function setAgenticCommerce(address _agenticCommerce) external onlyOwner {
+        if (_agenticCommerce == address(0)) revert ZeroAddress();
         emit AgenticCommerceSet(agenticCommerce, _agenticCommerce);
         agenticCommerce = _agenticCommerce;
     }

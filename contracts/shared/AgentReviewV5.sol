@@ -240,6 +240,7 @@ contract AgentReviewV5 is IAgentReviewV5, ContextUpgradeable, Ownable2StepUpgrad
     }
 
     function initialize(address initialOwner) public initializer {
+        if (initialOwner == address(0)) revert AgentReviewV5_Zero_address();
         __Context_init();
         __Ownable_init(initialOwner);
         __Pausable_init();
@@ -475,7 +476,7 @@ contract AgentReviewV5 is IAgentReviewV5, ContextUpgradeable, Ownable2StepUpgrad
         }
     }
 
-    function slashEvaluator(address evaluator, uint256 proposalId, uint256 slashBP, string calldata reason) external onlySlashManager whenNotPaused {
+    function slashEvaluator(address evaluator, uint256 proposalId, uint256 slashBP, string calldata reason) external nonReentrant onlySlashManager whenNotPaused {
         Proposal storage proposal = proposals[proposalId];
         if (!(proposal.id == proposalId)) revert AgentReviewV5_Invalid_proposal();
         if (!(proposal.status == ProposalStatus.UnderReview)) revert AgentReviewV5_Proposal_not_active();
@@ -654,7 +655,7 @@ contract AgentReviewV5 is IAgentReviewV5, ContextUpgradeable, Ownable2StepUpgrad
         }
     }
 
-    function withdrawETH(address payable to, uint256 amount) external onlyOwner {
+    function withdrawETH(address payable to, uint256 amount) external nonReentrant onlyOwner {
         if (!(to != address(0))) revert AgentReviewV5_Zero_address();
         if (!(amount > 0)) revert AgentReviewV5_Zero_amount();
         

@@ -103,6 +103,7 @@ contract AdminRegistry is Ownable2StepUpgradeable, UUPSUpgradeable, PausableUpgr
     event WalletBlacklisted(address indexed wallet, address indexed by, string reason, uint256 activationAt);
     event WalletUnblacklisted(address indexed wallet, address indexed by);
     event WalletBlacklistActivated(address indexed wallet);
+    event SlashManagerSet(address indexed oldManager, address indexed newManager);
     
     // Errors
     error Unauthorized();
@@ -231,6 +232,8 @@ contract AdminRegistry is Ownable2StepUpgradeable, UUPSUpgradeable, PausableUpgr
      * @param _slashManager Address of the SlashManager contract
      */
     function setSlashManager(address _slashManager) public onlyOwner {
+        if (_slashManager == address(0)) revert ZeroAddress();
+        emit SlashManagerSet(slashManager, _slashManager);
         slashManager = _slashManager;
     }
 

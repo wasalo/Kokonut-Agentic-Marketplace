@@ -487,6 +487,10 @@ contract BiddingSystem is
         
         if (!(msg.value >= totalPayment)) revert BiddingSystem__Insufficient_payment();
         
+        // Set guard flags BEFORE external call to prevent reentrancy
+        session.jobCreated = true;
+        session.status = SessionStatus.JobCreated;
+        
         // Create job in AgenticCommerceV9 with budget at creation for the session creator (client)
         jobId = IAgenticCommerceV9(commerce).createJobForClient{value: bidAmount}(
             msg.sender,           // client (session creator)
@@ -504,10 +508,8 @@ contract BiddingSystem is
             bidAmount             // fundAmount
         );
         
-        // Update session state before external calls
+        // Store jobId after external call (depends on return value)
         session.jobId = jobId;
-        session.jobCreated = true;
-        session.status = SessionStatus.JobCreated;
         
         // Pay platform fee
         uint256 fee = (bidAmount * platformFeeBP) / FEE_DENOMINATOR;

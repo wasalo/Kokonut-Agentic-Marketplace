@@ -7,11 +7,13 @@ import {AgenticCommerceV9} from "../shared/AgenticCommerceV9.sol";
 import {ServiceRegistryV2} from "../shared/ServiceRegistryV2.sol";
 import {ERC1967Proxy} from "@openzeppelin/contracts/proxy/ERC1967/ERC1967Proxy.sol";
 import {MockIdentityRegistry} from "./MockIdentityRegistry.sol";
+import {MockPriceOracle} from "./TestFixtures.sol";
 
 contract GasSnapshotTest is Test {
     AgenticCommerceV9 public agenticCommerce;
     ServiceRegistryV2 public serviceRegistry;
     MockIdentityRegistry public identityRegistry;
+    MockPriceOracle public priceOracle;
 
     address owner = makeAddr("owner");
     address treasury = makeAddr("treasury");
@@ -22,8 +24,9 @@ contract GasSnapshotTest is Test {
         vm.startPrank(owner);
 
         // Deploy AgenticCommerceV9
+        priceOracle = new MockPriceOracle();
         AgenticCommerceV9 impl = new AgenticCommerceV9();
-        bytes memory initData = abi.encodeWithSelector(AgenticCommerceV9.initialize.selector, treasury, address(0), address(0));
+        bytes memory initData = abi.encodeWithSelector(AgenticCommerceV9.initialize.selector, treasury, address(0), address(priceOracle));
         ERC1967Proxy proxy = new ERC1967Proxy(address(impl), initData);
         agenticCommerce = AgenticCommerceV9(address(proxy));
 

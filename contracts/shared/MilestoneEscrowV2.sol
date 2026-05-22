@@ -157,6 +157,7 @@ contract MilestoneEscrowV2 is
     /***********************************/
     
     function initialize(address initialOwner, address _agenticCommerce) public initializer {
+        if (initialOwner == address(0)) revert ZeroAddress();
         __Context_init();
         __Ownable_init(initialOwner);
         __Pausable_init();
@@ -364,9 +365,9 @@ contract MilestoneEscrowV2 is
         uint256 fee = arbiterFeePerToken[paymentToken];
         if (fee == 0) revert InsufficientArbiterFee();
         
-        // Assign random arbiter
+        // Assign random arbiter using blockhash for verifiable randomness
         uint256 randomIndex = uint256(keccak256(abi.encodePacked(
-            block.timestamp,
+            blockhash(block.number - 1),
             block.prevrandao,
             jobId,
             _msgSender()

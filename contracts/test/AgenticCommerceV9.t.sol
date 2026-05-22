@@ -4,13 +4,14 @@ pragma solidity ^0.8.20;
 import {Test, console} from "forge-std/Test.sol";
 import {AgenticCommerceV9, IAgenticCommerceV9} from "../shared/AgenticCommerceV9.sol";
 import {ERC1967Proxy} from "@openzeppelin/contracts/proxy/ERC1967/ERC1967Proxy.sol";
-import {MockERC20} from "./TestFixtures.sol";
+import {MockERC20, MockPriceOracle} from "./TestFixtures.sol";
 
 contract AgenticCommerceV9Test is Test {
     AgenticCommerceV9 public implementation;
     ERC1967Proxy public proxy;
     AgenticCommerceV9 public commerce;
     MockERC20 public usdc;
+    MockPriceOracle public priceOracle;
 
     address public owner = makeAddr("owner");
     address public treasury = makeAddr("treasury");
@@ -32,7 +33,9 @@ contract AgenticCommerceV9Test is Test {
         vm.prank(owner);
         implementation = new AgenticCommerceV9();
 
-        bytes memory initData = abi.encodeCall(AgenticCommerceV9.initialize, (treasury, address(0), address(0)));
+        priceOracle = new MockPriceOracle();
+
+        bytes memory initData = abi.encodeCall(AgenticCommerceV9.initialize, (treasury, address(0), address(priceOracle)));
         proxy = new ERC1967Proxy(
             address(implementation),
             initData
@@ -73,7 +76,7 @@ contract AgenticCommerceV9Test is Test {
     function testInitializeRevertIfCalledTwice() public {
         vm.prank(owner);
         vm.expectRevert();
-        commerce.initialize(treasury, address(0), address(0));
+        commerce.initialize(treasury, address(0), address(priceOracle));
     }
 
     // ── Job Creation (V9 createJob) ─────────────────────────────────────────
