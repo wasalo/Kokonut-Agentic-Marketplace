@@ -32,7 +32,7 @@ jobs:
       - name: Install Foundry
         uses: foundry-rs/foundry-toolchain@v1
         with:
-          version: nightly
+          version: stable
 
       - name: Forge build
         run: forge build --sizes --via-ir
@@ -70,7 +70,7 @@ jobs:
       - name: Install Foundry
         uses: foundry-rs/foundry-toolchain@v1
         with:
-          version: nightly
+          version: stable
 
       - name: Run gas benchmarks
         run: forge test --match-contract GasBenchmark -vvv --via-ir
@@ -89,7 +89,7 @@ jobs:
       - name: Install Foundry
         uses: foundry-rs/foundry-toolchain@v1
         with:
-          version: nightly
+          version: stable
 
       - name: Run fuzz tests
         run: forge test --match-contract Fuzz -vvv --fuzz-runs 5000 --via-ir
