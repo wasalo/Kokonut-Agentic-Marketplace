@@ -41,11 +41,11 @@ const sepoliaContracts = {
   serviceRegistry: '0x62E1eeEa1A2Ab987004F35bDA430457Ed6077201',
   serviceRegistryImpl: '0xb75B02D4523171ABdB6f5bcB9D60903ed3e30fAD', // Phase 29e: blacklist recheck
   // Phase 29: V9 - Multi-token configurable minimum budgets
-  agenticCommerce: '0x4c592510e4FAbbEEA8D7142dE1f38d548b500e7f',
-  agenticCommerceImpl: '0xbc8068fcc7124960d96fbee106112c5654de63b8', // Phase 29g: storage-layout-aware V9 impl
+  agenticCommerce: '0x3a1Bc03cC84040A282F6bf238b917D8351499239',
+  agenticCommerceImpl: '0x19b291298F113a99b4f21AaB1ceAb931a6911023', // Phase 30: H-02 evaluator randomness
   // Phase 11: BiddingSystem - Standalone commit-reveal bidding
-  biddingSystem: '0x32c9d069a248a619d3EAc4D1FC76F2639AaBeF04',
-  biddingSystemImpl: '0x0eE5E780bbbBA610D0B1926a3993A2aa0B1B9812', // Phase 29e: blacklist check
+  biddingSystem: '0x4D7F38C6A9DE5De44A7B789962B7A2B06bFE8fd6',
+  biddingSystemImpl: '0xB225dc036a522755A91f368069613A768Bb1041e', // Phase 30: H-01 ERC1967 proxy
   agentReview: '0x5CDb592Fd37749bF87448FBf5725D1Cd986dd1Cb', // AgentReviewV5
   agentReviewImpl: '0x1c3513BC838059e2Fa71e60e92317Eef51688B6e', // Phase 29f: OZ v5 compat
   commitReveal: '0x85F193670fCb7B0c97D55E70Bf2a950b1065Fb3a',
@@ -54,12 +54,12 @@ const sepoliaContracts = {
   slashManagerImpl: '0x865ebF8EaC43FE343985058e56E08aAB4E605214', // Phase 29f: OZ v5 compat
 
   // Phase 29: MilestoneEscrowV2 - Per-token arbiter fees + USDC staking
-  milestoneEscrow: '0xd4Fdc345b1c6aF1B4Cc84339bcB251B33527Eb45',
-  milestoneEscrowImpl: '0xb7b801a1cfff3ad295063cd75b751c47e0f76b7f', // Phase 29g: actual deployed V9 impl
+  milestoneEscrow: '0xc89D63057288092012c5D3cEF66121C1F8449a9f',
+  milestoneEscrowImpl: '0x74903fBdfbb99275B5F4e12fF00504F9f7C24E71', // Phase 30: H-04 slashed funds
 
   // Phase 29: PriceOracleV2 - UUPS upgradeable per-token feeds
-  priceOracle: '0x32fD2A54B722D2048A052fD0456004483a683aFE',
-  priceOracleImpl: '0x34344702fe257aEB4FdD73F5c51f5DdE0168a652', // Phase 29f: OZ v5 compat
+  priceOracle: '0x29c27a26DD2F80f840cb4D7B5E53b7db3D67143d',
+  priceOracleImpl: '0x7Bad7cc9754814246814299ca50041a939a244b1', // Phase 30: L-03 ETH feed
 
   // Tokens
   usdc: '0x1c7D4B196Cb0C7B01d743Fbc6116a902379C7238',
@@ -175,11 +175,11 @@ export const CONTRACT_ADDRESSES = {
     serviceRegistry: '0x62E1eeEa1A2Ab987004F35bDA430457Ed6077201',
     serviceRegistryImpl: '0xb75B02D4523171ABdB6f5bcB9D60903ed3e30fAD', // Phase 29e: blacklist recheck
     // Phase 29: V9 - Multi-token configurable minimum budgets
-    agenticCommerce: '0x4c592510e4FAbbEEA8D7142dE1f38d548b500e7f',
-  agenticCommerceImpl: '0xbc8068fcc7124960d96fbee106112c5654de63b8', // Phase 29g: storage-layout-aware V9 impl
+  agenticCommerce: '0x3a1Bc03cC84040A282F6bf238b917D8351499239',
+  agenticCommerceImpl: '0x19b291298F113a99b4f21AaB1ceAb931a6911023', // Phase 30: H-02 evaluator randomness
     // Phase 11: BiddingSystem - Standalone commit-reveal bidding
-    biddingSystem: '0x32c9d069a248a619d3EAc4D1FC76F2639AaBeF04',
-  biddingSystemImpl: '0x0eE5E780bbbBA610D0B1926a3993A2aa0B1B9812', // Phase 29e: blacklist check
+  biddingSystem: '0x4D7F38C6A9DE5De44A7B789962B7A2B06bFE8fd6',
+  biddingSystemImpl: '0xB225dc036a522755A91f368069613A768Bb1041e', // Phase 30: H-01 ERC1967 proxy
     agentReview: '0x5CDb592Fd37749bF87448FBf5725D1Cd986dd1Cb', // AgentReviewV5
   agentReviewImpl: '0x1c3513BC838059e2Fa71e60e92317Eef51688B6e', // Phase 29f: OZ v5 compat
     commitReveal: '0x85F193670fCb7B0c97D55E70Bf2a950b1065Fb3a',
@@ -188,12 +188,12 @@ export const CONTRACT_ADDRESSES = {
   slashManagerImpl: '0x865ebF8EaC43FE343985058e56E08aAB4E605214', // Phase 29f: OZ v5 compat
 
     // Phase 29: MilestoneEscrowV2 - Per-token arbiter fees + USDC staking
-    milestoneEscrow: '0xd4Fdc345b1c6aF1B4Cc84339bcB251B33527Eb45',
-  milestoneEscrowImpl: '0xb7b801a1cfff3ad295063cd75b751c47e0f76b7f', // Phase 29g: actual deployed V9 impl
+    milestoneEscrow: '0xc89D63057288092012c5D3cEF66121C1F8449a9f',
+  milestoneEscrowImpl: '0x74903fBdfbb99275B5F4e12fF00504F9f7C24E71', // Phase 30: H-04 slashed funds
 
     // Phase 29: PriceOracleV2 - UUPS upgradeable per-token feeds
-    priceOracle: '0x32fD2A54B722D2048A052fD0456004483a683aFE',
-  priceOracleImpl: '0x34344702fe257aEB4FdD73F5c51f5DdE0168a652', // Phase 29f: OZ v5 compat
+    priceOracle: '0x29c27a26DD2F80f840cb4D7B5E53b7db3D67143d',
+  priceOracleImpl: '0x7Bad7cc9754814246814299ca50041a939a244b1', // Phase 30: L-03 ETH feed
 
     // Tokens
     usdc: '0x1c7D4B196Cb0C7B01d743Fbc6116a902379C7238',

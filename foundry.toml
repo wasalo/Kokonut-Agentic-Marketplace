@@ -69,3 +69,6 @@ sepolia2 = "https://rpc.sepolia.io"
 ethereum = { chain = 1, key = "${ETHERSCAN_API_KEY}", api_version = "v2" }
 mainnet = { chain = 1, key = "${ETHERSCAN_API_KEY}", api_version = "v2" }
 sepolia = { chain = 11155111, key = "${ETHERSCAN_API_KEY}", api_version = "v2" }
+
+[lint]
+exclude_lints = ["unsafe-typecast"]

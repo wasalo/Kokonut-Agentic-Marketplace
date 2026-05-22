@@ -455,9 +455,9 @@ export const NETWORKS: Record<NetworkName, NetworkConfig> = {
       // Phase 29: AgenticCommerceV9 (Multi-Token Configurable Minimums)
       skillRegistry: '0xA84684261558f342d6871DD2CFef90A2117Aa20A',
       serviceRegistry: '0x62E1eeEa1A2Ab987004F35bDA430457Ed6077201',
-      agenticCommerce: '0x4c592510e4FAbbEEA8D7142dE1f38d548b500e7f',
+      agenticCommerce: '0x3a1Bc03cC84040A282F6bf238b917D8351499239',
       // Phase 11: BiddingSystem (Standalone commit-reveal bidding)
-      biddingSystem: '0x32c9d069a248a619d3EAc4D1FC76F2639AaBeF04',
+      biddingSystem: '0x4D7F38C6A9DE5De44A7B789962B7A2B06bFE8fd6',
       agentReview: '0x5CDb592Fd37749bF87448FBf5725D1Cd986dd1Cb', // AgentReviewV5
       priceOracle: '0x32fD2A54B722D2048A052fD0456004483a683aFE', // PriceOracleV2
       commitReveal: '0x85F193670fCb7B0c97D55E70Bf2a950b1065Fb3a',

@@ -1,7 +1,7 @@
 # Kokonut Agent Economy Stack
 
 [![Security Audit](https://img.shields.io/badge/security-audited-brightgreen.svg)](./SECURITY_AUDIT_REPORT.md)
-[![Tests](https://img.shields.io/badge/tests-299%20passing-brightgreen.svg)](./contracts/test)
+[![Tests](https://img.shields.io/badge/tests-306%20passing-brightgreen.svg)](./contracts/test)
 [![Coverage](https://img.shields.io/badge/coverage-87%25-brightgreen.svg)](./contracts/test)
 [![Frontend Security](https://img.shields.io/badge/frontend%20security-9.0%2F10-brightgreen.svg)](./docs/FRONTEND_SECURITY_HARDENING_REPORT.md)
 [![TypeScript](https://img.shields.io/badge/TypeScript-0%20errors-brightgreen.svg)](./apps/web)
@@ -168,11 +168,11 @@ NEXT_PUBLIC_8004_API_KEY=your_8004scan_api_key
 NEXT_PUBLIC_SKILL_REGISTRY_ADDRESS=0xA84684261558f342d6871DD2CFef90A2117Aa20A
 NEXT_PUBLIC_SERVICE_REGISTRY_ADDRESS=0x62E1eeEa1A2Ab987004F35bDA430457Ed6077201
 NEXT_PUBLIC_AGENT_REVIEW_ADDRESS=0x5CDb592Fd37749bF87448FBf5725D1Cd986dd1Cb
-NEXT_PUBLIC_AGENTIC_COMMERCE_ADDRESS=0x4c592510e4FAbbEEA8D7142dE1f38d548b500e7f
-NEXT_PUBLIC_BIDDING_SYSTEM_ADDRESS=0x32c9d069a248a619d3EAc4D1FC76F2639AaBeF04
+NEXT_PUBLIC_AGENTIC_COMMERCE_ADDRESS=0x3a1Bc03cC84040A282F6bf238b917D8351499239
+NEXT_PUBLIC_BIDDING_SYSTEM_ADDRESS=0x4D7F38C6A9DE5De44A7B789962B7A2B06bFE8fd6
 NEXT_PUBLIC_ADMIN_REGISTRY_ADDRESS=0xC81C864CEAb6231ad764cf9867e031D8b6dee41d
-NEXT_PUBLIC_PRICE_ORACLE_ADDRESS=0x32fD2A54B722D2048A052fD0456004483a683aFE
-NEXT_PUBLIC_MILESTONE_ESCROW_ADDRESS=0xd4Fdc345b1c6aF1B4Cc84339bcB251B33527Eb45
+NEXT_PUBLIC_PRICE_ORACLE_ADDRESS=0x29c27a26DD2F80f840cb4D7B5E53b7db3D67143d
+NEXT_PUBLIC_MILESTONE_ESCROW_ADDRESS=0xc89D63057288092012c5D3cEF66121C1F8449a9f
 
 # ERC-8004 Official Registry (Sepolia)
 NEXT_PUBLIC_8004_REGISTRY_ADDRESS=0x8004A818BFB912233c491871b3d84c89A494BD9e
@@ -211,18 +211,18 @@ The wildcard format (e.g., `10.108.1.*`) allows any IP in that subnet. Add expli
 | Contract                 | Address                                      | Purpose                    |
 | ------------------------ | -------------------------------------------- | -------------------------- |
 | **AdminRegistry**        | `0xC81C864CEAb6231ad764cf9867e031D8b6dee41d` | UUPS Proxy — Phase 29e Pashov fixes + data migration |
-| **MilestoneEscrow**      | `0xd4Fdc345b1c6aF1B4Cc84339bcB251B33527Eb45` | MilestoneEscrowV2 - Per-token fees + USDC staking |
-| **MilestoneEscrow Impl** | `0xb7b801a1cfff3ad295063cd75b751c47e0f76b7f` | Phase 29g: actual deployed V9 |
+| **MilestoneEscrowV2**    | `0xc89D63057288092012c5D3cEF66121C1F8449a9f` | Milestone payments (UUPS) |
+| **MilestoneEscrowV2 Impl** | `0x74903fBdfbb99275B5F4e12fF00504F9f7C24E71` | Phase 31: H-04 slashed funds fix |
 | **AgentSkillRegistryV2** | `0xA84684261558f342d6871DD2CFef90A2117Aa20A` | Skills/capabilities (UUPS) |
 | **ServiceRegistryV2**    | `0x62E1eeEa1A2Ab987004F35bDA430457Ed6077201` | Service listings (UUPS)    |
 | **ServiceRegistryV2 Impl** | `0xb75B02D4523171ABdB6f5bcB9D60903ed3e30fAD` | Phase 29e: blacklist recheck + Pashov fixes |
-| **AgenticCommerce**      | `0x4c592510e4FAbbEEA8D7142dE1f38d548b500e7f` | Job escrow (V9: Multi-Token Configurable Minimums) |
-| **AgenticCommerce Impl** | `0xbc8068fcc7124960d96fbee106112c5654de63b8` | Phase 29g: storage-layout-aware V9 |
-| **PriceOracle**          | `0x32fD2A54B722D2048A052fD0456004483a683aFE` | PriceOracleV2 - UUPS upgradeable per-token feeds |
-| **PriceOracle Impl**     | `0x34344702fe257aEB4FdD73F5c51f5DdE0168a652` | OZ v5 compat (removed __UUPSUpgradeable_init()) |
+| **AgenticCommerceV9**    | `0x3a1Bc03cC84040A282F6bf238b917D8351499239` | Job escrow (V9: Multi-Token Configurable Minimums) |
+| **AgenticCommerceV9 Impl** | `0x19b291298F113a99b4f21AaB1ceAb931a6911023` | Phase 31: H-02 evaluator randomness fix |
+| **PriceOracleV2**        | `0x29c27a26DD2F80f840cb4D7B5E53b7db3D67143d` | PriceOracleV2 - UUPS upgradeable per-token feeds |
+| **PriceOracleV2 Impl**   | `0x7Bad7cc9754814246814299ca50041a939a244b1` | Phase 31: L-03 ETH/USD Chainlink feed |
 | **AgentReviewV5**        | `0x5CDb592Fd37749bF87448FBf5725D1Cd986dd1Cb` | A/B evaluation             |
-| **BiddingSystem**        | `0x32c9d069a248a619d3EAc4D1FC76F2639AaBeF04`  | Commit-reveal bidding      |
-| **BiddingSystem Impl**    | `0x0eE5E780bbbBA610D0B1926a3993A2aa0B1B9812` | Phase 29e: blacklist check on commitBid |
+| **BiddingSystem**        | `0x4D7F38C6A9DE5De44A7B789962B7A2B06bFE8fd6`  | Commit-reveal bidding      |
+| **BiddingSystem Impl**   | `0xB225dc036a522755A91f368069613A768Bb1041e` | Phase 31: H-01 ERC1967 proxy |
 | **ERC-8004 Identity**    | `0x8004A818BFB912233c491871b3d84c89A494BD9e` | Agent identities           |
 | **ERC-8004 Reputation**  | `0x8004B663056A597Dffe9eCcC1965A193B7388713` | Agent reputation           |
 

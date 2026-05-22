@@ -14,8 +14,8 @@ export const NETWORKS = {
       skillRegistry: '0xA84684261558f342d6871DD2CFef90A2117Aa20A', // AgentSkillRegistryV2 Proxy
       serviceRegistry: '0x62E1eeEa1A2Ab987004F35bDA430457Ed6077201', // ServiceRegistryV2 Proxy
       agentReview: '0x5CDb592Fd37749bF87448FBf5725D1Cd986dd1Cb', // AgentReviewV5 Proxy
-      agenticCommerce: '0x4c592510e4FAbbEEA8D7142dE1f38d548b500e7f', // AgenticCommerceV9 Proxy
-      biddingSystem: '0x32c9d069a248a619d3EAc4D1FC76F2639AaBeF04', // BiddingSystem Proxy
+      agenticCommerce: '0x3a1Bc03cC84040A282F6bf238b917D8351499239', // AgenticCommerceV9 Proxy
+      biddingSystem: '0x4D7F38C6A9DE5De44A7B789962B7A2B06bFE8fd6', // BiddingSystem Proxy
       priceOracle: '0x32fD2A54B722D2048A052fD0456004483a683aFE', // PriceOracleV2 Proxy
       commitReveal: '0x85F193670fCb7B0c97D55E70Bf2a950b1065Fb3a', // CommitReveal Proxy
       slashManager: '0x1B8373cDF4f2eD740c3478e0129f0B8494CE4Fa3', // SlashManager Proxy

@@ -41,7 +41,18 @@ export function JobHeader({ job, service, isClient, isProvider, isEvaluator }: J
         </div>
         <div className="flex items-center gap-2">
           <button
-            onClick={() => navigator.clipboard.writeText(window.location.href)}
+            onClick={() => {
+              if (navigator.clipboard?.writeText) {
+                navigator.clipboard.writeText(window.location.href);
+              } else {
+                const input = document.createElement('input');
+                input.value = window.location.href;
+                document.body.appendChild(input);
+                input.select();
+                document.execCommand('copy');
+                document.body.removeChild(input);
+              }
+            }}
             className="p-2 text-default-400 hover:text-foreground transition-colors rounded-lg hover:bg-content2"
             title="Copy job link"
           >

@@ -38,6 +38,11 @@ async function deliverWebhook(
 
 export async function POST(request: NextRequest) {
   try {
+    const owner = request.headers.get('x-owner-address');
+    if (!owner) {
+      return NextResponse.json({ error: 'Authentication required. Provide x-owner-address header.' }, { status: 401 });
+    }
+
     const body = await request.json();
     const { event, data, chainId = 11155111 } = body;
 

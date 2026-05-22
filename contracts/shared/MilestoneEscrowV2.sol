@@ -504,8 +504,12 @@ contract MilestoneEscrowV2 is
         
         arbiterStakes[arbiter] = stake - slashAmount;
         
-        // Transfer slashed amount to platform treasury (or burn)
-        // For now, leave in contract
+        if (slashAmount > 0) {
+            address token = arbiterStakeToken[arbiter];
+            if (token != address(0)) {
+                IERC20(token).safeTransfer(owner(), slashAmount);
+            }
+        }
         
         emit ArbiterSlashed(arbiter, slashAmount, reason);
     }

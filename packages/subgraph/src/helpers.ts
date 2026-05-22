@@ -1,7 +1,7 @@
 import { BigInt } from '@graphprotocol/graph-ts';
 import { PlatformStat } from '../generated/schema';
 
-export function updatePlatformStat(field: string, increment: boolean): void {
+export function updatePlatformStat(field: string, increment: boolean, timestamp: BigInt = BigInt.zero()): void {
   let stat = PlatformStat.load('platform');
   if (!stat) {
     stat = new PlatformStat('platform');
@@ -14,7 +14,7 @@ export function updatePlatformStat(field: string, increment: boolean): void {
     stat.totalSkills = 0;
     stat.totalBlacklistedAgents = 0;
     stat.totalDisputes = 0;
-    stat.updatedAt = BigInt.fromI32(0);
+    stat.updatedAt = timestamp;
   }
 
   if (field == 'totalAgents') stat.totalAgents += increment ? 1 : -1;
@@ -27,6 +27,8 @@ export function updatePlatformStat(field: string, increment: boolean): void {
   if (field == 'totalBlacklistedAgents') stat.totalBlacklistedAgents += increment ? 1 : -1;
   if (field == 'totalDisputes') stat.totalDisputes += increment ? 1 : -1;
 
-  stat.updatedAt = BigInt.fromI32(0);
+  if (!timestamp.isZero()) {
+    stat.updatedAt = timestamp;
+  }
   stat.save();
 }

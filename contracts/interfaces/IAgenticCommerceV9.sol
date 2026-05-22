@@ -106,7 +106,7 @@ interface IAgenticCommerceV9 {
     // Evaluator pool
     function registerAsEvaluator() external payable;
     function unregisterAsEvaluator() external;
-    function cleanupStaleEvaluators() external returns (uint256 removedCount);
+    function cleanupStaleEvaluators(uint256 maxIterations) external returns (uint256 removedCount);
     function getEvaluatorPoolSize() external view returns (uint256);
     
     // Views (public state variables auto-generate getters)

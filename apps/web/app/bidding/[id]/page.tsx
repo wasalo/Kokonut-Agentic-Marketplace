@@ -1,8 +1,8 @@
 'use client';
 
-import { use, useState, useCallback } from 'react';
+import { use, useState, useCallback, useEffect, useRef } from 'react';
 import { useAccount, useBalance } from 'wagmi';
-import { ArrowLeft, Loader2, CheckCircle, AlertCircle } from 'lucide-react';
+import { ArrowLeft, Loader2, CheckCircle, AlertCircle, Copy, AlertTriangle } from 'lucide-react';
 import { Card } from '@heroui/react';
 import NextLink from 'next/link';
 import { formatEther, parseEther, keccak256, encodeAbiParameters } from 'viem';
@@ -22,6 +22,12 @@ import {
   SessionStatusType,
 } from '@/lib/hooks/useBiddingSystem';
 import { StatusBadge } from '@/components/StatusBadge';
+
+function generateSalt(): string {
+  const bytes = globalThis.crypto?.getRandomValues?.(new Uint8Array(32))
+    ?? new Uint8Array(32).map(() => Math.floor(Math.random() * 256));
+  return `0x${Buffer.from(bytes).toString('hex')}`;
+}
 
 const SESSION_STATUS_BADGE: Record<SessionStatusType, string> = {
   [SessionStatus.Active]: 'active',
@@ -66,15 +72,39 @@ export default function BiddingSessionDetailPage({
 
   const [commitAmount, setCommitAmount] = useState('');
   const [commitMessage, setCommitMessage] = useState('');
-  const [commitSalt, setCommitSalt] = useState(() => {
-    if (typeof window !== 'undefined') {
-      return localStorage.getItem(`bidding-salt-${id}`) || '';
-    }
-    return '';
-  });
+  const [commitSalt, setCommitSalt] = useState(generateSalt);
   const [revealAmount, setRevealAmount] = useState('');
   const [revealMessage, setRevealMessage] = useState('');
   const [extendSeconds, setExtendSeconds] = useState('3600');
+  const [saltCopied, setSaltCopied] = useState(false);
+  const saltRef = useRef(commitSalt);
+  saltRef.current = commitSalt;
+
+  useEffect(() => {
+    const handler = (e: BeforeUnloadEvent) => {
+      if (userBid && !userBid.revealed && commitSalt) {
+        e.preventDefault();
+        e.returnValue = '';
+      }
+    };
+    window.addEventListener('beforeunload', handler);
+    return () => window.removeEventListener('beforeunload', handler);
+  }, [userBid, commitSalt]);
+
+  const copySalt = useCallback(() => {
+    if (navigator.clipboard?.writeText) {
+      navigator.clipboard.writeText(commitSalt);
+    } else {
+      const input = document.createElement('input');
+      input.value = commitSalt;
+      document.body.appendChild(input);
+      input.select();
+      document.execCommand('copy');
+      document.body.removeChild(input);
+    }
+    setSaltCopied(true);
+    setTimeout(() => setSaltCopied(false), 2000);
+  }, [commitSalt]);
 
   const stake = session ? (session.maxBudget * 100n) / 10000n : 0n;
 
@@ -92,17 +122,12 @@ export default function BiddingSessionDetailPage({
       )
     );
 
-    // Persist salt for reveal phase
-    if (typeof window !== 'undefined') {
-      localStorage.setItem(`bidding-salt-${id}`, commitSalt);
-    }
-
     commitBid({
       sessionId,
       commitHash: commitHashValue as `0x${string}`,
       stake,
     });
-  }, [sessionId, commitAmount, commitMessage, commitSalt, stake, session, commitBid, id]);
+  }, [sessionId, commitAmount, commitMessage, commitSalt, stake, session, commitBid]);
 
   const handleRevealBid = useCallback(() => {
     if (!revealAmount || !session) return;
@@ -316,15 +341,26 @@ export default function BiddingSessionDetailPage({
               </div>
               <div>
                 <label className="text-sm font-medium mb-1 block">Salt</label>
-                <input
-                  type="text"
-                  value={commitSalt}
-                  onChange={e => setCommitSalt(e.target.value)}
-                  placeholder="Random string (SAVE THIS FOR REVEAL)"
-                  className="w-full px-4 py-2 bg-content1 border border-divider rounded-lg focus:outline-none focus:border-[#009F4D]"
-                />
-                <p className="text-xs text-warning mt-1">
-                  You MUST remember this salt to reveal your bid
+                <div className="flex gap-2">
+                  <input
+                    type="text"
+                    value={commitSalt}
+                    onChange={e => setCommitSalt(e.target.value)}
+                    placeholder="Auto-generated (SAVE THIS FOR REVEAL)"
+                    className="flex-1 px-4 py-2 bg-content1 border border-divider rounded-lg focus:outline-none focus:border-[#009F4D] font-mono text-sm"
+                  />
+                  <button
+                    type="button"
+                    onClick={copySalt}
+                    className="px-3 py-2 bg-content2 border border-divider rounded-lg hover:bg-content3 transition-colors"
+                    title="Copy salt to clipboard"
+                  >
+                    {saltCopied ? <CheckCircle className="w-4 h-4 text-[#009F4D]" /> : <Copy className="w-4 h-4" />}
+                  </button>
+                </div>
+                <p className="text-xs text-warning mt-1 flex items-center gap-1">
+                  <AlertTriangle className="w-3 h-3" />
+                  Stored in memory only. Copy it now — you will lose it if you refresh!
                 </p>
               </div>
             </div>
@@ -355,11 +391,18 @@ export default function BiddingSessionDetailPage({
             </div>
             {commitSalt && (
               <div className="mt-4 p-3 bg-content2 rounded-lg border border-divider">
-                <p className="text-xs text-default-500 mb-1">Your saved salt (auto-stored):</p>
+                <div className="flex items-center justify-between mb-1">
+                  <p className="text-xs text-default-500">Your salt (in-memory — copy to save):</p>
+                  <button
+                    type="button"
+                    onClick={copySalt}
+                    className="text-xs text-[#009F4D] hover:underline flex items-center gap-1"
+                  >
+                    {saltCopied ? <CheckCircle className="w-3 h-3" /> : <Copy className="w-3 h-3" />}
+                    {saltCopied ? 'Copied!' : 'Copy'}
+                  </button>
+                </div>
                 <p className="text-sm font-mono break-all">{commitSalt}</p>
-                <p className="text-xs text-default-400 mt-1">
-                  This is stored in your browser. Copy it somewhere safe as backup.
-                </p>
               </div>
             )}
           </div>
@@ -375,7 +418,17 @@ export default function BiddingSessionDetailPage({
               </p>
               {commitSalt && (
                 <div className="p-3 bg-content2 rounded-lg border border-divider">
-                  <p className="text-xs text-default-500 mb-1">Your stored salt:</p>
+                  <div className="flex items-center justify-between mb-1">
+                    <p className="text-xs text-default-500">Your salt (required for reveal):</p>
+                    <button
+                      type="button"
+                      onClick={copySalt}
+                      className="text-xs text-[#009F4D] hover:underline flex items-center gap-1"
+                    >
+                      {saltCopied ? <CheckCircle className="w-3 h-3" /> : <Copy className="w-3 h-3" />}
+                      {saltCopied ? 'Copied!' : 'Copy'}
+                    </button>
+                  </div>
                   <p className="text-sm font-mono break-all">{commitSalt}</p>
                 </div>
               )}

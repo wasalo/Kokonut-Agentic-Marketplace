@@ -236,12 +236,24 @@ jobs:
         run: pnpm audit --audit-level critical
 
   # ============================================
+  # Production Approval Gate
+  # ============================================
+  deploy_approval:
+    name: Approve Production Deploy
+    runs-on: ubuntu-latest
+    needs: [prepare, contracts, frontend, e2e, security]
+    if: github.ref == 'refs/heads/main'
+    environment: production
+    steps:
+      - run: echo "Production deployment approved"
+
+  # ============================================
   # Deploy to Production (Docker)
   # ============================================
   deploy-docker:
     name: Deploy Docker to Production
     runs-on: ubuntu-latest
-    needs: [prepare, contracts, frontend, e2e, security]
+    needs: [prepare, contracts, frontend, e2e, security, deploy_approval]
     if: |
       github.event.inputs.deploy_type == 'docker' ||
       github.event.inputs.deploy_type == 'both' ||

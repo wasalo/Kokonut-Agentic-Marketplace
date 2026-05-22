@@ -53,8 +53,8 @@ export function rateLimit(
   const windowMs = config.windowMs ?? DEFAULT_WINDOW_MS;
   const maxRequests = config.maxRequests ?? DEFAULT_MAX_REQUESTS;
 
-
-  const ip = request.headers.get('x-forwarded-for')?.split(',')[0]?.trim()
+  const ip = (request as any).ip
+    ?? request.headers.get('x-forwarded-for')?.split(',')[0]?.trim()
     ?? request.headers.get('x-real-ip')
     ?? 'unknown';
   
@@ -117,7 +117,8 @@ export function withRateLimit(
 }
 
 export function getClientIP(request: NextRequest): string {
-  return request.headers.get('x-forwarded-for')?.split(',')[0]?.trim()
+  return (request as any).ip
+    ?? request.headers.get('x-forwarded-for')?.split(',')[0]?.trim()
     ?? request.headers.get('x-real-ip')
     ?? 'unknown';
 }

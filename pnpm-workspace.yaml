@@ -6,7 +6,6 @@ packages:
   - 'cli'
 allowBuilds:
   '@reown/appkit': true
-  '@scarf/scarf': true
   '@tree-sitter-grammars/tree-sitter-yaml': true
   bufferutil: true
   core-js-pure: true

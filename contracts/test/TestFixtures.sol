@@ -2,11 +2,10 @@
 pragma solidity ^0.8.20;
 
 import "forge-std/Test.sol";
-import {AgenticCommerceV6} from "../shared/AgenticCommerceV6.sol";
+import {AgenticCommerceV9} from "../shared/AgenticCommerceV9.sol";
 import {AgentReviewV5} from "../shared/AgentReviewV5.sol";
 import {ServiceRegistryV2} from "../shared/ServiceRegistryV2.sol";
 import {ERC1967Proxy} from "@openzeppelin/contracts/proxy/ERC1967/ERC1967Proxy.sol";
-import {TransparentUpgradeableProxy} from "@openzeppelin/contracts/proxy/transparent/TransparentUpgradeableProxy.sol";
 
 /**
  * @title TestFixtures
@@ -15,13 +14,16 @@ import {TransparentUpgradeableProxy} from "@openzeppelin/contracts/proxy/transpa
  */
 contract TestFixtures is Test {
     // Contract instances
-    AgenticCommerceV6 public agenticCommerce;
+    AgenticCommerceV9 public agenticCommerce;
     AgentReviewV5 public agentReview;
     ServiceRegistryV2 public serviceRegistry;
     ServiceRegistryV2 public serviceRegistryImpl;
     
     // Mock USDC
     MockERC20 public usdc;
+    
+    // Mock price oracle for V9
+    MockPriceOracle public priceOracle;
     
     // Test accounts
     address public owner;
@@ -78,22 +80,26 @@ contract TestFixtures is Test {
         // Deploy Mock USDC
         usdc = new MockERC20("USD Coin", "USDC", 6);
         
-        // Deploy AgenticCommerceV6 with proxy
-        AgenticCommerceV6 commerceImpl = new AgenticCommerceV6();
-        bytes memory commerceInitData = abi.encodeCall(AgenticCommerceV6.initialize, (treasury, owner));
-        TransparentUpgradeableProxy commerceProxy = new TransparentUpgradeableProxy(
+        // Deploy Mock Price Oracle
+        priceOracle = new MockPriceOracle();
+        
+        // Deploy AgenticCommerceV9 with ERC1967Proxy (UUPS)
+        AgenticCommerceV9 commerceImpl = new AgenticCommerceV9();
+        bytes memory commerceInitData = abi.encodeCall(
+            AgenticCommerceV9.initialize,
+            (treasury, address(0), address(priceOracle))
+        );
+        ERC1967Proxy commerceProxy = new ERC1967Proxy(
             address(commerceImpl),
-            owner,
             commerceInitData
         );
-        agenticCommerce = AgenticCommerceV6(payable(address(commerceProxy)));
+        agenticCommerce = AgenticCommerceV9(payable(address(commerceProxy)));
         
         // Deploy AgentReviewV5 with proxy
         AgentReviewV5 reviewImpl = new AgentReviewV5();
         bytes memory reviewInitData = abi.encodeCall(AgentReviewV5.initialize, (owner));
-        TransparentUpgradeableProxy reviewProxy = new TransparentUpgradeableProxy(
+        ERC1967Proxy reviewProxy = new ERC1967Proxy(
             address(reviewImpl),
-            owner,
             reviewInitData
         );
         agentReview = AgentReviewV5(payable(address(reviewProxy)));
@@ -107,6 +113,10 @@ contract TestFixtures is Test {
             abi.encodeWithSelector(ServiceRegistryV2.initialize.selector, identityReg, owner)
         );
         serviceRegistry = ServiceRegistryV2(address(proxy));
+        
+        // Configure V9: Allow USDC and set as stablecoin
+        agenticCommerce.setAllowedToken(address(usdc), true);
+        agenticCommerce.setStablecoin(address(usdc), true);
         
         vm.stopPrank();
         
@@ -132,7 +142,7 @@ contract TestFixtures is Test {
         );
     }
     
-    // Helper: Create a job
+    // Helper: Create a job (V9 signature with budget at creation)
     function createTestJob(
         address jobClient,
         address jobProvider,
@@ -141,15 +151,49 @@ contract TestFixtures is Test {
         vm.prank(jobClient);
         jobId = agenticCommerce.createJob(
             jobProvider,
-            jobEvaluator,
-            block.timestamp + 7 days,
+            10 ether, // budget
+            address(0), // paymentToken (ETH)
+            0, // serviceId
+            block.timestamp + 7 days, // expiredAt
             "Test job description",
-            address(0),
-            false  // No evaluator fee
+            jobEvaluator,
+            address(0), // hook
+            false, // evaluatorFee
+            false, // clientReview_
+            false, // fundNow
+            0 // fundAmount
         );
     }
     
-    // Helper: Fund a job
+    // Helper: Create a funded job with USDC
+    function createFundedJobWithUSDC(
+        address jobClient,
+        address jobProvider,
+        address jobEvaluator,
+        uint256 budget
+    ) internal returns (uint256 jobId) {
+        // Approve USDC spend
+        vm.prank(jobClient);
+        usdc.approve(address(agenticCommerce), budget);
+        
+        vm.prank(jobClient);
+        jobId = agenticCommerce.createJob(
+            jobProvider,
+            budget,
+            address(usdc),
+            0,
+            block.timestamp + 7 days,
+            "Test job description",
+            jobEvaluator,
+            address(0),
+            false,
+            false,
+            true, // fundNow
+            budget // fundAmount
+        );
+    }
+    
+    // Helper: Fund a job (separate fund step for unfunded jobs)
     function fundTestJob(
         address jobClient,
         uint256 jobId,
@@ -157,8 +201,7 @@ contract TestFixtures is Test {
     ) internal {
         vm.startPrank(jobClient);
         usdc.approve(address(agenticCommerce), amount);
-        agenticCommerce.setBudget(jobId, amount);
-        agenticCommerce.fund(jobId, amount);
+        agenticCommerce.fund{value: 0}(jobId, amount);
         vm.stopPrank();
     }
     
@@ -430,5 +473,22 @@ contract MockAgenticCommerceV9 {
 
     function getJob(uint256 jobId) external view returns (MockJob memory) {
         return jobs[jobId];
+    }
+}
+
+/**
+ * @title MockPriceOracle
+ * @dev Mock price oracle for testing AgenticCommerceV9
+ * Returns fixed prices for testing (ETH = $2000, tokens = $1)
+ */
+contract MockPriceOracle {
+    int256 public constant ETH_PRICE = 2000e8; // $2000 with 8 decimals
+    int256 public constant ONE_USD = 1e8; // $1 with 8 decimals
+
+    function getUsdPriceOfToken(address token) external pure returns (int256) {
+        if (token == address(0)) {
+            return ETH_PRICE;
+        }
+        return ONE_USD;
     }
 }

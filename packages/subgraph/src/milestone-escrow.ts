@@ -56,7 +56,7 @@ export function handleDisputeFlagged(event: DisputeFlaggedEvent): void {
   dispute.createdAt = event.block.timestamp;
   dispute.save();
 
-  updatePlatformStat('totalDisputes', true);
+  updatePlatformStat('totalDisputes', true, event.block.timestamp);
 }
 
 export function handleDisputeResolved(event: DisputeResolvedEvent): void {

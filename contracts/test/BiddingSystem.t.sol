@@ -3,7 +3,7 @@ pragma solidity ^0.8.20;
 
 import "forge-std/Test.sol";
 import "@openzeppelin/contracts/token/ERC20/IERC20.sol";
-import "@openzeppelin/contracts/proxy/transparent/TransparentUpgradeableProxy.sol";
+import "@openzeppelin/contracts/proxy/ERC1967/ERC1967Proxy.sol";
 import {BiddingSystem} from "../shared/BiddingSystem.sol";
 import {IBiddingSystem} from "../interfaces/IBiddingSystem.sol";
 import {IAgenticCommerceV9} from "../interfaces/IAgenticCommerceV9.sol";
@@ -59,9 +59,8 @@ contract BiddingSystemTest is Test {
         );
         
         // Deploy proxy
-        TransparentUpgradeableProxy proxy = new TransparentUpgradeableProxy(
+        ERC1967Proxy proxy = new ERC1967Proxy(
             address(implementation),
-            owner,
             initData
         );
         
@@ -95,7 +94,7 @@ contract BiddingSystemTest is Test {
             treasury
         );
         vm.expectRevert(abi.encodeWithSelector(BiddingSystem.BiddingSystem__Zero_owner.selector));
-        new TransparentUpgradeableProxy(address(impl), owner, initData);
+        new ERC1967Proxy(address(impl), initData);
     }
     
     function testInitializeRevertIfZeroCommerce() public {
@@ -107,7 +106,7 @@ contract BiddingSystemTest is Test {
             treasury
         );
         vm.expectRevert(abi.encodeWithSelector(BiddingSystem.BiddingSystem__Zero_commerce.selector));
-        new TransparentUpgradeableProxy(address(impl), owner, initData);
+        new ERC1967Proxy(address(impl), initData);
     }
     
     function testInitializeRevertIfZeroTreasury() public {
@@ -119,7 +118,7 @@ contract BiddingSystemTest is Test {
             address(0)
         );
         vm.expectRevert(abi.encodeWithSelector(BiddingSystem.BiddingSystem__Zero_treasury.selector));
-        new TransparentUpgradeableProxy(address(impl), owner, initData);
+        new ERC1967Proxy(address(impl), initData);
     }
     
     /***********************************/

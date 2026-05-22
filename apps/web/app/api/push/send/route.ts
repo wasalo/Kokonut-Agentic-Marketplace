@@ -12,6 +12,11 @@ if (process.env.VAPID_PRIVATE_KEY && process.env.NEXT_PUBLIC_VAPID_PUBLIC_KEY) {
 
 export async function POST(request: NextRequest) {
   try {
+    const owner = request.headers.get('x-owner-address');
+    if (!owner) {
+      return NextResponse.json({ error: 'Authentication required. Provide x-owner-address header.' }, { status: 401 });
+    }
+
     const body = await request.json();
     const { title, message, link, data } = body;
 

@@ -46,8 +46,14 @@ contract DeployV9 is Script {
         PriceOracleV2 priceOracle = PriceOracleV2(address(priceOracleProxy));
         console.log("PriceOracleV2 Proxy:", address(priceOracle));
         
+        // Register ETH/USD feed (address(0) represents ETH)
+        priceOracle.setEthPriceFeed(
+            0x694AA1769357215DE4FAC081bf1f309aDC325306, // ETH/USD Sepolia
+            18
+        );
+        
         // Register feeds for tokens (not ETH)
-        // Note: ETH (address(0)) is handled specially, not via price feed
+        // Note: ETH (address(0)) is handled specially via setEthPriceFeed above
         priceOracle.setPriceFeed(
             USDC,
             0x1b44F3514812d835EB1BDB0acB33d3fA3351Ee43, // USDC/USD
@@ -74,11 +80,14 @@ contract DeployV9 is Script {
             abi.encodeWithSelector(
                 AgenticCommerceV9.initialize.selector,
                 TREASURY,
-                ADMIN_REGISTRY
+                ADMIN_REGISTRY,
+                address(priceOracle)
             )
         );
         AgenticCommerceV9 commerce = AgenticCommerceV9(address(commerceProxy));
         console.log("AgenticCommerceV9 Proxy:", address(commerce));
+        
+        commerce.setPriceOracle(address(priceOracle));
         
         // Configure tokens
         commerce.setAllowedToken(USDC, true);

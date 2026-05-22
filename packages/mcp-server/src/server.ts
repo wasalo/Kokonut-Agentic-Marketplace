@@ -4,7 +4,16 @@ import { publicClient, CONTRACTS, JOB_STATUS } from './client.js';
 import { createWallet, listWallets, getWallet, signMessage } from '@open-wallet-standard/core';
 
 const PORT = parseInt(process.env.MCP_PORT || '3100', 10);
-const HOST = process.env.MCP_HOST || '0.0.0.0';
+const HOST = process.env.MCP_HOST || '127.0.0.1';
+const MCP_API_KEY = process.env.MCP_API_KEY || '';
+
+function authenticate(req: IncomingMessage): boolean {
+  if (!MCP_API_KEY) return true;
+  const authHeader = req.headers['authorization'] || '';
+  if (authHeader === `Bearer ${MCP_API_KEY}`) return true;
+  const apiKeyParam = (new URL(req.url || '', `http://${HOST}:${PORT}`)).searchParams.get('api_key');
+  return apiKeyParam === MCP_API_KEY;
+}
 
 function decodeAgentMetadata(uri: string): Record<string, unknown> | null {
   try {
@@ -305,12 +314,7 @@ async function handleToolCall(toolName: string, args: Record<string, unknown>) {
     case 'ows_list_wallets':
       return listWallets();
     case 'ows_sign_message':
-      return signMessage(
-        args.wallet as string,
-        args.chain as string,
-        args.message as string,
-        args.passphrase as string
-      );
+      throw new Error('ows_sign_message is disabled for security. Use a wallet UI to sign messages.');
     case 'efp_stats':
       return getEfpStats(args.address as string);
     case 'efp_followers':
@@ -422,20 +426,7 @@ const TOOLS = [
       properties: {},
     },
   },
-  {
-    name: 'ows_sign_message',
-    description: 'Sign a message with an OWS wallet',
-    inputSchema: {
-      type: 'object',
-      properties: {
-        wallet: { type: 'string', description: 'Wallet name or ID' },
-        chain: { type: 'string', description: 'Chain (evm, solana, etc.)' },
-        message: { type: 'string', description: 'Message to sign' },
-        passphrase: { type: 'string', description: 'Wallet passphrase' },
-      },
-      required: ['wallet', 'chain', 'message', 'passphrase'],
-    },
-  },
+  // ows_sign_message disabled for security
   // EFP Tools
   {
     name: 'efp_stats',
@@ -489,9 +480,17 @@ async function requestHandler(req: IncomingMessage, res: ServerResponse): Promis
   const parsedUrl = parse(req.url || '', true);
   const pathname = parsedUrl.pathname || '';
 
-  res.setHeader('Access-Control-Allow-Origin', '*');
+  const allowedOrigins = (process.env.MCP_ALLOWED_ORIGINS || '').split(',').filter(Boolean);
+  const origin = req.headers.origin || '';
+  const isAllowed = allowedOrigins.length === 0 || allowedOrigins.includes(origin);
+
+  if (isAllowed && origin) {
+    res.setHeader('Access-Control-Allow-Origin', origin);
+  } else if (allowedOrigins.length === 0) {
+    res.setHeader('Access-Control-Allow-Origin', '*');
+  }
   res.setHeader('Access-Control-Allow-Methods', 'GET, POST, OPTIONS');
-  res.setHeader('Access-Control-Allow-Headers', 'Content-Type');
+  res.setHeader('Access-Control-Allow-Headers', 'Content-Type, Authorization');
 
   if (req.method === 'OPTIONS') {
     res.writeHead(200);
@@ -502,6 +501,12 @@ async function requestHandler(req: IncomingMessage, res: ServerResponse): Promis
   if (pathname === '/health') {
     res.writeHead(200, { 'Content-Type': 'application/json' });
     res.end(JSON.stringify({ status: 'ok', timestamp: new Date().toISOString() }));
+    return;
+  }
+
+  if (!authenticate(req)) {
+    res.writeHead(401, { 'Content-Type': 'application/json' });
+    res.end(JSON.stringify({ error: 'Unauthorized' }));
     return;
   }
 

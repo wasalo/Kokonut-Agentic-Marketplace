@@ -84,6 +84,9 @@ contract AgenticCommerceV9 is
 
     mapping(address => bool) public allowedTokens;
     
+    // M-03: Track total ETH locked in escrow across all jobs
+    uint256 public totalLockedETH;
+    
     // Evaluator pool for random selection
     address[] public evaluatorPool;
     mapping(address => bool) public isRegisteredEvaluator;
@@ -455,10 +458,11 @@ contract AgenticCommerceV9 is
         bool isRandomEvaluator = (evaluator == address(0));
         
         // A3-02/F8-01: Commit-reveal for random evaluator
+        // H-02 FIX: Commit to (jobId, block.number) — entropy from blockhash at reveal time
+        // block.prevrandao is unknowable until block is sealed, preventing precomputation
         if (isRandomEvaluator) {
-            bytes32 salt = keccak256(abi.encodePacked(block.timestamp, msg.sender, jobId));
             evaluatorCommits[jobId] = EvaluatorCommit({
-                commitHash: keccak256(abi.encodePacked(salt, jobId, block.number)),
+                commitHash: keccak256(abi.encodePacked(jobId, block.number)),
                 commitBlock: block.number,
                 revealed: false
             });
@@ -503,6 +507,9 @@ contract AgenticCommerceV9 is
                     (bool success, ) = payable(_msgSender()).call{value: excess}("");
                     if (!success) revert RefundFailed();
                 }
+                
+                // M-03: Track locked ETH
+                totalLockedETH += amountToFund;
             } else {
                 // ERC20
                 if (msg.value > 0) revert InvalidJob();
@@ -570,9 +577,8 @@ contract AgenticCommerceV9 is
         address finalEvaluator = evaluator;
         bool isRandomEvaluator = (evaluator == address(0));
         if (isRandomEvaluator) {
-            bytes32 salt = keccak256(abi.encodePacked(block.timestamp, msg.sender, jobId));
             evaluatorCommits[jobId] = EvaluatorCommit({
-                commitHash: keccak256(abi.encodePacked(salt, jobId, block.number)),
+                commitHash: keccak256(abi.encodePacked(jobId, block.number)),
                 commitBlock: block.number,
                 revealed: false
             });
@@ -684,6 +690,9 @@ contract AgenticCommerceV9 is
                 (bool successExcess, ) = payable(_msgSender()).call{value: excess}("");
                 if (!successExcess) revert EthTransferFailed();
             }
+            
+            // M-03: Track locked ETH
+            totalLockedETH += cachedBudget;
         } else {
             if (msg.value != 0) revert InvalidJob();
             uint256 balanceBefore = job.paymentToken.balanceOf(address(this));
@@ -774,6 +783,11 @@ contract AgenticCommerceV9 is
         // Decrement active job count for the client
         _decrementJobCount(jobId);
 
+        // M-03: Decrement locked ETH if payment token is ETH
+        if (address(job.paymentToken) == address(0)) {
+            totalLockedETH -= amount;
+        }
+
         // Calculate fees with M2-01 minimum fee floor
         uint256 platformFee = (amount * 100) / FEE_DENOMINATOR; // 1%
         if (platformFee > 0 && platformFee < MIN_PLATFORM_FEE) platformFee = MIN_PLATFORM_FEE;
@@ -859,6 +873,10 @@ contract AgenticCommerceV9 is
         _decrementJobCount(jobId);
 
         if (oldStatus == JobStatus.Funded || oldStatus == JobStatus.Submitted || oldStatus == JobStatus.PendingClientApproval) {
+            // M-03: Decrement locked ETH if payment token is ETH
+            if (address(job.paymentToken) == address(0)) {
+                totalLockedETH -= refundAmount;
+            }
             _transferPayment(job.paymentToken, job.client, refundAmount);
             emit Refunded(jobId, job.client, refundAmount);
         }
@@ -884,6 +902,11 @@ contract AgenticCommerceV9 is
         job.status = JobStatus.Expired;
 
         _decrementJobCount(jobId);
+
+        // M-03: Decrement locked ETH if payment token is ETH
+        if (address(job.paymentToken) == address(0)) {
+            totalLockedETH -= refundAmount;
+        }
 
         _transferPayment(job.paymentToken, _msgSender(), refundAmount);
 
@@ -911,6 +934,11 @@ contract AgenticCommerceV9 is
         job.status = JobStatus.Expired;
 
         _decrementJobCount(jobId);
+
+        // M-03: Decrement locked ETH if payment token is ETH
+        if (address(job.paymentToken) == address(0)) {
+            totalLockedETH -= refundAmount;
+        }
 
         _transferPayment(job.paymentToken, client, refundAmount);
 
@@ -960,6 +988,11 @@ contract AgenticCommerceV9 is
         job.status = JobStatus.Completed;
 
         _decrementJobCount(jobId);
+
+        // M-03: Decrement locked ETH if payment token is ETH
+        if (address(job.paymentToken) == address(0)) {
+            totalLockedETH -= amount;
+        }
 
         if (job.hook != address(0)) {
             try IACPHook(job.hook).beforeAction(jobId, this.completeAfterTimeout.selector, abi.encode(reason)) {
@@ -1103,17 +1136,20 @@ contract AgenticCommerceV9 is
     /**
      * @dev Permissionless cleanup of stale evaluators (blacklisted or unregistered).
      * Anyone can call to remove stale entries and keep the pool healthy.
+     * @param maxIterations Maximum number of iterations to prevent OOG (0 = no limit).
      * @return removedCount Number of stale evaluators removed.
      */
-    function cleanupStaleEvaluators() external returns (uint256 removedCount) {
+    function cleanupStaleEvaluators(uint256 maxIterations) external returns (uint256 removedCount) {
         if (evaluatorPool.length == 0) return 0;
 
-        // Iterate backwards to safely remove elements
-        for (uint256 i = evaluatorPool.length; i > 0; i--) {
+        uint256 iterations = 0;
+        uint256 i = evaluatorPool.length;
+        while (i > 0) {
+            if (maxIterations > 0 && iterations >= maxIterations) break;
+
             address evalAddr = evaluatorPool[i - 1];
             bool isStale = !isRegisteredEvaluator[evalAddr];
 
-            // Also check blacklist
             if (!isStale && adminRegistry != address(0)) {
                 AdminRegistry registry = AdminRegistry(adminRegistry);
                 if (registry.isWalletBlacklistedActive(evalAddr)) {
@@ -1126,6 +1162,9 @@ contract AgenticCommerceV9 is
                 evaluatorPool.pop();
                 removedCount++;
             }
+
+            i--;
+            iterations++;
         }
 
         if (removedCount > 0) {
@@ -1142,32 +1181,18 @@ contract AgenticCommerceV9 is
     }
 
     /**
-     * @dev Select a random evaluator from the pool using commit-reveal.
-     * A3-02/F8-01: Uses blockhash(jobCreationBlock + 6) for randomness.
-     * The blockhash at commitBlock + 6 is finalized and not manipulable by the miner.
+     * @dev Select a random evaluator from the pool.
+     * H-02 FIX: Uses blockhash(commitBlock) as entropy — unknowable until block was sealed.
      * @param jobId The job ID to select evaluator for.
-     * @param salt A salt value to increase entropy.
+     * @param entropy Pre-computed entropy (blockhash of commit block).
      */
-    function _selectRandomEvaluator(uint256 jobId, bytes32 salt) internal view returns (address evaluator) {
+    function _selectRandomEvaluator(uint256 jobId, bytes32 entropy) internal view returns (address evaluator) {
         if (evaluatorPool.length == 0) revert NoEvaluatorsAvailable();
 
-        uint256 commitBlock = jobCreationBlock[jobId];
-        if (commitBlock == 0) revert NoCommitFound();
-
-        // Use blockhash from commitBlock + 6 (finalized, not manipulable)
-        uint256 revealBlock = commitBlock + EVALUATOR_REVEAL_DELAY;
-        bytes32 randomSeed = blockhash(revealBlock);
-        
-        // Fallback if blockhash is unavailable (e.g., >256 blocks old)
-        if (randomSeed == bytes32(0)) {
-            randomSeed = keccak256(abi.encodePacked(block.prevrandao, block.timestamp, jobId));
-        }
-
         uint256 randomIndex = uint256(keccak256(abi.encodePacked(
-            randomSeed,
-            salt,
+            entropy,
             jobId,
-            msg.sender
+            evaluatorPool.length
         ))) % evaluatorPool.length;
 
         evaluator = evaluatorPool[randomIndex];
@@ -1183,11 +1208,11 @@ contract AgenticCommerceV9 is
     
     /**
      * @dev Finalize random evaluator selection after commit-reveal delay.
+     * H-02 FIX: No user-provided salt needed — entropy is on-chain (block.prevrandao + blockhash).
      * Permissionless — anyone can call after 6 blocks.
      * @param jobId The job ID to finalize evaluator for.
-     * @param salt The salt used during job creation.
      */
-    function finalizeRandomEvaluator(uint256 jobId, bytes32 salt) external {
+    function finalizeRandomEvaluator(uint256 jobId) external {
         Job storage job = jobs[jobId];
         if (job.id == 0) revert InvalidJob();
         if (job.evaluator != address(0)) revert EvaluatorAlreadyRegistered();
@@ -1197,13 +1222,20 @@ contract AgenticCommerceV9 is
         if (commit.revealed) revert EvaluatorAlreadyRegistered();
         if (block.number < commit.commitBlock + EVALUATOR_REVEAL_DELAY) revert RevealTooEarly();
         
-        // Verify commitment
-        bytes32 expectedCommit = keccak256(abi.encodePacked(salt, jobId, commit.commitBlock));
+        // Verify commitment: hash of (jobId, commitBlock) must match stored commitHash
+        bytes32 expectedCommit = keccak256(abi.encodePacked(jobId, commit.commitBlock));
         if (commit.commitHash != expectedCommit) revert InvalidCommit();
         
         commit.revealed = true;
         
-        address finalEvaluator = _selectRandomEvaluator(jobId, salt);
+        // H-02: Use blockhash(commitBlock) as entropy — unknowable until block was sealed
+        bytes32 entropy = blockhash(commit.commitBlock);
+        if (entropy == bytes32(0)) {
+            // Fallback if blockhash is unavailable (>256 blocks old)
+            entropy = keccak256(abi.encodePacked(block.prevrandao, block.timestamp, jobId));
+        }
+        
+        address finalEvaluator = _selectRandomEvaluator(jobId, entropy);
         job.evaluator = finalEvaluator;
         
         emit EvaluatorRandomlySelected(jobId, finalEvaluator);

@@ -29,7 +29,7 @@ export function handleProposalCreated(event: ProposalCreatedEvent): void {
   activity.transactionHash = event.transaction.hash;
   activity.save();
 
-  updatePlatformStat('totalProposals', true);
+  updatePlatformStat('totalProposals', true, event.block.timestamp);
 }
 
 export function handleEvaluationSubmitted(event: EvaluationSubmittedEvent): void {

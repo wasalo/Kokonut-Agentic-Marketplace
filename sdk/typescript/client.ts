@@ -857,21 +857,22 @@ class CommerceModule {
     return { hash, wait: () => this.publicClient.waitForTransactionReceipt({ hash }) };
   }
 
-  async cleanupStaleEvaluators(): Promise<TransactionResult> {
+  async cleanupStaleEvaluators(maxIterations: bigint = 0n): Promise<TransactionResult> {
     const hash = await this.wallet.writeContract({
       address: this.contracts.agenticCommerce,
       abi: AGENTIC_COMMERCE_ABI,
       functionName: 'cleanupStaleEvaluators',
+      args: [maxIterations],
     } as any);
     return { hash, wait: () => this.publicClient.waitForTransactionReceipt({ hash }) };
   }
 
-  async finalizeRandomEvaluator(jobId: bigint, salt: `0x${string}`): Promise<TransactionResult> {
+  async finalizeRandomEvaluator(jobId: bigint): Promise<TransactionResult> {
     const hash = await this.wallet.writeContract({
       address: this.contracts.agenticCommerce,
       abi: AGENTIC_COMMERCE_ABI,
       functionName: 'finalizeRandomEvaluator',
-      args: [jobId, salt],
+      args: [jobId],
     } as any);
     return { hash, wait: () => this.publicClient.waitForTransactionReceipt({ hash }) };
   }
@@ -1108,23 +1109,27 @@ class CommerceModule {
     return result as unknown as bigint;
   }
 
-  async commitBid(jobId: bigint, amount: bigint, message: string): Promise<TransactionResult> {
+  async commitBid(jobId: bigint, amount: bigint, message: string): Promise<TransactionResult & { salt: `0x${string}`; commitHash: `0x${string}` }> {
     const stake = (amount * 100n) / 10000n;
-    const commitHash = Buffer.from(
-      // eslint-disable-next-line @typescript-eslint/no-explicit-any
-      (globalThis as any).crypto?.randomUUID?.().replace(/-/g, '') ||
-        Array.from({ length: 64 }, () => Math.floor(Math.random() * 16).toString(16)).join('')
-    ).toString('hex');
+    const saltBytes = globalThis.crypto?.getRandomValues?.(new Uint8Array(32))
+      || new Uint8Array(32).map(() => Math.floor(Math.random() * 256));
+    const salt = `0x${Buffer.from(saltBytes).toString('hex')}` as `0x${string}`;
+    const commitHash = `0x${Buffer.from(
+      globalThis.crypto?.getRandomValues?.(new Uint8Array(32))
+        || new Uint8Array(32).map(() => Math.floor(Math.random() * 256))
+    ).toString('hex')}` as `0x${string}`;
     const hash = await this.wallet.writeContract({
       address: this.contracts.agenticCommerce,
       abi: AGENTIC_COMMERCE_ABI,
       functionName: 'commitBid',
-      args: [jobId, `0x${commitHash}` as `0x${string}`],
+      args: [jobId, commitHash],
       value: stake,
     } as any);
 
     return {
       hash,
+      salt,
+      commitHash,
       wait: () => this.publicClient.waitForTransactionReceipt({ hash }),
     };
   }
@@ -2123,13 +2128,13 @@ class BiddingSystemModule {
     amount: bigint;
     message: string;
     salt?: string;
-  }): Promise<TransactionResult> {
-    const salt =
-      params.salt ||
-      Buffer.from(Array.from({ length: 32 }, () => Math.floor(Math.random() * 256))).toString(
-        'hex'
-      );
-    const commitHash = `0x${Buffer.from(salt).toString('hex')}`;
+  }): Promise<TransactionResult & { salt: string; commitHash: `0x${string}` }> {
+    const saltBytes = params.salt
+      ? Buffer.from(params.salt, 'hex')
+      : (globalThis.crypto?.getRandomValues?.(new Uint8Array(32))
+          || new Uint8Array(32).map(() => Math.floor(Math.random() * 256)));
+    const salt = Buffer.from(saltBytes).toString('hex');
+    const commitHash = `0x${salt}`;
     const stake = (params.amount * 100n) / 10000n;
 
     const hash = await this.wallet.writeContract({
@@ -2143,6 +2148,8 @@ class BiddingSystemModule {
 
     return {
       hash,
+      salt,
+      commitHash: commitHash as `0x${string}`,
       wait: () => this.publicClient.waitForTransactionReceipt({ hash }),
     };
   }

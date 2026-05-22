@@ -26,7 +26,7 @@ export function handleAgentBlacklisted(event: AgentBlacklistedEvent): void {
     agent.save();
   }
 
-  updatePlatformStat('totalBlacklistedAgents', true);
+  updatePlatformStat('totalBlacklistedAgents', true, event.block.timestamp);
 }
 
 export function handleAgentUnblacklisted(event: AgentUnblacklistedEvent): void {

@@ -624,11 +624,7 @@ contract AgentReviewV5 is IAgentReviewV5, ContextUpgradeable, Ownable2StepUpgrad
     }
     
     // M3 Fix: Set default slash percentage (basis points)
-    function setDefaultSlashPercentage(uint256 slashBP_) external onlyOwner {
-        if (!(slashBP_ <= FEE_DENOMINATOR)) revert AgentReviewV5_Cannot_exceed_100();
-        // Note: SLASH_PERCENTAGE is constant, this is just for documentation
-        // The actual slash % is passed from SlashManager in slashEvaluator
-    }
+    // Note: SLASH_PERCENTAGE is constant; actual slash % is passed from SlashManager
 
     function getTotalLockedETH() public view returns (uint256 totalLocked) {
         for (uint256 i = 0; i < _proposalCounter; i++) {
@@ -683,6 +679,17 @@ contract AgentReviewV5 is IAgentReviewV5, ContextUpgradeable, Ownable2StepUpgrad
         
         uint256 refund = proposal.reward;
         proposal.reward = 0;
+
+        address[] storage evals = proposalEvaluators[proposalId];
+        for (uint256 i = 0; i < evals.length; i++) {
+            Evaluation storage eval = evaluations[proposalId][evals[i]];
+            if (eval.stakeAmount > 0 && !eval.stakeReleased) {
+                uint256 stake = eval.stakeAmount;
+                eval.stakeAmount = 0;
+                eval.stakeReleased = true;
+                _sendEth(evals[i], stake);
+            }
+        }
 
         _sendEth(_msgSender(), refund);
 

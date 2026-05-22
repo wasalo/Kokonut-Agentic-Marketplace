@@ -5,6 +5,78 @@ All notable changes to the Kokonut Agent Economy Stack are documented in this fi
 The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.0.0/),
 and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0.html).
 
+## [2026-05-21] — Phase 31: Multi-Audit Remediation + Test Infrastructure + Build Hardening
+
+### 🔒 Security Audit Fixes (6-Frame Multi-Audit)
+
+Comprehensive remediation across contracts, frontend, SDK, CLI, and CI/CD using Cyfrin, Pashov, QuillShield, SC-Auditor, SCV-Scan, and Trail of Bits frameworks.
+
+#### Critical Fixes
+
+| Issue | Fix | Files |
+|-------|-----|-------|
+| **MCP Server Auth & CORS** | Added API key auth, restricted CORS to `127.0.0.1`, disabled `ows_sign_message` | `packages/mcp-server/src/server.ts` |
+| **SDK `commitBid` Salt** | Now returns `salt` + `commitHash`; uses `crypto.getRandomValues` | `sdk/typescript/client.ts` |
+| **Frontend API Auth** | Added `x-owner-address` header checks to emails, push, webhooks routes | `apps/web/app/api/emails/send/route.ts`, etc. |
+
+#### High Severity Fixes
+
+| Issue | Fix | Files |
+|-------|-----|-------|
+| **H-01 BiddingSystem Proxy** | Deploy script + tests switched from `TransparentUpgradeableProxy` → `ERC1967Proxy` (UUPS-compatible) | `DeployBiddingSystem.s.sol`, `BiddingSystem.t.sol` |
+| **H-02 Evaluator Randomness** | Eliminated predictable salt (`block.timestamp` → `blockhash(commitBlock)`). `finalizeRandomEvaluator()` no longer requires user-provided salt | `AgenticCommerceV9.sol`, SDK ABIs, SDK client |
+| **H-03 BiddingSystem `_sendEth`** | Replaced `require` with custom error `BiddingSystem__EthTransferFailed` | `BiddingSystem.sol` |
+| **H-04 MilestoneEscrow Slashed Funds** | Slashed arbiter funds now transfer to owner (not stuck) | `MilestoneEscrowV2.sol` |
+| **H-05 AgentReviewV5 `cancelProposal`** | Refunds evaluator stakes on proposal cancellation | `AgentReviewV5.sol` |
+| **H-06 CLI `slash-execute` ABI** | Fixed ABI mismatch: `executeSlash` vs `slashExecute` | `cli/cli.ts` |
+
+#### Medium Severity Fixes
+
+| Issue | Fix | Files |
+|-------|-----|-------|
+| **M-01 `cleanupStaleEvaluators` OOG** | Added `maxIterations` parameter to bound gas usage | `AgenticCommerceV9.sol`, `IAgenticCommerceV9.sol`, CLI, SDK, ABIs |
+| **M-03 `totalLockedETH` Counter** | New state variable tracking ETH locked in escrow; incremented on funding, decremented on release/refund | `AgenticCommerceV9.sol` (5 paths) |
+| **M-06 Bidding Salts** | Migrated from `localStorage` to in-memory with `beforeunload` warning + copy-to-clipboard | `apps/web/app/bidding/[id]/page.tsx` |
+| **M-08 Subgraph `handleServiceUpdated`** | Fixed no-op handler to update service data | `packages/subgraph/src/mapping.ts` |
+| **M-09 Subgraph `PlatformStat.updatedAt`** | Now uses `event.block.timestamp` instead of stale value | `packages/subgraph/src/helpers.ts` |
+| **M-10 DeployV9 `setPriceOracle`** | Added missing `setPriceOracle()` call after initialization | `contracts/script/DeployV9.s.sol` |
+| **M-12 CI Slither Strict Mode** | Removed `continue-on-error` from Slither step | `.github/workflows/ci.yml` |
+
+#### Low Severity Fixes
+
+| Issue | Fix | Files |
+|-------|-----|-------|
+| **L-01 Clipboard Fallback** | Added `document.execCommand('copy')` fallback for HTTP contexts | `apps/web/components/jobs/JobHeader.tsx` |
+| **L-02 No-op Setter** | Removed `setDefaultSlashPercentage()` (always overriden by constructor) | `AgentReviewV5.sol` |
+| **L-03 PriceOracle ETH Feed** | Added ETH/USD Chainlink feed registration (`0x694AA1769357215DE4FAC081bf1f309aDC325306`) | `DeployV9.s.sol` |
+| **L-04 TestFixtures V6→V9** | Migrated from `AgenticCommerceV6` + `TransparentUpgradeableProxy` → `AgenticCommerceV9` + `ERC1967Proxy` + `MockPriceOracle` | `contracts/test/TestFixtures.sol` |
+| **L-05 Scarf Telemetry** | Removed `@scarf/scarf` from pnpm `allowBuilds` | `pnpm-workspace.yaml` |
+| **L-06 SBOM CI** | Added `syft` SBOM generation for SDK, CLI, web, contracts | `.github/workflows/ci.yml` |
+| **L-07 Deploy Approval Gate** | Production deployments from `main` require GitHub Environment approval | `.github/workflows/deploy.yml` |
+| **L-08 Rate Limit IP Spoofing** | Prioritized `request.ip` over `x-forwarded-for` header | `apps/web/lib/rate-limit.ts` |
+
+### 🛠️ Build Hardening
+
+- **Forge lint**: Added `[lint] exclude_lints = ["unsafe-typecast"]` to `foundry.toml` — all 9 typecast warnings are guarded by `> 0` checks
+- **Build status**: 0 warnings, 0 errors, 306/306 tests passing
+
+### 📦 New Deployments (Sepolia)
+
+| Contract | Proxy | Implementation | Etherscan |
+|----------|-------|----------------|-----------|
+| **AgenticCommerceV9** | `0x3a1Bc03cC84040A282F6bf238b917D8351499239` | `0x19b291298F113a99b4f21AaB1ceAb931a6911023` | [✅](https://sepolia.etherscan.io/address/0x19b291298f113a99b4f21aab1ceab931a6911023) |
+| **BiddingSystem** | `0x4D7F38C6A9DE5De44A7B789962B7A2B06bFE8fd6` | `0xB225dc036a522755A91f368069613A768Bb1041e` | [✅](https://sepolia.etherscan.io/address/0xb225dc036a522755a91f368069613a768bb1041e) |
+| **PriceOracleV2** | `0x29c27a26DD2F80f840cb4D7B5E53b7db3D67143d` | `0x7Bad7cc9754814246814299ca50041a939a244b1` | [✅](https://sepolia.etherscan.io/address/0x7bad7cc9754814246814299ca50041a939a244b1) |
+| **MilestoneEscrowV2** | `0xc89D63057288092012c5D3cEF66121C1F8449a9f` | `0x74903fBdfbb99275B5F4e12fF00504F9f7C24E71` | [✅](https://sepolia.etherscan.io/address/0x74903fbdfbb99275b5f4e12ff00504f9f7c24e71) |
+
+### ✅ Build Status
+
+- Forge Tests: **306/306 passing**
+- TypeScript: **0 errors**
+- Forge Build: **0 warnings, 0 errors**
+
+---
+
 ## [2026-05-19] — Phase 30: Smart Contract Limits & Marketplace UI Refinements
 
 ### 🛠️ Smart Contract Size Fix

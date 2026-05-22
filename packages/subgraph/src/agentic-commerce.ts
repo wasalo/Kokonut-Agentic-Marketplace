@@ -50,7 +50,7 @@ export function handleJobCreated(event: JobCreatedEvent): void {
     event.transaction.hash
   );
 
-  updatePlatformStat('totalJobs', true);
+  updatePlatformStat('totalJobs', true, event.block.timestamp);
 }
 
 export function handleJobFunded(event: JobFundedEvent): void {

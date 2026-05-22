@@ -49,7 +49,7 @@ export async function getContractAddresses(): Promise<unknown> {
       erc8004Registry: '0x8004A818BFB912233c491871b3d84c89A494BD9e',
       erc8004Reputation: '0x8004B663056A597Dffe9eCcC1965A193B7388713',
       serviceRegistry: '0x62E1eeEa1A2Ab987004F35bDA430457Ed6077201',
-      agenticCommerce: '0x4c592510e4FAbbEEA8D7142dE1f38d548b500e7f',
+      agenticCommerce: '0x3a1Bc03cC84040A282F6bf238b917D8351499239',
       agentReview: '0x5CDb592Fd37749bF87448FBf5725D1Cd986dd1Cb',
       skillRegistry: '0xA84684261558f342d6871DD2CFef90A2117Aa20A',
       priceOracle: '0x32fD2A54B722D2048A052fD0456004483a683aFE',

@@ -15,5 +15,5 @@ export function handleFeedbackSubmitted(event: FeedbackSubmittedEvent): void {
   review.timestamp = event.block.timestamp;
   review.save();
 
-  updatePlatformStat('totalReviews', true);
+  updatePlatformStat('totalReviews', true, event.block.timestamp);
 }

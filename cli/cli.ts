@@ -2523,7 +2523,7 @@ program
       initWallet(undefined, opts.wallet, opts.passphrase);
 
       const slashManagerABI = parseAbi([
-        'function executeProposal(bytes32 proposalId) external',
+        'function executeSlash(bytes32 proposalHash) external',
         'function isSigner(address account) external view returns (bool)',
       ]);
 
@@ -2541,9 +2541,9 @@ program
       }
 
       console.log(chalk.cyan('\n⚡ Executing Slash Proposal:'));
-      console.log(chalk.dim('Proposal ID:'), options.proposalId);
+      console.log(chalk.dim('Proposal Hash:'), options.proposalId);
 
-      const hash = await slashManager.write.executeProposal([options.proposalId as `0x${string}`]);
+      const hash = await slashManager.write.executeSlash([options.proposalId as `0x${string}`]);
       console.log(chalk.cyan('\n📤 Transaction sent:'), hash);
 
       await waitForTransactionReceipt(hash);
@@ -2853,13 +2853,13 @@ program
       }
 
       const abi = parseAbi([
-        'function cleanupStaleEvaluators() external returns (uint256)',
+        'function cleanupStaleEvaluators(uint256 maxIterations) external returns (uint256)',
       ]);
 
       const commerce = getContractInstance(config.contracts.agenticCommerce, abi);
 
       console.log(chalk.cyan('\n🧹 Cleaning up stale evaluators...'));
-      const hash = await commerce.write.cleanupStaleEvaluators([]);
+      const hash = await commerce.write.cleanupStaleEvaluators([0n]);
       console.log(chalk.cyan('Transaction sent:'), hash);
 
       const receipt = await waitForTransactionReceipt(hash);

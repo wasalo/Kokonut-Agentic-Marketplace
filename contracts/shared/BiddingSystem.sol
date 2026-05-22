@@ -719,6 +719,6 @@ contract BiddingSystem is
     function _sendEth(address to, uint256 amount) internal {
         if (amount == 0) return;
         (bool success, ) = payable(to).call{value: amount}("");
-        require(success, "ETH transfer failed");
+        if (!success) revert BiddingSystem__ETH_transfer_failed();
     }
 }

@@ -600,7 +600,7 @@ contract AgenticCommerceV9Test is Test {
         assertEq(commerce.getEvaluatorPoolSize(), 0);
 
         // cleanupStaleEvaluators returns 0 since evaluator was already removed
-        uint256 removed = commerce.cleanupStaleEvaluators();
+        uint256 removed = commerce.cleanupStaleEvaluators(0);
         assertEq(removed, 0);
     }
 

@@ -2,7 +2,7 @@
 pragma solidity ^0.8.20;
 
 import "forge-std/Script.sol";
-import "@openzeppelin/contracts/proxy/transparent/TransparentUpgradeableProxy.sol";
+import "@openzeppelin/contracts/proxy/ERC1967/ERC1967Proxy.sol";
 import {BiddingSystem} from "../shared/BiddingSystem.sol";
 
 /**
@@ -36,9 +36,8 @@ contract DeployBiddingSystem is Script {
             treasury
         );
         
-        TransparentUpgradeableProxy proxy = new TransparentUpgradeableProxy(
+        ERC1967Proxy proxy = new ERC1967Proxy(
             address(implementation),
-            deployer,
             initData
         );
         

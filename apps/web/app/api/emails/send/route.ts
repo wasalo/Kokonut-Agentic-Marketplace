@@ -60,6 +60,11 @@ async function sendViaResend(
 
 export async function POST(request: NextRequest) {
   try {
+    const owner = request.headers.get('x-owner-address');
+    if (!owner) {
+      return NextResponse.json({ error: 'Authentication required. Provide x-owner-address header.' }, { status: 401 });
+    }
+
     const body = await request.json();
 
     const validation = sendEmailSchema.safeParse(body);
@@ -81,29 +86,24 @@ export async function POST(request: NextRequest) {
 
     const { subject, html } = renderEmail(template as EmailTemplateType, templateData);
 
-    const owner = request.headers.get('x-owner-address');
-    if (owner) {
-      useEmailStore.getState().addDelivery({
-        to,
-        template: template as EmailTemplateType,
-        status: 'pending',
-        sentAt: null,
-        error: null,
-      });
-    }
+    useEmailStore.getState().addDelivery({
+      to,
+      template: template as EmailTemplateType,
+      status: 'pending',
+      sentAt: null,
+      error: null,
+    });
 
     const result = await sendViaResend(to, subject, html);
 
-    if (owner) {
-      const deliveries = useEmailStore.getState().getDeliveries(owner);
-      const delivery = deliveries[deliveries.length - 1];
-      if (delivery) {
-        useEmailStore.getState().updateDelivery(delivery.id, {
-          status: result.success ? 'sent' : 'failed',
-          sentAt: result.success ? Date.now() : null,
-          error: result.error || null,
-        });
-      }
+    const deliveries = useEmailStore.getState().getDeliveries(owner);
+    const delivery = deliveries[deliveries.length - 1];
+    if (delivery) {
+      useEmailStore.getState().updateDelivery(delivery.id, {
+        status: result.success ? 'sent' : 'failed',
+        sentAt: result.success ? Date.now() : null,
+        error: result.error || null,
+      });
     }
 
     if (!result.success) {

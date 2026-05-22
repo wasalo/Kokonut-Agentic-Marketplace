@@ -29,12 +29,14 @@ export function handleServiceCreated(event: ServiceCreatedEvent): void {
   activity.transactionHash = event.transaction.hash;
   activity.save();
 
-  updatePlatformStat('totalServices', true);
+  updatePlatformStat('totalServices', true, event.block.timestamp);
 }
 
 export function handleServiceUpdated(event: ServiceUpdatedEvent): void {
   let service = Service.load(event.params.serviceId.toString());
   if (service) {
+    service.name = event.params.name;
+    service.price = event.params.price;
     service.save();
   }
 }

@@ -28,7 +28,7 @@ export function handleRegistered(event: RegisteredEvent): void {
   activity.transactionHash = event.transaction.hash;
   activity.save();
 
-  updatePlatformStat('totalAgents', true);
+  updatePlatformStat('totalAgents', true, event.block.timestamp);
 }
 
 export function handleAgentURIUpdated(event: AgentURIUpdatedEvent): void {
