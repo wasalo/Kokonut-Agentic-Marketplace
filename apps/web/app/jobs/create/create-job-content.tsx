@@ -26,7 +26,6 @@ import {
 import { showToast } from '@/lib/toast';
 import { Address } from '@/components/Address';
 import { AddressInput } from '@/components/AddressInput';
-import { formatAddress } from '@/lib/utils';
 
 const MAX_DESCRIPTION_LENGTH = 1000;
 const MIN_EXPIRY_DURATION = 5 * 60 * 1000;

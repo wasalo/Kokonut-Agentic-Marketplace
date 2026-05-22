@@ -214,7 +214,7 @@ export default function JobDetailPage({
 
   // Bidding hooks for open jobs
   const { count: bidCount } = useJobBidCount(job?.id);
-  const { hash: withdrawHash, isPending: isWithdrawPending } = useWithdrawStake();
+  const { hash: withdrawHash } = useWithdrawStake();
   const { isEvaluatorFeeEnabled } = useEvaluatorFeeEnabled(job?.id);
 
   // Fetch bids using useReadContracts
