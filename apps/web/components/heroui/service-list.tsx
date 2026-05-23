@@ -1,16 +1,13 @@
 'use client';
 
-import { useState, useEffect, useMemo, memo } from 'react';
-import { usePublicClient } from 'wagmi';
-import { useAllServices, Service } from '@/lib/hooks/useServicesContract';
-import { useFindSkillsByDomain } from '@/lib/hooks/useSkills';
+import { memo } from 'react';
+import { Service } from '@/lib/hooks/useServicesContract';
 import { useTokenPriceConversion } from '@/lib/hooks/useTokenConversion';
 import { Card } from '@heroui/react';
 import { useRouter } from 'next/navigation';
 import {
   ShoppingBag,
   DollarSign,
-  ChevronLeft,
   ChevronRight,
   Bookmark,
   Calendar,
@@ -19,30 +16,9 @@ import {
 } from 'lucide-react';
 import { StatusBadge, getServiceStatusBadgeType } from '@/components/StatusBadge';
 import { useServiceBookmarks, useBookmarkCounts } from '@/lib/hooks/useBookmarks';
-import { useServiceEvents } from '@/lib/hooks/useServiceEvents';
-import { CONTRACTS } from '@/lib/wagmi';
-import { AGENT_SKILL_REGISTRY_ABI } from '@/lib/contracts/abis';
 import { Address } from '@/components/Address';
 import { GridSkeleton } from '@/components/Skeletons';
-
-const ITEMS_PER_PAGE = 12;
-const ZERO_ADDRESS = '0x0000000000000000000000000000000000000000';
-const SKILL_REGISTRY_ADDRESS = CONTRACTS[11155111].skillRegistry;
-
-function priceToUsdEquivalent(
-  price: bigint,
-  paymentToken: `0x${string}`,
-  ethToUsdcRate: number | null
-): number {
-  const isEth = paymentToken.toLowerCase() === ZERO_ADDRESS.toLowerCase();
-  if (isEth && ethToUsdcRate) {
-    return (Number(price) / 1e18) * ethToUsdcRate;
-  } else if (isEth) {
-    return Number(price) / 1e18;
-  } else {
-    return Number(price) / 1e6;
-  }
-}
+import { formatAmount, getTokenByAddress, tokenAmountToUsd } from '@/lib/tokenUtils';
 
 function EmptyState() {
   return (
@@ -74,13 +50,11 @@ const ServiceCard = memo(function ServiceCard({
   const { isBookmarked, toggleBookmark } = useServiceBookmarks();
   const { getServiceCount } = useBookmarkCounts();
 
-  const isEth =
-    service.paymentToken && service.paymentToken.toLowerCase() === ZERO_ADDRESS.toLowerCase();
-  const tokenDecimals = isEth ? 18 : 6;
-  const tokenAmount = Number(service.price) / 10 ** tokenDecimals;
-  const tokenSymbol = isEth ? 'ETH' : 'USDC';
-
-  const usdValue = isEth && ethToUsdcRate ? tokenAmount * ethToUsdcRate : isEth ? null : tokenAmount;
+  const token = getTokenByAddress(service.paymentToken);
+  const usdValue = token.symbol === 'ETH'
+    ? tokenAmountToUsd(service.price, token, ethToUsdcRate)
+    : tokenAmountToUsd(service.price, token);
+  const hasUsdValue = token.symbol === 'USDC' || !!ethToUsdcRate;
 
   const serviceIdStr = service.id.toString();
   const bookmarked = isBookmarked(serviceIdStr);
@@ -92,7 +66,7 @@ const ServiceCard = memo(function ServiceCard({
 
   const handlePurchase = (e: React.MouseEvent) => {
     e.stopPropagation();
-    window.location.href = `/jobs/create?serviceId=${serviceIdStr}&provider=${service.provider}`;
+    router.push(`/jobs/create?serviceId=${serviceIdStr}&provider=${service.provider}`);
   };
 
   const handleBookmark = (e: React.MouseEvent) => {
@@ -131,10 +105,10 @@ const ServiceCard = memo(function ServiceCard({
             <StatusBadge status={getServiceStatusBadgeType(service.isActive)} size="sm" />
             <span
               className={`text-[10px] px-1.5 py-0.5 rounded ${
-                isEth ? 'bg-[#627EEA]/10 text-[#627EEA]' : 'bg-[#2775CA]/10 text-[#2775CA]'
+                token.symbol === 'ETH' ? 'bg-[#627EEA]/10 text-[#627EEA]' : 'bg-[#2775CA]/10 text-[#2775CA]'
               }`}
             >
-              {tokenSymbol}
+              {token.symbol}
             </span>
           </div>
         </div>
@@ -188,9 +162,13 @@ const ServiceCard = memo(function ServiceCard({
           <div>
             <span className="font-semibold text-sm text-success flex items-center gap-1">
               <DollarSign className="w-3 h-3" />
-              {tokenAmount.toFixed(2)} {tokenSymbol}
+              {formatAmount(service.price, token, {
+                includeSymbol: true,
+                minFractionDigits: token.symbol === 'USDC' ? 2 : 0,
+                maxFractionDigits: token.symbol === 'USDC' ? 2 : 6,
+              })}
             </span>
-            {usdValue !== null && (
+            {hasUsdValue && (
               <span className="text-[10px] text-default-400 block">
                 ~${usdValue.toLocaleString('en-US', { minimumFractionDigits: 2, maximumFractionDigits: 2 })} USD
               </span>
@@ -212,128 +190,31 @@ const ServiceCard = memo(function ServiceCard({
 });
 
 interface ServiceListProps {
-  searchQuery?: string;
-  showActiveOnly?: boolean;
-  minPrice?: string;
-  maxPrice?: string;
+  services: Service[];
+  isLoading?: boolean;
+  error?: Error | null;
+  onRetry?: () => void;
   skillDomain?: string;
-  sortBy?: string;
-  sortOrder?: string;
+  skillDomainsByAgent?: Map<string, string[]>;
+  totalFilteredCount?: number;
 }
 
 export function ServiceList({
-  searchQuery = '',
-  showActiveOnly = true,
-  minPrice = '',
-  maxPrice = '',
+  services,
+  isLoading = false,
+  error = null,
+  onRetry,
   skillDomain = '',
-  sortBy = 'newest',
-  sortOrder = 'desc',
+  skillDomainsByAgent = new Map(),
+  totalFilteredCount = services.length,
 }: ServiceListProps) {
-  const [page, setPage] = useState(0);
-  const publicClient = usePublicClient();
-  const { ethToUsdcRate } = useTokenPriceConversion();
-
-  const { services, isLoading, error, refetch } = useAllServices();
-
-  // Auto-refresh when new services are created on-chain
-  useServiceEvents(() => refetch());
-
-  // Skill domain filtering
-  const { skillIds, isLoading: isLoadingSkills } = useFindSkillsByDomain(skillDomain || undefined);
-  const [agentIdsBySkill, setAgentIdsBySkill] = useState<Map<string, string[]>>(new Map());
-
-  // Fetch agent IDs and skill names for skills matching the domain
-  useEffect(() => {
-    if (!publicClient || !skillIds || skillIds.length === 0) {
-      setAgentIdsBySkill(new Map());
-      return;
-    }
-
-    const fetchAgentIds = async () => {
-      const calls = skillIds.map(skillId => ({
-        address: SKILL_REGISTRY_ADDRESS as `0x${string}`,
-        abi: AGENT_SKILL_REGISTRY_ABI,
-        functionName: 'getSkillData' as const,
-        args: [skillId],
-      }));
-
-      try {
-        const results = await publicClient.multicall({ contracts: calls });
-        const map = new Map<string, string[]>();
-        for (const result of results) {
-          if (result.status === 'success' && result.result) {
-            const skillData = result.result as unknown as { agentId: bigint };
-            const agentId = skillData.agentId.toString();
-            const existing = map.get(agentId) || [];
-            if (!existing.includes(skillDomain || '')) {
-              existing.push(skillDomain || '');
-            }
-            map.set(agentId, existing);
-          }
-        }
-        setAgentIdsBySkill(map);
-      } catch (err) {
-        console.error('Error fetching agent IDs for skill domain:', err);
-        setAgentIdsBySkill(new Map());
-      }
-    };
-
-    void fetchAgentIds();
-  }, [publicClient, skillIds, skillDomain]);
-
-  // Apply filters
-  const filteredServices = useMemo(() => {
-    return services.filter((service: Service) => {
-      if (searchQuery && !service.name.toLowerCase().includes(searchQuery.toLowerCase())) {
-        return false;
-      }
-      if (showActiveOnly && !service.isActive) {
-        return false;
-      }
-      if (skillDomain && agentIdsBySkill.size > 0) {
-        const serviceAgentId = service.agentId.toString();
-        if (!agentIdsBySkill.has(serviceAgentId)) {
-          return false;
-        }
-      }
-      const priceInUsd = priceToUsdEquivalent(service.price, service.paymentToken, ethToUsdcRate);
-      if (minPrice && priceInUsd < Number(minPrice)) return false;
-      if (maxPrice && priceInUsd > Number(maxPrice)) return false;
-      return true;
-    });
-  }, [services, searchQuery, showActiveOnly, skillDomain, agentIdsBySkill, minPrice, maxPrice, ethToUsdcRate]);
-
-  // Apply sorting — create a sorted copy instead of mutating in place
-  const sortedServices = useMemo(() => {
-    return [...filteredServices].sort((a: Service, b: Service) => {
-      const multiplier = sortOrder === 'asc' ? 1 : -1;
-      switch (sortBy) {
-        case 'price': {
-          const priceA = priceToUsdEquivalent(a.price, a.paymentToken, ethToUsdcRate);
-          const priceB = priceToUsdEquivalent(b.price, b.paymentToken, ethToUsdcRate);
-          return multiplier * (priceA - priceB);
-        }
-        case 'name':
-          return multiplier * a.name.localeCompare(b.name);
-        case 'newest':
-        default:
-          return multiplier * (Number(a.id) - Number(b.id));
-      }
-    });
-  }, [filteredServices, sortBy, sortOrder, ethToUsdcRate]);
-
-  // Pagination
-  const totalPages = Math.max(1, Math.ceil(sortedServices.length / ITEMS_PER_PAGE));
-  const displayServices = sortedServices.slice(page * ITEMS_PER_PAGE, (page + 1) * ITEMS_PER_PAGE);
-
   if (error) {
     return (
       <div className="text-center py-8">
         <p className="text-danger mb-2">Error loading services</p>
         <p className="text-default-500 text-sm">{error.message}</p>
         <button
-          onClick={() => refetch()}
+          onClick={onRetry}
           className="mt-4 px-4 py-2 bg-content2 rounded-lg text-sm hover:bg-content3 transition-colors"
         >
           Retry
@@ -342,11 +223,11 @@ export function ServiceList({
     );
   }
 
-  if (isLoading || isLoadingSkills) {
+  if (isLoading) {
     return <GridSkeleton count={6} />;
   }
 
-  if (!displayServices || displayServices.length === 0) {
+  if (!services || services.length === 0) {
     return skillDomain ? (
       <div className="text-center py-16">
         <div className="h-16 w-16 rounded-full bg-content2 flex items-center justify-center mx-auto mb-4">
@@ -365,8 +246,8 @@ export function ServiceList({
   return (
     <div>
       <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-4">
-        {displayServices.map((service: Service) => {
-          const agentDomains = agentIdsBySkill.get(service.agentId.toString());
+        {services.map((service: Service) => {
+          const agentDomains = skillDomainsByAgent.get(service.agentId.toString());
           return (
             <ServiceCard
               key={service.id.toString()}
@@ -377,34 +258,8 @@ export function ServiceList({
         })}
       </div>
 
-      {totalPages > 1 && (
-        <div className="flex items-center justify-center gap-4 mt-8">
-          <button
-            onClick={() => setPage(p => Math.max(0, p - 1))}
-            disabled={page === 0}
-            className="inline-flex items-center gap-1 px-3 py-1.5 text-sm rounded-lg border border-divider hover:bg-content2 disabled:opacity-50 disabled:cursor-not-allowed transition-colors"
-          >
-            <ChevronLeft className="w-4 h-4" />
-            Previous
-          </button>
-
-          <span className="text-sm text-default-500">
-            Page {page + 1} of {totalPages}
-          </span>
-
-          <button
-            onClick={() => setPage(p => Math.min(totalPages - 1, p + 1))}
-            disabled={page >= totalPages - 1}
-            className="inline-flex items-center gap-1 px-3 py-1.5 text-sm rounded-lg border border-divider hover:bg-content2 disabled:opacity-50 disabled:cursor-not-allowed transition-colors"
-          >
-            Next
-            <ChevronRight className="w-4 h-4" />
-          </button>
-        </div>
-      )}
-
       <p className="text-center text-xs text-default-400 mt-6">
-        Showing {displayServices.length} of {filteredServices.length} services
+        Showing {services.length} of {totalFilteredCount} services
       </p>
     </div>
   );

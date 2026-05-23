@@ -4,6 +4,7 @@ import { useEffect, useCallback, useRef } from 'react';
 import { usePublicClient, useAccount } from 'wagmi';
 import { parseAbiItem, type Address, type Log } from 'viem';
 import { getContractAddress, debugLog, DEFAULT_FROM_BLOCK } from '@/lib/contracts/config';
+import { AGENTIC_COMMERCE_ABI } from '@/lib/contracts/abis';
 import { graphqlQuery } from '@/lib/graphql/client';
 import { GET_ACTIVITY_ALL } from '@/lib/graphql/queries/activity';
 import { useNotifications } from '@/lib/hooks/useNotifications';
@@ -11,6 +12,7 @@ import { triggerWebhooks } from '@/lib/webhooks/trigger';
 import { sendNotificationEmail } from '@/lib/emails/notification-bridge';
 import { withRetry } from '@/lib/utils/retry';
 import { useNetworkStatus } from '@/lib/hooks/useNetworkStatus';
+import { formatAmount, getTokenByAddress } from '@/lib/tokenUtils';
 
 const CONTRACTS = {
   AGENTIC_COMMERCE: getContractAddress('AGENTIC_COMMERCE'),
@@ -56,47 +58,76 @@ interface EventHandler {
   webhook?: (args: Record<string, unknown>) => { event: string; data: Record<string, unknown> } | null;
 }
 
+function sameAddress(a: unknown, b: string | undefined): boolean {
+  return typeof a === 'string' && !!b && a.toLowerCase() === b.toLowerCase();
+}
+
+function formatEventAmount(args: Record<string, unknown>, key: string): string {
+  const rawAmount = args[key];
+  const amount = typeof rawAmount === 'bigint'
+    ? rawAmount
+    : BigInt(String(rawAmount ?? 0));
+  const token = getTokenByAddress(args.paymentToken as string | undefined);
+  return formatAmount(amount, token, {
+    includeSymbol: true,
+    minFractionDigits: token.symbol === 'USDC' ? 2 : 0,
+    maxFractionDigits: token.symbol === 'USDC' ? 2 : 6,
+  });
+}
+
 const EVENT_HANDLERS: Record<string, EventHandler> = {
   JobCreated: {
     notification: (args, userAddress) =>
-      args.client && userAddress && (args.client as string).toLowerCase() === userAddress.toLowerCase()
-        ? { type: 'job', action: 'job.created', title: 'Job Created', message: `You created job #${args.jobId}`, link: `/jobs/${args.jobId}`, metadata: { jobId: String(args.jobId) } }
+      sameAddress(args.client, userAddress)
+        ? { type: 'job', action: 'job.needs_funding', title: 'Job Created', message: `Job #${args.jobId} is ready for funding (${formatEventAmount(args, 'budget')})`, link: `/jobs/${args.jobId}`, metadata: { jobId: String(args.jobId), amount: String(args.budget ?? 0) } }
+        : sameAddress(args.provider, userAddress)
+        ? { type: 'job', action: 'job.assigned', title: 'New Job Assigned', message: `Job #${args.jobId} was created for you`, link: `/jobs/${args.jobId}`, metadata: { jobId: String(args.jobId), amount: String(args.budget ?? 0) } }
         : null,
     webhook: (args) => ({ event: 'job.created', data: { jobId: String(args.jobId), client: args.client, provider: args.provider } }),
   },
   JobFunded: {
     notification: (args, userAddress) =>
-      userAddress ? { type: 'job', action: 'job.funded', title: 'Job Funded', message: `Job #${args.jobId} funded with ${(Number(args.amount) / 1e6).toFixed(2)} USDC`, link: `/jobs/${args.jobId}`, metadata: { jobId: String(args.jobId), amount: String(args.amount) } } : null,
+      sameAddress(args.provider, userAddress)
+        ? { type: 'job', action: 'job.ready_to_work', title: 'Funded Job Ready', message: `Job #${args.jobId} escrow is funded with ${formatEventAmount(args, 'amount')}`, link: `/jobs/${args.jobId}`, metadata: { jobId: String(args.jobId), amount: String(args.amount) } }
+        : sameAddress(args.client, userAddress)
+        ? { type: 'job', action: 'job.funded', title: 'Escrow Funded', message: `Job #${args.jobId} is funded with ${formatEventAmount(args, 'amount')}`, link: `/jobs/${args.jobId}`, metadata: { jobId: String(args.jobId), amount: String(args.amount) } }
+        : null,
     webhook: (args) => ({ event: 'job.funded', data: { jobId: String(args.jobId), amount: String(args.amount) } }),
   },
   JobSubmitted: {
     notification: (args, userAddress) =>
-      userAddress ? { type: 'job', action: 'job.submitted', title: 'Work Submitted', message: `Work submitted for job #${args.jobId}`, link: `/jobs/${args.jobId}`, metadata: { jobId: String(args.jobId) } } : null,
+      sameAddress(args.client, userAddress)
+        ? { type: 'job', action: 'job.awaiting_review', title: 'Deliverable Awaiting Review', message: `Job #${args.jobId} has a deliverable ready for approval`, link: `/jobs/${args.jobId}`, metadata: { jobId: String(args.jobId) } }
+        : null,
     webhook: (args) => ({ event: 'job.submitted', data: { jobId: String(args.jobId), deliverable: args.deliverable } }),
   },
   JobCompleted: {
     notification: (args, userAddress) =>
-      args.recipient && userAddress && (args.recipient as string).toLowerCase() === userAddress.toLowerCase()
-        ? { type: 'payment', action: 'payment.received', title: 'Payment Received', message: `You received ${(Number(args.payment) / 1e6).toFixed(2)} USDC for job #${args.jobId}`, link: `/jobs/${args.jobId}`, metadata: { jobId: String(args.jobId), amount: String(args.payment) }, persistent: true }
+      sameAddress(args.client, userAddress)
+        ? { type: 'job', action: 'job.completed', title: 'Job Completed', message: `Job #${args.jobId} has been completed`, link: `/jobs/${args.jobId}`, metadata: { jobId: String(args.jobId) }, persistent: true }
         : null,
-    webhook: (args) => ({ event: 'job.completed', data: { jobId: String(args.jobId), payment: String(args.payment), recipient: args.recipient } }),
+    webhook: (args) => ({ event: 'job.completed', data: { jobId: String(args.jobId), provider: args.provider, completedBy: args.by } }),
   },
   JobRejected: {
     notification: (args, userAddress) =>
-      userAddress ? { type: 'job', action: 'job.rejected', title: 'Job Rejected', message: `Job #${args.jobId} was rejected`, link: `/jobs/${args.jobId}`, metadata: { jobId: String(args.jobId), reason: String(args.reason || 'No reason provided') } } : null,
+      sameAddress(args.provider, userAddress)
+        ? { type: 'job', action: 'job.rejected', title: 'Job Rejected', message: `Job #${args.jobId} was rejected`, link: `/jobs/${args.jobId}`, metadata: { jobId: String(args.jobId), reason: String(args.reason || 'No reason provided') } }
+        : null,
     webhook: (args) => ({ event: 'job.rejected', data: { jobId: String(args.jobId), reason: String(args.reason || 'No reason provided') } }),
   },
   JobExpired: {
     notification: (args, userAddress) =>
-      userAddress ? { type: 'job', action: 'job.expired', title: 'Job Expired', message: `Job #${args.jobId} has expired`, link: `/jobs/${args.jobId}`, metadata: { jobId: String(args.jobId) } } : null,
+      sameAddress(args.client, userAddress)
+        ? { type: 'job', action: 'job.expired', title: 'Job Expired', message: `Job #${args.jobId} has expired`, link: `/jobs/${args.jobId}`, metadata: { jobId: String(args.jobId) } }
+        : null,
     webhook: (args) => ({ event: 'job.expired', data: { jobId: String(args.jobId) } }),
   },
   PaymentReleased: {
     notification: (args, userAddress) =>
-      args.recipient && userAddress && (args.recipient as string).toLowerCase() === userAddress.toLowerCase()
-        ? { type: 'payment', action: 'payment.received', title: 'Payment Released', message: `${(Number(args.amount) / 1e6).toFixed(2)} USDC released for job #${args.jobId}`, link: `/jobs/${args.jobId}`, metadata: { jobId: String(args.jobId), amount: String(args.amount) } }
+      sameAddress(args.provider, userAddress)
+        ? { type: 'payment', action: 'payment.received', title: 'Payment Released', message: `${formatEventAmount(args, 'providerAmount')} released for job #${args.jobId}`, link: `/jobs/${args.jobId}`, metadata: { jobId: String(args.jobId), amount: String(args.providerAmount) } }
         : null,
-    webhook: (args) => ({ event: 'payment.received', data: { jobId: String(args.jobId), amount: String(args.amount), recipient: args.recipient } }),
+    webhook: (args) => ({ event: 'payment.received', data: { jobId: String(args.jobId), amount: String(args.providerAmount), recipient: args.provider } }),
   },
   ServiceCreated: {
     notification: (args, userAddress) =>
@@ -115,13 +146,13 @@ const EVENT_HANDLERS: Record<string, EventHandler> = {
 };
 
 const EVENT_ABI_ITEMS = {
-  jobCreated: parseAbiItem('event JobCreated(uint256 indexed jobId, address indexed client, address indexed provider, address evaluator, uint256 serviceId, uint256 expiredAt)'),
-  jobFunded: parseAbiItem('event JobFunded(uint256 indexed jobId, uint256 amount)'),
-  jobSubmitted: parseAbiItem('event JobSubmitted(uint256 indexed jobId, bytes32 deliverable)'),
-  jobCompleted: parseAbiItem('event JobCompleted(uint256 indexed jobId, uint256 payment, address recipient)'),
-  jobRejected: parseAbiItem('event JobRejected(uint256 indexed jobId, string reason)'),
+  jobCreated: parseAbiItem('event JobCreated(uint256 indexed jobId, address indexed client, address provider, uint256 budget, uint256 expiredAt, bool evaluatorFee, bool clientReview, bool randomEvaluator)'),
+  jobFunded: parseAbiItem('event JobFunded(uint256 indexed jobId, address indexed client, uint256 amount)'),
+  jobSubmitted: parseAbiItem('event JobSubmitted(uint256 indexed jobId, address indexed provider, bytes32 deliverable)'),
+  jobCompleted: parseAbiItem('event JobCompleted(uint256 indexed jobId, address indexed by, address indexed provider, uint256 evaluatorFee)'),
+  jobRejected: parseAbiItem('event JobRejected(uint256 indexed jobId, address indexed rejector, bytes32 reason)'),
   jobExpired: parseAbiItem('event JobExpired(uint256 indexed jobId)'),
-  paymentReleased: parseAbiItem('event PaymentReleased(uint256 indexed jobId, uint256 amount, address recipient)'),
+  paymentReleased: parseAbiItem('event PaymentReleased(uint256 indexed jobId, uint256 providerAmount, uint256 platformFee, uint256 evaluatorFee)'),
   serviceCreated: parseAbiItem('event ServiceCreated(uint256 indexed serviceId, address indexed provider, uint256 indexed agentId, string name, uint256 price)'),
   proposalCreated: parseAbiItem('event ProposalCreated(uint256 indexed proposalId, address indexed proposer, uint256 reward)'),
 } as const;
@@ -145,6 +176,40 @@ export function useNotificationEvents() {
   const lastBlockRef = useRef<bigint>(getLastProcessedBlock());
   const processedEventsRef = useRef<Set<string>>(new Set());
 
+  const enrichJobArgs = useCallback(async (args: Record<string, unknown>) => {
+    if (!publicClient || args.jobId === undefined) return args;
+
+    try {
+      const jobId = typeof args.jobId === 'bigint'
+        ? args.jobId
+        : BigInt(String(args.jobId));
+      const job = await publicClient.readContract({
+        address: CONTRACTS.AGENTIC_COMMERCE,
+        abi: AGENTIC_COMMERCE_ABI,
+        functionName: 'jobs',
+        args: [jobId],
+      });
+
+      const data = job as unknown;
+      const arr = Array.isArray(data) ? data : null;
+      const obj = !arr && typeof data === 'object' && data !== null
+        ? data as Record<string, unknown>
+        : null;
+
+      return {
+        ...args,
+        client: arr ? arr[1] : obj?.client ?? args.client,
+        provider: arr ? arr[2] : obj?.provider ?? args.provider,
+        paymentToken: arr ? arr[5] : obj?.paymentToken ?? args.paymentToken,
+        budget: arr ? arr[7] : obj?.budget ?? args.budget,
+        status: arr ? arr[9] : obj?.status ?? args.status,
+      };
+    } catch (error) {
+      debugLog('errors', `Could not enrich job notification args: ${error}`);
+      return args;
+    }
+  }, [publicClient]);
+
   const processLog = useCallback(async (log: Log) => {
     const typedLog = log as Log & { eventName?: string; args?: Record<string, unknown> };
     const eventName = typedLog.eventName;
@@ -154,7 +219,9 @@ export function useNotificationEvents() {
     if (processedEventsRef.current.has(eventKey)) return;
     processedEventsRef.current.add(eventKey);
 
-    const args = typedLog.args || {};
+    const args = eventName.startsWith('Job') || eventName === 'PaymentReleased'
+      ? await enrichJobArgs(typedLog.args || {})
+      : typedLog.args || {};
     const handler = EVENT_HANDLERS[eventName];
 
     if (handler.notification) {
@@ -173,7 +240,7 @@ export function useNotificationEvents() {
         triggerWebhooks({ event: webhook.event as any, data: webhook.data });
       }
     }
-  }, [address, addNotification]);
+  }, [address, addNotification, enrichJobArgs]);
 
   const processAllContractEvents = useCallback(async (fromBlock: bigint, toBlock: bigint) => {
     if (!publicClient) return;

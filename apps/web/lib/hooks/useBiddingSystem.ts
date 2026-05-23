@@ -173,6 +173,34 @@ export function useBiddingUserBid(
   };
 }
 
+export function useBiddingRevealedBids(sessionId: number | bigint | undefined) {
+  const id =
+    sessionId !== undefined
+      ? typeof sessionId === 'bigint'
+        ? sessionId
+        : BigInt(sessionId)
+      : undefined;
+
+  const { data, isLoading, error, refetch } = useReadContract({
+    address: BIDDING_SYSTEM_ADDRESS,
+    abi: BIDDING_SYSTEM_ABI,
+    functionName: 'getRevealedBids',
+    args: id !== undefined ? [id] : undefined,
+    query: {
+      retry: 2,
+      staleTime: 10 * 1000,
+      enabled: id !== undefined,
+    },
+  });
+
+  return {
+    bids: ((data as BidInfo[] | undefined) ?? []).filter(bid => bid.revealed),
+    isLoading,
+    error,
+    refetch,
+  };
+}
+
 export function useBiddingCalculateStake() {
   const { data, isLoading, error } = useReadContract({
     address: BIDDING_SYSTEM_ADDRESS,

@@ -14,6 +14,7 @@ import {
 } from 'lucide-react';
 import NextLink from 'next/link';
 import { useProviderServices, type Service } from '@/lib/hooks/useServices';
+import { formatAmount, getTokenByAddress } from '@/lib/tokenUtils';
 
 function WalletConnectPrompt() {
   return (
@@ -26,7 +27,12 @@ function WalletConnectPrompt() {
 }
 
 function ServiceCard({ service }: { service: Service }) {
-  const priceInUSDC = Number(service.price) / 1e6;
+  const token = getTokenByAddress(service.paymentToken);
+  const formattedPrice = formatAmount(service.price, token, {
+    includeSymbol: true,
+    minFractionDigits: token.symbol === 'USDC' ? 2 : 0,
+    maxFractionDigits: token.symbol === 'USDC' ? 2 : 6,
+  });
 
   return (
     <Card className="border border-divider p-4 hover:border-success/30 transition-colors">
@@ -52,7 +58,7 @@ function ServiceCard({ service }: { service: Service }) {
           <div className="flex items-center gap-4 mt-3">
             <div className="flex items-center gap-1 text-sm">
               <DollarSign className="w-4 h-4 text-success" />
-              <span className="font-medium">{priceInUSDC.toFixed(2)} USDC</span>
+              <span className="font-medium">{formattedPrice}</span>
             </div>
             <span className="text-xs text-default-400">Agent #{service.agentId.toString()}</span>
           </div>

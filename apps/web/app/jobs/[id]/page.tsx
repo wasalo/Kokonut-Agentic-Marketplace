@@ -79,6 +79,7 @@ import { DeliverableDisplay } from '@/components/jobs/DeliverableDisplay';
 import { JobSettingsCard } from '@/components/jobs/JobSettingsCard';
 import { FeedbackCard } from '@/components/jobs/FeedbackCard';
 import { BiddingSectionForProvider } from '@/components/jobs/BiddingSectionForProvider';
+import { amountToNumber } from '@/lib/tokenUtils';
 
 export default function JobDetailPage({
   params,
@@ -365,6 +366,14 @@ export default function JobDetailPage({
       : true)
     : true;
 
+  useEffect(() => {
+    if (!job?.paymentToken) return;
+    const token = SUPPORTED_TOKENS.find(
+      item => item.address.toLowerCase() === job.paymentToken.toLowerCase()
+    );
+    if (token) setSelectedPaymentToken(token);
+  }, [job?.paymentToken]);
+
   // Auto-fund job after approval confirms in unified flow - MUST be before early returns
   useEffect(() => {
     if (!job) return;
@@ -553,7 +562,7 @@ export default function JobDetailPage({
               {job &&
                 selectedPaymentToken.symbol === 'USDC' &&
                 usdcBalance &&
-                Number(usdcBalance) < Number(formatUnits(job.budget, 6)) && (
+                Number(usdcBalance) < amountToNumber(job.budget, selectedPaymentToken) && (
                   <div className="px-4 py-2 bg-danger/10 text-danger rounded-lg text-sm">
                     Insufficient balance
                   </div>
@@ -1115,4 +1124,3 @@ export default function JobDetailPage({
       </div>
     );
   }
-

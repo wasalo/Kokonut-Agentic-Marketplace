@@ -57,7 +57,7 @@ export const ADMIN_REGISTRY_ABI = parseAbi([
  
 // === V5 Events (for useWatchContractEvents) ===
 export const AGENTIC_COMMERCE_EVENTS = parseAbi([
-  'event JobCreated(uint256 indexed jobId, address indexed client, address indexed provider, address evaluator, uint256 serviceId, uint256 expiredAt, bool evaluatorFee, bool clientReview, bool randomEvaluator)',
+  'event JobCreated(uint256 indexed jobId, address indexed client, address provider, uint256 budget, uint256 expiredAt, bool evaluatorFee, bool clientReview, bool randomEvaluator)',
   'event BudgetSet(uint256 indexed jobId, uint256 amount)',
   'event JobFunded(uint256 indexed jobId, address indexed client, uint256 amount)',
   'event JobSubmitted(uint256 indexed jobId, address indexed provider, bytes32 deliverable)',
@@ -287,6 +287,7 @@ export const BIDDING_SYSTEM_ABI = parseAbi([
   'function getSession(uint256 sessionId) external view returns ((uint256 id, address creator, address evaluator, uint256 maxBudget, uint256 deadline, uint256 revealWindowEnd, bytes metadata, uint256 serviceId, uint256 jobId, address winner, uint256 winningBidId, bool jobCreated, uint8 status))',
   'function getBid(uint256 sessionId, uint256 bidId) external view returns ((uint256 bidId, address bidder, uint256 proposedAmount, uint256 stake, string message, bytes32 commitHash, bool revealed, bool accepted, bool rejected, bool stakeWithdrawn, uint256 timestamp))',
   'function getUserBid(uint256 sessionId, address user) external view returns ((uint256 bidId, address bidder, uint256 proposedAmount, uint256 stake, string message, bytes32 commitHash, bool revealed, bool accepted, bool rejected, bool stakeWithdrawn, uint256 timestamp))',
+  'function getRevealedBids(uint256 sessionId) external view returns ((uint256 bidId, address bidder, uint256 proposedAmount, uint256 stake, string message, bytes32 commitHash, bool revealed, bool accepted, bool rejected, bool stakeWithdrawn, uint256 timestamp)[] memory)',
   'function getSessionCount() external view returns (uint256)',
   'function calculateStake(uint256 maxBudget) external pure returns (uint256)',
   'function createBiddingSession(address evaluator, uint256 maxBudget, uint256 deadline, bytes metadata, uint256 serviceId) external payable returns (uint256 sessionId)',
@@ -431,4 +432,3 @@ export const ADMIN_REGISTRY_EVENTS = parseAbi([
   'event FeaturedAgentUpdated(uint256 indexed agentId, bool isFeatured)',
   'event HalfLifeDaysUpdated(uint256 halfLifeDays)',
 ]);
-

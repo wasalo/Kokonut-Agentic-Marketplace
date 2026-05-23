@@ -175,11 +175,11 @@ export default function RegisterAgentPage(): JSX.Element {
   return (
     <div className="container mx-auto px-4 py-8">
       <NextLink
-        href="/identity"
+        href="/dashboard/agents"
         className="flex items-center text-sm text-default-500 hover:text-foreground mb-6"
       >
         <ArrowLeft className="w-4 h-4 mr-2" />
-        Back to Identity
+        Back to Agents
       </NextLink>
 
       <div className="max-w-2xl mx-auto">

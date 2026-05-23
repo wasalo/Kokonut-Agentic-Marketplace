@@ -4,33 +4,20 @@ import React, { useState } from 'react';
 import { useAccount, useBalance } from 'wagmi';
 import { formatUnits } from 'viem';
 import { ChevronDown, DollarSign, CircleDot } from 'lucide-react';
-import { CONTRACTS } from '@/lib/wagmi';
+import {
+  ETH_TOKEN,
+  SUPPORTED_PAYMENT_TOKENS,
+  USDC_TOKEN,
+  type Token,
+} from '@/lib/tokenUtils';
 
-export interface Token {
-  symbol: string;
-  name: string;
-  address: `0x${string}`;
-  decimals: number;
-  icon: React.ComponentType<{ className?: string }>;
+export type { Token };
+export { ETH_TOKEN, USDC_TOKEN };
+export const SUPPORTED_TOKENS: Token[] = SUPPORTED_PAYMENT_TOKENS;
+
+function getTokenIcon(symbol: Token['symbol']): React.ComponentType<{ className?: string }> {
+  return symbol === 'ETH' ? CircleDot : DollarSign;
 }
-
-export const USDC_TOKEN: Token = {
-  symbol: 'USDC',
-  name: 'USD Coin',
-  address: CONTRACTS[11155111].usdc as `0x${string}`,
-  decimals: 6,
-  icon: DollarSign,
-};
-
-export const ETH_TOKEN: Token = {
-  symbol: 'ETH',
-  name: 'Ethereum',
-  address: '0x0000000000000000000000000000000000000000',
-  decimals: 18,
-  icon: CircleDot,
-};
-
-export const SUPPORTED_TOKENS: Token[] = [USDC_TOKEN, ETH_TOKEN];
 
 export interface PaymentTokenSelectorProps {
   selectedToken: Token;
@@ -55,7 +42,7 @@ export function PaymentTokenSelector({
 
   const selectedTokenObj =
     SUPPORTED_TOKENS.find(t => t.address === selectedToken.address) || SUPPORTED_TOKENS[0];
-  const Icon = selectedTokenObj.icon;
+  const Icon = getTokenIcon(selectedTokenObj.symbol);
 
   const handleSelect = (token: Token) => {
     onSelectToken(token);
@@ -88,7 +75,7 @@ export function PaymentTokenSelector({
           <div className="fixed inset-0 z-10" onClick={() => setIsOpen(false)} />
           <div className="absolute z-20 w-full mt-1 bg-content2 border border-divider rounded-lg shadow-lg overflow-hidden">
             {SUPPORTED_TOKENS.map(token => {
-              const TokenIcon = token.icon;
+              const TokenIcon = getTokenIcon(token.symbol);
               const isSelected = token.address === selectedToken.address;
 
               return (
@@ -122,7 +109,7 @@ export function PaymentTokenSelector({
 
 export function PaymentTokenBadge({ token }: { token: Token }): JSX.Element {
   const tokenObj = SUPPORTED_TOKENS.find(t => t.address === token.address) || token;
-  const Icon = tokenObj.icon;
+  const Icon = getTokenIcon(tokenObj.symbol);
 
   return (
     <span className="inline-flex items-center gap-1.5 px-2 py-0.5 rounded-full bg-success/10 text-success text-xs font-medium">

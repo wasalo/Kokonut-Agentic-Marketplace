@@ -2,15 +2,16 @@
 
 import { useState, useCallback, useEffect } from 'react';
 import { useAccount, useWaitForTransactionReceipt, usePublicClient, useWriteContract } from 'wagmi';
-import { erc20Abi, formatUnits } from 'viem';
+import { decodeEventLog, erc20Abi } from 'viem';
 import { useRouter, useSearchParams } from 'next/navigation';
 import { ArrowLeft, Loader2, ShieldCheck, AlertTriangle, Coins, AlertCircle } from 'lucide-react';
 import NextLink from 'next/link';
 import { Card } from '@heroui/react';
 import { useService } from '@/lib/hooks/useServices';
-import { useCreateJobV8, useJobCount, useSetBudget } from '@/lib/hooks/useJobs';
+import { useCreateJobV8 } from '@/lib/hooks/useJobs';
 import { useEnableMilestones } from '@/lib/hooks/useMilestoneEscrow';
 import { CONTRACT_ADDRESSES, getContractAddress } from '@/lib/contracts/config';
+import { AGENTIC_COMMERCE_EVENTS } from '@/lib/contracts/abis';
 
 import { validateAddress, validateDeadline, validateStringLength } from '@/lib/hooks/useValidation';
 import { TransactionError } from '@/components/TransactionError';
@@ -23,12 +24,44 @@ import {
   SUPPORTED_PAYMENT_TOKENS,
   Token,
 } from '@/lib/hooks/useTokenConversion';
+import {
+  formatAmount,
+  getTokenByAddress,
+  parseAmount,
+} from '@/lib/tokenUtils';
 import { showToast } from '@/lib/toast';
 import { Address } from '@/components/Address';
 import { AddressInput } from '@/components/AddressInput';
 
 const MAX_DESCRIPTION_LENGTH = 1000;
 const MIN_EXPIRY_DURATION = 5 * 60 * 1000;
+const ZERO_ADDRESS = '0x0000000000000000000000000000000000000000' as const;
+
+type ReceiptLog = {
+  data: `0x${string}`;
+  topics: readonly `0x${string}`[];
+};
+
+function getJobIdFromReceiptLogs(logs: readonly ReceiptLog[]): bigint | null {
+  for (const log of logs) {
+    try {
+      const decoded = decodeEventLog({
+        abi: AGENTIC_COMMERCE_EVENTS,
+        data: log.data,
+        topics: [...log.topics] as [`0x${string}`, ...`0x${string}`[]],
+      });
+
+      if (decoded.eventName === 'JobCreated') {
+        const args = decoded.args as { jobId?: bigint };
+        return args.jobId ?? null;
+      }
+    } catch {
+      // Ignore logs from other contracts in the same transaction.
+    }
+  }
+
+  return null;
+}
 
 function PaymentTokenSelector({
   selectedToken,
@@ -133,6 +166,12 @@ function CreateJobContent() {
     }
   }, [providerParam, service?.provider, provider]);
 
+  useEffect(() => {
+    if (serviceId && service?.paymentToken) {
+      setPaymentToken(getTokenByAddress(service.paymentToken));
+    }
+  }, [serviceId, service?.paymentToken]);
+
   const [providerError, setProviderError] = useState<string | null>(null);
   const [deadlineError, setDeadlineError] = useState<string | null>(null);
   const [descriptionError, setDescriptionError] = useState<string | null>(null);
@@ -145,9 +184,6 @@ function CreateJobContent() {
     error: v8Error,
   } = useCreateJobV8();
 
-  const { setBudget: setJobBudget } = useSetBudget();
-  const jobCounter = useJobCount();
-
   const {
     enableMilestones,
     isSuccess: isEnableMilestonesSuccess,
@@ -155,7 +191,11 @@ function CreateJobContent() {
   } = useEnableMilestones();
 
   const txHash = v8Hash;
-  const { isLoading: isConfirming, isSuccess: isConfirmed } = useWaitForTransactionReceipt({
+  const {
+    data: txReceipt,
+    isLoading: isConfirming,
+    isSuccess: isConfirmed,
+  } = useWaitForTransactionReceipt({
     hash: txHash,
   });
 
@@ -169,54 +209,68 @@ function CreateJobContent() {
   );
 
   const [isEnablingMilestones, setIsEnablingMilestones] = useState(false);
+  const [createdJobId, setCreatedJobId] = useState<bigint | null>(null);
+  const [handledTxHash, setHandledTxHash] = useState<`0x${string}` | null>(null);
 
-  // After createJob confirms, set budget then optionally enable milestones
+  // After createJob confirms, use the JobCreated event as the source of truth.
   useEffect(() => {
-    let active = true;
-    if (isConfirmed && txHash && jobCounter && !isEnablingMilestones) {
-      const handleConfirm = async () => {
-        const { data: refetchedCount } = await jobCounter.refetch();
-        if (!active) return;
-        const currentCount = refetchedCount ? Number(refetchedCount) : jobCounter.count;
-        const newJobId = BigInt(currentCount); // 1-indexed
-        const budgetAmount = BigInt(Math.floor(parseFloat(budget || '0') * Math.pow(10, paymentToken.decimals)));
-        
-        if (!fundJobNow && budget) {
-          setJobBudget(newJobId, budgetAmount);
-        }
-        setSubmitPhase('idle');
-        showToast.success('Job Created!', '');
-
-        if (useMilestones) {
-          setIsEnablingMilestones(true);
-          enableMilestones(
-            newJobId,
-            address!,
-            provider as `0x${string}`,
-            paymentToken.address as `0x${string}`,
-            budgetAmount
-          );
-        } else {
-          router.push('/jobs');
-        }
-      };
-      
-      handleConfirm();
+    if (!isConfirmed || !txHash || !txReceipt || handledTxHash === txHash || isEnablingMilestones) {
+      return;
     }
-    return () => {
-      active = false;
-    };
-  }, [isConfirmed, txHash, jobCounter, useMilestones, address, provider, paymentToken, budget, setJobBudget, fundJobNow, router, isEnablingMilestones, enableMilestones]);
+
+    const newJobId = getJobIdFromReceiptLogs(txReceipt.logs);
+    setHandledTxHash(txHash);
+    setSubmitPhase('idle');
+
+    if (!newJobId) {
+      showToast.warning('Job created', 'Could not read the job id from the receipt. Opening jobs.');
+      router.push('/jobs');
+      return;
+    }
+
+    const effectiveProvider = service?.provider ?? provider;
+    const effectiveToken = service?.paymentToken ?? paymentToken.address;
+    const effectiveBudget = service?.price ?? parseAmount(budget || '0', paymentToken);
+
+    setCreatedJobId(newJobId);
+    showToast.success('Job Created!', 'Opening the new job...');
+
+    if (useMilestones && address && effectiveProvider) {
+      setIsEnablingMilestones(true);
+      enableMilestones(
+        newJobId,
+        address,
+        effectiveProvider as `0x${string}`,
+        effectiveToken as `0x${string}`,
+        effectiveBudget
+      );
+    } else {
+      router.push(`/jobs/${newJobId.toString()}`);
+    }
+  }, [
+    isConfirmed,
+    txHash,
+    txReceipt,
+    handledTxHash,
+    isEnablingMilestones,
+    service,
+    provider,
+    paymentToken,
+    budget,
+    useMilestones,
+    address,
+    enableMilestones,
+    router,
+  ]);
 
   // Redirect after milestones are successfully enabled
   useEffect(() => {
-    if (isEnableMilestonesSuccess && isEnablingMilestones && jobCounter) {
-      const newJobId = BigInt(jobCounter.count); // 1-indexed
+    if (isEnableMilestonesSuccess && isEnablingMilestones && createdJobId) {
       setIsEnablingMilestones(false);
       showToast.success('Milestones Enabled!', 'Redirecting to job detail...');
-      router.push(`/jobs/${newJobId.toString()}`);
+      router.push(`/jobs/${createdJobId.toString()}`);
     }
-  }, [isEnableMilestonesSuccess, isEnablingMilestones, jobCounter, router]);
+  }, [isEnableMilestonesSuccess, isEnablingMilestones, createdJobId, router]);
 
   const validateProvider = useCallback(
     (value: string) => {
@@ -290,7 +344,7 @@ function CreateJobContent() {
           setDescriptionError('Description is required');
           isValid = false;
         }
-        if (Number(service.price) === 0) {
+        if (service.price === 0n) {
           setProviderError('Service has price of 0');
           isValid = false;
         }
@@ -321,26 +375,23 @@ function CreateJobContent() {
         : BigInt(Math.floor(Date.now() / 1000) + 86400 * 7);
 
       if (serviceId && service) {
-        const serviceProvider = (service as any).provider as `0x${string}`;
+        const serviceProvider = service.provider as `0x${string}`;
         createJobV8(
           serviceProvider,
-          0n,
-          paymentToken.address as `0x${string}`,
+          service.price,
+          service.paymentToken as `0x${string}`,
           serviceId,
           deadlineTs,
           description || `Job for ${service.name}`,
-          '0x0000000000000000000000000000000000000000',
-          '0x0000000000000000000000000000000000000000',
+          ZERO_ADDRESS,
+          ZERO_ADDRESS,
           true,
           clientReview,
           false,
           0n
         );
       } else {
-        const budgetRaw = parseFloat(budget || '0');
-        const budgetAmount = BigInt(
-          Math.floor(budgetRaw * Math.pow(10, paymentToken.decimals))
-        );
+        const budgetAmount = parseAmount(budget || '0', paymentToken);
         const paymentTokenAddr = paymentToken.address as `0x${string}`;
         
         const fundAmount = fundJobNow && paymentToken.symbol === 'ETH'
@@ -357,9 +408,9 @@ function CreateJobContent() {
               args: [address!],
             });
             if (balance < budgetAmount) {
-              const formattedBalance = formatUnits(balance, 6);
+              const formattedBalance = formatAmount(balance, USDC_TOKEN, { includeSymbol: true });
               showToast.error('Insufficient USDC balance',
-                `You need ${budget} USDC but only have ${formattedBalance} USDC`);
+                `You need ${budget} USDC but only have ${formattedBalance}`);
               setSubmitPhase('idle');
               return;
             }
@@ -422,8 +473,8 @@ function CreateJobContent() {
           0n,
           deadlineTs,
           description || 'Direct job',
-          '0x0000000000000000000000000000000000000000',
-          '0x0000000000000000000000000000000000000000',
+          ZERO_ADDRESS,
+          ZERO_ADDRESS,
           true,
           clientReview,
           fundJobNow,
@@ -465,7 +516,7 @@ useEffect(() => {
 
 let isFormValid = false;
 if (serviceId) {
-  isFormValid = !!provider && provider.startsWith('0x') && !!description;
+  isFormValid = !!provider && provider.startsWith('0x') && !!description && !!service && service.price > 0n;
 } else {
   isFormValid = !!provider && provider.startsWith('0x') && !!budget && parseFloat(budget || '0') >= minBudgetInToken * 0.999 && !!description;
 }
@@ -484,6 +535,15 @@ const handleBudgetChange = (e: React.ChangeEvent<HTMLInputElement>) => {
   setBudget(e.target.value);
   validateBudgetField(e.target.value);
 };
+
+const serviceToken = service ? getTokenByAddress(service.paymentToken) : USDC_TOKEN;
+const formattedServicePrice = service
+  ? formatAmount(service.price, serviceToken, {
+      includeSymbol: true,
+      minFractionDigits: serviceToken.symbol === 'USDC' ? 2 : 0,
+      maxFractionDigits: serviceToken.symbol === 'USDC' ? 2 : 6,
+    })
+  : '';
 
   return (
     <div className="container mx-auto px-4 py-8">
@@ -515,18 +575,21 @@ const handleBudgetChange = (e: React.ChangeEvent<HTMLInputElement>) => {
                 <p className="text-xs text-default-400 mt-1">
                   Job Budget:{' '}
                   <span className="text-success font-medium">
-                    ${(Number(service.price) / 1e6).toFixed(2)} USDC
+                    {formattedServicePrice}
                   </span>
-                  {Number(service.price) === 0 && (
+                  {service.price === 0n && (
                     <span className="text-danger ml-2">(Warning: Service price is 0)</span>
                   )}
                 </p>
               </div>
               <div className="text-right">
                 <p className="text-lg font-bold text-success">
-                  ${(Number(service.price) / 1e6).toFixed(2)}
+                  {formatAmount(service.price, serviceToken, {
+                    minFractionDigits: serviceToken.symbol === 'USDC' ? 2 : 0,
+                    maxFractionDigits: serviceToken.symbol === 'USDC' ? 2 : 6,
+                  })}
                 </p>
-                <p className="text-xs text-default-400">USDC</p>
+                <p className="text-xs text-default-400">{serviceToken.symbol}</p>
               </div>
             </div>
           </Card>
@@ -659,7 +722,7 @@ const handleBudgetChange = (e: React.ChangeEvent<HTMLInputElement>) => {
               <div className="flex justify-between items-center bg-content2 p-4 rounded-xl border border-divider">
                 <span className="font-medium text-default-700">Predefined Service Price</span>
                 <span className="text-xl font-bold text-[#009F4D]">
-                  {(Number(service?.price || 0) / 1e6).toFixed(2)} USDC
+                  {service ? formattedServicePrice : 'Loading...'}
                 </span>
               </div>
             ) : (
@@ -668,7 +731,9 @@ const handleBudgetChange = (e: React.ChangeEvent<HTMLInputElement>) => {
                   Budget ({paymentToken.symbol})
                 </label>
                 <div className="relative flex items-center">
-                  <span className="absolute left-4 text-default-400 font-medium">$</span>
+                  <span className="absolute left-4 text-default-400 font-medium">
+                    {paymentToken.symbol === 'USDC' ? '$' : 'Ξ'}
+                  </span>
                   <input
                     id="budget"
                     type="number"

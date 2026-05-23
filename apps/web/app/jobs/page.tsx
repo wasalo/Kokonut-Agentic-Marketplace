@@ -12,7 +12,6 @@ import {
 } from 'lucide-react';
 import { Card } from '@heroui/react';
 import NextLink from 'next/link';
-import { formatUnits } from 'viem';
 import {
   useJobs,
 } from '@/lib/hooks/useJobs';
@@ -27,12 +26,18 @@ import { useDebounce } from '@/lib/hooks/useDebounce';
 import { EmptyStateJobs } from '@/components/ui/empty-state';
 import { Pagination } from '@/components/ui/pagination';
 import { useJobStatsFromSubgraph } from '@/lib/hooks/useJobStatsFromSubgraph';
+import { formatAmount, getTokenByAddress, tokenAmountToUsd } from '@/lib/tokenUtils';
 
 const JobCard = memo(function JobCard({ job }: { job: any }) {
   const { service } = useService(job.serviceId ?? BigInt(0));
   const { isBookmarked, toggleBookmark } = useJobBookmarks();
   const { getJobCount } = useBookmarkCounts();
-  const formattedBudget = formatUnits(job.budget, 6);
+  const token = getTokenByAddress(job.paymentToken);
+  const formattedBudget = formatAmount(job.budget, token, {
+    includeSymbol: true,
+    minFractionDigits: token.symbol === 'USDC' ? 2 : 0,
+    maxFractionDigits: token.symbol === 'USDC' ? 2 : 6,
+  });
   const jobIdStr = job.id.toString();
   const bookmarked = isBookmarked(jobIdStr);
   const bookmarkCount = getJobCount(jobIdStr);
@@ -58,7 +63,7 @@ const JobCard = memo(function JobCard({ job }: { job: any }) {
           <div className="flex items-center gap-4 mt-2 text-xs text-default-400">
             <span className="flex items-center gap-1">
               <DollarSign className="w-3 h-3" />
-              {formattedBudget} USDC
+              {formattedBudget}
             </span>
             <span className="flex items-center gap-1">
               <Clock className="w-3 h-3" />
@@ -160,9 +165,10 @@ export default function JobsPage(): JSX.Element {
     }
 
     // Budget filter
-    const budgetInUSDC = Number(job.budget) / 1e6;
-    if (minBudget && budgetInUSDC < Number(minBudget)) return false;
-    if (maxBudget && budgetInUSDC > Number(maxBudget)) return false;
+    const token = getTokenByAddress(job.paymentToken);
+    const budgetInUsd = tokenAmountToUsd(job.budget, token);
+    if (minBudget && budgetInUsd < Number(minBudget)) return false;
+    if (maxBudget && budgetInUsd > Number(maxBudget)) return false;
 
     return true;
   });
@@ -173,7 +179,10 @@ export default function JobsPage(): JSX.Element {
 
     switch (sortBy) {
       case 'budget':
-        return multiplier * (Number(a.budget) - Number(b.budget));
+        return multiplier * (
+          tokenAmountToUsd(a.budget, getTokenByAddress(a.paymentToken)) -
+          tokenAmountToUsd(b.budget, getTokenByAddress(b.paymentToken))
+        );
       case 'deadline':
         return multiplier * (Number(a.expiredAt) - Number(b.expiredAt));
       case 'newest':

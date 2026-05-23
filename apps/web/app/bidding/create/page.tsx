@@ -6,7 +6,7 @@ import { useAccount, useBalance } from 'wagmi';
 import { ArrowLeft, Loader2, AlertCircle, DollarSign, Clock } from 'lucide-react';
 import { Card } from '@heroui/react';
 import NextLink from 'next/link';
-import { parseEther, formatEther } from 'viem';
+import { parseEther, formatEther, toHex } from 'viem';
 import { useBiddingCalculateStake, useCreateBiddingSession } from '@/lib/hooks/useBiddingSystem';
 import { validateAddress } from '@/lib/hooks/useValidation';
 import { showToast } from '@/lib/toast';
@@ -91,7 +91,7 @@ export default function CreateBiddingSessionPage(): JSX.Element {
         evaluator: evaluator as `0x${string}`,
         maxBudget: budgetWei,
         deadline: deadlineSeconds,
-        metadata: metadata as `0x${string}`,
+        metadata: toHex(metadata.trim()) as `0x${string}`,
         serviceId: sid,
       });
     },

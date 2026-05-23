@@ -20,7 +20,6 @@ import {
   Shield,
 } from 'lucide-react';
 import { Card } from '@heroui/react';
-import { formatUnits } from 'viem';
 import {
   useUpdateService,
   useDeactivateService,
@@ -29,10 +28,16 @@ import {
 import { useServiceContract } from '@/lib/hooks/useServicesContract';
 import { useAgentReputation } from '@/lib/hooks/useAgentReputation';
 import { useTokenPriceConversion } from '@/lib/hooks/useTokenConversion';
+import {
+  formatAmount,
+  formatInputAmount,
+  formatUsd,
+  getTokenByAddress,
+  parseAmount,
+  tokenAmountToUsd,
+} from '@/lib/tokenUtils';
 import { showToast, getTransactionError } from '@/lib/toast';
 import { Address } from '@/components/Address';
-
-const ZERO_ADDRESS = '0x0000000000000000000000000000000000000000';
 
 export default function ServiceDetailPage({
   params,
@@ -51,11 +56,6 @@ export default function ServiceDetailPage({
   const agentIdForProfile = service ? BigInt(service.agentId) : BigInt(0);
   const agentAddress = service?.provider as `0x${string}`;
   const { profile: agentProfile } = useUnifiedAgentProfile(agentIdForProfile, agentAddress);
-
-  const isEth =
-    service?.paymentToken && service.paymentToken.toLowerCase() === ZERO_ADDRESS.toLowerCase();
-  const tokenDecimals = isEth ? 18 : 6;
-  const tokenSymbol = isEth ? 'ETH' : 'USDC';
 
   // Edit mode state
   const [isEditing, setIsEditing] = useState(false);
@@ -97,7 +97,14 @@ export default function ServiceDetailPage({
     );
   }
 
-  const formattedPrice = formatUnits(service.price, 6);
+  const token = getTokenByAddress(service.paymentToken);
+  const tokenSymbol = token.symbol;
+  const formattedPrice = formatInputAmount(service.price, token);
+  const displayPrice = formatAmount(service.price, token, {
+    minFractionDigits: token.symbol === 'USDC' ? 2 : 0,
+    maxFractionDigits: token.symbol === 'USDC' ? 2 : 6,
+  });
+  const usdValue = tokenAmountToUsd(service.price, token, ethToUsdcRate);
 
   return (
     <div className="container mx-auto px-4 py-8">
@@ -135,17 +142,12 @@ export default function ServiceDetailPage({
                 </div>
                 <div className="text-right">
                   <p className="text-2xl font-bold text-success">
-                    {formatUnits(service.price, tokenDecimals)}
+                    {displayPrice}
                   </p>
                   <p className="text-xs text-default-400">{tokenSymbol}</p>
-                  {isEth && ethToUsdcRate && (
+                  {token.symbol === 'ETH' && ethToUsdcRate && (
                     <p className="text-xs text-default-400">
-                      ~$
-                      {(parseFloat(formattedPrice) * ethToUsdcRate).toLocaleString('en-US', {
-                        minimumFractionDigits: 2,
-                        maximumFractionDigits: 2,
-                      })}{' '}
-                      USD
+                      ~{formatUsd(usdValue)}
                     </p>
                   )}
                 </div>
@@ -172,9 +174,7 @@ export default function ServiceDetailPage({
                 </span>
                 <span className="flex items-center gap-1">
                   <Tag className="w-3 h-3" />
-                  {service.paymentToken === '0x0000000000000000000000000000000000000000'
-                    ? 'ETH'
-                    : 'USDC'}
+                  {tokenSymbol}
                 </span>
               </div>
 
@@ -268,7 +268,7 @@ export default function ServiceDetailPage({
                   name: editForm.name,
                   description: editForm.description,
                   metadataURI: service.metadataURI,
-                  price: BigInt(Math.floor(parseFloat(editForm.price) * 10**tokenDecimals))
+                  price: parseAmount(editForm.price, token),
                 });
                 setIsEditing(false);
                 refetch();
@@ -450,7 +450,7 @@ export default function ServiceDetailPage({
                     <p className="text-xs text-default-500 mt-1 line-clamp-1">{s.description || ''}</p>
                     {s.price && (
                       <p className="text-xs text-success font-medium mt-1">
-                        ${(Number(s.price) / 1e6).toFixed(2)}
+                        {formatUsd(BigInt(s.price), { decimals: 6 })}
                       </p>
                     )}
                   </NextLink>

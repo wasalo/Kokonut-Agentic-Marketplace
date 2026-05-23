@@ -24,6 +24,7 @@ import {
   ETH_TOKEN,
   Token,
 } from '@/lib/hooks/useTokenConversion';
+import { amountToNumber, formatAmount } from '@/lib/tokenUtils';
 
 const MIN_BUDGET_USDC = 0.01;
 
@@ -95,7 +96,7 @@ export function CommitBidForm({ job, onSuccess }: CommitBidFormProps) {
       return;
     }
 
-    if (amount > Number(maxBudget) / 1e6) {
+    if (amount > amountToNumber(maxBudget, paymentToken)) {
       setError('Bid exceeds maximum budget');
       return;
     }
@@ -105,7 +106,7 @@ export function CommitBidForm({ job, onSuccess }: CommitBidFormProps) {
     } else {
       setError('Failed to calculate stake amount');
     }
-  }, [isConnected, address, bidAmount, maxBudget, job.id, commitHash, stakeAmount, commitBid]);
+  }, [isConnected, address, bidAmount, maxBudget, paymentToken, job.id, commitHash, stakeAmount, commitBid]);
 
   const { handleSubmit, isSubmitting, timeUntilNextSubmit } = useFormSubmit(handleCommit, 2000);
 
@@ -125,7 +126,13 @@ export function CommitBidForm({ job, onSuccess }: CommitBidFormProps) {
       <div className="space-y-4">
         <div className="p-3 bg-content2 rounded-lg">
           <p className="text-xs text-default-500">Maximum Budget</p>
-          <p className="font-medium">{Number(maxBudget) / 1e18} ETH</p>
+          <p className="font-medium">
+            {formatAmount(maxBudget, paymentToken, {
+              includeSymbol: true,
+              minFractionDigits: paymentToken.symbol === 'USDC' ? 2 : 0,
+              maxFractionDigits: paymentToken.symbol === 'USDC' ? 2 : 6,
+            })}
+          </p>
         </div>
 
         <div className="p-3 bg-warning-50 border border-warning-200 rounded-lg">

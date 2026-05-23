@@ -32,9 +32,21 @@ function mapServiceData(id: bigint, data: unknown): Service | null {
     }
   }
 
-  // Legacy array format (includes paymentAddress at index 10)
+  // viem can return tuple-like arrays depending on ABI inference.
   if (Array.isArray(data) && data.length >= 11) {
-    const [, provider, agentId, name, description, metadataURI, price, paymentToken, paymentAddress, isActive, createdAt] = data;
+    const [
+      ,
+      provider,
+      paymentAddress,
+      agentId,
+      name,
+      description,
+      metadataURI,
+      price,
+      paymentToken,
+      isActive,
+      createdAt,
+    ] = data;
     return {
       id,
       provider: (provider as `0x${string}`) || '0x',

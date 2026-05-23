@@ -8,12 +8,8 @@ import {
   Loader2,
   Plus,
 } from 'lucide-react';
-import { formatUnits } from 'viem';
-import {
-  useTokenPriceConversion,
-  ETH_TOKEN,
-  USDC_TOKEN,
-} from '@/lib/hooks/useTokenConversion';
+import { useTokenPriceConversion } from '@/lib/hooks/useTokenConversion';
+import { formatAmount, getTokenByAddress, parseAmount } from '@/lib/tokenUtils';
 import {
   useJobMilestones,
   useJobMilestonesDetails,
@@ -35,14 +31,6 @@ interface MilestoneSectionProps {
   isClient: boolean;
   isProvider: boolean;
   onRefetch?: () => void;
-}
-
-function getTokenInfo(paymentToken: string) {
-  const isETH = paymentToken === '0x0000000000000000000000000000000000000000';
-  return {
-    symbol: isETH ? 'ETH' : 'USDC',
-    decimals: isETH ? 18 : 6,
-  };
 }
 
 function isTerminalStatus(status?: number) {
@@ -72,9 +60,10 @@ export function MilestoneSection({
   const { milestones, isLoading: loadingMilestones, error: milestonesError, refetch: refetchMilestones } = useJobMilestones(jobId);
   const { details, error: detailsError, refetch: refetchDetails } = useJobMilestonesDetails(jobId);
 
-  const { symbol: tokenSymbol, decimals: tokenDecimals } = getTokenInfo(paymentToken);
+  const token = getTokenByAddress(paymentToken);
+  const tokenSymbol = token.symbol;
+  const tokenDecimals = token.decimals;
   const isTerminal = isTerminalStatus(jobStatus);
-  const token = tokenSymbol === 'ETH' ? ETH_TOKEN : USDC_TOKEN;
   const { formatUsdValue, isLoading: isPriceLoading } = useTokenPriceConversion();
 
   const {
@@ -185,7 +174,7 @@ export function MilestoneSection({
       return;
     }
     try {
-      const amountRaw = BigInt(Math.floor(parseFloat(newAmount) * Math.pow(10, tokenDecimals)));
+      const amountRaw = parseAmount(newAmount, token);
       const dueDate = newDueDate ? BigInt(Math.floor(new Date(newDueDate).getTime() / 1000)) : 0n;
       await addMilestone(jobId, amountRaw, newDescription, dueDate);
       setNewDescription('');
@@ -227,7 +216,11 @@ export function MilestoneSection({
         <div className="flex items-center gap-3">
           {details && details.totalBudget !== undefined && (
             <div className="text-sm text-default-500">
-              Total: {formatUnits(details.totalBudget ?? 0n, tokenDecimals)} {tokenSymbol}
+              Total: {formatAmount(details.totalBudget ?? 0n, token, {
+                includeSymbol: true,
+                minFractionDigits: token.symbol === 'USDC' ? 2 : 0,
+                maxFractionDigits: token.symbol === 'USDC' ? 2 : 6,
+              })}
               {tokenSymbol !== 'USDC' && !isPriceLoading && (
                 <span className="text-xs text-default-400 ml-1">
                   ({formatUsdValue(details.totalBudget ?? 0n, token)} USD)
@@ -356,7 +349,11 @@ export function MilestoneSection({
                   </div>
                   <p className="text-sm text-default-600 mt-1">{milestone.description}</p>
                   <p className="text-lg font-semibold text-primary mt-2">
-                    {formatUnits(milestone.amount ?? 0n, tokenDecimals)} {tokenSymbol}
+                    {formatAmount(milestone.amount ?? 0n, token, {
+                      includeSymbol: true,
+                      minFractionDigits: token.symbol === 'USDC' ? 2 : 0,
+                      maxFractionDigits: token.symbol === 'USDC' ? 2 : 6,
+                    })}
                     {tokenSymbol !== 'USDC' && !isPriceLoading && (
                       <span className="text-xs text-default-400 ml-1">
                         ({formatUsdValue(milestone.amount ?? 0n, token)} USD)

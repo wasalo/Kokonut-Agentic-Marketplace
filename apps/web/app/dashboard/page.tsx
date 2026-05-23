@@ -19,6 +19,7 @@ import dynamicImport from 'next/dynamic';
 import { useUserJobs, getJobStatusLabel } from '@/lib/hooks/useJobs';
 import { useProposalCount, useProposals } from '@/lib/hooks/useProposals';
 import { useActivityFromSubgraph } from '@/lib/hooks';
+import { JobStatus } from '@/lib/types/contracts';
 import { Address } from '@/components/Address';
 
 const ArbiterSection = dynamicImport(() => import('@/components/ArbiterSection').then(m => m.ArbiterSection), {
@@ -238,6 +239,70 @@ function QuickActions() {
   );
 }
 
+function PriorityActions({ user }: { user: `0x${string}` }) {
+  const { jobs, isLoading } = useUserJobs(user, 'all');
+  const lower = user.toLowerCase();
+  const needsFunding = jobs.filter(
+    job => job.client?.toLowerCase() === lower && job.status === JobStatus.Open
+  );
+  const awaitingReview = jobs.filter(
+    job =>
+      job.client?.toLowerCase() === lower &&
+      (job.status === JobStatus.Submitted || job.status === JobStatus.PendingClientApproval)
+  );
+  const readyToWork = jobs.filter(
+    job => job.provider?.toLowerCase() === lower && job.status === JobStatus.Funded
+  );
+
+  const items = [
+    ...needsFunding.slice(0, 2).map(job => ({
+      title: `Job #${job.id.toString()} needs funding`,
+      detail: 'Fund escrow to move the work forward',
+      href: `/jobs/${job.id.toString()}`,
+      tone: 'warning',
+    })),
+    ...awaitingReview.slice(0, 2).map(job => ({
+      title: `Job #${job.id.toString()} awaiting review`,
+      detail: 'Approve the deliverable or request changes',
+      href: `/jobs/${job.id.toString()}`,
+      tone: 'success',
+    })),
+    ...readyToWork.slice(0, 2).map(job => ({
+      title: `Job #${job.id.toString()} is funded`,
+      detail: 'Submit the deliverable when ready',
+      href: `/jobs/${job.id.toString()}`,
+      tone: 'primary',
+    })),
+  ].slice(0, 4);
+
+  if (isLoading || items.length === 0) return null;
+
+  return (
+    <Card className="border border-divider mb-8">
+      <div className="p-6">
+        <h2 className="text-xl font-semibold text-foreground mb-4">Needs Attention</h2>
+        <div className="grid grid-cols-1 md:grid-cols-2 gap-3">
+          {items.map(item => (
+            <NextLink
+              key={`${item.title}-${item.href}`}
+              href={item.href}
+              className="p-4 rounded-lg border border-divider hover:border-success/50 hover:bg-content2 transition-colors"
+            >
+              <div className="flex items-center justify-between gap-3">
+                <div>
+                  <p className="font-medium text-sm">{item.title}</p>
+                  <p className="text-xs text-default-500 mt-1">{item.detail}</p>
+                </div>
+                <ArrowRight className="w-4 h-4 text-default-400" />
+              </div>
+            </NextLink>
+          ))}
+        </div>
+      </div>
+    </Card>
+  );
+}
+
 function PlatformActivityWidget() {
   const { activities, isLoading } = useActivityFromSubgraph(undefined, undefined, 0, 5);
 
@@ -331,6 +396,7 @@ export default function DashboardPage(): JSX.Element {
         </Card>
       )}
 
+      <PriorityActions user={user} />
       <QuickActions />
       <ArbiterSection />
       <EvaluatorSection />

@@ -5,6 +5,7 @@ import { useState } from 'react';
 import Link from 'next/link';
 import { Card, Badge, Skeleton } from '@heroui/react';
 import { useUnifiedAgentProfile, useEfpStats } from '@/lib/hooks';
+import { formatUsd } from '@/lib/tokenUtils';
 
 import { useAccount } from 'wagmi';
 import { Address } from '@/components/Address';
@@ -319,7 +320,7 @@ function ServicesTab({ services, isLoading }: { services: any[]; isLoading: bool
                   <p className="text-xs md:text-sm text-default-500 line-clamp-2">{service.description}</p>
                 </div>
                 <Badge className="text-xs shrink-0">
-                  {service.price ? `${Number(service.price) / 1e6} USDC` : 'Free'}
+                  {service.price ? formatUsd(BigInt(service.price), { decimals: 6 }) : 'Free'}
                 </Badge>
               </div>
             </div>
