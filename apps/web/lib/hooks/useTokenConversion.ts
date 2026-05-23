@@ -2,10 +2,8 @@ import { useMemo } from 'react';
 import { useChainlinkEthUsdPrice } from './useChainlinkPrice';
 import {
   amountToNumber,
-  ETH_TOKEN,
   formatAmount as formatTokenAmount,
   formatTokenUsdValue,
-  SUPPORTED_PAYMENT_TOKENS,
   tokenAmountToUsd,
   USDC_TOKEN,
   type Token,
