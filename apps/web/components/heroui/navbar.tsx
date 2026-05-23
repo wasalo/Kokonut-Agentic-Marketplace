@@ -7,7 +7,7 @@ import NextLink from 'next/link';
 import { useAccount } from 'wagmi';
 import { useUSDCBalance } from '@/lib/hooks/useUSDC';
 import { ConnectButton } from '@/components/wallet/ConnectButton';
-import { NotificationBell } from '@/components/heroui/notification-bell';
+import { UnifiedDrawer } from '@/components/UnifiedDrawer';
 
 function USDCBalance() {
   const { address } = useAccount();
@@ -88,7 +88,7 @@ export function NavbarComponent(): JSX.Element {
 
           <div className="flex items-center gap-2">
             <USDCBalance />
-            <NotificationBell />
+            <UnifiedDrawer />
             {mounted && (
               <button
                 onClick={toggleTheme}

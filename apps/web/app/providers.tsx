@@ -1,37 +1,17 @@
 'use client';
 
-import { useState, useEffect, type ReactNode } from 'react';
+import { useState, type ReactNode } from 'react';
 import { QueryClient, QueryClientProvider } from '@tanstack/react-query';
-import { WagmiProvider, useAccount, useChainId } from 'wagmi';
+import { WagmiProvider } from 'wagmi';
 import { RainbowKitProvider, darkTheme } from '@rainbow-me/rainbowkit';
 import { config } from '@/lib/wagmi';
 import { DebugProvider } from '@/contexts/DebugContext';
-import { TransactionProvider as KokonutTxProvider } from '@/contexts/TransactionContext';
 import { TransactionProvider as EfpTxProvider } from 'ethereum-identity-kit';
 import { usePersonalNotifications } from '@/lib/hooks/useNotificationEvents';
-import { showToast } from '@/lib/toast';
+import { NetworkGuard } from '@/components/NetworkGuard';
 
 function NotificationWatcher() {
   usePersonalNotifications();
-  return null;
-}
-
-function ChainGuard() {
-  const targetChainId = 11155111; // Sepolia
-  const chainId = useChainId();
-  const { isConnected } = useAccount();
-  const [hasShown, setHasShown] = useState(false);
-
-  useEffect(() => {
-    if (isConnected && chainId && chainId !== targetChainId && !hasShown) {
-      showToast.warning('Wrong network', 'Switch to Sepolia testnet for Kokonut transactions.');
-      setHasShown(true);
-    }
-    if (chainId === targetChainId) {
-      setHasShown(false);
-    }
-  }, [chainId, isConnected, hasShown]);
-
   return null;
 }
 
@@ -57,21 +37,19 @@ export function Providers({ children }: { children: ReactNode }) {
     <WagmiProvider config={config}>
       <QueryClientProvider client={queryClient}>
         <DebugProvider>
-          <KokonutTxProvider>
-            <EfpTxProvider>
-              <RainbowKitProvider
-                theme={darkTheme({
-                  accentColor: '#009F4D',
-                  accentColorForeground: '#FFFFFF',
-                  borderRadius: 'large',
-                })}
-              >
-                <ChainGuard />
-                <NotificationWatcher />
-                {children}
-              </RainbowKitProvider>
-            </EfpTxProvider>
-          </KokonutTxProvider>
+          <EfpTxProvider>
+            <RainbowKitProvider
+              theme={darkTheme({
+                accentColor: '#009F4D',
+                accentColorForeground: '#FFFFFF',
+                borderRadius: 'large',
+              })}
+            >
+              <NetworkGuard />
+              <NotificationWatcher />
+              {children}
+            </RainbowKitProvider>
+          </EfpTxProvider>
         </DebugProvider>
       </QueryClientProvider>
     </WagmiProvider>

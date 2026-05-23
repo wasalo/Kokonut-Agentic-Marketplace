@@ -21,6 +21,7 @@ import { useProposalCount, useProposals } from '@/lib/hooks/useProposals';
 import { useActivityFromSubgraph } from '@/lib/hooks';
 import { JobStatus } from '@/lib/types/contracts';
 import { Address } from '@/components/Address';
+import { ActivityFeed } from '@/components/ActivityFeed';
 
 const ArbiterSection = dynamicImport(() => import('@/components/ArbiterSection').then(m => m.ArbiterSection), {
   loading: () => <div className="animate-pulse h-40 bg-content2 rounded-lg" />,
@@ -402,6 +403,11 @@ export default function DashboardPage(): JSX.Element {
       <EvaluatorSection />
       <PlatformActivityWidget />
       <RecentActivity user={user} />
+
+      <div className="mt-8">
+        <h2 className="text-xl font-semibold mb-4">On-Chain Activity</h2>
+        <ActivityFeed limit={10} showViewAll={false} />
+      </div>
     </div>
   );
 }
