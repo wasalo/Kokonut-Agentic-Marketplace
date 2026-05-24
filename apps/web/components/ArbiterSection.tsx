@@ -10,7 +10,6 @@ import {
   useRegisterAsArbiter,
   useUnregisterAsArbiter,
 } from '@/lib/hooks/useMilestoneEscrow';
-import { getContractAddress } from '@/lib/contracts/config';
 import { DashboardCard } from '@/components/ui/DashboardCard';
 import { Button } from '@/components/ui/Button';
 import { StatusBadge } from '@/components/StatusBadge';

@@ -16,14 +16,14 @@ import {
 import NextLink from 'next/link';
 import dynamicImport from 'next/dynamic';
 import { useUserJobs } from '@/lib/hooks/useJobs';
-import { useProposalCount, useProposals } from '@/lib/hooks/useProposals';
+
 import { useActivityFromSubgraph } from '@/lib/hooks';
 import { JobStatus } from '@/lib/types/contracts';
 import { DS } from '@/lib/design-system';
 import { Address } from '@/components/Address';
-import { StatusBadge, getJobStatusBadgeType, getProposalStatusBadgeType } from '@/components/StatusBadge';
+import { StatusBadge, getJobStatusBadgeType } from '@/components/StatusBadge';
 import { ActivityFeed } from '@/components/ActivityFeed';
-import { EmptyStateJobs, EmptyStateProposals } from '@/components/ui/empty-state';
+import { EmptyStateJobs } from '@/components/ui/empty-state';
 import { DashboardCard } from '@/components/ui/DashboardCard';
 
 const ArbiterSection = dynamicImport(() => import('@/components/ArbiterSection').then(m => m.ArbiterSection), {
@@ -94,67 +94,10 @@ function UserJobsList({ user }: { user: `0x${string}` }) {
   );
 }
 
-function UserProposalsList({ user }: { user: `0x${string}` }) {
-  useProposalCount();
-  const { proposals, isLoading, error } = useProposals(0, 50);
-
-  if (error) {
-    return (
-      <div className="text-center py-4">
-        <p className="text-danger text-sm">Error loading proposals</p>
-      </div>
-    );
-  }
-
-  if (isLoading) {
-    return (
-      <div className="flex justify-center py-4">
-        <Loader2 className="h-6 w-6 animate-spin text-default-400" />
-      </div>
-    );
-  }
-
-  if (!proposals || proposals.length === 0) {
-    return <EmptyStateProposals />;
-  }
-
-  const userProposals = proposals.filter(p => p.proposer === user);
-
-  if (userProposals.length === 0) {
-    return <p className="text-default-500 text-sm py-4">No proposals</p>;
-  }
-
-  return (
-    <div className="space-y-2">
-      {userProposals.slice(0, 5).map(proposal => (
-        <NextLink
-          key={proposal.id.toString()}
-          href={`/review/${proposal.id.toString()}`}
-          className="flex justify-between items-center p-3 bg-content2 rounded-lg hover:bg-content3 transition-colors cursor-pointer"
-        >
-          <div>
-            <p className="text-sm font-medium">{proposal.title}</p>
-            <p className="text-xs text-default-500">{proposal.description.slice(0, 40)}...</p>
-          </div>
-          <StatusBadge status={getProposalStatusBadgeType(proposal.status)} size="sm" />
-        </NextLink>
-      ))}
-    </div>
-  );
-}
-
 function RecentActivity({ user }: { user: `0x${string}` }) {
   return (
     <DashboardCard title="Recent Jobs" icon={<Activity />}>
       <UserJobsList user={user} />
-    </DashboardCard>
-  );
-}
-
-function YourProposals({ user }: { user: `0x${string}` }) {
-  return (
-    <DashboardCard title="Your Proposals" icon={<Scale />}>
-      <UserProposalsList user={user} />
     </DashboardCard>
   );
 }

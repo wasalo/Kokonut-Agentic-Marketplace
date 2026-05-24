@@ -2,7 +2,6 @@
 
 import { useAccount } from 'wagmi';
 import { ShieldCheck, Loader2 } from 'lucide-react';
-import { formatUnits } from 'viem';
 import {
   useEvaluatorPoolSize,
   useEvaluatorStatus,
