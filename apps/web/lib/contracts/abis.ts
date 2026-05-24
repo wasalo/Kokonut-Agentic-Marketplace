@@ -122,7 +122,7 @@ export const AGENTIC_COMMERCE_ABI = parseAbi([
   'function evaluatorStakes(address evaluator) external view returns (uint256)',
   'function evaluatorCommits(uint256 jobId) external view returns (bytes32 commitHash, uint256 commitBlock, bool revealed)',
   'function jobCreationBlock(uint256 jobId) external view returns (uint256)',
-  'function isEvaluator(address account) external view returns (bool)',
+  'function isRegisteredEvaluator(address) external view returns (bool)',
   'function pause() external',
   'function unpause() external',
   'function paused() external view returns (bool)',

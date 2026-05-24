@@ -50,7 +50,7 @@ contract AgenticCommerceV9 is
     uint256 public constant DEFAULT_DISPUTE_WINDOW = 7 days;
     uint256 public constant DEFAULT_NONRESPONSIVE_SLASH_BP = 100;
     uint256 public constant MAX_BUDGET_USD = 1_000_000e6; // $1M USD (6 decimals)
-    uint256 public constant MIN_EVALUATOR_STAKE = 0.01 ether; // 0.01 ETH stake required
+    uint256 public minEvaluatorStake = 0.01 ether; // Configurable per chain
     uint256 public constant EVALUATOR_REVEAL_DELAY = 6; // 6 blocks commit-reveal delay
     uint256 public constant MIN_PLATFORM_FEE = 1; // M2-01: Minimum 1 wei platform fee to prevent dust loss
 
@@ -197,7 +197,10 @@ contract AgenticCommerceV9 is
         // V9: Default minimum budget $5 USD, max $1M USD
         minBudgetUsd = 5e6;
         maxBudgetUsd = MAX_BUDGET_USD;
-        
+
+        // Default evaluator stake
+        minEvaluatorStake = 0.01 ether;
+
         // Default allowed tokens
         allowedTokens[address(0)] = true; // Native ETH
     }
@@ -321,7 +324,17 @@ contract AgenticCommerceV9 is
         allowedTokens[token] = allowed;
         emit TokenAllowlistUpdated(token, allowed);
     }
-    
+
+    /**
+     * @dev Set the minimum evaluator stake. Owner-configurable per chain.
+     * @param newStake New minimum stake in native currency wei
+     */
+    function setMinEvaluatorStake(uint256 newStake) external onlyOwner {
+        uint256 oldStake = minEvaluatorStake;
+        minEvaluatorStake = newStake;
+        emit MinEvaluatorStakeChanged(oldStake, newStake);
+    }
+
     function _isTokenAllowed(address token) internal view returns (bool) {
         if (token == address(0)) return true;
         return allowedTokens[token];
@@ -1060,7 +1073,7 @@ contract AgenticCommerceV9 is
      */
     function registerAsEvaluator() external payable {
         if (isRegisteredEvaluator[msg.sender]) revert EvaluatorAlreadyRegistered();
-        if (msg.value < MIN_EVALUATOR_STAKE) revert InsufficientEvaluatorStake();
+        if (msg.value < minEvaluatorStake) revert InsufficientEvaluatorStake();
 
         // Blacklist check with P7-01 try/catch
         if (adminRegistry != address(0)) {
@@ -1374,6 +1387,7 @@ contract AgenticCommerceV9 is
     event TokenAllowlistUpdated(address indexed token, bool allowed);
     event EvaluatorRegistered(address indexed evaluator);
     event EvaluatorUnregistered(address indexed evaluator);
+    event MinEvaluatorStakeChanged(uint256 oldStake, uint256 newStake);
     event EvaluatorRandomlySelected(uint256 indexed jobId, address indexed evaluator);
     event StaleEvaluatorsCleaned(uint256 removedCount);
     event EvaluatorSlashed(address indexed evaluator, uint256 stake, string reason);

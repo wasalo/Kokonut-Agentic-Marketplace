@@ -232,12 +232,12 @@ const ENV_TO_FALLBACK: Record<keyof typeof CONTRACT_ENV_VARS, string> = {
   SERVICE_REGISTRY: CONTRACT_ADDRESSES.sepolia.serviceRegistry,
   AGENTIC_COMMERCE: CONTRACT_ADDRESSES.sepolia.agenticCommerce,
   BIDDING_SYSTEM: CONTRACT_ADDRESSES.sepolia.biddingSystem,
-  ADMIN_REGISTRY: '0xE0611728f270172E1627267138BF96BfEF08F731', // Phase 32: zero-check + SlashManagerSet event
+  ADMIN_REGISTRY: CONTRACT_ADDRESSES.sepolia.adminRegistry, // Phase 29e: UUPS proxy with Pashov fixes
   AGENT_REVIEW: CONTRACT_ADDRESSES.sepolia.agentReview,
   PRICE_ORACLE: CONTRACT_ADDRESSES.sepolia.priceOracle,
   COMMIT_REVEAL: CONTRACT_ADDRESSES.sepolia.commitReveal,
   SLASH_MANAGER: CONTRACT_ADDRESSES.sepolia.slashManager,
-  MILESTONE_ESCROW: '0x3054765C7f00A6180C759DA78F4Eba06a0D19621', // Phase 32: blockhash entropy + zero-check
+  MILESTONE_ESCROW: CONTRACT_ADDRESSES.sepolia.milestoneEscrow, // Phase 29: UUPS proxy
   USDC: CONTRACT_ADDRESSES.sepolia.usdc,
 };
 

@@ -33,7 +33,9 @@ export type StatusType =
   | 'info'
   | 'usdc'
   | 'eth'
-  | 'winner';
+  | 'winner'
+  | 'registered'
+  | 'not-registered';
 
 interface StatusBadgeProps {
   status: StatusType;
@@ -167,6 +169,18 @@ const statusConfig: Record<
     color: 'text-success',
     bgColor: 'bg-success/10',
     icon: CheckCircle2,
+  },
+  registered: {
+    label: 'Registered',
+    color: 'text-success',
+    bgColor: 'bg-success/10',
+    icon: CheckCircle2,
+  },
+  'not-registered': {
+    label: 'Not Registered',
+    color: 'text-default-500',
+    bgColor: 'bg-default/10',
+    icon: XCircle,
   },
 };
 

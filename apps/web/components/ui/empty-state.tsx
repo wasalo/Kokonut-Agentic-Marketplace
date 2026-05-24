@@ -1,6 +1,7 @@
 'use client';
 
 import { LucideIcon, Briefcase, ShoppingBag, Scale, Shield, Users, FolderOpen } from 'lucide-react';
+import { Button } from './Button';
 
 interface EmptyStateProps {
   icon: LucideIcon;
@@ -30,19 +31,13 @@ export function EmptyState({
       <p className="text-default-500 max-w-md mx-auto mb-4">{description}</p>
       {action &&
         (action.href ? (
-          <a
-            href={action.href}
-            className="inline-flex items-center justify-center gap-2 px-5 py-2.5 bg-gradient-to-r from-[#009F4D] to-[#00c853] text-white rounded-lg font-medium hover:opacity-90 transition-opacity"
-          >
+          <Button variant="primary" onClick={() => { window.location.href = action.href!; }}>
             {action.label}
-          </a>
+          </Button>
         ) : action.onPress ? (
-          <button
-            onClick={action.onPress}
-            className="inline-flex items-center justify-center gap-2 px-5 py-2.5 bg-gradient-to-r from-[#009F4D] to-[#00c853] text-white rounded-lg font-medium hover:opacity-90 transition-opacity"
-          >
+          <Button variant="primary" onClick={action.onPress}>
             {action.label}
-          </button>
+          </Button>
         ) : null)}
     </div>
   );

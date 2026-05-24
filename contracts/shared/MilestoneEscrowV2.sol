@@ -128,6 +128,7 @@ contract MilestoneEscrowV2 is
     error Unauthorized();
     error TokenNotSupported();
     error InvalidTokenAmount();
+    error EthTransferFailed();
 
     /***********************************/
     /* Events */
@@ -151,6 +152,26 @@ contract MilestoneEscrowV2 is
     event ArbiterStakeUpdated(address indexed token, uint256 newStake);
     event TokenSupportUpdated(address indexed token, bool supported);
     event AgenticCommerceSet(address indexed oldAddress, address indexed newAddress);
+
+    /***********************************/
+    /* Internal Helpers */
+    /***********************************/
+
+    /**
+     * @dev Safely transfer either native ETH or ERC-20 tokens.
+     * Used by releaseMilestone, resolveDispute, and unregisterAsArbiter.
+     * @param token address(0) for native, otherwise ERC-20 address
+     * @param to Recipient address
+     * @param amount Amount to transfer
+     */
+    function _safeTransfer(address token, address to, uint256 amount) internal {
+        if (token == address(0)) {
+            (bool success, ) = payable(to).call{value: amount}("");
+            if (!success) revert EthTransferFailed();
+        } else {
+            IERC20(token).safeTransfer(to, amount);
+        }
+    }
 
     /***********************************/
     /* Initialization */
@@ -338,10 +359,10 @@ contract MilestoneEscrowV2 is
         if (milestone.released) revert MilestoneAlreadyReleased();
         
         milestone.released = true;
-        
-        // Transfer payment token to provider
-        IERC20(jm.paymentToken).safeTransfer(jm.provider, milestone.amount);
-        
+
+        // Transfer payment token to provider (native or ERC-20)
+        _safeTransfer(jm.paymentToken, jm.provider, milestone.amount);
+
         emit MilestoneReleased(jobId, milestoneIndex, milestone.amount);
     }
 
@@ -353,7 +374,7 @@ contract MilestoneEscrowV2 is
      * @dev Flag a dispute for a job. Fee is paid in the job's paymentToken.
      * @param jobId The job ID
      */
-    function flagDispute(uint256 jobId, uint256 milestoneIndex) external nonReentrant {
+    function flagDispute(uint256 jobId, uint256 milestoneIndex) external payable nonReentrant {
         JobMilestones storage jm = jobMilestones[jobId];
         if (jm.client == address(0)) revert InvalidJob();
         if (_msgSender() != jm.client && _msgSender() != jm.provider) revert Unauthorized();
@@ -389,11 +410,15 @@ contract MilestoneEscrowV2 is
         
         activeDisputeIds.push(jobId);
         
-        // Interaction: Transfer fee with fee-on-transfer detection
-        uint256 balanceBefore = IERC20(paymentToken).balanceOf(address(this));
-        IERC20(paymentToken).safeTransferFrom(_msgSender(), address(this), fee);
-        uint256 balanceAfter = IERC20(paymentToken).balanceOf(address(this));
-        if (balanceAfter - balanceBefore != fee) revert InvalidTokenAmount();
+        // Interaction: Transfer fee (native or ERC-20)
+        if (paymentToken == address(0)) {
+            if (msg.value < fee) revert InsufficientArbiterFee();
+        } else {
+            uint256 balanceBefore = IERC20(paymentToken).balanceOf(address(this));
+            IERC20(paymentToken).safeTransferFrom(_msgSender(), address(this), fee);
+            uint256 balanceAfter = IERC20(paymentToken).balanceOf(address(this));
+            if (balanceAfter - balanceBefore != fee) revert InvalidTokenAmount();
+        }
         
         emit DisputeFlagged(jobId, _msgSender(), paymentToken, fee);
         emit ArbiterAssigned(jobId, assignedArbiter);
@@ -436,13 +461,13 @@ contract MilestoneEscrowV2 is
         if (mi < jm.milestones.length && !jm.milestones[mi].released) {
             if (releaseToProvider) {
                 jm.milestones[mi].released = true;
-                IERC20(jm.paymentToken).safeTransfer(jm.provider, jm.milestones[mi].amount);
+                _safeTransfer(jm.paymentToken, jm.provider, jm.milestones[mi].amount);
                 emit MilestoneReleased(jobId, mi, jm.milestones[mi].amount);
             } else {
                 // Only refund completed milestones to client
                 if (jm.milestones[mi].completed) {
                     jm.milestones[mi].released = true;
-                    IERC20(jm.paymentToken).safeTransfer(jm.client, jm.milestones[mi].amount);
+                    _safeTransfer(jm.paymentToken, jm.client, jm.milestones[mi].amount);
                     emit MilestoneReleased(jobId, mi, jm.milestones[mi].amount);
                 } else {
                     emit MilestoneNotReleased(jobId, mi, "Milestone not completed");
@@ -456,9 +481,11 @@ contract MilestoneEscrowV2 is
         // E4-06 FIX: Ensure contract holds enough payment token before transfer
         uint256 arbiterFee = dispute.feePaid;
         if (arbiterFee > 0) {
-            uint256 contractBalance = IERC20(jm.paymentToken).balanceOf(address(this));
-            if (contractBalance < arbiterFee) revert InsufficientArbiterFee();
-            IERC20(jm.paymentToken).safeTransfer(dispute.arbiter, arbiterFee);
+            if (jm.paymentToken != address(0)) {
+                uint256 contractBalance = IERC20(jm.paymentToken).balanceOf(address(this));
+                if (contractBalance < arbiterFee) revert InsufficientArbiterFee();
+            }
+            _safeTransfer(jm.paymentToken, dispute.arbiter, arbiterFee);
         }
 
         emit DisputeResolved(jobId, releaseToProvider, dispute.arbiter, jm.paymentToken, arbiterFee);
@@ -534,26 +561,30 @@ contract MilestoneEscrowV2 is
      * @param token The token to stake (must be supported)
      * @param amount The amount to stake
      */
-    function registerAsArbiter(address token, uint256 amount) external nonReentrant {
+    function registerAsArbiter(address token, uint256 amount) external payable nonReentrant {
         if (isRegisteredArbiter[_msgSender()]) revert ArbiterAlreadyRegistered();
         if (!supportedTokens[token]) revert TokenNotSupported();
-        
+
         uint256 requiredStake = arbiterStakePerToken[token];
         if (requiredStake == 0) revert InsufficientArbiterStake();
         if (amount < requiredStake) revert InsufficientArbiterStake();
-        
+
         // Effects: Write state before external call
         arbiterStakes[_msgSender()] = amount;
         arbiterStakeToken[_msgSender()] = token;
         isRegisteredArbiter[_msgSender()] = true;
         arbiterPool.push(_msgSender());
-        
-        // Interaction: Transfer stake with fee-on-transfer detection
-        uint256 balanceBefore = IERC20(token).balanceOf(address(this));
-        IERC20(token).safeTransferFrom(_msgSender(), address(this), amount);
-        uint256 balanceAfter = IERC20(token).balanceOf(address(this));
-        if (balanceAfter - balanceBefore != amount) revert InvalidTokenAmount();
-        
+
+        // Interaction: Transfer stake
+        if (token == address(0)) {
+            if (msg.value < amount) revert InsufficientArbiterStake();
+        } else {
+            uint256 balanceBefore = IERC20(token).balanceOf(address(this));
+            IERC20(token).safeTransferFrom(_msgSender(), address(this), amount);
+            uint256 balanceAfter = IERC20(token).balanceOf(address(this));
+            if (balanceAfter - balanceBefore != amount) revert InvalidTokenAmount();
+        }
+
         emit ArbiterRegistered(_msgSender(), token, amount);
     }
     
@@ -586,11 +617,11 @@ contract MilestoneEscrowV2 is
             }
         }
         
-        // Return staked tokens
-        if (stake > 0 && token != address(0)) {
-            IERC20(token).safeTransfer(_msgSender(), stake);
+        // Return staked tokens (native or ERC-20)
+        if (stake > 0) {
+            _safeTransfer(token, _msgSender(), stake);
         }
-        
+
         emit ArbiterUnregistered(_msgSender(), token, stake);
     }
     

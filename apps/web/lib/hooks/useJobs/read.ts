@@ -229,7 +229,7 @@ export function useEvaluatorStatus(address: `0x${string}` | undefined) {
   const { data, isLoading, error, refetch } = useReadContract({
     address: AGENTIC_COMMERCE_ADDRESS,
     abi: AGENTIC_COMMERCE_ABI,
-    functionName: 'isEvaluator',
+    functionName: 'isRegisteredEvaluator',
     args: address ? [address] : undefined,
     query: { retry: 2, staleTime: 60 * 1000, enabled: !!address },
   });

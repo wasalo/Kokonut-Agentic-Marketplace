@@ -123,16 +123,24 @@ export function Address({
         />
       )}
       {explorerLink && (
-        <a
-          href={explorerUrl}
-          target="_blank"
-          rel="noopener noreferrer"
-          onClick={e => e.stopPropagation()}
-          className="p-0.5 hover:bg-content2 rounded transition-colors"
+        <span
+          role="button"
+          tabIndex={0}
+          onClick={e => {
+            e.stopPropagation();
+            window.open(explorerUrl, '_blank', 'noopener,noreferrer');
+          }}
+          onKeyDown={e => {
+            if (e.key === 'Enter' || e.key === ' ') {
+              e.preventDefault();
+              window.open(explorerUrl, '_blank', 'noopener,noreferrer');
+            }
+          }}
+          className="p-0.5 hover:bg-content2 rounded transition-colors inline-flex cursor-pointer"
           title="View on Etherscan"
         >
           <ExternalLink className="w-3 h-3 text-default-400 hover:text-default-600" />
-        </a>
+        </span>
       )}
     </span>
   );

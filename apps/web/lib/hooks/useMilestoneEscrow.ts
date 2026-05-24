@@ -5,7 +5,7 @@ import { getContractAddress, debugLog } from '@/lib/contracts/config';
 
 const MILESTONE_ESCROW_ADDRESS = getContractAddress('MILESTONE_ESCROW');
 
-// V2: Arbiter stake/fee are in ERC20 tokens, not ETH
+// V2: Arbiter stake/fee are per-token (ERC-20 or native ETH via address(0))
 // Use getArbiterStake/getArbiterFee to check per-token requirements
 
 export interface Milestone {
@@ -405,12 +405,18 @@ export function useRegisterAsArbiter() {
   const registerAsArbiter = async (token: `0x${string}`, amount: bigint) => {
     debugLog('contracts', `useRegisterAsArbiter: Registering as arbiter with ${amount} of token ${token}`);
 
-    writeContract({
+    const isNative = token === '0x0000000000000000000000000000000000000000';
+
+    const params: any = {
       address: MILESTONE_ESCROW_ADDRESS,
       abi: MILESTONE_ESCROW_ABI,
       functionName: 'registerAsArbiter',
       args: [token, amount],
-    });
+    };
+    if (isNative) {
+      params.value = amount;
+    }
+    writeContract(params);
   };
 
   return {
@@ -457,15 +463,19 @@ export function useFlagDispute() {
     hash,
   });
 
-  const flagDispute = async (jobId: bigint, milestoneIndex: bigint) => {
+  const flagDispute = async (jobId: bigint, milestoneIndex: bigint, fee?: bigint) => {
     debugLog('contracts', `useFlagDispute: Flagging dispute for job ${Number(jobId)}, milestone ${Number(milestoneIndex)}`);
 
-    writeContract({
+    const params: any = {
       address: MILESTONE_ESCROW_ADDRESS,
       abi: MILESTONE_ESCROW_ABI,
       functionName: 'flagDispute',
       args: [jobId, milestoneIndex],
-    });
+    };
+    if (fee !== undefined) {
+      params.value = fee;
+    }
+    writeContract(params);
   };
 
   return {

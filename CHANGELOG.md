@@ -5,6 +5,75 @@ All notable changes to the Kokonut Agent Economy Stack are documented in this fi
 The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.0.0/),
 and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0.html).
 
+## [2026-05-24] — Phase 34: Native Currency Refactor + Dashboard UI Unification
+
+### ⛓️ Native Currency Architecture (Role Stakes)
+
+**Critical architecture change:** Evaluator and Arbiter role stakes now use **native chain currency** (ETH/CELO/BNB) instead of ERC-20 tokens. This removes wrapped-native dependencies and makes multi-chain deployment frictionless.
+
+#### Smart Contract Changes
+
+| Change | File | Detail |
+|--------|------|--------|
+| **MilestoneEscrowV2 native branches** | `MilestoneEscrowV2.sol` | 5 functions (`registerAsArbiter`, `unregisterAsArbiter`, `releaseMilestone`, `flagDispute`, `resolveDispute`) now accept `address(0)` for native ETH. Added `_safeTransfer` helper + `EthTransferFailed` custom error. CEI pattern enforced. Full `.call{value:...}` gas (no 2300 stipend). |
+| **Configurable evaluator stake** | `AgenticCommerceV9.sol` | `MIN_EVALUATOR_STAKE` constant → mutable `minEvaluatorStake` + `setMinEvaluatorStake(uint256)` `onlyOwner` setter + `MinEvaluatorStakeChanged` event. Initialized to `0.01 ether`. |
+| **Deploy script native config** | `DeployV9.s.sol` | Already configures `supportedTokens[address(0)] = true`, `arbiterStakePerToken[address(0)] = 0.01 ether`, `arbiterFeePerToken[address(0)] = 0.001 ether` |
+
+#### Frontend Changes
+
+| Change | File | Detail |
+|--------|------|--------|
+| **ArbiterSection native stake** | `components/ArbiterSection.tsx` | Now stakes `0.01 ETH` (native) instead of USDC. Removed USDC approval flow. Uses dynamic `TOKEN_ADDRESS` / `TOKEN_SYMBOL` / `TOKEN_DECIMALS` constants. |
+| **Hook native value passing** | `lib/hooks/useMilestoneEscrow.ts` | `registerAsArbiter` passes `value` when `token === address(0)`; `flagDispute` accepts optional `fee` param for native value |
+| **Hook native value passing** | `lib/hooks/useJobs/write.ts` | `registerAsEvaluator` passes `value` when staking native |
+
+### 🎨 Dashboard UI/UX Unification
+
+**Goal:** Eliminate visual inconsistencies across dashboard role-management cards.
+
+#### New Primitive
+
+| Component | File | Purpose |
+|-----------|------|---------|
+| `DashboardCard` | `components/ui/DashboardCard.tsx` | Unified card primitive with `variant` (`default` \| `glass` \| `interactive`) |
+
+#### Refactored Components
+
+| Component | Changes |
+|-----------|---------|
+| `ArbiterSection.tsx` | DS primitives (`DashboardCard`, `Button`, `StatusBadge`). Fixed USDC decimals display (`formatUnits(stake, 6)` not `18`). |
+| `EvaluatorSection.tsx` | DS primitives (`DashboardCard`, `Button`, `StatusBadge`) |
+| `ActivityFeed.tsx` | Removed shadow `StatusBadge`; imports canonical `components/StatusBadge.tsx` |
+| `app/dashboard/page.tsx` | 2-col responsive grid (`lg:grid-cols-2`) for Arbiter/Evaluator + Activity/Widget pairs. Inline sections with consistent gaps. |
+| `empty-state.tsx` | Uses `<Button variant="primary">` instead of hardcoded gradient class |
+| `StatusBadge.tsx` | Added `registered` / `not-registered` types |
+
+### 🐛 Bug Fixes
+
+| Fix | Root Cause | File |
+|-----|-----------|------|
+| **MILESTONE_ESCROW fallback address** | Pointed to implementation (`0x3054...`) instead of proxy (`0xc89D...`) | `lib/contracts/config.ts` |
+| **ADMIN_REGISTRY fallback address** | Same impl/proxy mismatch | `lib/contracts/config.ts` |
+| **E2E strict mode violation** | `page.locator('nav')` matched 2 elements (desktop + mobile). Replaced with `getByRole('navigation').first()` | 5 test files in `tests/` |
+| **Nested `<a>` hydration error** | `Address.tsx` rendered `<a>` explorer link inside `NextLink` `<a>`. Changed to `<span role="button">` with `window.open()` | `components/Address.tsx:126` |
+| **Evaluator registration always "Register"** | ABI mismatch: `isEvaluator(address)` in ABI vs `isRegisteredEvaluator(address)` auto-generated getter. Hook masked error with `data \|\| false` | `lib/contracts/abis.ts:125`, `lib/hooks/useJobs/read.ts:232` |
+
+### 📦 Deployment (Sepolia)
+
+| Contract | Proxy | Implementation (NEW) | Status |
+|----------|-------|---------------------|--------|
+| `AgenticCommerceV9` | `0x3a1Bc03cC84040A282F6bf238b917D8351499239` | `0x09ce4753148CD3652E13D3f824E1E5Dc478B2688` | ✅ Verified |
+| `MilestoneEscrowV2` | `0xc89D63057288092012c5D3cEF66121C1F8449a9f` | `0x11AAc9e99300F783Ad7BdfE7899C7f86CF8A1A74` | ✅ Verified |
+
+### ✅ Verification
+
+- **Build**: 0 warnings, 0 errors
+- **Tests**: 306/306 passing
+- **Type-check**: 0 errors
+- **Lint**: Clean
+
+---
+
 ## [2026-05-23] — Phase 33: Web3 UI Redesign + Mobile Experience
 
 ### 🎨 Design System Foundation
