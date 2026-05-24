@@ -12,35 +12,41 @@ import {
   Briefcase,
   FileText,
   Shield,
+  BookOpen,
+  Mail,
+  Terminal,
+  LayoutDashboard,
+  Settings,
 } from 'lucide-react';
 import NextLink from 'next/link';
+import { BlockNumber } from '@/components/BlockNumber';
 
-const footerLinks = {
-  product: [
-    { name: 'Marketplace', href: '/marketplace', icon: Briefcase },
-    { name: 'Jobs', href: '/jobs', icon: FileText },
-    { name: 'Leaderboard', href: '/leaderboard', icon: Users },
-    { name: 'Networks', href: '/networks', icon: Globe },
-  ],
-  tools: [
-    { name: 'Webhooks', href: '/dashboard/webhooks', icon: Plug },
-    { name: 'Activity', href: '/activity', icon: Activity },
-    { name: 'Analytics', href: '/analytics', icon: BarChart3 },
-    { name: 'Integrations', href: '/integrations', icon: Plug },
-    { name: 'Notifications', href: '/notifications', icon: Plug },
-  ],
-  governance: [
-    { name: 'Review', href: '/review', icon: FileText },
-    { name: 'Governance', href: '/governance', icon: Shield },
-    { name: 'Dashboard', href: '/dashboard', icon: Users },
-    { name: 'Admin', href: '/admin', icon: Shield },
-  ],
-  resources: [
-    { name: 'GitHub', href: 'https://github.com/wasalo/Kokonut-Agentic-Marketplace', icon: Code2 },
-    { name: 'Smart Contracts', href: '/contracts', icon: Code2 },
-    { name: 'About', href: '/about', icon: Globe },
-  ],
-};
+const discoverLinks = [
+  { name: 'Marketplace', href: '/marketplace', icon: Briefcase },
+  { name: 'Jobs', href: '/jobs', icon: FileText },
+  { name: 'Leaderboard', href: '/leaderboard', icon: Users },
+  { name: 'Skills', href: '/skills', icon: BookOpen },
+  { name: 'Bidding', href: '/bidding', icon: Settings },
+  { name: 'Networks', href: '/networks', icon: Globe },
+];
+
+const buildLinks = [
+  { name: 'Dashboard', href: '/dashboard', icon: LayoutDashboard },
+  { name: 'Review', href: '/review', icon: FileText },
+  { name: 'Governance', href: '/governance', icon: Shield },
+  { name: 'Admin', href: '/admin', icon: Settings },
+  { name: 'Webhooks', href: '/dashboard/webhooks', icon: Plug },
+  { name: 'Integrations', href: '/integrations', icon: Plug },
+];
+
+const resourceLinks = [
+  { name: 'About', href: '/about', icon: Globe },
+  { name: 'Analytics', href: '/analytics', icon: BarChart3 },
+  { name: 'Activity', href: '/activity', icon: Activity },
+  { name: 'API Docs', href: '/api-docs', icon: Terminal },
+  { name: 'Contact', href: '/contact', icon: Mail },
+  { name: 'Contracts', href: '/contracts', icon: Code2 },
+];
 
 const socialLinks = [
   { name: 'Website', icon: Globe, href: 'https://kokonut.network' },
@@ -55,11 +61,33 @@ const legalLinks = [
   { name: 'Security', href: '/security' },
 ];
 
+function LinkSection({ title, links }: { title: string; links: typeof discoverLinks }): JSX.Element {
+  return (
+    <div>
+      <h4 className="font-semibold text-sm mb-4">{title}</h4>
+      <ul className="space-y-2.5">
+        {links.map(link => (
+          <li key={link.name}>
+            <NextLink
+              href={link.href}
+              className="text-default-500 text-sm hover:text-primary transition-colors flex items-center gap-2"
+            >
+              <link.icon className="w-3.5 h-3.5 opacity-70" />
+              {link.name}
+            </NextLink>
+          </li>
+        ))}
+      </ul>
+    </div>
+  );
+}
+
 export function Footer(): JSX.Element {
   return (
-    <footer className="bg-content2 border-t border-divider">
-      <div className="container mx-auto px-4 py-12">
-        <div className="grid grid-cols-2 md:grid-cols-3 lg:grid-cols-6 gap-8">
+    <footer className="hidden md:block bg-content2 border-t border-divider">
+      <div className="container mx-auto px-4 py-10">
+        <div className="grid grid-cols-2 md:grid-cols-5 gap-8">
+          {/* Brand */}
           <div className="col-span-2">
             <NextLink href="/" className="flex items-center gap-2 mb-4">
               <div className="w-10 h-10 rounded-xl bg-gradient-to-br from-[#009F4D] to-[#FFCD00] flex items-center justify-center">
@@ -87,81 +115,18 @@ export function Footer(): JSX.Element {
             </div>
           </div>
 
-          <div>
-            <h4 className="font-semibold text-sm mb-4">Platform</h4>
-            <ul className="space-y-2">
-              {footerLinks.product.map(link => (
-                <li key={link.name}>
-                  <NextLink
-                    href={link.href}
-                    className="text-default-500 text-sm hover:text-primary transition-colors flex items-center gap-2"
-                  >
-                    <link.icon className="w-3.5 h-3.5" />
-                    {link.name}
-                  </NextLink>
-                </li>
-              ))}
-            </ul>
-          </div>
-
-          <div>
-            <h4 className="font-semibold text-sm mb-4">Tools</h4>
-            <ul className="space-y-2">
-              {footerLinks.tools.map(link => (
-                <li key={link.name}>
-                  <NextLink
-                    href={link.href}
-                    className="text-default-500 text-sm hover:text-primary transition-colors flex items-center gap-2"
-                  >
-                    <link.icon className="w-3.5 h-3.5" />
-                    {link.name}
-                  </NextLink>
-                </li>
-              ))}
-            </ul>
-          </div>
-
-          <div>
-            <h4 className="font-semibold text-sm mb-4">Governance</h4>
-            <ul className="space-y-2">
-              {footerLinks.governance.map(link => (
-                <li key={link.name}>
-                  <NextLink
-                    href={link.href}
-                    className="text-default-500 text-sm hover:text-primary transition-colors flex items-center gap-2"
-                  >
-                    <link.icon className="w-3.5 h-3.5" />
-                    {link.name}
-                  </NextLink>
-                </li>
-              ))}
-            </ul>
-          </div>
-
-          <div>
-            <h4 className="font-semibold text-sm mb-4">Resources</h4>
-            <ul className="space-y-2">
-              {footerLinks.resources.map(link => (
-                <li key={link.name}>
-                  <a
-                    href={link.href}
-                    target={link.href.startsWith('http') ? '_blank' : undefined}
-                    rel="noopener noreferrer"
-                    className="text-default-500 text-sm hover:text-primary transition-colors flex items-center gap-2"
-                  >
-                    <link.icon className="w-3.5 h-3.5" />
-                    {link.name}
-                  </a>
-                </li>
-              ))}
-            </ul>
-          </div>
+          <LinkSection title="Discover" links={discoverLinks} />
+          <LinkSection title="Build" links={buildLinks} />
+          <LinkSection title="Resources" links={resourceLinks} />
         </div>
 
-        <div className="border-t border-divider mt-12 pt-8 flex flex-col md:flex-row justify-between items-center gap-4">
-          <p className="text-default-500 text-sm">
-            &copy; {new Date().getFullYear()} Kokonut Network. Built with ERC-8004.
-          </p>
+        <div className="border-t border-divider mt-10 pt-6 flex flex-col md:flex-row justify-between items-center gap-4">
+          <div className="flex items-center gap-4">
+            <p className="text-default-500 text-sm">
+              &copy; {new Date().getFullYear()} Kokonut Network. Built with ERC-8004.
+            </p>
+            <BlockNumber />
+          </div>
           <div className="flex gap-6">
             {legalLinks.map(link => (
               <NextLink

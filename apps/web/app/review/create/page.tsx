@@ -126,7 +126,7 @@ export default function CreateProposalPage() {
                   placeholder="e.g., Vendor Selection for Project X"
                   value={formData.title}
                   onChange={e => updateFormField('title', e.target.value)}
-                  className="flex h-10 w-full rounded-md border border-input bg-background px-3 py-2 text-sm ring-offset-background placeholder:text-muted-foreground focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-success focus-visible:ring-offset-2 disabled:cursor-not-allowed disabled:opacity-50"
+                  className="w-full px-3 py-2 bg-content2 border border-divider rounded-lg text-foreground placeholder:text-default-400 focus:outline-none focus:ring-2 focus:ring-[#009F4D] focus:border-transparent disabled:opacity-50"
                   required
                 />
               </div>
@@ -141,7 +141,7 @@ export default function CreateProposalPage() {
                   rows={4}
                   value={formData.description}
                   onChange={e => updateFormField('description', e.target.value)}
-                  className="flex min-h-[120px] w-full rounded-md border border-input bg-background px-3 py-2 text-sm ring-offset-background placeholder:text-muted-foreground focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-success focus-visible:ring-offset-2 disabled:cursor-not-allowed disabled:opacity-50"
+                  className="w-full px-3 py-2 bg-content2 border border-divider rounded-lg text-foreground placeholder:text-default-400 focus:outline-none focus:ring-2 focus:ring-[#009F4D] focus:border-transparent disabled:opacity-50 resize-none min-h-[120px]"
                   required
                 />
               </div>
@@ -156,7 +156,7 @@ export default function CreateProposalPage() {
                   placeholder="ipfs://..."
                   value={formData.criteriaURI}
                   onChange={e => updateFormField('criteriaURI', e.target.value)}
-                  className="flex h-10 w-full rounded-md border border-input bg-background px-3 py-2 text-sm ring-offset-background placeholder:text-muted-foreground focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-success focus-visible:ring-offset-2 disabled:cursor-not-allowed disabled:opacity-50"
+                  className="w-full px-3 py-2 bg-content2 border border-divider rounded-lg text-foreground placeholder:text-default-400 focus:outline-none focus:ring-2 focus:ring-[#009F4D] focus:border-transparent disabled:opacity-50"
                 />
                 <p className="text-tiny text-default-400">
                   Link to detailed evaluation criteria stored on IPFS (optional)
@@ -176,7 +176,7 @@ export default function CreateProposalPage() {
                     placeholder="0.015"
                     value={formData.reward}
                     onChange={e => updateFormField('reward', e.target.value)}
-                    className="flex h-10 w-full rounded-md border border-input bg-background px-3 py-2 text-sm ring-offset-background placeholder:text-muted-foreground focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-success focus-visible:ring-offset-2 disabled:cursor-not-allowed disabled:opacity-50"
+                    className="w-full px-3 py-2 bg-content2 border border-divider rounded-lg text-foreground placeholder:text-default-400 focus:outline-none focus:ring-2 focus:ring-[#009F4D] focus:border-transparent disabled:opacity-50"
                   />
                   <p className="text-tiny text-default-400">
                     Minimum 0.01 ETH. This rewards the winning evaluator.
@@ -200,7 +200,7 @@ export default function CreateProposalPage() {
                     placeholder="7"
                     value={formData.decisionDeadline}
                     onChange={e => updateFormField('decisionDeadline', e.target.value)}
-                    className="flex h-10 w-full rounded-md border border-input bg-background px-3 py-2 text-sm ring-offset-background placeholder:text-muted-foreground focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-success focus-visible:ring-offset-2 disabled:cursor-not-allowed disabled:opacity-50"
+                    className="w-full px-3 py-2 bg-content2 border border-divider rounded-lg text-foreground placeholder:text-default-400 focus:outline-none focus:ring-2 focus:ring-[#009F4D] focus:border-transparent disabled:opacity-50"
                   />
                 </div>
               </div>

@@ -137,6 +137,9 @@ export function NavbarComponent(): JSX.Element {
                 Dashboard
               </NextLink>
             )}
+            <div className="sm:hidden px-4 pt-2">
+              <ConnectButton />
+            </div>
           </div>
         )}
       </nav>

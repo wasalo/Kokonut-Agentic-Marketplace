@@ -3,7 +3,7 @@
 export const dynamic = 'force-dynamic';
 
 import { useAccount, useChainId } from 'wagmi';
-import { Card, Chip } from '@heroui/react';
+import { Card } from '@heroui/react';
 import {
   Wallet,
   ShoppingBag,
@@ -16,12 +16,14 @@ import {
 } from 'lucide-react';
 import NextLink from 'next/link';
 import dynamicImport from 'next/dynamic';
-import { useUserJobs, getJobStatusLabel } from '@/lib/hooks/useJobs';
+import { useUserJobs } from '@/lib/hooks/useJobs';
 import { useProposalCount, useProposals } from '@/lib/hooks/useProposals';
 import { useActivityFromSubgraph } from '@/lib/hooks';
 import { JobStatus } from '@/lib/types/contracts';
 import { Address } from '@/components/Address';
+import { StatusBadge, getJobStatusBadgeType, getProposalStatusBadgeType } from '@/components/StatusBadge';
 import { ActivityFeed } from '@/components/ActivityFeed';
+import { EmptyStateJobs, EmptyStateProposals } from '@/components/ui/empty-state';
 
 const ArbiterSection = dynamicImport(() => import('@/components/ArbiterSection').then(m => m.ArbiterSection), {
   loading: () => <div className="animate-pulse h-40 bg-content2 rounded-lg" />,
@@ -53,7 +55,7 @@ function UserJobsList({ user }: { user: `0x${string}` }) {
 
   // Check empty first - valid state takes priority
   if (!jobs || jobs.length === 0) {
-    return <p className="text-default-500 text-sm py-4">No jobs yet</p>;
+    return <EmptyStateJobs />;
   }
 
   // Only show error if we have an error AND no data (true error)
@@ -86,9 +88,7 @@ function UserJobsList({ user }: { user: `0x${string}` }) {
               <Address address={job.client as `0x${string}`} truncate />
             </p>
           </div>
-          <Chip size="sm" variant="soft" color="success">
-            {getJobStatusLabel(job.status)}
-          </Chip>
+          <StatusBadge status={getJobStatusBadgeType(job.status)} size="sm" />
         </NextLink>
       ))}
     </div>
@@ -116,7 +116,7 @@ function UserProposalsList({ user }: { user: `0x${string}` }) {
   }
 
   if (!proposals || proposals.length === 0) {
-    return <p className="text-default-500 text-sm py-4">No proposals yet</p>;
+    return <EmptyStateProposals />;
   }
 
   const userProposals = proposals.filter(p => p.proposer === user);
@@ -137,9 +137,7 @@ function UserProposalsList({ user }: { user: `0x${string}` }) {
             <p className="text-sm font-medium">{proposal.title}</p>
             <p className="text-xs text-default-500">{proposal.description.slice(0, 40)}...</p>
           </div>
-          <Chip size="sm" variant="soft" color={proposal.status === 0 ? 'default' : 'success'}>
-            {proposal.status === 0 ? 'Open' : 'Decided'}
-          </Chip>
+          <StatusBadge status={getProposalStatusBadgeType(proposal.status)} size="sm" />
         </NextLink>
       ))}
     </div>

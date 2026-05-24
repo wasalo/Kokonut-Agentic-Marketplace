@@ -20,6 +20,7 @@ import {
   Shield,
 } from 'lucide-react';
 import { Card } from '@heroui/react';
+import { StatusBadge } from '@/components/StatusBadge';
 import {
   useUpdateService,
   useDeactivateService,
@@ -126,15 +127,7 @@ export default function ServiceDetailPage({
                   <div className="flex items-center gap-2 mb-1">
                     <ShoppingBag className="h-5 w-5 text-success" />
                     <h1 className="text-2xl font-semibold">{service.name}</h1>
-                    {service.isActive ? (
-                      <span className="text-xs px-2 py-0.5 rounded-full bg-success/10 text-success">
-                        Active
-                      </span>
-                    ) : (
-                      <span className="text-xs px-2 py-0.5 rounded-full bg-danger/10 text-danger">
-                        Inactive
-                      </span>
-                    )}
+                    <StatusBadge status={service.isActive ? 'active' : 'inactive'} size="sm" />
                   </div>
                   <p className="text-xs text-default-400 font-mono">
                     Service #{service.id.toString()}

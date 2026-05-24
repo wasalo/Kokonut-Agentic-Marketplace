@@ -5,6 +5,95 @@ All notable changes to the Kokonut Agent Economy Stack are documented in this fi
 The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.0.0/),
 and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0.html).
 
+## [2026-05-23] — Phase 33: Web3 UI Redesign + Mobile Experience
+
+### 🎨 Design System Foundation
+
+**New file:** `apps/web/lib/design-system.ts`
+
+Centralized design tokens for a consistent, professional Web3 UI:
+
+| Token | Value | Usage |
+|-------|-------|-------|
+| `primary` | `#009F4D` | Primary actions, active states, success |
+| `primaryDark` | `#007a3a` | Hover states |
+| `accent` | `#FFCD00` | Secondary highlights, gradients |
+| `content1` | `#18181b` | Dark mode card backgrounds |
+| `content2` | `#27272a` | Dark mode input/form backgrounds |
+
+**New UI Primitives:**
+
+| Component | File | Purpose |
+|-----------|------|---------|
+| `Button` | `components/ui/Button.tsx` | Gradient green primary CTA |
+| `Input` | `components/ui/Input.tsx` | `bg-content2` styled form inputs |
+| `FormCard` | `components/ui/FormCard.tsx` | Glassmorphism card primitive |
+
+### 📱 Persistent Bottom Navigation (Mobile-Only)
+
+**New file:** `components/BottomNav.tsx`
+
+- 4 tabs: Discover (`/marketplace`), Jobs (`/jobs`), Activity (`/dashboard`), Profile (`/identity/me`)
+- Active tab indicator (green dot + top border)
+- Pending transaction count badge on Activity tab
+- Glassmorphism background (`backdrop-blur-xl`)
+- Hidden on desktop (`md:hidden`) — footer handles desktop nav
+
+### 🔗 Footer Refactor
+
+**File:** `components/heroui/footer.tsx`
+
+- Consolidated from 4→3 columns: **Discover**, **Build**, **Resources**
+- Added missing links: Skills, Bidding, API Docs, Contact
+- Removed duplicate GitHub (kept only in social icons)
+- Hidden on mobile (`hidden md:block`)
+- Extracted reusable `<LinkSection>` component
+- Fixed grid layout: `col-span-2` brand + 3 link columns = no empty slots
+
+### ⛓️ Live On-Chain Indicators
+
+**New components:**
+
+| Component | File | Purpose |
+|-----------|------|---------|
+| `BlockNumber` | `components/BlockNumber.tsx` | Live Sepolia block + pending tx count in footer |
+| `OnChainPulse` | `components/OnChainPulse.tsx` | Subtle body pulse animation when pending transactions exist |
+
+### 👤 ENS-First Identity
+
+**Updated:** `components/Address.tsx`
+- Now displays `ENS (0x...truncated)` side-by-side when ENS resolved
+- Fallback to truncated `0x...` when no ENS
+
+### 🛠️ Critical UI Fixes
+
+| Fix | File |
+|-----|------|
+| Unstyled submit button on `/bidding/create` | `app/bidding/create/page.tsx` |
+| Missing `<Toaster />` mount | `app/layout.tsx` |
+| Mobile wallet connect in hamburger menu | `components/heroui/navbar.tsx` |
+| Form input standardization on `/review/create` | `app/review/create/page.tsx` |
+
+### 🎨 Glassmorphism CSS Utilities
+
+**File:** `app/globals.css`
+
+| Utility | Effect |
+|---------|--------|
+| `.glass-card` | `backdrop-blur-xl bg-white/5 border border-white/10` |
+| `.glass-card-hover` | Glass card + hover border glow |
+| `.gradient-border` | Animated gradient border effect |
+| `.chain-pulse-active` | Subtle body pulse for pending transactions |
+
+### ✅ Verification
+
+- **Build**: 0 warnings, 0 errors
+- **Tests**: 306/306 passing
+- **Type-check**: 0 errors
+- **Lint**: Clean
+
+---
+
 ## [2026-05-22] — Phase 32: Multi-Audit Remediation (Slither) + CI Hardening
 
 ### 🔒 Slither Static Analysis Fixes

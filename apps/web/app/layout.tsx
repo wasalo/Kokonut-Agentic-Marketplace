@@ -13,8 +13,10 @@ import './globals.css';
 import { Providers } from './providers';
 import { NavbarComponent } from '@/components/heroui/navbar';
 import { Footer } from '@/components/heroui/footer';
+import { BottomNav } from '@/components/BottomNav';
 import { ClientErrorBoundary } from '@/components/error/ClientErrorBoundary';
 import { WebVitalsProvider } from '@/components/WebVitalsProvider';
+import { Toaster } from 'sonner';
 
 const inter = Inter({ subsets: ['latin'] });
 
@@ -92,6 +94,18 @@ export default function RootLayout({
                   <NavbarComponent />
                   <main id="main-content" className="flex-1" tabIndex={-1}>{children}</main>
                   <Footer />
+                  <BottomNav />
+                  <Toaster
+                    position="bottom-right"
+                    theme="dark"
+                    toastOptions={{
+                      style: {
+                        background: '#1a1a1a',
+                        border: '1px solid #2a2a2a',
+                        color: '#fff',
+                      },
+                    }}
+                  />
                 </div>
               </Providers>
             </WebVitalsProvider>

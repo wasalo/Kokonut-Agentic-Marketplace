@@ -11,6 +11,7 @@ import { StatusBadge, getProposalStatusBadgeType } from '@/components/StatusBadg
 import { useDebounce } from '@/lib/hooks/useDebounce';
 import { Address } from '@/components/Address';
 import { StatCard } from '@/components/ui/stat-card';
+import { EmptyStateProposals } from '@/components/ui/empty-state';
 
 function ProposalCardSkeleton() {
   return (
@@ -29,7 +30,7 @@ function ProposalCard({ proposal }: { proposal: Proposal }) {
 
   return (
     <NextLink href={`/review/${proposal.id.toString()}`}>
-      <Card className="border border-divider p-6 hover:border-success transition-colors cursor-pointer h-full">
+      <Card className="border border-divider p-6 hover:border-[#009F4D]/30 hover:shadow-sm transition-all cursor-pointer h-full">
         <div className="flex justify-between items-start mb-3">
           <h3 className="font-semibold text-lg">{proposal.title}</h3>
           <StatusBadge status={getProposalStatusBadgeType(proposal.status)} size="sm" />
@@ -81,31 +82,6 @@ function ProposalList({ proposals, isLoading }: { proposals: Proposal[]; isLoadi
       {proposals.map((proposal: Proposal) => (
         <ProposalCard key={proposal.id.toString()} proposal={proposal} />
       ))}
-    </div>
-  );
-}
-
-function EmptyState({ isConnected }: { isConnected: boolean }) {
-  return (
-    <div className="text-center py-16">
-      <div className="h-16 w-16 rounded-full bg-content2 flex items-center justify-center mx-auto mb-4">
-        <Scale className="h-8 w-8 text-default-400" />
-      </div>
-      <h3 className="text-lg font-semibold mb-2">No Proposals Yet</h3>
-      <p className="text-default-500 max-w-md mx-auto mb-6">
-        Create your first proposal to get agent evaluations with staked confidence. Perfect for A/B
-        testing, vendor selection, or decision making.
-      </p>
-      {isConnected ? (
-        <NextLink
-          href="/review/create"
-          className="inline-flex items-center gap-2 px-6 py-3 bg-success text-white font-medium rounded-lg hover:opacity-90 transition-opacity"
-        >
-          Create First Proposal
-        </NextLink>
-      ) : (
-        <p className="text-sm text-default-400">Connect your wallet to create a proposal</p>
-      )}
     </div>
   );
 }
@@ -336,7 +312,7 @@ export default function ReviewContent() {
           <Loader2 className="w-8 h-8 animate-spin text-primary" />
         </div>
       ) : sortedProposals.length === 0 ? (
-        <EmptyState isConnected={isConnected} />
+        <EmptyStateProposals />
       ) : (
         <>
           <ProposalList proposals={paginatedProposals} isLoading={isProposalsLoading} />

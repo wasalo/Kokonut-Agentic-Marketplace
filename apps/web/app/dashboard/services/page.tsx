@@ -3,15 +3,15 @@
 import { useAccount } from 'wagmi';
 import { Card, Skeleton } from '@heroui/react';
 import {
-  ShoppingBag,
   Plus,
-  ArrowLeft,
+  ShoppingBag,
   Edit3,
-  DollarSign,
   CheckCircle2,
-  XCircle,
+  DollarSign,
+  ArrowLeft,
   RefreshCw,
 } from 'lucide-react';
+import { StatusBadge } from '@/components/StatusBadge';
 import NextLink from 'next/link';
 import { useProviderServices, type Service } from '@/lib/hooks/useServices';
 import { formatAmount, getTokenByAddress } from '@/lib/tokenUtils';
@@ -35,22 +35,12 @@ function ServiceCard({ service }: { service: Service }) {
   });
 
   return (
-    <Card className="border border-divider p-4 hover:border-success/30 transition-colors">
+    <Card className="border border-divider p-4 hover:border-[#009F4D]/30 hover:shadow-sm transition-all">
       <div className="flex items-start justify-between">
         <div className="flex-1 min-w-0">
           <div className="flex items-center gap-2 flex-wrap">
             <h3 className="font-semibold text-foreground">{service.name}</h3>
-            {service.isActive ? (
-              <span className="text-xs px-2 py-0.5 rounded-full bg-success/10 text-success flex items-center gap-1">
-                <CheckCircle2 className="w-3 h-3" />
-                Active
-              </span>
-            ) : (
-              <span className="text-xs px-2 py-0.5 rounded-full bg-default-100 text-default-500 flex items-center gap-1">
-                <XCircle className="w-3 h-3" />
-                Inactive
-              </span>
-            )}
+            <StatusBadge status={service.isActive ? 'active' : 'inactive'} size="sm" />
           </div>
           {service.description && (
             <p className="text-sm text-default-500 mt-1.5 line-clamp-2">{service.description}</p>

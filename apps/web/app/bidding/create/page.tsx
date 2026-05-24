@@ -300,6 +300,7 @@ export default function CreateBiddingSessionPage(): JSX.Element {
                 !deadline ||
                 (ethBalance ? ethBalance.value < calculatedStake : true)
               }
+              className="inline-flex items-center justify-center gap-2 px-5 py-2.5 bg-gradient-to-r from-[#009F4D] to-[#00c853] text-white rounded-lg font-medium hover:opacity-90 transition-opacity disabled:opacity-50"
             >
               {isPending || isConfirming ? (
                 <Loader2 className="w-5 h-5 animate-spin inline" />

@@ -32,13 +32,7 @@ import {
 import { Address } from '@/components/Address';
 import { ErrorDisplay } from '@/components/ErrorDisplay';
 import { ConfirmModal } from '@/components/ConfirmModal';
-
-const PROPOSAL_STATUS: Record<number, string> = {
-  0: 'Open',
-  1: 'Under Review',
-  2: 'Decided',
-  3: 'Cancelled',
-};
+import { StatusBadge, getProposalStatusBadgeType } from '@/components/StatusBadge';
 
 export default function ProposalDetailPage({
   params,
@@ -222,19 +216,7 @@ export default function ProposalDetailPage({
               <h1 className="text-2xl font-semibold">{proposal.title}</h1>
               <p className="text-xs text-default-400 mt-1">Proposal #{proposal.id.toString()}</p>
             </div>
-            <span
-              className={`px-3 py-1 rounded-full text-sm font-medium ${
-                proposal.status === 0
-                  ? 'bg-primary/10 text-primary'
-                  : proposal.status === 1
-                    ? 'bg-warning/10 text-warning'
-                    : proposal.status === 2
-                      ? 'bg-success/10 text-success'
-                      : 'bg-default/10 text-default-500'
-              }`}
-            >
-              {PROPOSAL_STATUS[proposal.status] ?? 'Unknown'}
-            </span>
+            <StatusBadge status={getProposalStatusBadgeType(proposal.status)} size="sm" />
           </div>
 
           <p className="text-default-600 mb-4">{proposal.description}</p>
@@ -308,9 +290,7 @@ export default function ProposalDetailPage({
                 >
                   <Address address={ev as `0x${string}`} truncate />
                   {proposal.winningEvaluator.toLowerCase() === ev.toLowerCase() && (
-                    <span className="text-xs px-2 py-0.5 rounded-full bg-success/10 text-success font-medium">
-                      Winner
-                    </span>
+                    <StatusBadge status="winner" size="sm" />
                   )}
                 </div>
               ))}

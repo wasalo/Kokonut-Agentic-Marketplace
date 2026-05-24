@@ -59,6 +59,7 @@ import {
   SUPPORTED_TOKENS,
   Token,
 } from '@/components/PaymentTokenSelector';
+import { StatusBadge } from '@/components/StatusBadge';
 import dynamic from 'next/dynamic';
 
 const AcceptBidForm = dynamic(() => import('@/components/BiddingForms').then(m => m.AcceptBidForm), {
@@ -802,15 +803,7 @@ export default function JobDetailPage({
                     <div className="p-3 bg-content2 rounded-lg border border-divider">
                       <div className="flex items-center justify-between mb-2">
                         <span className="text-sm font-medium">AI Analysis</span>
-                        <span
-                          className={`text-xs px-2 py-0.5 rounded-full ${
-                            evaluationResult.meetsRequirements
-                              ? 'bg-success/20 text-success'
-                              : 'bg-danger/20 text-danger'
-                          }`}
-                        >
-                          {evaluationResult.meetsRequirements ? 'Meets Requirements' : 'Does Not Meet'}
-                        </span>
+                        <StatusBadge status={evaluationResult.meetsRequirements ? 'success' : 'error'} size="sm" />
                       </div>
                       <p className="text-xs text-default-500 mb-2">{evaluationResult.analysis}</p>
                       <div className="text-xs space-y-1">
@@ -1014,21 +1007,10 @@ export default function JobDetailPage({
                               <Address address={bid.bidder as `0x${string}`} className="text-sm" />
                             </div>
                             <div className="text-right">
-                              <span
-                                className={`px-2 py-0.5 text-xs rounded-full ${
-                                  bid.accepted
-                                    ? 'bg-success/20 text-success'
-                                    : bid.revealed
-                                      ? 'bg-primary/20 text-primary'
-                                      : 'bg-warning/20 text-warning'
-                                }`}
-                              >
-                                {bid.accepted
-                                  ? 'Accepted'
-                                  : bid.revealed
-                                    ? 'Revealed'
-                                    : 'Committed'}
-                              </span>
+                              <StatusBadge
+                                status={bid.accepted ? 'success' : bid.revealed ? 'info' : 'pending'}
+                                size="sm"
+                              />
                             </div>
                           </div>
                         </div>

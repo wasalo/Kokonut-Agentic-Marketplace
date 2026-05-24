@@ -96,20 +96,24 @@ export function Address({
   }, []);
 
   const displayAddress = truncate ? truncateAddress(address, truncateChars) : address;
-
   const fullAddress = address;
-  const ensDisplay = ensName || displayAddress;
-
-
+  const hasEns = !!ensName;
 
   const explorerUrl = `${getExplorerBaseUrl(chainId)}${fullAddress}`;
 
   const content = (
     <span
-      className={`inline-flex items-center gap-1 font-mono text-sm ${className}`}
+      className={`inline-flex items-center gap-1.5 font-mono text-sm ${className}`}
       title={fullAddress}
     >
-      <span>{ensDisplay}</span>
+      {hasEns ? (
+        <span className="inline-flex items-center gap-1.5">
+          <span className="text-primary font-medium">{ensName}</span>
+          <span className="text-default-400 text-xs">({displayAddress})</span>
+        </span>
+      ) : (
+        <span>{displayAddress}</span>
+      )}
       {copyable && (
         <CopyButton
           text={fullAddress}
@@ -175,9 +179,8 @@ export function AddressLink({
   }, []);
 
   const displayAddress = truncate ? truncateAddress(address, truncateChars) : address;
-
   const fullAddress = address;
-  const ensDisplay = ensName || displayAddress;
+  const hasEns = !!ensName;
 
   const defaultHref = `/identity/${checksumAddress}`;
   const linkHref = href || defaultHref;
@@ -188,7 +191,14 @@ export function AddressLink({
       className={`inline-flex items-center gap-1 font-mono text-sm hover:text-primary transition-colors ${className}`}
       title={fullAddress}
     >
-      <span>{ensDisplay}</span>
+      {hasEns ? (
+        <span className="inline-flex items-center gap-1">
+          <span className="text-primary font-medium">{ensName}</span>
+          <span className="text-default-400 text-xs">({displayAddress})</span>
+        </span>
+      ) : (
+        <span>{displayAddress}</span>
+      )}
     </Link>
   );
 }

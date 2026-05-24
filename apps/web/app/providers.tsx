@@ -9,6 +9,7 @@ import { DebugProvider } from '@/contexts/DebugContext';
 import { TransactionProvider as EfpTxProvider } from 'ethereum-identity-kit';
 import { usePersonalNotifications } from '@/lib/hooks/useNotificationEvents';
 import { NetworkGuard } from '@/components/NetworkGuard';
+import { OnChainPulse } from '@/components/OnChainPulse';
 
 function NotificationWatcher() {
   usePersonalNotifications();
@@ -46,6 +47,7 @@ export function Providers({ children }: { children: ReactNode }) {
               })}
             >
               <NetworkGuard />
+              <OnChainPulse />
               <NotificationWatcher />
               {children}
             </RainbowKitProvider>

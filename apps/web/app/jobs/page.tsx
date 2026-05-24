@@ -49,7 +49,7 @@ const JobCard = memo(function JobCard({ job }: { job: any }) {
   };
 
   return (
-    <Card className="border border-divider p-4 hover:border-success/30 transition-colors">
+    <Card className="border border-divider p-4 hover:border-[#009F4D]/30 hover:shadow-sm transition-all">
       <div className="flex items-start justify-between gap-4">
         <NextLink href={`/jobs/${jobIdStr}`} className="flex-1 min-w-0">
           <div className="flex items-center gap-2">

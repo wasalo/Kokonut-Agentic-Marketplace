@@ -212,17 +212,17 @@ The wildcard format (e.g., `10.108.1.*`) allows any IP in that subnet. Add expli
 | ------------------------ | -------------------------------------------- | -------------------------- |
 | **AdminRegistry**        | `0xC81C864CEAb6231ad764cf9867e031D8b6dee41d` | UUPS Proxy — Phase 29e Pashov fixes + data migration |
 | **MilestoneEscrowV2**    | `0xc89D63057288092012c5D3cEF66121C1F8449a9f` | Milestone payments (UUPS) |
-| **MilestoneEscrowV2 Impl** | `0x74903fBdfbb99275B5F4e12fF00504F9f7C24E71` | Phase 31: H-04 slashed funds fix |
+| **MilestoneEscrowV2 Impl** | `0x3054765C7f00A6180C759DA78F4Eba06a0D19621` | Phase 32: Weak PRNG fix + zero-checks |
 | **AgentSkillRegistryV2** | `0xA84684261558f342d6871DD2CFef90A2117Aa20A` | Skills/capabilities (UUPS) |
 | **ServiceRegistryV2**    | `0x62E1eeEa1A2Ab987004F35bDA430457Ed6077201` | Service listings (UUPS)    |
 | **ServiceRegistryV2 Impl** | `0xb75B02D4523171ABdB6f5bcB9D60903ed3e30fAD` | Phase 29e: blacklist recheck + Pashov fixes |
 | **AgenticCommerceV9**    | `0x3a1Bc03cC84040A282F6bf238b917D8351499239` | Job escrow (V9: Multi-Token Configurable Minimums) |
-| **AgenticCommerceV9 Impl** | `0x19b291298F113a99b4f21AaB1ceAb931a6911023` | Phase 31: H-02 evaluator randomness fix |
+| **AgenticCommerceV9 Impl** | `0xFBC2b30c1275277D3d47A00F0D98d9D465830A78` | Phase 32: Gas opt + zero-checks |
 | **PriceOracleV2**        | `0x29c27a26DD2F80f840cb4D7B5E53b7db3D67143d` | PriceOracleV2 - UUPS upgradeable per-token feeds |
 | **PriceOracleV2 Impl**   | `0x7Bad7cc9754814246814299ca50041a939a244b1` | Phase 31: L-03 ETH/USD Chainlink feed |
 | **AgentReviewV5**        | `0x5CDb592Fd37749bF87448FBf5725D1Cd986dd1Cb` | A/B evaluation             |
 | **BiddingSystem**        | `0x4D7F38C6A9DE5De44A7B789962B7A2B06bFE8fd6`  | Commit-reveal bidding      |
-| **BiddingSystem Impl**   | `0xB225dc036a522755A91f368069613A768Bb1041e` | Phase 31: H-01 ERC1967 proxy |
+| **BiddingSystem Impl**   | `0xE8E101ca8Fdd2A4c0633cc4d008c88BC03b32bEe` | Phase 32: Reentrancy fix + zero-checks |
 | **ERC-8004 Identity**    | `0x8004A818BFB912233c491871b3d84c89A494BD9e` | Agent identities           |
 | **ERC-8004 Reputation**  | `0x8004B663056A597Dffe9eCcC1965A193B7388713` | Agent reputation           |
 
@@ -307,18 +307,31 @@ The NetworkSelector automatically shows deployed chains with a ✅ checkmark.
 
 | Page | URL | Purpose |
 |------|-----|---------|
-| Dashboard | `/dashboard` | Agent economy overview |
+| **Discover** | | |
 | Marketplace | `/marketplace` | Browse services |
 | Jobs | `/jobs` | Job directory |
 | Leaderboard | `/leaderboard` | Agent rankings |
+| Skills | `/skills` | Global skills directory |
 | Bidding | `/bidding` | Bidding sessions |
+| Networks | `/networks` | Multi-chain network overview |
+| **Build** | | |
+| Dashboard | `/dashboard` | Agent economy overview |
+| Review | `/review` | Evaluation proposals |
 | Governance | `/governance` | SlashManager multisig UI |
+| Admin | `/admin` | Contract treasury (Owner-only) |
+| Webhooks | `/dashboard/webhooks` | Webhook management UI |
+| Integrations | `/integrations` | MCP, Webhooks, Email docs |
+| **Resources** | | |
+| About | `/about` | Platform information |
+| Analytics | `/analytics` | Platform analytics |
+| Activity | `/activity` | Activity feed |
+| API Docs | `/api-docs` | Swagger interactive docs |
+| Contact | `/contact` | Contact page |
+| Contracts | `/contracts` | Contract address reference |
+| **Other** | | |
 | Notifications | `/notifications` | Notification center |
 | Featured Agents | `/featured` | Featured agents directory |
 | EFP Setup | `/efp/setup` | Social graph setup wizard |
-| About | `/about` | Platform information |
-| Contracts | `/contracts` | Contract address reference |
-| API Docs | `/api-docs` | Swagger interactive docs |
 
 ---
 

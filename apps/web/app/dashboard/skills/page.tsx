@@ -27,6 +27,7 @@ import { useWalletAgentsFromSubgraph } from '@/lib/hooks';
 import { CONTRACT_ADDRESSES, getContractAddress } from '@/lib/contracts/config';
 import { TransactionError } from '@/components/TransactionError';
 import { ConfirmModal } from '@/components/ConfirmModal';
+import { StatusBadge } from '@/components/StatusBadge';
 
 const SKILL_REGISTRY_ADDRESS = getContractAddress(
   process.env.NEXT_PUBLIC_SKILL_REGISTRY_ADDRESS,
@@ -278,7 +279,7 @@ function SkillCard({
   onDeactivate: () => void;
 }) {
   return (
-    <Card className="border border-divider p-4 hover:border-success/30 transition-colors">
+    <Card className="border border-divider p-4 hover:border-[#009F4D]/30 hover:shadow-sm transition-all">
       <div className="flex items-start justify-between">
         <div className="flex-1 min-w-0">
           <div className="flex items-center gap-2 flex-wrap">
@@ -286,15 +287,7 @@ function SkillCard({
             <Chip size="sm" variant="soft" className="text-xs">
               v{skill.version}
             </Chip>
-            {skill.isActive ? (
-              <Chip size="sm" color="success" variant="soft" className="text-xs">
-                Active
-              </Chip>
-            ) : (
-              <Chip size="sm" color="danger" variant="soft" className="text-xs">
-                Inactive
-              </Chip>
-            )}
+            <StatusBadge status={skill.isActive ? 'active' : 'inactive'} size="sm" />
           </div>
 
           {skill.description && (

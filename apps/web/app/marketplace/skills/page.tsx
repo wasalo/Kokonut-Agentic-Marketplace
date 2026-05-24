@@ -5,6 +5,7 @@ import { useReadContracts } from 'wagmi';
 import { Card } from '@heroui/react';
 import { Search, Code, ArrowLeft, Tag, Loader2 } from 'lucide-react';
 import NextLink from 'next/link';
+import { StatusBadge } from '@/components/StatusBadge';
 import { AGENT_SKILL_REGISTRY_ABI } from '@/lib/contracts/abis';
 import { CONTRACT_ADDRESSES, getContractAddress } from '@/lib/contracts/config';
 import { useFindSkillsByDomain } from '@/lib/hooks/useSkills';
@@ -56,7 +57,7 @@ function DomainCard({
       className={`p-4 rounded-xl border text-left transition-all ${
         isSelected
           ? 'border-success bg-success/5'
-          : 'border-divider hover:border-success/30 hover:bg-content2/50'
+          : 'border-divider hover:border-[#009F4D]/30 hover:shadow-sm hover:bg-content2/50'
       }`}
     >
       <div className="flex items-center justify-between mb-2">
@@ -80,13 +81,7 @@ function SkillCard({ skill, skillId }: { skill: Skill; skillId: bigint }) {
           <h3 className="font-semibold text-foreground">{skill.name}</h3>
           <p className="text-sm text-default-500">v{skill.version}</p>
         </div>
-        <span
-          className={`text-xs px-2 py-1 rounded-full ${
-            skill.isActive ? 'bg-success/10 text-success' : 'bg-default-100 text-default-500'
-          }`}
-        >
-          {skill.isActive ? 'Active' : 'Inactive'}
-        </span>
+        <StatusBadge status={skill.isActive ? 'active' : 'inactive'} size="sm" />
       </div>
 
       {skill.description && (

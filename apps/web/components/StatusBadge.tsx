@@ -32,7 +32,8 @@ export type StatusType =
   | 'error'
   | 'info'
   | 'usdc'
-  | 'eth';
+  | 'eth'
+  | 'winner';
 
 interface StatusBadgeProps {
   status: StatusType;
@@ -160,6 +161,12 @@ const statusConfig: Record<
     color: 'text-warning',
     bgColor: 'bg-warning/10',
     icon: DollarSign,
+  },
+  winner: {
+    label: 'Winner',
+    color: 'text-success',
+    bgColor: 'bg-success/10',
+    icon: CheckCircle2,
   },
 };
 
