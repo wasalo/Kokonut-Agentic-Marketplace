@@ -95,7 +95,7 @@ test.describe('Responsive Design', () => {
     await page.goto('/', { waitUntil: 'domcontentloaded' });
 
     await expect(page).toHaveTitle(/Kokonut/i);
-    await expect(page.locator('nav')).toBeVisible({ timeout: 15000 });
+    await expect(page.getByRole('navigation').first()).toBeVisible({ timeout: 15000 });
   });
 
   test('leaderboard page renders on tablet viewport', async ({ page }) => {

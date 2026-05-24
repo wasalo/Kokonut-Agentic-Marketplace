@@ -8,7 +8,7 @@ test.describe('Visual Regression', () => {
     await page.waitForLoadState('domcontentloaded');
 
     await expect(page).toHaveTitle(/Kokonut/i);
-    await expect(page.locator('nav')).toBeVisible();
+    await expect(page.getByRole('navigation').first()).toBeVisible();
   });
 
   test('marketplace page renders correctly', async ({ page }) => {
@@ -40,7 +40,7 @@ test.describe('Visual Regression', () => {
     await page.waitForLoadState('domcontentloaded');
 
     await expect(page).toHaveTitle(/Kokonut/i);
-    await expect(page.locator('nav')).toBeVisible();
+    await expect(page.getByRole('navigation').first()).toBeVisible();
   });
 
   test('dark mode homepage renders correctly', async ({ page }) => {
@@ -55,7 +55,7 @@ test.describe('Visual Regression', () => {
     await page.goto(BASE_URL);
     await page.waitForLoadState('domcontentloaded');
 
-    const nav = page.locator('nav');
+    const nav = page.getByRole('navigation').first();
     await expect(nav).toBeVisible();
 
     const skipLink = page.locator('[data-skip-link]');

@@ -3,14 +3,14 @@ import { test, expect } from '@playwright/test';
 test.describe('Visual Regression Tests', () => {
   test('homepage renders correctly', async ({ page }) => {
     await page.goto('/', { waitUntil: 'domcontentloaded' });
-    await page.getByRole('navigation').waitFor({ timeout: 15000 });
+    await page.getByRole('navigation').first().waitFor({ timeout: 15000 });
 
     // Take a screenshot for comparison
     await page.screenshot({ path: 'tests/snapshots/homepage.png', fullPage: true });
 
     // Basic content checks
     await expect(page.locator('body')).toBeVisible();
-    await expect(page.locator('nav')).toBeVisible();
+    await expect(page.getByRole('navigation').first()).toBeVisible();
   });
 
   test('marketplace page loads', async ({ page }) => {
