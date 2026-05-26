@@ -1,6 +1,7 @@
 import { NextRequest, NextResponse } from 'next/server';
-import { getWebhooksForEvent, recordDelivery } from '@/lib/db/webhooks';
+import { getWebhookById, getWebhooksForEvent, recordDelivery } from '@/lib/db/webhooks';
 import { signPayload } from '@/lib/webhooks/types';
+import { requireAuthenticatedOwner } from '@/lib/api-auth';
 
 const RETRY_DELAYS = [0, 60000, 300000, 1800000, 7200000];
 const MAX_RETRY_ATTEMPTS = 5;
@@ -38,19 +39,32 @@ async function deliverWebhook(
 
 export async function POST(request: NextRequest) {
   try {
-    const owner = request.headers.get('x-owner-address');
-    if (!owner) {
-      return NextResponse.json({ error: 'Authentication required. Provide x-owner-address header.' }, { status: 401 });
-    }
+    const internalSecret = process.env.INTERNAL_API_SECRET || process.env.ADMIN_API_SECRET || process.env.CRON_SECRET;
+    const isInternal = Boolean(internalSecret && request.headers.get('authorization') === `Bearer ${internalSecret}`);
+    let owner: string | undefined;
 
     const body = await request.json();
-    const { event, data, chainId = 11155111 } = body;
+    const { event, data, chainId = 11155111, webhookId } = body;
+
+    if (!isInternal) {
+      const auth = await requireAuthenticatedOwner(request);
+      if ('response' in auth) return auth.response;
+      owner = auth.owner.toLowerCase();
+    }
 
     if (!event) {
       return NextResponse.json({ error: 'Event type required' }, { status: 400 });
     }
 
-    const webhooks = await getWebhooksForEvent(event, chainId);
+    const webhooks = webhookId
+      ? await getTestWebhook(webhookId, event, chainId, owner)
+      : isInternal
+        ? await getWebhooksForEvent(event, chainId)
+        : null;
+
+    if (!webhooks) {
+      return NextResponse.json({ error: 'webhookId required for user-triggered test events' }, { status: 400 });
+    }
 
     if (webhooks.length === 0) {
       return NextResponse.json({ message: 'No webhooks registered for this event' });
@@ -119,4 +133,18 @@ export async function POST(request: NextRequest) {
     console.error('Webhook trigger error:', error);
     return NextResponse.json({ error: 'Internal server error' }, { status: 500 });
   }
+}
+
+async function getTestWebhook(
+  webhookId: string,
+  event: string,
+  chainId: number,
+  owner?: string
+) {
+  const webhook = await getWebhookById(webhookId);
+  if (!webhook || !webhook.isActive) return [];
+  if (owner && webhook.owner.toLowerCase() !== owner) return [];
+  if (!webhook.events.includes(event)) return [];
+  if (webhook.chains?.length && !webhook.chains.includes(chainId)) return [];
+  return [webhook];
 }

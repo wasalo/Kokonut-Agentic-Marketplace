@@ -6,6 +6,42 @@ import {MilestoneEscrowV2} from "../shared/MilestoneEscrowV2.sol";
 import {TransparentUpgradeableProxy} from "@openzeppelin/contracts/proxy/transparent/TransparentUpgradeableProxy.sol";
 import {MockERC20} from "./TestFixtures.sol";
 
+contract MockCommerceJobView {
+    struct Job {
+        uint256 id;
+        address client;
+        address provider;
+        address evaluator;
+        uint256 serviceId;
+        address paymentToken;
+        string description;
+        uint256 budget;
+        uint256 expiredAt;
+        uint8 status;
+        address hook;
+        bytes32 deliverable;
+    }
+
+    mapping(uint256 => Job) public jobs;
+
+    function setJob(uint256 jobId, address client, address provider, address paymentToken, uint256 budget) external {
+        jobs[jobId] = Job({
+            id: jobId,
+            client: client,
+            provider: provider,
+            evaluator: address(0),
+            serviceId: 0,
+            paymentToken: paymentToken,
+            description: "test job",
+            budget: budget,
+            expiredAt: block.timestamp + 7 days,
+            status: 1,
+            hook: address(0),
+            deliverable: bytes32(0)
+        });
+    }
+}
+
 contract MilestoneEscrowV2Test is Test {
     MilestoneEscrowV2 public implementation;
     TransparentUpgradeableProxy public proxy;
@@ -49,6 +85,9 @@ contract MilestoneEscrowV2Test is Test {
         usdc.mint(provider, ARBITER_FEE * 10);
         usdc.mint(arbiter1, ARBITER_STAKE * 2);
         usdc.mint(arbiter2, ARBITER_STAKE * 2);
+
+        vm.deal(client, 10 ether);
+        vm.deal(arbiter1, 10 ether);
 
         // Configure USDC support
         vm.prank(owner);
@@ -116,6 +155,36 @@ contract MilestoneEscrowV2Test is Test {
         vm.prank(client);
         vm.expectRevert(MilestoneEscrowV2.InvalidJob.selector);
         escrow.enableMilestones(1, client, client, address(usdc), TOTAL_BUDGET);
+    }
+
+    function testEnableMilestonesRevertIfLinkedJobMismatches() public {
+        MockCommerceJobView linkedCommerce = new MockCommerceJobView();
+        linkedCommerce.setJob(1, client, provider, address(usdc), TOTAL_BUDGET);
+
+        vm.prank(owner);
+        escrow.setAgenticCommerce(address(linkedCommerce));
+
+        vm.prank(client);
+        vm.expectRevert(MilestoneEscrowV2.InvalidJob.selector);
+        escrow.enableMilestones(1, client, provider, address(usdc), TOTAL_BUDGET + 1);
+    }
+
+    function testEnableMilestonesWithLinkedJob() public {
+        MockCommerceJobView linkedCommerce = new MockCommerceJobView();
+        linkedCommerce.setJob(1, client, provider, address(usdc), TOTAL_BUDGET);
+
+        vm.prank(owner);
+        escrow.setAgenticCommerce(address(linkedCommerce));
+
+        vm.prank(client);
+        escrow.enableMilestones(1, client, provider, address(usdc), TOTAL_BUDGET);
+
+        (address jobClient, address jobProvider, address paymentToken, uint256 totalBudget, bool usesMilestones) = escrow.jobMilestones(1);
+        assertEq(jobClient, client);
+        assertEq(jobProvider, provider);
+        assertEq(paymentToken, address(usdc));
+        assertEq(totalBudget, TOTAL_BUDGET);
+        assertTrue(usesMilestones);
     }
 
     // ── Add Milestone ───────────────────────────────────────────────────────
@@ -236,8 +305,7 @@ contract MilestoneEscrowV2Test is Test {
         vm.prank(provider);
         escrow.submitMilestone(1, 0, keccak256("proof"));
 
-        // Transfer USDC to escrow contract first
-        usdc.mint(address(escrow), 300e6);
+        _fundMilestones(1, 300e6);
 
         uint256 providerBalanceBefore = usdc.balanceOf(provider);
         vm.prank(client);
@@ -266,7 +334,7 @@ contract MilestoneEscrowV2Test is Test {
 
         vm.prank(provider);
         escrow.submitMilestone(1, 0, keccak256("proof"));
-        usdc.mint(address(escrow), 300e6);
+        _fundMilestones(1, 300e6);
 
         vm.prank(client);
         escrow.releaseMilestone(1, 0);
@@ -274,6 +342,60 @@ contract MilestoneEscrowV2Test is Test {
         vm.prank(client);
         vm.expectRevert(MilestoneEscrowV2.MilestoneAlreadyReleased.selector);
         escrow.releaseMilestone(1, 0);
+    }
+
+    function testReleaseMilestoneRevertIfJobEscrowUnfunded() public {
+        _enableTestMilestones(1);
+        _addMilestoneAsClient(1, 300e6, "Design", block.timestamp + 7 days);
+
+        vm.prank(provider);
+        escrow.submitMilestone(1, 0, keccak256("proof"));
+
+        usdc.mint(address(escrow), 300e6);
+
+        vm.prank(client);
+        vm.expectRevert(MilestoneEscrowV2.InsufficientMilestoneBalance.selector);
+        escrow.releaseMilestone(1, 0);
+    }
+
+    function testReleaseMilestoneUsesOnlyMatchingJobBalance() public {
+        _enableTestMilestones(1);
+        _addMilestoneAsClient(1, 300e6, "Design", block.timestamp + 7 days);
+        _enableTestMilestones(2);
+        _addMilestoneAsClient(2, 300e6, "Design", block.timestamp + 7 days);
+
+        vm.prank(provider);
+        escrow.submitMilestone(1, 0, keccak256("proof"));
+
+        _fundMilestones(2, 300e6);
+
+        vm.prank(client);
+        vm.expectRevert(MilestoneEscrowV2.InsufficientMilestoneBalance.selector);
+        escrow.releaseMilestone(1, 0);
+    }
+
+    function testReleaseNativeMilestone() public {
+        vm.prank(owner);
+        escrow.setSupportedToken(address(0), true);
+
+        vm.prank(client);
+        escrow.enableMilestones(1, client, provider, address(0), 1 ether);
+
+        vm.prank(client);
+        escrow.addMilestone(1, 0.3 ether, "Native", block.timestamp + 7 days);
+
+        vm.prank(provider);
+        escrow.submitMilestone(1, 0, keccak256("proof"));
+
+        vm.prank(client);
+        escrow.fundMilestones{value: 0.3 ether}(1, 0.3 ether);
+
+        uint256 providerBalanceBefore = provider.balance;
+        vm.prank(client);
+        escrow.releaseMilestone(1, 0);
+
+        assertEq(provider.balance, providerBalanceBefore + 0.3 ether);
+        assertEq(escrow.milestoneEscrowBalance(1), 0);
     }
 
     // ── Arbiter Registration ────────────────────────────────────────────────
@@ -309,6 +431,29 @@ contract MilestoneEscrowV2Test is Test {
 
         assertFalse(escrow.isRegisteredArbiter(arbiter1));
         assertEq(usdc.balanceOf(arbiter1), balanceBefore + ARBITER_STAKE);
+    }
+
+    function testNativeArbiterSlashAndWithdrawToken() public {
+        vm.prank(owner);
+        escrow.setSupportedToken(address(0), true);
+        vm.prank(owner);
+        escrow.setArbiterStake(address(0), 1 ether);
+
+        vm.deal(arbiter1, 2 ether);
+        vm.prank(arbiter1);
+        escrow.registerAsArbiter{value: 1 ether}(address(0), 1 ether);
+
+        uint256 ownerBalanceBefore = owner.balance;
+        vm.prank(owner);
+        escrow.slashArbiter(arbiter1, "bad decision");
+        assertEq(owner.balance, ownerBalanceBefore + 0.5 ether);
+        assertEq(escrow.arbiterStakes(arbiter1), 0.5 ether);
+
+        vm.deal(address(escrow), address(escrow).balance + 0.2 ether);
+        ownerBalanceBefore = owner.balance;
+        vm.prank(owner);
+        escrow.withdrawToken(address(0), 0.2 ether);
+        assertEq(owner.balance, ownerBalanceBefore + 0.2 ether);
     }
 
     // ── Disputes ────────────────────────────────────────────────────────────
@@ -351,7 +496,7 @@ contract MilestoneEscrowV2Test is Test {
         vm.prank(client);
         escrow.flagDispute(1, 0);
 
-        usdc.mint(address(escrow), 300e6);
+        _fundMilestones(1, 300e6);
         uint256 providerBalanceBefore = usdc.balanceOf(provider);
 
         vm.prank(arbiter1);
@@ -441,6 +586,13 @@ contract MilestoneEscrowV2Test is Test {
     function _addMilestoneAsClient(uint256 jobId, uint256 amount, string memory description, uint256 dueDate) internal {
         vm.prank(client);
         escrow.addMilestone(jobId, amount, description, dueDate);
+    }
+
+    function _fundMilestones(uint256 jobId, uint256 amount) internal {
+        vm.startPrank(client);
+        usdc.approve(address(escrow), amount);
+        escrow.fundMilestones(jobId, amount);
+        vm.stopPrank();
     }
 
     function uint256ToString(uint256 value) internal pure returns (string memory) {

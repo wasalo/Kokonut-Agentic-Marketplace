@@ -1,11 +1,12 @@
 'use client';
 
 import { useState, useEffect } from 'react';
-import { useAccount } from 'wagmi';
+import { useAccount, useWalletClient } from 'wagmi';
 import { Mail, Bell, Clock, CheckCircle2, Loader2, AlertCircle } from 'lucide-react';
 import { Card } from '@heroui/react';
 import { useEmailStore } from '@/lib/emails/store';
 import type { EmailPreferences } from '@/lib/emails/types';
+import { createOwnerAuthHeaders } from '@/lib/client-auth';
 
 interface EmailPreferencesFormProps {
   onSuccess?: () => void;
@@ -13,6 +14,7 @@ interface EmailPreferencesFormProps {
 
 export function EmailPreferencesForm({ onSuccess }: EmailPreferencesFormProps) {
   const { address, isConnected } = useAccount();
+  const { data: walletClient } = useWalletClient();
   const { getPreferences, setPreferences } = useEmailStore();
 
   const [email, setEmail] = useState('');
@@ -47,7 +49,7 @@ export function EmailPreferencesForm({ onSuccess }: EmailPreferencesFormProps) {
 
   const handleSave = async (e: React.FormEvent) => {
     e.preventDefault();
-    if (!address) return;
+    if (!address || !walletClient) return;
 
     if (enabled && !email) {
       setError('Email address is required when notifications are enabled');
@@ -74,9 +76,10 @@ export function EmailPreferencesForm({ onSuccess }: EmailPreferencesFormProps) {
       setPreferences(address, prefs);
 
       if (email) {
+        const authHeaders = await createOwnerAuthHeaders(address, walletClient);
         await fetch('/api/emails/preferences', {
           method: 'PUT',
-          headers: { 'Content-Type': 'application/json' },
+          headers: { 'Content-Type': 'application/json', ...authHeaders },
           body: JSON.stringify({ address, ...prefs }),
         });
       }

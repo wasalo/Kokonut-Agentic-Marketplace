@@ -1,6 +1,7 @@
 import { NextRequest, NextResponse } from 'next/server';
 import webpush from 'web-push';
 import { getAllActivePushSubscriptions } from '@/lib/db/push';
+import { requireAuthenticatedOwner } from '@/lib/api-auth';
 
 if (process.env.VAPID_PRIVATE_KEY && process.env.NEXT_PUBLIC_VAPID_PUBLIC_KEY) {
   webpush.setVapidDetails(
@@ -12,13 +13,18 @@ if (process.env.VAPID_PRIVATE_KEY && process.env.NEXT_PUBLIC_VAPID_PUBLIC_KEY) {
 
 export async function POST(request: NextRequest) {
   try {
-    const owner = request.headers.get('x-owner-address');
-    if (!owner) {
-      return NextResponse.json({ error: 'Authentication required. Provide x-owner-address header.' }, { status: 401 });
-    }
-
     const body = await request.json();
-    const { title, message, link, data } = body;
+    const { title, message, link, data, subscription } = body;
+    const internalSecret = process.env.INTERNAL_API_SECRET || process.env.ADMIN_API_SECRET || process.env.CRON_SECRET;
+    const isInternal = Boolean(internalSecret && request.headers.get('authorization') === `Bearer ${internalSecret}`);
+
+    if (!isInternal) {
+      const auth = await requireAuthenticatedOwner(request);
+      if ('response' in auth) return auth.response;
+      if (!subscription) {
+        return NextResponse.json({ error: 'Subscription required for user test notification' }, { status: 400 });
+      }
+    }
 
     if (!title) {
       return NextResponse.json({ error: 'Missing title' }, { status: 400 });
@@ -34,7 +40,9 @@ export async function POST(request: NextRequest) {
       );
     }
 
-    const subscriptions = await getAllActivePushSubscriptions();
+    const subscriptions = subscription
+      ? [subscription]
+      : await getAllActivePushSubscriptions();
 
     if (subscriptions.length === 0) {
       return NextResponse.json({

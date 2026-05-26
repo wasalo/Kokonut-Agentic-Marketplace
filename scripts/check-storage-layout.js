@@ -15,8 +15,11 @@ const { execSync } = require('child_process');
 const fs = require('fs');
 const path = require('path');
 
+const PROJECT_ROOT = path.join(__dirname, '..');
 const CONTRACTS_DIR = path.join(__dirname, '../contracts');
-const BASELINE_PATH = process.argv[2] || path.join(CONTRACTS_DIR, 'storage-layout-baseline.json');
+const args = process.argv.slice(2);
+const WRITE_BASELINE = args.includes('--write');
+const BASELINE_PATH = args.find(arg => arg !== '--write') || path.join(CONTRACTS_DIR, 'storage-layout-baseline.json');
 
 const UUPS_CONTRACTS = [
   'AgenticCommerceV9',
@@ -34,8 +37,8 @@ const UUPS_CONTRACTS = [
 function getStorageLayout(contractName) {
   try {
     const output = execSync(
-      `cd ${CONTRACTS_DIR} && forge inspect ${contractName} storage-layout --pretty 2>/dev/null`,
-      { encoding: 'utf-8' }
+      `forge inspect contracts/shared/${contractName}.sol:${contractName} storage-layout --json`,
+      { cwd: PROJECT_ROOT, encoding: 'utf-8', stdio: ['ignore', 'pipe', 'ignore'] }
     );
     return output.trim();
   } catch (error) {
@@ -64,7 +67,14 @@ function generateBaseline() {
 
 function checkAgainstBaseline(baseline) {
   let hasChanges = false;
-  
+
+  for (const contract of UUPS_CONTRACTS) {
+    if (!baseline[contract]?.layout) {
+      console.log(`❌ ${contract}: Missing storage layout baseline`);
+      hasChanges = true;
+    }
+  }
+   
   for (const [contractName, expected] of Object.entries(baseline)) {
     const current = getStorageLayout(contractName);
     
@@ -84,14 +94,27 @@ function checkAgainstBaseline(baseline) {
   return hasChanges;
 }
 
+function validateBaseline(baseline) {
+  if (!baseline || typeof baseline !== 'object' || Object.keys(baseline).length === 0) {
+    console.error('❌ Storage layout baseline is empty. Regenerate it with --write.');
+    process.exit(1);
+  }
+}
+
 // Main
-if (!fs.existsSync(BASELINE_PATH)) {
-  console.log('No baseline found. Generating...');
+if (WRITE_BASELINE) {
   generateBaseline();
   process.exit(0);
 }
 
+if (!fs.existsSync(BASELINE_PATH)) {
+  console.error(`❌ No storage layout baseline found at ${BASELINE_PATH}`);
+  console.error('Regenerate it intentionally with: node scripts/check-storage-layout.js --write');
+  process.exit(1);
+}
+
 const baseline = JSON.parse(fs.readFileSync(BASELINE_PATH, 'utf-8'));
+validateBaseline(baseline);
 const hasChanges = checkAgainstBaseline(baseline);
 
 if (hasChanges) {

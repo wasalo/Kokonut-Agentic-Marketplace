@@ -254,6 +254,85 @@ contract AgenticCommerceV9Test is Test {
         );
     }
 
+    function testCreateJobForClientRevertIfCallerUnauthorized() public {
+        address attacker = makeAddr("attacker");
+        uint256 expiredAt = block.timestamp + 7 days;
+
+        vm.prank(attacker);
+        vm.expectRevert(AgenticCommerceV9.Unauthorized.selector);
+        commerce.createJobForClient(
+            client,
+            provider,
+            0.1 ether,
+            address(0),
+            0,
+            expiredAt,
+            "forged client job",
+            evaluator,
+            address(0),
+            false,
+            true,
+            false,
+            0
+        );
+    }
+
+    function testCreateJobForClientWithAuthorizedCreator() public {
+        address authorizedCreator = makeAddr("authorizedCreator");
+        uint256 expiredAt = block.timestamp + 7 days;
+
+        vm.prank(owner);
+        commerce.setAuthorizedJobCreator(authorizedCreator, true);
+
+        vm.prank(authorizedCreator);
+        uint256 jobId = commerce.createJobForClient(
+            client,
+            provider,
+            0.1 ether,
+            address(0),
+            0,
+            expiredAt,
+            "authorized client job",
+            evaluator,
+            address(0),
+            false,
+            true,
+            false,
+            0
+        );
+
+        (, address jobClient, address jobProvider, , , IAgenticCommerceV9.JobStatus status) = _getJobBasic(jobId);
+        assertEq(jobClient, client);
+        assertEq(jobProvider, provider);
+        assertEq(uint8(status), 0); // Open
+        assertEq(commerce.clientJobCount(client), 1);
+    }
+
+    function testCreateJobForClientCannotGriefVictimJobCount() public {
+        address attacker = makeAddr("attacker");
+        uint256 expiredAt = block.timestamp + 7 days;
+
+        vm.prank(attacker);
+        vm.expectRevert(AgenticCommerceV9.Unauthorized.selector);
+        commerce.createJobForClient(
+            client,
+            provider,
+            0.1 ether,
+            address(0),
+            0,
+            expiredAt,
+            "grief attempt",
+            evaluator,
+            address(0),
+            false,
+            true,
+            false,
+            0
+        );
+
+        assertEq(commerce.clientJobCount(client), 0);
+    }
+
     // ── CreateJobV7 (backward compat) ───────────────────────────────────────
 
     function testCreateJobV7() public {

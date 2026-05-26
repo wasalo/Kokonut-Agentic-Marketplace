@@ -1,6 +1,7 @@
 import { NextRequest, NextResponse } from 'next/server';
 import { Resend } from 'resend';
 import { getUsersWithDigestEnabled } from '@/lib/db/email';
+import { requireCronBearer } from '@/lib/api-auth';
 import path from 'path';
 
 const DATA_DIR = path.join(process.cwd(), 'data');
@@ -67,12 +68,8 @@ async function getSubscribers(): Promise<Array<{ email: string; userAddress: str
 }
 
 export async function GET(request: NextRequest) {
-  const authHeader = request.headers.get('authorization');
-  const cronSecret = process.env.CRON_SECRET;
-
-  if (cronSecret && authHeader !== `Bearer ${cronSecret}`) {
-    return NextResponse.json({ error: 'Unauthorized' }, { status: 401 });
-  }
+  const authError = requireCronBearer(request);
+  if (authError) return authError;
 
   try {
     const stats = await getWeeklyStats();

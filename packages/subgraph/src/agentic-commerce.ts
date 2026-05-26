@@ -67,7 +67,7 @@ export function handleJobCompleted(event: JobCompletedEvent): void {
   if (job) {
     job.status = 3;
     job.completedAt = event.block.timestamp;
-    job.deliverable = event.params.deliverable;
+    job.provider = event.params.provider;
     job.save();
   }
 }

@@ -1,7 +1,7 @@
 # Kokonut Agent Economy Stack
 
 [![Security Audit](https://img.shields.io/badge/security-audited-brightgreen.svg)](./SECURITY_AUDIT_REPORT.md)
-[![Tests](https://img.shields.io/badge/tests-306%20passing-brightgreen.svg)](./contracts/test)
+[![Tests](https://img.shields.io/badge/tests-319%20passing-brightgreen.svg)](./contracts/test)
 [![Coverage](https://img.shields.io/badge/coverage-87%25-brightgreen.svg)](./contracts/test)
 [![Frontend Security](https://img.shields.io/badge/frontend%20security-9.0%2F10-brightgreen.svg)](./docs/FRONTEND_SECURITY_HARDENING_REPORT.md)
 [![TypeScript](https://img.shields.io/badge/TypeScript-0%20errors-brightgreen.svg)](./apps/web)
@@ -213,17 +213,17 @@ The wildcard format (e.g., `10.108.1.*`) allows any IP in that subnet. Add expli
 | ------------------------ | -------------------------------------------- | -------------------------- |
 | **AdminRegistry**        | `0xC81C864CEAb6231ad764cf9867e031D8b6dee41d` | UUPS Proxy — Phase 29e Pashov fixes + data migration |
 | **MilestoneEscrowV2**    | `0xc89D63057288092012c5D3cEF66121C1F8449a9f` | Milestone payments (UUPS) |
-| **MilestoneEscrowV2 Impl** | `0x11AAc9e99300F783Ad7BdfE7899C7f86CF8A1A74` | Phase 34: Native currency (ETH) support |
+| **MilestoneEscrowV2 Impl** | `0x8F9Bae14966Af0BceE5c291A764cE3503f9D49F3` | Phase 34: Isolated milestone custody + native currency |
 | **AgentSkillRegistryV2** | `0xA84684261558f342d6871DD2CFef90A2117Aa20A` | Skills/capabilities (UUPS) |
 | **ServiceRegistryV2**    | `0x62E1eeEa1A2Ab987004F35bDA430457Ed6077201` | Service listings (UUPS)    |
 | **ServiceRegistryV2 Impl** | `0xb75B02D4523171ABdB6f5bcB9D60903ed3e30fAD` | Phase 29e: blacklist recheck + Pashov fixes |
 | **AgenticCommerceV9**    | `0x3a1Bc03cC84040A282F6bf238b917D8351499239` | Job escrow (V9: Multi-Token Configurable Minimums) |
-| **AgenticCommerceV9 Impl** | `0x09ce4753148CD3652E13D3f824E1E5Dc478B2688` | Phase 34: Configurable evaluator stake (native currency) |
+| **AgenticCommerceV9 Impl** | `0x40b4029dDd11fb0177B28B2d3537B073Da96b0c4` | Phase 34: Storage recovery + auth patch + native currency |
 | **PriceOracleV2**        | `0x29c27a26DD2F80f840cb4D7B5E53b7db3D67143d` | PriceOracleV2 - UUPS upgradeable per-token feeds |
 | **PriceOracleV2 Impl**   | `0x7Bad7cc9754814246814299ca50041a939a244b1` | Phase 31: L-03 ETH/USD Chainlink feed |
 | **AgentReviewV5**        | `0x5CDb592Fd37749bF87448FBf5725D1Cd986dd1Cb` | A/B evaluation             |
 | **BiddingSystem**        | `0x4D7F38C6A9DE5De44A7B789962B7A2B06bFE8fd6`  | Commit-reveal bidding      |
-| **BiddingSystem Impl**   | `0xE8E101ca8Fdd2A4c0633cc4d008c88BC03b32bEe` | Phase 32: Reentrancy fix + zero-checks |
+| **BiddingSystem Impl**   | `0x9FfE85CBC78144B1bAd32d2Fd61a1fdc3740f047` | Phase 34: Creator stake withdrawal patch |
 | **ERC-8004 Identity**    | `0x8004A818BFB912233c491871b3d84c89A494BD9e` | Agent identities           |
 | **ERC-8004 Reputation**  | `0x8004B663056A597Dffe9eCcC1965A193B7388713` | Agent reputation           |
 
@@ -518,7 +518,7 @@ All core contracts use **UUPS (Universal Upgradeable Proxy Standard)**:
 
 **Proxy vs Implementation:**
 - **Proxy** (`0x3a1Bc03cC84040A282F6bf238b917D8351499239`) — This is the address you interact with. Stores all data. Never changes.
-- **Implementation** (`0x09ce4753148CD3652E13D3f824E1E5Dc478B2688`) — Contains the logic/code. Can be swapped for new versions.
+- **Implementation** (`0x40b4029dDd11fb0177B28B2d3537B073Da96b0c4`) — Contains the logic/code. Can be swapped for new versions.
 
 ---
 

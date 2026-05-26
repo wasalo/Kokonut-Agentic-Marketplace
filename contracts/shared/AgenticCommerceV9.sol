@@ -50,7 +50,6 @@ contract AgenticCommerceV9 is
     uint256 public constant DEFAULT_DISPUTE_WINDOW = 7 days;
     uint256 public constant DEFAULT_NONRESPONSIVE_SLASH_BP = 100;
     uint256 public constant MAX_BUDGET_USD = 1_000_000e6; // $1M USD (6 decimals)
-    uint256 public minEvaluatorStake = 0.01 ether; // Configurable per chain
     uint256 public constant EVALUATOR_REVEAL_DELAY = 6; // 6 blocks commit-reveal delay
     uint256 public constant MIN_PLATFORM_FEE = 1; // M2-01: Minimum 1 wei platform fee to prevent dust loss
 
@@ -426,7 +425,8 @@ contract AgenticCommerceV9 is
         uint256 fundAmount
     ) internal returns (uint256 jobId) {
         // Validate inputs
-        _validateJobCreation(provider, evaluator, expiredAt, description, hook);
+        _validateJobCreation(client, provider, evaluator, expiredAt, description, hook);
+        if (_msgSender() != client && !authorizedJobCreators[_msgSender()]) revert Unauthorized();
         
         if (!_isTokenAllowed(paymentToken)) revert TokenNotAllowed(paymentToken);
         
@@ -558,7 +558,7 @@ contract AgenticCommerceV9 is
         bool evaluatorFee,
         bool clientReview_
     ) external nonReentrant whenNotPaused returns (uint256 jobId) {
-        _validateJobCreation(provider, evaluator, expiredAt, description, hook);
+        _validateJobCreation(_msgSender(), provider, evaluator, expiredAt, description, hook);
 
         // Blacklist check with P7-01 try/catch
         if (adminRegistry != address(0)) {
@@ -1263,19 +1263,21 @@ contract AgenticCommerceV9 is
     /***********************************/
     
     function _validateJobCreation(
+        address client,
         address provider,
         address evaluator,
         uint256 expiredAt,
         string calldata description,
         address hook
     ) internal view {
+        if (client == address(0)) revert ZeroAddress();
         if (provider == address(0)) revert ZeroAddress();
         if (evaluator != address(0)) {
-            if (_msgSender() == evaluator) revert RolesMustBeDistinct();
+            if (client == evaluator) revert RolesMustBeDistinct();
             if (provider == evaluator) revert RolesMustBeDistinct();
         }
         // ToB H-01: Prevent provider == client scenario (address swap protection)
-        if (provider == _msgSender()) revert RolesMustBeDistinct();
+        if (provider == client) revert RolesMustBeDistinct();
         if (expiredAt <= block.timestamp + MIN_EXPIRY_DURATION) revert ExpiryTooShort();
         if (expiredAt > block.timestamp + MAX_EXPIRY_DURATION) revert ExpiryTooLong();
         if (bytes(description).length == 0 || bytes(description).length > MAX_DESCRIPTION_LENGTH) revert InvalidJob();
@@ -1349,6 +1351,15 @@ contract AgenticCommerceV9 is
     }
 
     /**
+     * @dev Authorize or revoke contracts that may create jobs on behalf of clients.
+     */
+    function setAuthorizedJobCreator(address creator, bool authorized) external onlyOwner {
+        if (creator == address(0)) revert ZeroAddress();
+        authorizedJobCreators[creator] = authorized;
+        emit AuthorizedJobCreatorUpdated(creator, authorized);
+    }
+
+    /**
      * @dev Set the PriceOracle address.
      * @param _priceOracle New PriceOracle address.
      */
@@ -1404,6 +1415,7 @@ contract AgenticCommerceV9 is
     event AdminRegistrySet(address indexed oldRegistry, address indexed newRegistry);
     event ServiceRegistrySet(address indexed oldRegistry, address indexed newRegistry);
     event PriceOracleSet(address indexed oldOracle, address indexed newOracle);
+    event AuthorizedJobCreatorUpdated(address indexed creator, bool authorized);
 
     // Job Lifecycle Events (ported from V6)
     event JobRejected(uint256 indexed jobId, address indexed rejector, bytes32 reason);
@@ -1423,7 +1435,9 @@ contract AgenticCommerceV9 is
     bool public blacklistCheckRequired;
 
     address public serviceRegistry;
+    uint256 public minEvaluatorStake; // Configurable per chain; appended for upgrade safety
+    mapping(address => bool) public authorizedJobCreators;
     
     /// @dev Storage gap for upgrade safety
-    uint256[48] private __gap;
+    uint256[46] private __gap;
 }

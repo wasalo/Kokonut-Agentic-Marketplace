@@ -132,6 +132,7 @@ contract BiddingSystem is
     
     // Running total of accrued platform fees (D-01 fix — replaces O(n) loop)
     uint256 public totalAccumulatedFees;
+    mapping(uint256 => bool) public creatorStakeWithdrawn;
     
     /***********************************/
     /* Modifiers */
@@ -449,19 +450,10 @@ contract BiddingSystem is
     function withdrawCreatorStake(uint256 sessionId) external nonReentrant onlySessionCreator(sessionId) {
         Session storage session = sessions[sessionId];
         if (!(session.id != 0)) revert BiddingSystem__Invalid_session();
-        
-        // Allowed if job is created or session is cancelled
-        if (!(session.status == SessionStatus.JobCreated || session.status == SessionStatus.Completed || session.status == SessionStatus.Cancelled)) {
-            revert BiddingSystem__Wrong_status();
-        }
-        
-        uint256 creatorStake = calculateStake(session.maxBudget);
-        if (!(totalStakesHeld[sessionId] >= creatorStake)) revert BiddingSystem__No_stake_to_withdraw();
-        
-        totalStakesHeld[sessionId] -= creatorStake;
-        _sendEth(session.creator, creatorStake);
-        
-        emit StakeWithdrawn(sessionId, session.creator, creatorStake);
+
+        // Creator stake is synchronously refunded in cancelSession/createJobAndFund.
+        // Keeping this fallback withdraw path lets terminal sessions drain pooled bidder stakes.
+        revert BiddingSystem__Stake_already_withdrawn();
     }
     
     /***********************************/
@@ -534,6 +526,7 @@ contract BiddingSystem is
         // Return creator's session stake
         uint256 creatorStake = calculateStake(session.maxBudget);
         if (creatorStake > 0 && totalStakesHeld[sessionId] >= creatorStake) {
+            creatorStakeWithdrawn[sessionId] = true;
             totalStakesHeld[sessionId] -= creatorStake;
             _sendEth(session.creator, creatorStake);
         }
@@ -569,6 +562,7 @@ contract BiddingSystem is
         // Return creator's session stake
         uint256 creatorStake = calculateStake(session.maxBudget);
         if (creatorStake > 0 && totalStakesHeld[sessionId] >= creatorStake) {
+            creatorStakeWithdrawn[sessionId] = true;
             totalStakesHeld[sessionId] -= creatorStake;
         }
         _sendEth(msg.sender, creatorStake);

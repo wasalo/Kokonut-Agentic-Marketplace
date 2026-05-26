@@ -449,6 +449,45 @@ contract AgentReviewV5Test is Test {
         agentReview.claimReward(proposalId);
     }
 
+    function testWinnerCannotClaimRewardThenReleaseStake() public {
+        uint256 reward = 1 ether;
+        uint256 deadline = block.timestamp + 7 days;
+        uint256 stakeAmount = MIN_STAKE;
+
+        vm.deal(proposer, 3 ether);
+        vm.prank(proposer);
+        uint256 proposalId = agentReview.createProposal{value: reward}(
+            "Test Proposal",
+            "Test Description",
+            "ipfs://criteria",
+            reward,
+            deadline
+        );
+
+        vm.deal(evaluator1, 1 ether);
+        vm.prank(evaluator1);
+        agentReview.submitEvaluation{value: stakeAmount}(proposalId, 80, "ipfs://reasoning1");
+
+        vm.deal(evaluator2, 1 ether);
+        vm.prank(evaluator2);
+        agentReview.submitEvaluation{value: stakeAmount}(proposalId, 95, "ipfs://reasoning2");
+
+        vm.prank(proposer);
+        agentReview.setUnderReview(proposalId);
+
+        vm.warp(deadline + 1);
+
+        vm.prank(proposer);
+        agentReview.attestDecision(proposalId, evaluator2);
+
+        vm.prank(evaluator2);
+        agentReview.claimReward(proposalId);
+
+        vm.prank(evaluator2);
+        vm.expectRevert(abi.encodeWithSelector(AgentReviewV5.AgentReviewV5_Already_released.selector));
+        agentReview.releaseStake(proposalId);
+    }
+
     function testReleaseStake() public {
         uint256 reward = 1 ether;
         uint256 deadline = block.timestamp + 7 days;
@@ -486,6 +525,32 @@ contract AgentReviewV5Test is Test {
         agentReview.releaseStake(proposalId);
         
         assertEq(evaluator1.balance, evaluator1BalanceBefore + stakeAmount);
+    }
+
+    function testReleaseStakeRevertBeforeDecision() public {
+        uint256 reward = 1 ether;
+        uint256 deadline = block.timestamp + 7 days;
+
+        vm.deal(proposer, 3 ether);
+        vm.prank(proposer);
+        uint256 proposalId = agentReview.createProposal{value: reward}(
+            "Test Proposal",
+            "Test Description",
+            "ipfs://criteria",
+            reward,
+            deadline
+        );
+
+        vm.deal(evaluator1, 1 ether);
+        vm.prank(evaluator1);
+        agentReview.submitEvaluation{value: MIN_STAKE}(proposalId, 80, "ipfs://reasoning1");
+
+        vm.prank(proposer);
+        agentReview.setUnderReview(proposalId);
+
+        vm.prank(evaluator1);
+        vm.expectRevert(abi.encodeWithSelector(AgentReviewV5.AgentReviewV5_Not_decided.selector));
+        agentReview.releaseStake(proposalId);
     }
 
     function testReleaseStakeRevertIfAlreadyReleased() public {
@@ -635,7 +700,7 @@ contract AgentReviewV5Test is Test {
         agentReview.submitEvaluation{value: stakeAmount}(1, 80, "ipfs://reasoning");
 
         uint256 totalLocked = agentReview.getTotalLockedETH();
-        assertEq(totalLocked, reward1 + stakeAmount);
+        assertEq(totalLocked, reward1 + reward2 + stakeAmount);
     }
 
     function testWithdrawETH() public {
@@ -654,6 +719,7 @@ contract AgentReviewV5Test is Test {
 
         uint256 initialBalance = owner.balance;
         uint256 withdrawAmount = 5 ether;
+        vm.deal(address(agentReview), address(agentReview).balance + withdrawAmount);
 
         vm.prank(owner);
         agentReview.withdrawETH(payable(owner), withdrawAmount);

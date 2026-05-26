@@ -1,29 +1,25 @@
 import { NextRequest, NextResponse } from 'next/server';
-import { useWebhookStore } from '@/lib/webhooks';
+import { getDeliveries, getWebhookById } from '@/lib/db/webhooks';
+import { requireAuthenticatedOwner } from '@/lib/api-auth';
 
 export async function GET(request: NextRequest, { params }: { params: Promise<{ id: string }> }) {
   try {
     const { id } = await params;
 
-    const owner = request.headers.get('x-owner-address');
-    if (!owner) {
-      return NextResponse.json(
-        { error: 'Owner address required in x-owner-address header' },
-        { status: 401 }
-      );
-    }
+    const auth = await requireAuthenticatedOwner(request);
+    if ('response' in auth) return auth.response;
 
-    const webhook = useWebhookStore.getState().getWebhook(id);
+    const webhook = await getWebhookById(id);
 
     if (!webhook) {
       return NextResponse.json({ error: 'Webhook not found' }, { status: 404 });
     }
 
-    if (webhook.owner.toLowerCase() !== owner.toLowerCase()) {
+    if (webhook.owner.toLowerCase() !== auth.owner.toLowerCase()) {
       return NextResponse.json({ error: 'Not authorized' }, { status: 403 });
     }
 
-    const deliveries = useWebhookStore.getState().getDeliveriesForWebhook(id);
+    const deliveries = await getDeliveries(id, 100);
 
     return NextResponse.json({
       webhook: {
@@ -39,7 +35,7 @@ export async function GET(request: NextRequest, { params }: { params: Promise<{ 
         id: d.id,
         status: d.status,
         attempts: d.attempts,
-        responseStatus: d.responseStatus,
+        responseStatus: d.statusCode,
         createdAt: d.createdAt,
         lastAttempt: d.lastAttempt,
       })),

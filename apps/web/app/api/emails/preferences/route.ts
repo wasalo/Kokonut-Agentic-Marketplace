@@ -2,6 +2,7 @@ import { NextRequest, NextResponse } from 'next/server';
 import { z } from 'zod';
 import { useEmailStore } from '@/lib/emails/store';
 import type { EmailPreferences } from '@/lib/emails/types';
+import { requireAuthenticatedOwner } from '@/lib/api-auth';
 
 const preferencesSchema = z.object({
   email: z.string().email(),
@@ -20,10 +21,9 @@ const preferencesSchema = z.object({
 
 export async function GET(request: NextRequest) {
   try {
-    const owner = request.headers.get('x-owner-address');
-    if (!owner) {
-      return NextResponse.json({ error: 'Owner address required' }, { status: 401 });
-    }
+    const auth = await requireAuthenticatedOwner(request);
+    if ('response' in auth) return auth.response;
+    const owner = auth.owner;
 
     const preferences = useEmailStore.getState().getPreferences(owner);
 
@@ -59,10 +59,9 @@ export async function PUT(request: NextRequest) {
       );
     }
 
-    const owner = request.headers.get('x-owner-address');
-    if (!owner) {
-      return NextResponse.json({ error: 'Owner address required' }, { status: 401 });
-    }
+    const auth = await requireAuthenticatedOwner(request);
+    if ('response' in auth) return auth.response;
+    const owner = auth.owner;
 
     const updateData: Partial<EmailPreferences> = {
       email: validation.data.email,
@@ -96,10 +95,9 @@ export async function PUT(request: NextRequest) {
 
 export async function DELETE(request: NextRequest) {
   try {
-    const owner = request.headers.get('x-owner-address');
-    if (!owner) {
-      return NextResponse.json({ error: 'Owner address required' }, { status: 401 });
-    }
+    const auth = await requireAuthenticatedOwner(request);
+    if ('response' in auth) return auth.response;
+    const owner = auth.owner;
 
     useEmailStore.getState().setPreferences(owner, {
       enabled: false,

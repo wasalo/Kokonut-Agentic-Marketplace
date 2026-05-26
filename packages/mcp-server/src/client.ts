@@ -17,8 +17,8 @@ export const CONTRACTS: Record<string, ContractAddress> = {
   agenticCommerce: '0x3a1Bc03cC84040A282F6bf238b917D8351499239', // AgenticCommerceV9
   agentReview: '0x5CDb592Fd37749bF87448FBf5725D1Cd986dd1Cb', // AgentReviewV5
   skillRegistry: '0xA84684261558f342d6871DD2CFef90A2117Aa20A',
-  priceOracle: '0x32fD2A54B722D2048A052fD0456004483a683aFE', // PriceOracleV2
-  milestoneEscrow: '0xd4Fdc345b1c6aF1B4Cc84339bcB251B33527Eb45', // MilestoneEscrowV2
+  priceOracle: '0x29c27a26DD2F80f840cb4D7B5E53b7db3D67143d', // PriceOracleV2
+  milestoneEscrow: '0xc89D63057288092012c5D3cEF66121C1F8449a9f', // MilestoneEscrowV2
   adminRegistry: '0xC81C864CEAb6231ad764cf9867e031D8b6dee41d', // AdminRegistry Phase 29e UUPS proxy
   usdc: '0x1c7D4B196Cb0C7B01d743Fbc6116a902379C7238',
 };

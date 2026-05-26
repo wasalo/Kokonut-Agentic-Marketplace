@@ -1,5 +1,6 @@
 import { NextRequest, NextResponse } from 'next/server';
-import { useWebhookStore, type WebhookUpdate } from '@/lib/webhooks';
+import { deleteWebhook, getWebhookById, updateWebhook } from '@/lib/db/webhooks';
+import { requireAuthenticatedOwner } from '@/lib/api-auth';
 import { z } from 'zod';
 
 const updateSchema = z.object({
@@ -29,14 +30,16 @@ const VALID_EVENTS = [
 export async function GET(request: NextRequest, { params }: { params: Promise<{ id: string }> }) {
   try {
     const { id } = await params;
-    const webhook = useWebhookStore.getState().getWebhook(id);
+    const auth = await requireAuthenticatedOwner(request);
+    if ('response' in auth) return auth.response;
+
+    const webhook = await getWebhookById(id);
 
     if (!webhook) {
       return NextResponse.json({ error: 'Webhook not found' }, { status: 404 });
     }
 
-    const owner = request.headers.get('x-owner-address');
-    if (owner && owner.toLowerCase() !== webhook.owner.toLowerCase()) {
+    if (auth.owner.toLowerCase() !== webhook.owner.toLowerCase()) {
       return NextResponse.json(
         { error: 'Webhook not found or not authorized' },
         { status: 404 }
@@ -61,6 +64,8 @@ export async function PATCH(request: NextRequest, { params }: { params: Promise<
   try {
     const { id } = await params;
     const body = await request.json();
+    const auth = await requireAuthenticatedOwner(request);
+    if ('response' in auth) return auth.response;
 
     const validation = updateSchema.safeParse(body);
     if (!validation.success) {
@@ -70,12 +75,9 @@ export async function PATCH(request: NextRequest, { params }: { params: Promise<
       );
     }
 
-    const owner = request.headers.get('x-owner-address');
-    if (!owner) {
-      return NextResponse.json(
-        { error: 'Owner address required in x-owner-address header' },
-        { status: 401 }
-      );
+    const existing = await getWebhookById(id);
+    if (!existing || existing.owner.toLowerCase() !== auth.owner.toLowerCase()) {
+      return NextResponse.json({ error: 'Webhook not found or not authorized' }, { status: 404 });
     }
 
     const { url, events, isActive, metadata } = validation.data;
@@ -91,28 +93,26 @@ export async function PATCH(request: NextRequest, { params }: { params: Promise<
       }
     }
 
-    const update: WebhookUpdate = {};
+    const update: Parameters<typeof updateWebhook>[1] = {};
     if (url !== undefined) update.url = url;
-    if (events !== undefined) update.events = events as any;
+    if (events !== undefined) update.events = events;
     if (isActive !== undefined) update.isActive = isActive;
-    if (metadata !== undefined) update.metadata = metadata;
+    if (metadata !== undefined) update.metadata = JSON.stringify(metadata);
 
-    const success = useWebhookStore.getState().updateWebhook(id, owner, update);
+    const webhook = await updateWebhook(id, update);
 
-    if (!success) {
+    if (!webhook) {
       return NextResponse.json({ error: 'Webhook not found or not authorized' }, { status: 404 });
     }
-
-    const webhook = useWebhookStore.getState().getWebhook(id);
 
     return NextResponse.json({
       success: true,
       webhook: {
-        id: webhook!.id,
-        url: webhook!.url,
-        events: webhook!.events,
-        isActive: webhook!.isActive,
-        updatedAt: webhook!.updatedAt,
+        id: webhook.id,
+        url: webhook.url,
+        events: webhook.events,
+        isActive: webhook.isActive,
+        updatedAt: webhook.updatedAt,
       },
     });
   } catch (error) {
@@ -127,16 +127,15 @@ export async function DELETE(
 ) {
   try {
     const { id } = await params;
+    const auth = await requireAuthenticatedOwner(request);
+    if ('response' in auth) return auth.response;
 
-    const owner = request.headers.get('x-owner-address');
-    if (!owner) {
-      return NextResponse.json(
-        { error: 'Owner address required in x-owner-address header' },
-        { status: 401 }
-      );
+    const existing = await getWebhookById(id);
+    if (!existing || existing.owner.toLowerCase() !== auth.owner.toLowerCase()) {
+      return NextResponse.json({ error: 'Webhook not found or not authorized' }, { status: 404 });
     }
 
-    const success = useWebhookStore.getState().deleteWebhook(id, owner);
+    const success = await deleteWebhook(id);
 
     if (!success) {
       return NextResponse.json({ error: 'Webhook not found or not authorized' }, { status: 404 });

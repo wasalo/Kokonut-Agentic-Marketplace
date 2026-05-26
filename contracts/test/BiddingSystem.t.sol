@@ -537,6 +537,32 @@ contract BiddingSystemTest is Test {
         assertTrue(session.jobCreated);
         assertEq(uint8(session.status), 3); // JobCreated
     }
+
+    function testWithdrawCreatorStakeRevertsAfterJobCreation() public {
+        uint256 sessionId = _createSession(creator, 10 ether, 7 days);
+        uint256 bidAmount = 5 ether;
+        uint256 platformFee = (bidAmount * 100) / 10000;
+
+        _commitBid(sessionId, bidder1, bidAmount, "Great work", bytes32(uint256(0x1111)));
+
+        vm.warp(block.timestamp + 7 days + 30 minutes);
+        vm.prank(bidder1);
+        bidding.revealBid(sessionId, bidAmount, "Great work", bytes32(uint256(0x1111)));
+
+        vm.prank(creator);
+        bidding.acceptBid(sessionId, 1);
+
+        vm.prank(creator);
+        bidding.createJobAndFund{value: bidAmount + platformFee}(
+            sessionId,
+            block.timestamp + 30 days,
+            "Build a dApp"
+        );
+
+        vm.prank(creator);
+        vm.expectRevert(abi.encodeWithSelector(BiddingSystem.BiddingSystem__Stake_already_withdrawn.selector));
+        bidding.withdrawCreatorStake(sessionId);
+    }
     
     function testCreateJobAndFundRevertNoWinner() public {
         uint256 sessionId = _createSession(creator, 10 ether, 7 days);
@@ -568,7 +594,26 @@ contract BiddingSystemTest is Test {
         
         assertEq(creator.balance, balanceBefore + stake);
     }
-    
+
+    function testWithdrawCreatorStakeRevertsAfterCancelAndDoesNotDrainBidderStake() public {
+        uint256 sessionId = _createSession(creator, 10 ether, 7 days);
+        uint256 stake = bidding.calculateStake(10 ether);
+
+        _commitBid(sessionId, bidder1, 5 ether, "Proposal", bytes32(uint256(0x1111)));
+
+        vm.prank(creator);
+        bidding.cancelSession(sessionId);
+
+        vm.prank(creator);
+        vm.expectRevert(abi.encodeWithSelector(BiddingSystem.BiddingSystem__Stake_already_withdrawn.selector));
+        bidding.withdrawCreatorStake(sessionId);
+
+        uint256 bidderBalanceBefore = bidder1.balance;
+        vm.prank(bidder1);
+        bidding.withdrawStake(sessionId);
+        assertEq(bidder1.balance, bidderBalanceBefore + stake);
+    }
+     
     function testCancelSessionRevertAfterReveal() public {
         uint256 sessionId = _createSession(creator, 10 ether, 7 days);
         _commitBid(sessionId, bidder1, 5 ether, "Proposal", bytes32(uint256(0x1111)));

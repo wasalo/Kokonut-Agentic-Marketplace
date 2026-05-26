@@ -1,5 +1,3 @@
-'use client';
-
 import type { WebhookEventType } from '@/lib/webhooks';
 
 export interface TriggerWebhookOptions {
@@ -14,11 +12,17 @@ export async function triggerWebhooks(options: TriggerWebhookOptions): Promise<{
   failed?: number;
 }> {
   try {
+    const headers: Record<string, string> = {
+      'Content-Type': 'application/json',
+    };
+
+    if (typeof window === 'undefined' && process.env.CRON_SECRET) {
+      headers.Authorization = `Bearer ${process.env.CRON_SECRET}`;
+    }
+
     const response = await fetch('/api/webhooks/trigger', {
       method: 'POST',
-      headers: {
-        'Content-Type': 'application/json',
-      },
+      headers,
       body: JSON.stringify({
         event: options.event,
         data: options.data || {},

@@ -1,32 +1,44 @@
 'use client';
 
 import { useCallback } from 'react';
-import { useAccount } from 'wagmi';
+import { useAccount, useWalletClient } from 'wagmi';
 import {
   useWebhookStore,
   type WebhookRegistration,
   type WebhookUpdate,
 } from '@/lib/webhooks';
+import { createOwnerAuthHeaders } from '@/lib/client-auth';
 
 export function useWebhooks() {
   const { address } = useAccount();
+  const { data: walletClient } = useWalletClient();
   const {
     getWebhook,
     getWebhooksByOwner,
     getActiveWebhooksForEvent,
   } = useWebhookStore();
 
+  const getAuthHeaders = useCallback(async () => {
+    if (!address || !walletClient) {
+      throw new Error('Wallet not connected');
+    }
+
+    return createOwnerAuthHeaders(address, walletClient);
+  }, [address, walletClient]);
+
   const createWebhook = useCallback(
     async (registration: WebhookRegistration) => {
-      if (!address) {
+      if (!address || !walletClient) {
         throw new Error('Wallet not connected');
       }
+
+      const authHeaders = await getAuthHeaders();
 
       const response = await fetch('/api/webhooks', {
         method: 'POST',
         headers: {
           'Content-Type': 'application/json',
-          'x-owner-address': address,
+          ...authHeaders,
         },
         body: JSON.stringify(registration),
       });
@@ -39,20 +51,22 @@ export function useWebhooks() {
 
       return data.webhook;
     },
-    [address]
+    [address, walletClient, getAuthHeaders]
   );
 
   const editWebhook = useCallback(
     async (id: string, update: WebhookUpdate) => {
-      if (!address) {
+      if (!address || !walletClient) {
         throw new Error('Wallet not connected');
       }
+
+      const authHeaders = await getAuthHeaders();
 
       const response = await fetch(`/api/webhooks/${id}`, {
         method: 'PATCH',
         headers: {
           'Content-Type': 'application/json',
-          'x-owner-address': address,
+          ...authHeaders,
         },
         body: JSON.stringify(update),
       });
@@ -65,20 +79,20 @@ export function useWebhooks() {
 
       return data.webhook;
     },
-    [address]
+    [address, walletClient, getAuthHeaders]
   );
 
   const removeWebhook = useCallback(
     async (id: string) => {
-      if (!address) {
+      if (!address || !walletClient) {
         throw new Error('Wallet not connected');
       }
 
+      const authHeaders = await getAuthHeaders();
+
       const response = await fetch(`/api/webhooks/${id}`, {
         method: 'DELETE',
-        headers: {
-          'x-owner-address': address,
-        },
+        headers: authHeaders,
       });
 
       const data = await response.json();
@@ -89,31 +103,38 @@ export function useWebhooks() {
 
       return true;
     },
-    [address]
+    [address, walletClient, getAuthHeaders]
   );
 
   const listWebhooks = useCallback(async () => {
-    if (!address) {
+    if (!address || !walletClient) {
       return [];
     }
 
+    const authHeaders = await getAuthHeaders();
+
     const response = await fetch('/api/webhooks', {
-      headers: {
-        'x-owner-address': address,
-      },
+      headers: authHeaders,
     });
 
     const data = await response.json();
     return data.webhooks || [];
-  }, [address]);
+  }, [address, walletClient, getAuthHeaders]);
 
-  const triggerTestEvent = useCallback(async (_webhookId: string) => {
+  const triggerTestEvent = useCallback(async (webhookId: string) => {
+    if (!address || !walletClient) {
+      throw new Error('Wallet not connected');
+    }
+
+    const authHeaders = await getAuthHeaders();
     const response = await fetch('/api/webhooks/trigger', {
       method: 'POST',
       headers: {
         'Content-Type': 'application/json',
+        ...authHeaders,
       },
       body: JSON.stringify({
+        webhookId,
         event: 'job.created',
         data: {
           test: true,
@@ -124,7 +145,7 @@ export function useWebhooks() {
 
     const data = await response.json();
     return data;
-  }, []);
+  }, [address, walletClient, getAuthHeaders]);
 
   return {
     webhooks: address ? getWebhooksByOwner(address) : [],
@@ -141,21 +162,22 @@ export function useWebhooks() {
 
 export function useWebhookDelivery(webhookId: string) {
   const { address } = useAccount();
+  const { data: walletClient } = useWalletClient();
 
   const fetchDeliveries = useCallback(async () => {
-    if (!address) {
+    if (!address || !walletClient) {
       return [];
     }
 
+    const authHeaders = await createOwnerAuthHeaders(address, walletClient);
+
     const response = await fetch(`/api/webhooks/${webhookId}/deliveries`, {
-      headers: {
-        'x-owner-address': address,
-      },
+      headers: authHeaders,
     });
 
     const data = await response.json();
     return data;
-  }, [address, webhookId]);
+  }, [address, walletClient, webhookId]);
 
   return { fetchDeliveries };
 }

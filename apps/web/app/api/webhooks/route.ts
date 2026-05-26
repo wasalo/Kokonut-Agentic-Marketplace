@@ -1,6 +1,7 @@
 import { NextRequest, NextResponse } from 'next/server';
 import { createWebhook, getWebhooks, getDeliveries } from '@/lib/db/webhooks';
 import { rateLimit } from '@/lib/rate-limit';
+import { requireAuthenticatedOwner } from '@/lib/api-auth';
 
 /**
  * @swagger
@@ -162,13 +163,9 @@ export async function POST(request: NextRequest) {
       return NextResponse.json({ error: 'Invalid event types', invalidEvents }, { status: 400 });
     }
 
-    const owner = request.headers.get('x-owner-address');
-    if (!owner) {
-      return NextResponse.json(
-        { error: 'Owner address required in x-owner-address header' },
-        { status: 401 }
-      );
-    }
+    const auth = await requireAuthenticatedOwner(request);
+    if ('response' in auth) return auth.response;
+    const owner = auth.owner;
 
     const webhook = await createWebhook({
       owner,
@@ -198,13 +195,9 @@ export async function POST(request: NextRequest) {
 
 export async function GET(request: NextRequest) {
   try {
-    const owner = request.headers.get('x-owner-address');
-    if (!owner) {
-      return NextResponse.json(
-        { error: 'Owner address required in x-owner-address header' },
-        { status: 401 }
-      );
-    }
+    const auth = await requireAuthenticatedOwner(request);
+    if ('response' in auth) return auth.response;
+    const owner = auth.owner;
 
     const webhooks = await getWebhooks(owner);
 

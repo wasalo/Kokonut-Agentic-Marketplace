@@ -3,6 +3,7 @@ import { z } from 'zod';
 import { useEmailStore } from '@/lib/emails/store';
 import { renderEmail, type TemplateData } from '@/lib/emails/templates';
 import type { EmailTemplateType } from '@/lib/emails/types';
+import { requireInternalBearer } from '@/lib/api-auth';
 
 const RESEND_API_KEY = process.env.RESEND_KEY;
 
@@ -60,10 +61,8 @@ async function sendViaResend(
 
 export async function POST(request: NextRequest) {
   try {
-    const owner = request.headers.get('x-owner-address');
-    if (!owner) {
-      return NextResponse.json({ error: 'Authentication required. Provide x-owner-address header.' }, { status: 401 });
-    }
+    const authError = requireInternalBearer(request);
+    if (authError) return authError;
 
     const body = await request.json();
 
@@ -96,7 +95,7 @@ export async function POST(request: NextRequest) {
 
     const result = await sendViaResend(to, subject, html);
 
-    const deliveries = useEmailStore.getState().getDeliveries(owner);
+    const deliveries = useEmailStore.getState().getDeliveries(to);
     const delivery = deliveries[deliveries.length - 1];
     if (delivery) {
       useEmailStore.getState().updateDelivery(delivery.id, {

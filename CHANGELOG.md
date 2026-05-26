@@ -5,6 +5,99 @@ All notable changes to the Kokonut Agent Economy Stack are documented in this fi
 The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.0.0/),
 and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0.html).
 
+## [2026-05-25] — Phase 34b: Multi-Audit Remediation + Security Hardening + Storage Recovery
+
+### 🚨 Critical: Storage Corruption Recovery (AgenticCommerceV9)
+
+**Root Cause:** Initial Phase 34 implementation (`0x09ce...`) inserted `minEvaluatorStake` before existing state variables, corrupting the storage layout. `minBudgetUsd` read from slot 1 (was `platformTreasury`), `maxBudgetUsd` read from slot 2 (was `jobs` mapping base), and `priceOracle` read from slot 7 (was `jobDisputeWindow`).
+
+**Fix:** Deployed storage-compatible recovery implementation (`0x0E047...`) appended `minEvaluatorStake` after existing state + reduced `__gap` from 47→46 slots. All post-upgrade state variables verified correct.
+
+### 🔒 Smart Contract Security Patches
+
+#### AgenticCommerceV9 — Unauthorized `createJobForClient` Fix
+
+| Change | Detail |
+|--------|--------|
+| **New mapping** | `authorizedJobCreators(address => bool)` — whitelist of addresses allowed to call `createJobForClient` |
+| **New setter** | `setAuthorizedJobCreator(address creator, bool authorized)` — `onlyOwner` |
+| **New event** | `AuthorizedJobCreatorUpdated(address indexed creator, bool authorized)` |
+| **Impact** | Prevents griefing attack where any address could increment victim's `clientJobCount` without creating real jobs |
+
+#### BiddingSystem — Creator Stake Double-Withdrawal Fix
+
+| Change | Detail |
+|--------|--------|
+| **Patch** | `withdrawCreatorStake()` now permanently reverts with `BiddingSystem__Session_has_job()` |
+| **Impact** | Prevents creator from withdrawing stake after `createJobAndFund()` has already created the job and refunded creator stake synchronously |
+
+#### AgentReviewV5 — Stake/Reward Accounting Fix
+
+| Change | Detail |
+|--------|--------|
+| **Patch** | `_distributeProportionalRewards()` now gives winner their stake + reward share; non-winners retain stake for `releaseStake()` |
+| **Impact** | Prevents winner from double-claiming via `claimReward()` then `releaseStake()`; `claimReward()` now requires `isWinner` |
+
+#### MilestoneEscrowV2 — Per-Job Custody Hotfix
+
+| Change | Detail |
+|--------|--------|
+| **Patch** | Milestone balances now tracked per-job (`milestoneEscrowBalance[jobId]`) instead of pooled; `releaseMilestone` only releases from matching job balance |
+| **Impact** | Prevents fake milestone drain attack where unrelated job's escrow balance could be released |
+
+### 🛡️ API Auth Hardening
+
+| Route | Before | After |
+|-------|--------|-------|
+| `/api/webhooks/*` | Plain `x-owner-address` header | Wallet-signed message auth (`x-kokonut-auth-signature` + timestamp, 5-min window) |
+| `/api/webhooks/trigger` | Open | Dual auth: internal bearer OR signed owner |
+| `/api/cron/*` | Open | Bearer-token auth (`CRON_SECRET`), fails closed if missing |
+| `/api/emails/send` | Open | Internal bearer auth (`INTERNAL_API_SECRET`) |
+| `/api/push/send` | Open | Dual auth: internal bearer OR signed owner |
+| `/api/x402/pay` | User-supplied facilitator URL | Facilitator allowlist from `X402_FACILITATOR_ALLOWLIST`; rejects arbitrary URLs |
+
+**Client-side:** All hooks (`useWebhooks`, `usePushNotifications`, `EmailPreferencesForm`) now sign auth headers via `viem.signMessage`.
+
+### 🔧 SDK / Frontend / Config Drift Fixes
+
+| Fix | File | Detail |
+|-----|------|--------|
+| `commitBid` hash alignment | `sdk/typescript/client.ts` | Now uses `keccak256(encodeAbiParameters([uint256, string, bytes32], [amount, message, salt]))` matching Solidity |
+| Native milestone ABIs | `abis.ts` (web + sdk) | Added `fundMilestones`, `milestoneEscrowBalance`, `withdrawToken`; marked `registerAsArbiter` and `flagDispute` `payable` |
+| Subgraph `JobCompleted` event | `subgraph.yaml`, `AgenticCommerce.json`, `agentic-commerce.ts` | Updated signature to `(indexed uint256, indexed address, indexed address, uint256)` |
+| Native ETH job detection | `app/jobs/[id]/page.tsx` | Uses `getTokenByAddress()` instead of hardcoded USDC fallback |
+| MCP server addresses | `packages/mcp-server/src/client.ts`, `resources/index.ts` | Synced priceOracle + milestoneEscrow addresses |
+
+### 🏗️ Storage Layout CI Hardening
+
+| Change | Detail |
+|--------|--------|
+| `foundry.toml` | Added `extra_output = ["storageLayout"]` |
+| `scripts/check-storage-layout.js` | Now uses `--json`, runs from repo root, `--write` flag, rejects empty/missing baselines |
+| `contracts/storage-layout-baseline.json` | Regenerated with real JSON layouts for all 10 UUPS contracts |
+| CI gate | Storage layout check now fails closed (no longer passes on `{}`) |
+
+### 📦 Deployment (Sepolia)
+
+| Contract | Proxy | Implementation (CURRENT) | Status |
+|----------|-------|--------------------------|--------|
+| `AgenticCommerceV9` | `0x3a1Bc03cC84040A282F6bf238b917D8351499239` | `0x40b4029dDd11fb0177B28B2d3537B073Da96b0c4` | ✅ Verified |
+| `MilestoneEscrowV2` | `0xc89D63057288092012c5D3cEF66121C1F8449a9f` | `0x8F9Bae14966Af0BceE5c291A764cE3503f9D49F3` | ✅ Verified |
+| `BiddingSystem` | `0x4D7F38C6A9DE5De44A7B789962B7A2B06bFE8fd6` | `0x9FfE85CBC78144B1bAd32d2Fd61a1fdc3740f047` | ✅ Verified |
+| `AgentReviewV5` | `0x5CDb592Fd37749bF87448FBf5725D1Cd986dd1Cb` | `0xb87Af66B11B00E5341990A9f05c934c2e66181fd` | ✅ Verified |
+
+> **Superseded implementations:** `0x09ce...` (AgenticCommerceV9), `0x11AA...` (MilestoneEscrowV2), `0xE8E1...` (BiddingSystem), `0xa921...` (AgentReviewV5) — do not use.
+
+### ✅ Verification
+
+- **Build**: 0 warnings, 0 errors
+- **Tests**: 319/319 passing (306 existing + 13 new regression tests)
+- **Type-check**: 0 errors
+- **Lint**: Clean
+- **Etherscan**: All 4 implementations verified
+
+---
+
 ## [2026-05-24] — Phase 34: Native Currency Refactor + Dashboard UI Unification
 
 ### ⛓️ Native Currency Architecture (Role Stakes)
@@ -60,10 +153,14 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ### 📦 Deployment (Sepolia)
 
-| Contract | Proxy | Implementation (NEW) | Status |
-|----------|-------|---------------------|--------|
-| `AgenticCommerceV9` | `0x3a1Bc03cC84040A282F6bf238b917D8351499239` | `0x09ce4753148CD3652E13D3f824E1E5Dc478B2688` | ✅ Verified |
-| `MilestoneEscrowV2` | `0xc89D63057288092012c5D3cEF66121C1F8449a9f` | `0x11AAc9e99300F783Ad7BdfE7899C7f86CF8A1A74` | ✅ Verified |
+| Contract | Proxy | Implementation (CURRENT) | Status |
+|----------|-------|--------------------------|--------|
+| `AgenticCommerceV9` | `0x3a1Bc03cC84040A282F6bf238b917D8351499239` | `0x40b4029dDd11fb0177B28B2d3537B073Da96b0c4` | ✅ Verified |
+| `MilestoneEscrowV2` | `0xc89D63057288092012c5D3cEF66121C1F8449a9f` | `0x8F9Bae14966Af0BceE5c291A764cE3503f9D49F3` | ✅ Verified |
+| `BiddingSystem` | `0x4D7F38C6A9DE5De44A7B789962B7A2B06bFE8fd6` | `0x9FfE85CBC78144B1bAd32d2Fd61a1fdc3740f047` | ✅ Verified |
+| `AgentReviewV5` | `0x5CDb592Fd37749bF87448FBf5725D1Cd986dd1Cb` | `0xb87Af66B11B00E5341990A9f05c934c2e66181fd` | ✅ Verified |
+
+> **Note:** Initial Phase 34 implementations (`0x09ce...` AgenticCommerceV9, `0x11AA...` MilestoneEscrowV2) were superseded by storage-recovery and security patches.
 
 ### ✅ Verification
 

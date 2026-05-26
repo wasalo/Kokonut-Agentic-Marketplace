@@ -459,10 +459,10 @@ export const NETWORKS: Record<NetworkName, NetworkConfig> = {
       // Phase 11: BiddingSystem (Standalone commit-reveal bidding)
       biddingSystem: '0x4D7F38C6A9DE5De44A7B789962B7A2B06bFE8fd6',
       agentReview: '0x5CDb592Fd37749bF87448FBf5725D1Cd986dd1Cb', // AgentReviewV5
-      priceOracle: '0x32fD2A54B722D2048A052fD0456004483a683aFE', // PriceOracleV2
+      priceOracle: '0x29c27a26DD2F80f840cb4D7B5E53b7db3D67143d', // PriceOracleV2
       commitReveal: '0x85F193670fCb7B0c97D55E70Bf2a950b1065Fb3a',
       slashManager: '0x1B8373cDF4f2eD740c3478e0129f0B8494CE4Fa3',
-      milestoneEscrow: '0xd4Fdc345b1c6aF1B4Cc84339bcB251B33527Eb45', // MilestoneEscrowV2
+      milestoneEscrow: '0xc89D63057288092012c5D3cEF66121C1F8449a9f', // MilestoneEscrowV2
       adminRegistry: '0xC81C864CEAb6231ad764cf9867e031D8b6dee41d', // AdminRegistry Phase 29e UUPS proxy
       usdc: '0x1c7D4B196Cb0C7B01d743Fbc6116a902379C7238',
     },

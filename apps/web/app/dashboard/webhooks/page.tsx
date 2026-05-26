@@ -304,7 +304,7 @@ function CreateWebhookForm({
 
 export default function WebhooksPage() {
   const { address, isConnected } = useAccount();
-  const { createWebhook, removeWebhook, triggerTestEvent } = useWebhooks();
+  const { createWebhook, removeWebhook, triggerTestEvent, listWebhooks } = useWebhooks();
   const [showCreateForm, setShowCreateForm] = useState(false);
   const [isLoading, setIsLoading] = useState(true);
   const [serverWebhooks, setServerWebhooks] = useState<WebhookType[]>([]);
@@ -321,11 +321,8 @@ export default function WebhooksPage() {
       }
 
       try {
-        const response = await fetch('/api/webhooks', {
-          headers: { 'x-owner-address': address as string },
-        });
-        const data = await response.json();
-        setServerWebhooks(data.webhooks || []);
+        const webhooks = await listWebhooks();
+        setServerWebhooks(webhooks);
       } catch (error) {
         console.error('Failed to fetch webhooks:', error);
       } finally {
@@ -334,15 +331,12 @@ export default function WebhooksPage() {
     };
 
     fetchWebhooks();
-  }, [address]);
+  }, [address, listWebhooks]);
 
   const handleCreate = async (registration: WebhookRegistration) => {
     await createWebhook(registration);
-    const response = await fetch('/api/webhooks', {
-      headers: { 'x-owner-address': address as string },
-    });
-    const data = await response.json();
-    setServerWebhooks(data.webhooks || []);
+    const webhooks = await listWebhooks();
+    setServerWebhooks(webhooks);
     setShowCreateForm(false);
   };
 

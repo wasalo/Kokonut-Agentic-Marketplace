@@ -1,7 +1,8 @@
 'use client';
 
 import { useState, useEffect, useCallback } from 'react';
-import { useAccount } from 'wagmi';
+import { useAccount, useWalletClient } from 'wagmi';
+import { createOwnerAuthHeaders } from '@/lib/client-auth';
 
 const VAPID_PUBLIC_KEY = process.env.NEXT_PUBLIC_VAPID_PUBLIC_KEY || '';
 
@@ -16,6 +17,7 @@ interface PushSubscriptionState {
 
 export function usePushNotifications() {
   const { address, isConnected } = useAccount();
+  const { data: walletClient } = useWalletClient();
   const [state, setState] = useState<PushSubscriptionState>({
     supported: false,
     permission: 'default',
@@ -162,13 +164,15 @@ export function usePushNotifications() {
   }, [state.subscription, address]);
 
   const sendTestNotification = useCallback(async () => {
-    if (!state.subscription) return;
+    if (!state.subscription || !address || !walletClient) return;
 
     try {
+      const authHeaders = await createOwnerAuthHeaders(address, walletClient);
       await fetch('/api/push/send', {
         method: 'POST',
         headers: {
           'Content-Type': 'application/json',
+          ...authHeaders,
         },
         body: JSON.stringify({
           subscription: state.subscription.toJSON(),
@@ -180,7 +184,7 @@ export function usePushNotifications() {
     } catch (error) {
       console.error('Error sending test notification:', error);
     }
-  }, [state.subscription]);
+  }, [state.subscription, address, walletClient]);
 
   return {
     ...state,

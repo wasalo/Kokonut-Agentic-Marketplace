@@ -80,7 +80,7 @@ import { DeliverableDisplay } from '@/components/jobs/DeliverableDisplay';
 import { JobSettingsCard } from '@/components/jobs/JobSettingsCard';
 import { FeedbackCard } from '@/components/jobs/FeedbackCard';
 import { BiddingSectionForProvider } from '@/components/jobs/BiddingSectionForProvider';
-import { amountToNumber } from '@/lib/tokenUtils';
+import { amountToNumber, getTokenByAddress } from '@/lib/tokenUtils';
 
 export default function JobDetailPage({
   params,
@@ -361,18 +361,12 @@ export default function JobDetailPage({
 
   // Determine if job uses USDC or ETH - defined before early returns to maintain hooks order
   // Note: Uses fallback values since job might be undefined at this point
-  const isUSDC = job 
-    ? (job.paymentToken && job.paymentToken.toLowerCase() !== '0x0000000000000000000000000000000000000000'
-      ? SUPPORTED_TOKENS.find(t => t.address.toLowerCase() === job.paymentToken.toLowerCase())?.symbol === 'USDC'
-      : true)
-    : true;
+  const jobPaymentToken = job ? getTokenByAddress(job.paymentToken) : SUPPORTED_TOKENS[0];
+  const isUSDC = jobPaymentToken.symbol === 'USDC';
 
   useEffect(() => {
     if (!job?.paymentToken) return;
-    const token = SUPPORTED_TOKENS.find(
-      item => item.address.toLowerCase() === job.paymentToken.toLowerCase()
-    );
-    if (token) setSelectedPaymentToken(token);
+    setSelectedPaymentToken(getTokenByAddress(job.paymentToken));
   }, [job?.paymentToken]);
 
   // Auto-fund job after approval confirms in unified flow - MUST be before early returns
@@ -618,10 +612,7 @@ export default function JobDetailPage({
                 <button
                   onClick={() => {
                     // Check if payment token is set for direct jobs
-                    if (
-                      !job.paymentToken ||
-                      job.paymentToken === '0x0000000000000000000000000000000000000000'
-                    ) {
+                    if (!job.paymentToken) {
                       setShowPaymentTokenModal(true);
                       return;
                     }
@@ -857,7 +848,7 @@ export default function JobDetailPage({
                   <div className="text-left">
                     <p className="font-medium">Claim Refund</p>
                     <p className="text-xs text-default-500">
-                      Job has expired — reclaim ${formattedBudget} USDC
+                      Job has expired — reclaim {formattedBudget} {jobPaymentToken.symbol}
                     </p>
                   </div>
                 </button>

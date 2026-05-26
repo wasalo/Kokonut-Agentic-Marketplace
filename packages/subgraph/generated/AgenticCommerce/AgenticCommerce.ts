@@ -215,8 +215,16 @@ export class JobCompleted__Params {
     return this._event.parameters[0].value.toBigInt();
   }
 
-  get deliverable(): Bytes {
-    return this._event.parameters[1].value.toBytes();
+  get by(): Address {
+    return this._event.parameters[1].value.toAddress();
+  }
+
+  get provider(): Address {
+    return this._event.parameters[2].value.toAddress();
+  }
+
+  get evaluatorFee(): BigInt {
+    return this._event.parameters[3].value.toBigInt();
   }
 }
 

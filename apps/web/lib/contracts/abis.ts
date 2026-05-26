@@ -337,14 +337,16 @@ export const MILESTONE_ESCROW_ABI = parseAbi([
   // Milestone Management
   'function enableMilestones(uint256 jobId, address client, address provider, address paymentToken, uint256 totalBudget) external',
   'function addMilestone(uint256 jobId, uint256 amount, string description, uint256 dueDate) external',
+  'function fundMilestones(uint256 jobId, uint256 amount) external payable',
   'function submitMilestone(uint256 jobId, uint256 milestoneIndex, bytes32 proofHash) external',
   'function releaseMilestone(uint256 jobId, uint256 milestoneIndex) external',
   'function getJobMilestones(uint256 jobId) external view returns ((string description, uint256 amount, uint256 dueDate, bool completed, bool released, bytes32 proofHash)[] memory)',
   'function jobMilestones(uint256) external view returns (address client, address provider, address paymentToken, uint256 totalBudget, bool usesMilestones)',
+  'function milestoneEscrowBalance(uint256 jobId) external view returns (uint256)',
   'function milestoneTotalAmount(uint256) external view returns (uint256)',
 
-  // Arbiter System (V2: ERC20 token staking)
-  'function registerAsArbiter(address token, uint256 amount) external',
+  // Arbiter System (V2: token staking, address(0) for native)
+  'function registerAsArbiter(address token, uint256 amount) external payable',
   'function unregisterAsArbiter() external',
   'function getArbiterStake(address arbiter) external view returns (uint256)',
   'function getArbiterStakeToken(address arbiter) external view returns (address)',
@@ -353,9 +355,10 @@ export const MILESTONE_ESCROW_ABI = parseAbi([
   'function arbiterStakes(address) external view returns (uint256)',
   'function isRegisteredArbiter(address) external view returns (bool)',
   'function slashArbiter(address arbiter, string calldata reason) external',
+  'function withdrawToken(address token, uint256 amount) external',
 
-  // Dispute System (V2: ERC20 fee payment)
-  'function flagDispute(uint256 jobId, uint256 milestoneIndex) external',
+  // Dispute System (V2: payment-token fee, address(0) for native)
+  'function flagDispute(uint256 jobId, uint256 milestoneIndex) external payable',
   'function submitEvidence(uint256 jobId, bytes32 evidenceHash) external',
   'function resolveDispute(uint256 jobId, bool releaseToProvider) external',
   'function getDispute(uint256 jobId) external view returns (uint256 jobId, address flagger, address arbiter, uint256 flaggedAt, bool resolved, bool releaseToProvider, uint256 feePaid, uint256 milestoneIndex)',
@@ -369,6 +372,7 @@ export const MILESTONE_ESCROW_ABI = parseAbi([
 // MilestoneEscrow Events
 export const MILESTONE_ESCROW_EVENTS = parseAbi([
   'event MilestoneEnabled(uint256 indexed jobId)',
+  'event MilestoneFunded(uint256 indexed jobId, address indexed funder, address token, uint256 amount)',
   'event MilestoneAdded(uint256 indexed jobId, uint256 indexed milestoneIndex, string description, uint256 amount)',
   'event MilestoneCompleted(uint256 indexed jobId, uint256 indexed milestoneIndex, bytes32 proofHash)',
   'event MilestoneReleased(uint256 indexed jobId, uint256 indexed milestoneIndex, uint256 amount)',

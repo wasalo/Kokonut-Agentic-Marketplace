@@ -3,7 +3,7 @@
  * Type-safe client for interacting with the Kokonut Agent Economy Stack
  */
 
-import { createPublicClient, createWalletClient, http, custom, type Address } from 'viem';
+import { createPublicClient, createWalletClient, http, custom, encodeAbiParameters, keccak256, type Address } from 'viem';
 import { privateKeyToAccount } from 'viem/accounts';
 import { EFPModule } from './efp';
 import { SubgraphModule } from './subgraph';
@@ -2130,11 +2130,18 @@ class BiddingSystemModule {
     salt?: string;
   }): Promise<TransactionResult & { salt: string; commitHash: `0x${string}` }> {
     const saltBytes = params.salt
-      ? Buffer.from(params.salt, 'hex')
+      ? Buffer.from(params.salt.replace(/^0x/, ''), 'hex')
       : (globalThis.crypto?.getRandomValues?.(new Uint8Array(32))
           || new Uint8Array(32).map(() => Math.floor(Math.random() * 256)));
-    const salt = Buffer.from(saltBytes).toString('hex');
-    const commitHash = `0x${salt}`;
+    const salt = `0x${Buffer.from(saltBytes).toString('hex')}` as `0x${string}`;
+    const commitHash = keccak256(encodeAbiParameters(
+      [
+        { type: 'uint256' },
+        { type: 'string' },
+        { type: 'bytes32' },
+      ],
+      [params.amount, params.message, salt]
+    ));
     const stake = (params.amount * 100n) / 10000n;
 
     const hash = await this.wallet.writeContract({
@@ -2149,7 +2156,7 @@ class BiddingSystemModule {
     return {
       hash,
       salt,
-      commitHash: commitHash as `0x${string}`,
+      commitHash,
       wait: () => this.publicClient.waitForTransactionReceipt({ hash }),
     };
   }
@@ -2164,7 +2171,7 @@ class BiddingSystemModule {
       address: this.contracts.biddingSystem! as Address,
       abi: BIDDING_SYSTEM_ABI,
       functionName: 'revealBid',
-      args: [params.sessionId, params.amount, params.message, params.salt as `0x${string}`],
+      args: [params.sessionId, params.amount, params.message, (params.salt.startsWith('0x') ? params.salt : `0x${params.salt}`) as `0x${string}`],
     } as any);
 
 

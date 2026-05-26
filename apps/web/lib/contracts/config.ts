@@ -42,12 +42,12 @@ const sepoliaContracts = {
   serviceRegistryImpl: '0xb75B02D4523171ABdB6f5bcB9D60903ed3e30fAD', // Phase 29e: blacklist recheck
   // Phase 29: V9 - Multi-token configurable minimum budgets
   agenticCommerce: '0x3a1Bc03cC84040A282F6bf238b917D8351499239',
-  agenticCommerceImpl: '0xFBC2b30c1275277D3d47A00F0D98d9D465830A78', // Phase 32: Slither remediation
+  agenticCommerceImpl: '0x40b4029dDd11fb0177B28B2d3537B073Da96b0c4', // Phase 34: auth patch
   // Phase 11: BiddingSystem - Standalone commit-reveal bidding
   biddingSystem: '0x4D7F38C6A9DE5De44A7B789962B7A2B06bFE8fd6',
-  biddingSystemImpl: '0xE8E101ca8Fdd2A4c0633cc4d008c88BC03b32bEe', // Phase 32: reentrancy guard fix
+  biddingSystemImpl: '0x9FfE85CBC78144B1bAd32d2Fd61a1fdc3740f047', // Phase 34: creator stake patch
   agentReview: '0x5CDb592Fd37749bF87448FBf5725D1Cd986dd1Cb', // AgentReviewV5
-  agentReviewImpl: '0xa921f01c0617dF72e2aAAe641AF800b760BA6855', // Phase 32: zero-check + nonReentrant
+  agentReviewImpl: '0xb87Af66B11B00E5341990A9f05c934c2e66181fd', // Phase 34: stake/reward patch
   commitReveal: '0x85F193670fCb7B0c97D55E70Bf2a950b1065Fb3a',
   commitRevealImpl: '0x0456fb2B6ef68B9133B22809D48D4f3748bEf87C', // Phase 29f: OZ v5 compat
   slashManager: '0x1B8373cDF4f2eD740c3478e0129f0B8494CE4Fa3',
@@ -55,7 +55,7 @@ const sepoliaContracts = {
 
   // Phase 29: MilestoneEscrowV2 - Per-token arbiter fees + USDC staking
   milestoneEscrow: '0xc89D63057288092012c5D3cEF66121C1F8449a9f',
-  milestoneEscrowImpl: '0x3054765C7f00A6180C759DA78F4Eba06a0D19621', // Phase 32: blockhash entropy + zero-check
+  milestoneEscrowImpl: '0x8F9Bae14966Af0BceE5c291A764cE3503f9D49F3', // Phase 34: isolated milestone custody
 
   // Phase 29: PriceOracleV2 - UUPS upgradeable per-token feeds
   priceOracle: '0x29c27a26DD2F80f840cb4D7B5E53b7db3D67143d',
@@ -176,12 +176,12 @@ export const CONTRACT_ADDRESSES = {
     serviceRegistryImpl: '0xb75B02D4523171ABdB6f5bcB9D60903ed3e30fAD', // Phase 29e: blacklist recheck
     // Phase 29: V9 - Multi-token configurable minimum budgets
   agenticCommerce: '0x3a1Bc03cC84040A282F6bf238b917D8351499239',
-  agenticCommerceImpl: '0x19b291298F113a99b4f21AaB1ceAb931a6911023', // Phase 30: H-02 evaluator randomness
+  agenticCommerceImpl: '0x40b4029dDd11fb0177B28B2d3537B073Da96b0c4', // Phase 34: auth patch
     // Phase 11: BiddingSystem - Standalone commit-reveal bidding
   biddingSystem: '0x4D7F38C6A9DE5De44A7B789962B7A2B06bFE8fd6',
-  biddingSystemImpl: '0xB225dc036a522755A91f368069613A768Bb1041e', // Phase 30: H-01 ERC1967 proxy
+  biddingSystemImpl: '0x9FfE85CBC78144B1bAd32d2Fd61a1fdc3740f047', // Phase 34: creator stake patch
     agentReview: '0x5CDb592Fd37749bF87448FBf5725D1Cd986dd1Cb', // AgentReviewV5
-  agentReviewImpl: '0x1c3513BC838059e2Fa71e60e92317Eef51688B6e', // Phase 29f: OZ v5 compat
+  agentReviewImpl: '0xb87Af66B11B00E5341990A9f05c934c2e66181fd', // Phase 34: stake/reward patch
     commitReveal: '0x85F193670fCb7B0c97D55E70Bf2a950b1065Fb3a',
   commitRevealImpl: '0x0456fb2B6ef68B9133B22809D48D4f3748bEf87C', // Phase 29f: OZ v5 compat
     slashManager: '0x1B8373cDF4f2eD740c3478e0129f0B8494CE4Fa3',
@@ -189,7 +189,7 @@ export const CONTRACT_ADDRESSES = {
 
     // Phase 29: MilestoneEscrowV2 - Per-token arbiter fees + USDC staking
     milestoneEscrow: '0xc89D63057288092012c5D3cEF66121C1F8449a9f',
-  milestoneEscrowImpl: '0x74903fBdfbb99275B5F4e12fF00504F9f7C24E71', // Phase 30: H-04 slashed funds
+  milestoneEscrowImpl: '0x8F9Bae14966Af0BceE5c291A764cE3503f9D49F3', // Phase 34: isolated milestone custody
 
     // Phase 29: PriceOracleV2 - UUPS upgradeable per-token feeds
     priceOracle: '0x29c27a26DD2F80f840cb4D7B5E53b7db3D67143d',

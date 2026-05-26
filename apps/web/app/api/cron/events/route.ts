@@ -12,6 +12,7 @@ import {
   releaseCronLock,
 } from '@/lib/db/events';
 import { triggerWebhooks } from '@/lib/webhooks/trigger';
+import { requireCronBearer } from '@/lib/api-auth';
 
 const CHAIN_ID = 11155111;
 const AGENTIC_COMMERCE_ADDRESS = getContractAddress('AGENTIC_COMMERCE');
@@ -46,12 +47,8 @@ const EVENT_TO_WEBHOOK: Record<ContractEvent, string> = {
 };
 
 export async function GET(request: NextRequest) {
-  const authHeader = request.headers.get('authorization');
-  const cronSecret = process.env.CRON_SECRET;
-
-  if (cronSecret && authHeader !== `Bearer ${cronSecret}`) {
-    return NextResponse.json({ error: 'Unauthorized' }, { status: 401 });
-  }
+  const authError = requireCronBearer(request);
+  if (authError) return authError;
 
   const lockAcquired = await acquireCronLock('event-watcher', 5 * 60 * 1000);
   if (!lockAcquired) {

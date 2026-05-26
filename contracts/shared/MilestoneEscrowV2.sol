@@ -9,6 +9,23 @@ import "@openzeppelin/contracts/token/ERC20/IERC20.sol";
 import "@openzeppelin/contracts/token/ERC20/utils/SafeERC20.sol";
 import "@openzeppelin/contracts/utils/ReentrancyGuard.sol";
 
+interface IAgenticCommerceJobView {
+    function jobs(uint256 jobId) external view returns (
+        uint256 id,
+        address client,
+        address provider,
+        address evaluator,
+        uint256 serviceId,
+        address paymentToken,
+        string memory description,
+        uint256 budget,
+        uint256 expiredAt,
+        uint8 status,
+        address hook,
+        bytes32 deliverable
+    );
+}
+
 /**
  * @title MilestoneEscrowV2
  * @dev UUPS Upgradeable contract for milestone-based payments and dispute resolution
@@ -100,6 +117,9 @@ contract MilestoneEscrowV2 is
     
     // Reference to AgenticCommerce (for budget lookup)
     address public agenticCommerce;
+
+    // Funds reserved for milestone releases, isolated per job.
+    mapping(uint256 => uint256) public milestoneEscrowBalance;
     
     /***********************************/
     /* Errors */
@@ -129,12 +149,14 @@ contract MilestoneEscrowV2 is
     error TokenNotSupported();
     error InvalidTokenAmount();
     error EthTransferFailed();
+    error InsufficientMilestoneBalance();
 
     /***********************************/
     /* Events */
     /***********************************/
     
     event MilestoneEnabled(uint256 indexed jobId);
+    event MilestoneFunded(uint256 indexed jobId, address indexed funder, address token, uint256 amount);
     event MilestoneAdded(uint256 indexed jobId, uint256 indexed milestoneIndex, string description, uint256 amount);
     event MilestoneCompleted(uint256 indexed jobId, uint256 indexed milestoneIndex, bytes32 proofHash);
     event MilestoneReleased(uint256 indexed jobId, uint256 indexed milestoneIndex, uint256 amount);
@@ -171,6 +193,42 @@ contract MilestoneEscrowV2 is
         } else {
             IERC20(token).safeTransfer(to, amount);
         }
+    }
+
+    function _validateLinkedJob(
+        uint256 jobId,
+        address client,
+        address provider,
+        address paymentToken,
+        uint256 totalBudget
+    ) internal view {
+        // Unit tests and local isolated deployments can leave agenticCommerce unset.
+        if (agenticCommerce == address(0)) return;
+
+        (
+            uint256 id,
+            address jobClient,
+            address jobProvider,
+            ,
+            ,
+            address jobPaymentToken,
+            ,
+            uint256 jobBudget,
+            ,
+            ,
+            ,
+
+        ) = IAgenticCommerceJobView(agenticCommerce).jobs(jobId);
+
+        if (id != jobId) revert InvalidJob();
+        if (jobClient != client || jobProvider != provider) revert InvalidJob();
+        if (jobPaymentToken != paymentToken || jobBudget != totalBudget) revert InvalidJob();
+    }
+
+    function _spendMilestoneBalance(uint256 jobId, uint256 amount) internal {
+        uint256 balance = milestoneEscrowBalance[jobId];
+        if (balance < amount) revert InsufficientMilestoneBalance();
+        milestoneEscrowBalance[jobId] = balance - amount;
     }
 
     /***********************************/
@@ -275,6 +333,7 @@ contract MilestoneEscrowV2 is
         if (client == address(0) || provider == address(0)) revert ZeroAddress();
         if (client == provider) revert InvalidJob();
         if (!supportedTokens[paymentToken]) revert TokenNotSupported();
+        _validateLinkedJob(jobId, client, provider, paymentToken, totalBudget);
         
         jobMilestones[jobId].client = client;
         jobMilestones[jobId].provider = provider;
@@ -283,6 +342,31 @@ contract MilestoneEscrowV2 is
         jobMilestones[jobId].usesMilestones = true;
         
         emit MilestoneEnabled(jobId);
+    }
+
+    /**
+     * @dev Fund milestone escrow for a job. Balances are isolated per job so
+     * milestone releases cannot draw from arbiter stakes, dispute fees, or other jobs.
+     */
+    function fundMilestones(uint256 jobId, uint256 amount) external payable nonReentrant whenNotPaused {
+        JobMilestones storage jm = jobMilestones[jobId];
+        if (jm.client == address(0)) revert InvalidJob();
+        if (_msgSender() != jm.client) revert Unauthorized();
+        if (amount == 0) revert InvalidTokenAmount();
+
+        address paymentToken = jm.paymentToken;
+        if (paymentToken == address(0)) {
+            if (msg.value != amount) revert InvalidTokenAmount();
+        } else {
+            if (msg.value != 0) revert InvalidTokenAmount();
+            uint256 balanceBefore = IERC20(paymentToken).balanceOf(address(this));
+            IERC20(paymentToken).safeTransferFrom(_msgSender(), address(this), amount);
+            uint256 balanceAfter = IERC20(paymentToken).balanceOf(address(this));
+            if (balanceAfter - balanceBefore != amount) revert InvalidTokenAmount();
+        }
+
+        milestoneEscrowBalance[jobId] += amount;
+        emit MilestoneFunded(jobId, _msgSender(), paymentToken, amount);
     }
     
     /**
@@ -359,6 +443,7 @@ contract MilestoneEscrowV2 is
         if (milestone.released) revert MilestoneAlreadyReleased();
         
         milestone.released = true;
+        _spendMilestoneBalance(jobId, milestone.amount);
 
         // Transfer payment token to provider (native or ERC-20)
         _safeTransfer(jm.paymentToken, jm.provider, milestone.amount);
@@ -412,8 +497,9 @@ contract MilestoneEscrowV2 is
         
         // Interaction: Transfer fee (native or ERC-20)
         if (paymentToken == address(0)) {
-            if (msg.value < fee) revert InsufficientArbiterFee();
+            if (msg.value != fee) revert InsufficientArbiterFee();
         } else {
+            if (msg.value != 0) revert InvalidTokenAmount();
             uint256 balanceBefore = IERC20(paymentToken).balanceOf(address(this));
             IERC20(paymentToken).safeTransferFrom(_msgSender(), address(this), fee);
             uint256 balanceAfter = IERC20(paymentToken).balanceOf(address(this));
@@ -461,12 +547,14 @@ contract MilestoneEscrowV2 is
         if (mi < jm.milestones.length && !jm.milestones[mi].released) {
             if (releaseToProvider) {
                 jm.milestones[mi].released = true;
+                _spendMilestoneBalance(jobId, jm.milestones[mi].amount);
                 _safeTransfer(jm.paymentToken, jm.provider, jm.milestones[mi].amount);
                 emit MilestoneReleased(jobId, mi, jm.milestones[mi].amount);
             } else {
                 // Only refund completed milestones to client
                 if (jm.milestones[mi].completed) {
                     jm.milestones[mi].released = true;
+                    _spendMilestoneBalance(jobId, jm.milestones[mi].amount);
                     _safeTransfer(jm.paymentToken, jm.client, jm.milestones[mi].amount);
                     emit MilestoneReleased(jobId, mi, jm.milestones[mi].amount);
                 } else {
@@ -534,9 +622,7 @@ contract MilestoneEscrowV2 is
         
         if (slashAmount > 0) {
             address token = arbiterStakeToken[arbiter];
-            if (token != address(0)) {
-                IERC20(token).safeTransfer(owner(), slashAmount);
-            }
+            _safeTransfer(token, owner(), slashAmount);
         }
         
         emit ArbiterSlashed(arbiter, slashAmount, reason);
@@ -549,7 +635,7 @@ contract MilestoneEscrowV2 is
      */
     function withdrawToken(address token, uint256 amount) external onlyOwner {
         if (amount == 0) revert InvalidTokenAmount();
-        IERC20(token).safeTransfer(msg.sender, amount);
+        _safeTransfer(token, msg.sender, amount);
     }
 
     /***********************************/
@@ -577,8 +663,9 @@ contract MilestoneEscrowV2 is
 
         // Interaction: Transfer stake
         if (token == address(0)) {
-            if (msg.value < amount) revert InsufficientArbiterStake();
+            if (msg.value != amount) revert InsufficientArbiterStake();
         } else {
+            if (msg.value != 0) revert InvalidTokenAmount();
             uint256 balanceBefore = IERC20(token).balanceOf(address(this));
             IERC20(token).safeTransferFrom(_msgSender(), address(this), amount);
             uint256 balanceAfter = IERC20(token).balanceOf(address(this));
@@ -654,5 +741,5 @@ contract MilestoneEscrowV2 is
     }
 
     /// @dev Storage gap for upgrade safety
-    uint256[50] private __gap;
+    uint256[49] private __gap;
 }

@@ -362,28 +362,25 @@ contract AgentReviewV5 is IAgentReviewV5, ContextUpgradeable, Ownable2StepUpgrad
         if (!(proposal.proposer == _msgSender())) revert AgentReviewV5_Not_proposer();
         if (!(proposal.decisionDeadline <= block.timestamp)) revert AgentReviewV5_Deadline_not_passed();
 
-        Evaluation storage winningEval = evaluations[proposalId][winningEvaluator];
+        address finalWinner = winningEvaluator;
+        if (finalWinner == address(0)) {
+            finalWinner = _getMedianEvaluator(proposalId);
+        }
+
+        Evaluation storage winningEval = evaluations[proposalId][finalWinner];
         if (!(winningEval.submittedAt > 0)) revert AgentReviewV5_Not_an_evaluator();
         if (!(!winningEval.isFinal)) revert AgentReviewV5_Already_final();
 
         ProposalStatus oldStatus = proposal.status;
         proposal.status = ProposalStatus.Decided;
-        proposal.winningEvaluator = winningEvaluator;
+        proposal.winningEvaluator = finalWinner;
         winningEval.isFinal = true;
         
-        // M3 Fix: Median-based winner selection
-        // If winningEvaluator is address(0), use median evaluator automatically
-        if (winningEvaluator == address(0)) {
-            winningEvaluator = _getMedianEvaluator(proposalId);
-            proposal.winningEvaluator = winningEvaluator;
-            winningEval = evaluations[proposalId][winningEvaluator];
-        }
-        
         // M4 Fix: Proportional rewards based on score accuracy
-        _distributeProportionalRewards(proposalId, winningEvaluator);
+        _distributeProportionalRewards(proposalId, finalWinner);
 
-        emit EvaluationFinalized(proposalId, winningEvaluator, true, 0);
-        emit DecisionAttested(proposalId, _msgSender(), winningEvaluator);
+        emit EvaluationFinalized(proposalId, finalWinner, true, 0);
+        emit DecisionAttested(proposalId, _msgSender(), finalWinner);
         emit ProposalStatusChanged(proposalId, oldStatus, ProposalStatus.Decided, _msgSender(), block.timestamp);
     }
     
@@ -455,25 +452,15 @@ contract AgentReviewV5 is IAgentReviewV5, ContextUpgradeable, Ownable2StepUpgrad
             totalPool += evaluations[proposalId][evals[i]].stakeAmount;
         }
         
-        // Winner gets 60%, rest split proportionally by accuracy
-        uint256 winnerShare = (totalPool * 60) / 100;
-        uint256 remainingPool = totalPool - winnerShare;
+        // Winner gets their stake back plus the configured reward share.
+        // Non-winners keep their stake withdrawable through releaseStake().
+        uint256 winnerShare = evaluatorCount == 1 ? proposal.reward : (totalPool * 60) / 100;
         
         // Set winner reward
         Evaluation storage winningEval = evaluations[proposalId][winningEvaluator];
         winningEval.rewardAmount = winningEval.stakeAmount + winnerShare;
-        
-        // Losers split remaining pool equally (simplified to avoid stack too deep)
-        uint256 loserCount = evaluatorCount - 1;
-        if (loserCount > 0) {
-            uint256 loserShare = remainingPool / loserCount;
-            for (uint256 i = 0; i < evaluatorCount; i++) {
-                if (evals[i] != winningEvaluator) {
-                    Evaluation storage eval = evaluations[proposalId][evals[i]];
-                    eval.rewardAmount = eval.stakeAmount + loserShare;
-                }
-            }
-        }
+        winningEval.stakeAmount = 0;
+        winningEval.stakeReleased = true;
     }
 
     function slashEvaluator(address evaluator, uint256 proposalId, uint256 slashBP, string calldata reason) external nonReentrant onlySlashManager whenNotPaused {
@@ -506,10 +493,10 @@ contract AgentReviewV5 is IAgentReviewV5, ContextUpgradeable, Ownable2StepUpgrad
         Proposal storage proposal = proposals[proposalId];
         if (!(proposal.id == proposalId)) revert AgentReviewV5_Invalid_proposal();
         if (!(proposal.status == ProposalStatus.Decided)) revert AgentReviewV5_Not_decided();
-        if (!(proposal.winningEvaluator == _msgSender())) revert AgentReviewV5_Not_winner();
 
         Evaluation storage eval = evaluations[proposalId][_msgSender()];
-        if (!(eval.isFinal)) revert AgentReviewV5_Not_winner();
+        if (!(eval.submittedAt > 0)) revert AgentReviewV5_Not_an_evaluator();
+        if (!(proposal.winningEvaluator == _msgSender())) revert AgentReviewV5_Not_winner();
         if (!(!eval.rewardClaimed)) revert AgentReviewV5_Already_claimed();
         if (!(eval.rewardAmount > 0)) revert AgentReviewV5_No_reward();
 
@@ -525,6 +512,9 @@ contract AgentReviewV5 is IAgentReviewV5, ContextUpgradeable, Ownable2StepUpgrad
     function releaseStake(uint256 proposalId) external nonReentrant {
         Proposal storage proposal = proposals[proposalId];
         if (!(proposal.id == proposalId)) revert AgentReviewV5_Invalid_proposal();
+        if (!(proposal.status == ProposalStatus.Decided || proposal.status == ProposalStatus.Cancelled)) {
+            revert AgentReviewV5_Not_decided();
+        }
         
         Evaluation storage eval = evaluations[proposalId][_msgSender()];
         if (!(eval.submittedAt > 0)) revert AgentReviewV5_Not_an_evaluator();
@@ -628,7 +618,7 @@ contract AgentReviewV5 is IAgentReviewV5, ContextUpgradeable, Ownable2StepUpgrad
     // Note: SLASH_PERCENTAGE is constant; actual slash % is passed from SlashManager
 
     function getTotalLockedETH() public view returns (uint256 totalLocked) {
-        for (uint256 i = 0; i < _proposalCounter; i++) {
+        for (uint256 i = 1; i <= _proposalCounter; i++) {
             Proposal storage proposal = proposals[i];
             if (proposal.status == ProposalStatus.Open || proposal.status == ProposalStatus.UnderReview) {
                 totalLocked += proposal.reward;
@@ -644,7 +634,7 @@ contract AgentReviewV5 is IAgentReviewV5, ContextUpgradeable, Ownable2StepUpgrad
                 address[] storage evals = proposalEvaluators[i];
                 for (uint256 j = 0; j < evals.length; j++) {
                     Evaluation storage eval = evaluations[i][evals[j]];
-                    if (evals[j] == proposal.winningEvaluator && !eval.rewardClaimed && eval.rewardAmount > 0) {
+                    if (!eval.rewardClaimed && eval.rewardAmount > 0) {
                         totalLocked += eval.rewardAmount;
                     }
                     if (eval.stakeAmount > 0 && !eval.stakeReleased) {
