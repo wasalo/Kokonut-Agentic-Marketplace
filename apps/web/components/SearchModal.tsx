@@ -1,7 +1,7 @@
 'use client';
 
 import { useState, useEffect, useCallback, useRef } from 'react';
-import { Search, X, ArrowRight } from 'lucide-react';
+import { Search, ArrowRight } from 'lucide-react';
 import { useRouter } from 'next/navigation';
 import NextLink from 'next/link';
 

@@ -4,7 +4,7 @@ import { useState } from 'react';
 import { MessageSquare } from 'lucide-react';
 import { useAccount } from 'wagmi';
 import { Address } from '@/components/Address';
-import { DS, btn } from '@/lib/design-system';
+import { DS } from '@/lib/design-system';
 import { Button } from '@/components/ui/Button';
 
 export default function ContactPage() {
