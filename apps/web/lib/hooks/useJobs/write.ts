@@ -3,6 +3,7 @@ import { AGENTIC_COMMERCE_ABI, MILESTONE_ESCROW_ABI, BIDDING_SYSTEM_ABI } from '
 import { getContractAddress } from '@/lib/contracts/config';
 
 const AGENTIC_COMMERCE_ADDRESS = getContractAddress('AGENTIC_COMMERCE');
+const SEPOLIA_CHAIN_ID = 11155111;
 
 export function useCreateJob() {
   const { writeContract, data, isPending, error, reset } = useWriteContract();
@@ -17,6 +18,7 @@ export function useCreateJob() {
       clientReview: boolean = true
     ) =>
       writeContract({
+        chainId: SEPOLIA_CHAIN_ID,
         address: AGENTIC_COMMERCE_ADDRESS,
         abi: AGENTIC_COMMERCE_ABI,
         functionName: 'createJobV7',
@@ -34,6 +36,7 @@ export function useFundJob() {
   return {
     fundJob: (jobId: bigint, expectedBudget?: bigint) =>
       writeContract({
+        chainId: SEPOLIA_CHAIN_ID,
         address: AGENTIC_COMMERCE_ADDRESS,
         abi: AGENTIC_COMMERCE_ABI,
         functionName: 'fund',
@@ -51,6 +54,7 @@ export function useSubmitJob() {
   return {
     submitJob: (jobId: bigint, deliverable: `0x${string}`) =>
       writeContract({
+        chainId: SEPOLIA_CHAIN_ID,
         address: AGENTIC_COMMERCE_ADDRESS,
         abi: AGENTIC_COMMERCE_ABI,
         functionName: 'submit',
@@ -68,6 +72,7 @@ export function useApproveByClient() {
   return {
     approveByClient: (jobId: bigint) =>
       writeContract({
+        chainId: SEPOLIA_CHAIN_ID,
         address: AGENTIC_COMMERCE_ADDRESS,
         abi: AGENTIC_COMMERCE_ABI,
         functionName: 'approveByClient',
@@ -85,6 +90,7 @@ export function useFinalizeByEvaluator() {
   return {
     finalizeByEvaluator: (jobId: bigint, reason: `0x${string}`) =>
       writeContract({
+        chainId: SEPOLIA_CHAIN_ID,
         address: AGENTIC_COMMERCE_ADDRESS,
         abi: AGENTIC_COMMERCE_ABI,
         functionName: 'finalizeByEvaluator',
@@ -102,6 +108,7 @@ export function useRejectJob() {
   return {
     rejectJob: (jobId: bigint, reason: `0x${string}`) =>
       writeContract({
+        chainId: SEPOLIA_CHAIN_ID,
         address: AGENTIC_COMMERCE_ADDRESS,
         abi: AGENTIC_COMMERCE_ABI,
         functionName: 'reject',
@@ -119,6 +126,7 @@ export function useClaimRefund() {
   return {
     claimRefund: (jobId: bigint) =>
       writeContract({
+        chainId: SEPOLIA_CHAIN_ID,
         address: AGENTIC_COMMERCE_ADDRESS,
         abi: AGENTIC_COMMERCE_ABI,
         functionName: 'claimRefund',
@@ -136,6 +144,7 @@ export function useSetBudget() {
   return {
     setBudget: (jobId: bigint, amount: bigint) =>
       writeContract({
+        chainId: SEPOLIA_CHAIN_ID,
         address: AGENTIC_COMMERCE_ADDRESS,
         abi: AGENTIC_COMMERCE_ABI,
         functionName: 'setBudget',
@@ -153,6 +162,7 @@ export function useSetPaymentToken() {
   return {
     setPaymentToken: (jobId: bigint, paymentToken: `0x${string}`) =>
       writeContract({
+        chainId: SEPOLIA_CHAIN_ID,
         address: AGENTIC_COMMERCE_ADDRESS,
         abi: AGENTIC_COMMERCE_ABI,
         functionName: 'setPaymentToken',
@@ -170,6 +180,7 @@ export function useFundJobWithETH() {
   return {
     fundJob: (jobId: bigint, value: bigint, expectedBudget?: bigint) =>
       writeContract({
+        chainId: SEPOLIA_CHAIN_ID,
         address: AGENTIC_COMMERCE_ADDRESS,
         abi: AGENTIC_COMMERCE_ABI,
         functionName: 'fund',
@@ -188,6 +199,7 @@ export function useCompleteAfterTimeout() {
   return {
     completeAfterTimeout: (jobId: bigint, reason: `0x${string}` = '0x' as `0x${string}`) =>
       writeContract({
+        chainId: SEPOLIA_CHAIN_ID,
         address: AGENTIC_COMMERCE_ADDRESS,
         abi: AGENTIC_COMMERCE_ABI,
         functionName: 'completeAfterTimeout',
@@ -205,6 +217,7 @@ export function useRefundExpired() {
   return {
     refundExpired: (jobId: bigint) =>
       writeContract({
+        chainId: SEPOLIA_CHAIN_ID,
         address: AGENTIC_COMMERCE_ADDRESS,
         abi: AGENTIC_COMMERCE_ABI,
         functionName: 'refundExpired',
@@ -235,6 +248,7 @@ export function useCreateJobV8() {
       fundAmount: bigint
     ) =>
       writeContract({
+        chainId: SEPOLIA_CHAIN_ID,
         address: AGENTIC_COMMERCE_ADDRESS,
         abi: AGENTIC_COMMERCE_ABI,
         functionName: 'createJob',
@@ -261,6 +275,7 @@ export function useCreateJobV7() {
       clientReview: boolean
     ) =>
       writeContract({
+        chainId: SEPOLIA_CHAIN_ID,
         address: AGENTIC_COMMERCE_ADDRESS,
         abi: AGENTIC_COMMERCE_ABI,
         functionName: 'createJobV7',
@@ -278,6 +293,7 @@ export function useRegisterAsEvaluator() {
   return {
     registerAsEvaluator: () =>
       writeContract({
+        chainId: SEPOLIA_CHAIN_ID,
         address: AGENTIC_COMMERCE_ADDRESS,
         abi: AGENTIC_COMMERCE_ABI,
         functionName: 'registerAsEvaluator',
@@ -295,6 +311,7 @@ export function useUnregisterAsEvaluator() {
   return {
     unregisterAsEvaluator: () =>
       writeContract({
+        chainId: SEPOLIA_CHAIN_ID,
         address: AGENTIC_COMMERCE_ADDRESS,
         abi: AGENTIC_COMMERCE_ABI,
         functionName: 'unregisterAsEvaluator',
@@ -317,6 +334,7 @@ export function useEnableJobMilestones() {
       totalBudget: bigint
     ) =>
       writeContract({
+        chainId: SEPOLIA_CHAIN_ID,
         address: getContractAddress('MILESTONE_ESCROW'),
         abi: MILESTONE_ESCROW_ABI,
         functionName: 'enableMilestones',
@@ -334,6 +352,7 @@ export function useWithdrawStake() {
   return {
     withdrawStake: (sessionId: bigint) =>
       writeContract({
+        chainId: SEPOLIA_CHAIN_ID,
         address: getContractAddress('BIDDING_SYSTEM'),
         abi: BIDDING_SYSTEM_ABI,
         functionName: 'withdrawStake',

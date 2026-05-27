@@ -2,7 +2,7 @@
 
 import { useState, useCallback, useEffect } from 'react';
 import { useAccount, useWaitForTransactionReceipt, usePublicClient, useWriteContract } from 'wagmi';
-import { decodeEventLog, erc20Abi } from 'viem';
+import { decodeEventLog, erc20Abi, formatUnits } from 'viem';
 import { useRouter, useSearchParams } from 'next/navigation';
 import { ArrowLeft, Loader2, ShieldCheck, AlertTriangle, Coins, AlertCircle } from 'lucide-react';
 import NextLink from 'next/link';
@@ -17,7 +17,7 @@ import { validateAddress, validateDeadline, validateStringLength } from '@/lib/h
 import { TransactionError } from '@/components/TransactionError';
 import { useFormSubmit, formatTimeRemaining } from '@/lib/hooks/useDebounce';
 import { useClientJobCount, MAX_JOBS_PER_CLIENT } from '@/lib/hooks/useClientJobCount';
-import { useMaxBudgetUsd } from '@/lib/hooks/useMinBudget';
+import { useMaxBudgetUsd, useMinBudget } from '@/lib/hooks/useMinBudget';
 import {
   useTokenPriceConversion,
   USDC_TOKEN,
@@ -151,12 +151,16 @@ function CreateJobContent() {
   // maxBudgetUsd is enforced on-chain by AgenticCommerceV9 — no frontend guard needed
   useMaxBudgetUsd();
 
-  // Static per-token minimum budgets (replaces dynamic contract call for better UX)
-  const MIN_BUDGETS: Record<string, { min: number; label: string }> = {
-    USDC: { min: 5, label: '5 USDC' },
-    ETH: { min: 0.0025, label: '0.0025 ETH' },
-  };
-  const minBudgetInToken = MIN_BUDGETS[paymentToken.symbol]?.min ?? 5;
+  const { minBudgetRaw, isLoading: isMinBudgetLoading } = useMinBudget(
+    paymentToken.address,
+    paymentToken.decimals
+  );
+  const minBudgetInToken = minBudgetRaw
+    ? Number(formatUnits(minBudgetRaw, paymentToken.decimals))
+    : 0;
+  const minBudgetLabel = minBudgetRaw
+    ? formatAmount(minBudgetRaw, paymentToken, { includeSymbol: true })
+    : 'loading from contract';
 
   useEffect(() => {
     if (providerParam) {
@@ -312,16 +316,20 @@ function CreateJobContent() {
         return false;
       }
       if (value) {
+        if (!minBudgetRaw) {
+          setBudgetError('Minimum budget is still loading');
+          return false;
+        }
         const numValue = parseFloat(value);
         if (isNaN(numValue) || numValue < minBudgetInToken) {
-          setBudgetError(`Minimum budget is ${minBudgetInToken.toFixed(paymentToken.decimals === 6 ? 0 : 4)} ${paymentToken.symbol}`);
+          setBudgetError(`Minimum budget is ${minBudgetLabel}`);
           return false;
         }
       }
       setBudgetError(null);
       return true;
     },
-    [serviceId, paymentToken, minBudgetInToken]
+    [serviceId, minBudgetInToken, minBudgetLabel, minBudgetRaw]
   );
 
   const performSubmit = useCallback(
@@ -427,6 +435,7 @@ function CreateJobContent() {
               showToast.info('USDC approval needed', `Approving exact amount: ${budget} USDC`);
               
               const approveHash = await writeContractAsync({
+                chainId: 11155111,
                 address: USDC_TOKEN.address,
                 abi: erc20Abi,
                 functionName: 'approve',
@@ -518,15 +527,15 @@ let isFormValid = false;
 if (serviceId) {
   isFormValid = !!provider && provider.startsWith('0x') && !!description && !!service && service.price > 0n;
 } else {
-  isFormValid = !!provider && provider.startsWith('0x') && !!budget && parseFloat(budget || '0') >= minBudgetInToken * 0.999 && !!description;
+  isFormValid = !!provider && provider.startsWith('0x') && !!budget && !!minBudgetRaw && parseFloat(budget || '0') >= minBudgetInToken * 0.999 && !!description;
 }
 
 const renderBudgetWarning = () => {
   if (serviceId) return null;
-  return budget && parseFloat(budget || '0') > 0 && parseFloat(budget || '0') < minBudgetInToken ? (
+  return minBudgetRaw && budget && parseFloat(budget || '0') > 0 && parseFloat(budget || '0') < minBudgetInToken ? (
     <p className="text-danger text-sm mt-2 flex items-center">
       <AlertCircle className="w-4 h-4 mr-1" />
-      Minimum budget is {minBudgetInToken.toFixed(2)} {paymentToken.symbol}
+      Minimum budget is {minBudgetLabel}
     </p>
   ) : null;
 };
@@ -737,11 +746,11 @@ const formattedServicePrice = service
                   <input
                     id="budget"
                     type="number"
-                    step="0.01"
-                    min={minBudgetInToken}
+                    step={paymentToken.symbol === 'ETH' ? '0.0001' : '0.01'}
+                    min={minBudgetRaw ? minBudgetInToken : undefined}
                     value={budget}
                     onChange={handleBudgetChange}
-                    placeholder={`Min ${minBudgetInToken.toFixed(2)}`}
+                    placeholder={minBudgetRaw ? `Min ${formatAmount(minBudgetRaw, paymentToken)}` : 'Loading minimum...'}
                     className="w-full bg-content2 border border-divider rounded-xl py-3 pl-8 pr-4 text-default-900 focus:outline-none focus:ring-2 focus:ring-[#009F4D] transition-all"
                     required
                   />
@@ -751,7 +760,7 @@ const formattedServicePrice = service
                   <p className="text-danger text-xs mt-1">{budgetError}</p>
                 )}
                 <p className="text-default-400 text-xs mt-2">
-                  Funds are held securely in a smart contract escrow.
+                  {isMinBudgetLoading ? 'Loading minimum budget from contract...' : 'Funds are held securely in a smart contract escrow.'}
                 </p>
                 {useMilestones && (
                   <p className="text-xs text-[#009F4D] bg-primary/10 p-2 rounded mt-2">

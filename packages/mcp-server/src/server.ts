@@ -7,8 +7,20 @@ const PORT = parseInt(process.env.MCP_PORT || '3100', 10);
 const HOST = process.env.MCP_HOST || '127.0.0.1';
 const MCP_API_KEY = process.env.MCP_API_KEY || '';
 
+function isLoopbackHost(host: string): boolean {
+  return host === '127.0.0.1' || host === '::1' || host === 'localhost';
+}
+
+function isLocalOrigin(origin: string): boolean {
+  return origin.startsWith('http://127.0.0.1:') || origin.startsWith('http://localhost:');
+}
+
+function isPublicBind(): boolean {
+  return !isLoopbackHost(HOST);
+}
+
 function authenticate(req: IncomingMessage): boolean {
-  if (!MCP_API_KEY) return true;
+  if (!MCP_API_KEY) return !isPublicBind();
   const authHeader = req.headers['authorization'] || '';
   if (authHeader === `Bearer ${MCP_API_KEY}`) return true;
   const apiKeyParam = (new URL(req.url || '', `http://${HOST}:${PORT}`)).searchParams.get('api_key');
@@ -480,14 +492,19 @@ async function requestHandler(req: IncomingMessage, res: ServerResponse): Promis
   const parsedUrl = parse(req.url || '', true);
   const pathname = parsedUrl.pathname || '';
 
-  const allowedOrigins = (process.env.MCP_ALLOWED_ORIGINS || '').split(',').filter(Boolean);
+  const allowedOrigins = (process.env.MCP_ALLOWED_ORIGINS || '').split(',').map(o => o.trim()).filter(Boolean);
   const origin = req.headers.origin || '';
-  const isAllowed = allowedOrigins.length === 0 || allowedOrigins.includes(origin);
+  const isAllowed = !origin || allowedOrigins.includes(origin) || (!isPublicBind() && isLocalOrigin(origin));
 
-  if (isAllowed && origin) {
+  if (!isAllowed) {
+    res.writeHead(403, { 'Content-Type': 'application/json' });
+    res.end(JSON.stringify({ error: 'Origin not allowed' }));
+    return;
+  }
+
+  if (origin) {
     res.setHeader('Access-Control-Allow-Origin', origin);
-  } else if (allowedOrigins.length === 0) {
-    res.setHeader('Access-Control-Allow-Origin', '*');
+    res.setHeader('Vary', 'Origin');
   }
   res.setHeader('Access-Control-Allow-Methods', 'GET, POST, OPTIONS');
   res.setHeader('Access-Control-Allow-Headers', 'Content-Type, Authorization');
@@ -577,12 +594,17 @@ async function requestHandler(req: IncomingMessage, res: ServerResponse): Promis
   }
 
   if (pathname === '/sse') {
-    res.writeHead(200, {
+    const headers: Record<string, string> = {
       'Content-Type': 'text/event-stream',
       'Cache-Control': 'no-cache',
       Connection: 'keep-alive',
-      'Access-Control-Allow-Origin': '*',
-    });
+    };
+    if (origin) {
+      headers['Access-Control-Allow-Origin'] = origin;
+      headers['Vary'] = 'Origin';
+    }
+
+    res.writeHead(200, headers);
 
     const welcome = `data: ${JSON.stringify({ type: 'welcome', tools: TOOLS })}\n\n`;
     res.write(welcome);

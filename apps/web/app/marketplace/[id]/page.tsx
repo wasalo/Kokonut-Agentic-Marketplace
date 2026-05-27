@@ -18,6 +18,8 @@ import {
   Loader2,
   Star,
   Shield,
+  Wallet,
+  X,
 } from 'lucide-react';
 import { Card } from '@heroui/react';
 import { StatusBadge } from '@/components/StatusBadge';
@@ -25,6 +27,10 @@ import {
   useUpdateService,
   useDeactivateService,
   useActivateService,
+  useGetServiceBond,
+  useDeactivatedAt,
+  useSetPaymentAddress,
+  useWithdrawServiceBond,
 } from '@/lib/hooks/useServices';
 import { useServiceContract } from '@/lib/hooks/useServicesContract';
 import { useAgentReputation } from '@/lib/hooks/useAgentReputation';
@@ -37,6 +43,7 @@ import {
   parseAmount,
   tokenAmountToUsd,
 } from '@/lib/tokenUtils';
+import { parseEther } from 'viem';
 import { showToast, getTransactionError } from '@/lib/toast';
 import { Address } from '@/components/Address';
 
@@ -69,8 +76,19 @@ export default function ServiceDetailPage({
   const { updateService, isPending: isUpdatePending } = useUpdateService();
   const { deactivateService, isPending: isDeactivatePending } = useDeactivateService();
   const { activateService, isPending: isActivatePending } = useActivateService();
+  const { setPaymentAddress, isPending: isSetPaymentPending } = useSetPaymentAddress();
+  const { withdrawServiceBond, isPending: isWithdrawPending } = useWithdrawServiceBond();
+  const { bond } = useGetServiceBond(serviceId);
+  const { deactivatedAt } = useDeactivatedAt(serviceId);
+
+  const [showPaymentModal, setShowPaymentModal] = useState(false);
+  const [paymentAddressInput, setPaymentAddressInput] = useState('');
 
   const isProvider = address && service && address.toLowerCase() === service.provider.toLowerCase();
+  const hasBond = bond >= parseEther('0.01');
+  const cooldownMs = 7 * 24 * 60 * 60 * 1000;
+  const canWithdrawBond =
+    !service?.isActive && hasBond && deactivatedAt > 0 && Date.now() >= deactivatedAt + cooldownMs;
 
   if (isLoading) {
     return (
@@ -160,6 +178,34 @@ export default function ServiceDetailPage({
                 </a>
               )}
 
+              {/* Bond Info Panel */}
+              {isProvider && (
+                <div className="mt-4 p-3 bg-content2/50 rounded-lg border border-divider">
+                  <div className="flex items-center justify-between">
+                    <div className="flex items-center gap-2">
+                      <Shield className="w-4 h-4 text-success" />
+                      <span className="text-sm font-medium">Service Bond</span>
+                    </div>
+                    <span className="text-sm">
+                      {hasBond ? (
+                        <span className="text-success font-medium">0.01 ETH locked</span>
+                      ) : (
+                        <span className="text-default-400">No bond</span>
+                      )}
+                    </span>
+                  </div>
+                  <p className="text-xs text-default-400 mt-1">
+                    {service.isActive
+                      ? 'Bond stays locked while service is active.'
+                      : hasBond
+                        ? deactivatedAt > 0 && Date.now() < deactivatedAt + cooldownMs
+                          ? `Withdrawable after ${new Date(deactivatedAt + cooldownMs).toLocaleDateString()}`
+                          : 'Bond is withdrawable.'
+                        : 'Bond has been withdrawn.'}
+                  </p>
+                </div>
+              )}
+
               <div className="flex items-center gap-4 mt-4 pt-4 border-t border-divider text-xs text-default-400">
                 <span className="flex items-center gap-1">
                   <Clock className="w-3 h-3" />
@@ -173,7 +219,7 @@ export default function ServiceDetailPage({
 
               {/* Provider Actions */}
               {isProvider && (
-                <div className="flex gap-3 mt-4 pt-4 border-t border-divider">
+                <div className="flex flex-wrap gap-3 mt-4 pt-4 border-t border-divider">
                   {service.isActive && (
                     <>
                       <button
@@ -189,6 +235,13 @@ export default function ServiceDetailPage({
                       >
                         <Edit className="w-4 h-4" />
                         Edit Service
+                      </button>
+                      <button
+                        onClick={() => setShowPaymentModal(true)}
+                        className="flex items-center gap-2 px-4 py-2 text-sm text-default-foreground border border-divider rounded-lg hover:bg-content2"
+                      >
+                        <Wallet className="w-4 h-4" />
+                        Payment Address
                       </button>
                       <button
                         onClick={async () => {
@@ -220,33 +273,59 @@ export default function ServiceDetailPage({
                     </>
                   )}
                   {!service.isActive && (
-                    <button
-                      onClick={async () => {
-                        try {
-                          const toastId = showToast.loading('Activating service...');
-                          await activateService(serviceId);
-                          showToast.dismiss(toastId);
-                          showToast.success(
-                            'Service activated',
-                            'Your service is now visible in the marketplace.'
-                          );
-                          refetch();
-                        } catch (err) {
-                          const errorMessage = getTransactionError(err);
-                          showToast.error('Activation failed', errorMessage);
-                          console.error('[ActivateService] Error:', err);
-                        }
-                      }}
-                      disabled={isActivatePending}
-                      className="flex items-center gap-2 px-4 py-2 text-sm text-success border border-success/30 rounded-lg hover:bg-success/5 disabled:opacity-50"
-                    >
-                      {isActivatePending ? (
-                        <Loader2 className="w-4 h-4 animate-spin" />
-                      ) : (
-                        <Power className="w-4 h-4" />
+                    <>
+                      <button
+                        onClick={async () => {
+                          try {
+                            const toastId = showToast.loading('Activating service...');
+                            await activateService(serviceId);
+                            showToast.dismiss(toastId);
+                            showToast.success(
+                              'Service activated',
+                              'Your service is now visible in the marketplace.'
+                            );
+                            refetch();
+                          } catch (err) {
+                            const errorMessage = getTransactionError(err);
+                            showToast.error('Activation failed', errorMessage);
+                            console.error('[ActivateService] Error:', err);
+                          }
+                        }}
+                        disabled={isActivatePending}
+                        className="flex items-center gap-2 px-4 py-2 text-sm text-success border border-success/30 rounded-lg hover:bg-success/5 disabled:opacity-50"
+                      >
+                        {isActivatePending ? (
+                          <Loader2 className="w-4 h-4 animate-spin" />
+                        ) : (
+                          <Power className="w-4 h-4" />
+                        )}
+                        Activate Service
+                      </button>
+                      {canWithdrawBond && (
+                        <button
+                          onClick={async () => {
+                            try {
+                              const toastId = showToast.loading('Withdrawing bond...');
+                              await withdrawServiceBond(serviceId);
+                              showToast.dismiss(toastId);
+                              showToast.success('Bond withdrawn', '0.01 ETH returned to your wallet.');
+                              refetch();
+                            } catch (err) {
+                              showToast.error('Withdrawal failed', getTransactionError(err));
+                            }
+                          }}
+                          disabled={isWithdrawPending}
+                          className="flex items-center gap-2 px-4 py-2 text-sm text-primary border border-primary/30 rounded-lg hover:bg-primary/5 disabled:opacity-50"
+                        >
+                          {isWithdrawPending ? (
+                            <Loader2 className="w-4 h-4 animate-spin" />
+                          ) : (
+                            <Wallet className="w-4 h-4" />
+                          )}
+                          Withdraw Bond
+                        </button>
                       )}
-                      Activate Service
-                    </button>
+                    </>
                   )}
                 </div>
               )}
@@ -450,6 +529,81 @@ export default function ServiceDetailPage({
                 ))}
             </div>
           </Card>
+        )}
+
+        {/* Payment Address Modal */}
+        {showPaymentModal && (
+          <div className="fixed inset-0 z-50 flex items-center justify-center bg-black/50 p-4">
+            <div className="bg-content1 border border-divider rounded-xl p-6 w-full max-w-md shadow-xl">
+              <div className="flex items-center justify-between mb-4">
+                <h3 className="text-lg font-semibold">Set Payment Address</h3>
+                <button
+                  onClick={() => setShowPaymentModal(false)}
+                  className="p-1 hover:bg-content2 rounded-lg transition-colors"
+                >
+                  <X className="w-5 h-5" />
+                </button>
+              </div>
+              <p className="text-sm text-default-500 mb-4">
+                Specify the address that will receive payments for this service. Defaults to your connected wallet.
+              </p>
+              <div className="mb-4">
+                <label className="block text-sm font-medium mb-1">Payment Address</label>
+                <input
+                  type="text"
+                  value={paymentAddressInput}
+                  onChange={e => setPaymentAddressInput(e.target.value)}
+                  placeholder={service.paymentAddress}
+                  className="w-full px-3 py-2 bg-content2 border border-divider rounded-lg focus:outline-none focus:ring-2 focus:ring-primary text-sm font-mono"
+                />
+                <p className="text-xs text-default-400 mt-1">
+                  Current: {service.paymentAddress.slice(0, 6)}...{service.paymentAddress.slice(-4)}
+                </p>
+              </div>
+              <div className="flex gap-3">
+                <button
+                  onClick={async () => {
+                    try {
+                      const addr = paymentAddressInput.trim() as `0x${string}`;
+                      if (!addr || addr.length !== 42) {
+                        showToast.error('Invalid address', 'Please enter a valid Ethereum address');
+                        return;
+                      }
+                      const toastId = showToast.loading('Updating payment address...');
+                      await setPaymentAddress({ serviceId, paymentAddress: addr });
+                      showToast.dismiss(toastId);
+                      showToast.success('Payment address updated');
+                      setShowPaymentModal(false);
+                      setPaymentAddressInput('');
+                      refetch();
+                    } catch (err) {
+                      showToast.error('Update failed', getTransactionError(err));
+                    }
+                  }}
+                  disabled={isSetPaymentPending}
+                  className="flex-1 px-4 py-2 bg-gradient-to-r from-[#009F4D] to-[#00c853] text-white rounded-lg font-medium hover:opacity-90 disabled:opacity-50"
+                >
+                  {isSetPaymentPending ? (
+                    <span className="flex items-center justify-center gap-2">
+                      <Loader2 className="w-4 h-4 animate-spin" />
+                      Saving...
+                    </span>
+                  ) : (
+                    'Save Address'
+                  )}
+                </button>
+                <button
+                  onClick={() => {
+                    setShowPaymentModal(false);
+                    setPaymentAddressInput('');
+                  }}
+                  className="px-4 py-2 border border-divider rounded-lg hover:bg-content2"
+                >
+                  Cancel
+                </button>
+              </div>
+            </div>
+          </div>
         )}
       </div>
     </div>

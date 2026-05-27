@@ -3,6 +3,7 @@ import { AGENT_SKILL_REGISTRY_ABI } from '@/lib/contracts/abis';
 import { getContractAddress } from '@/lib/contracts/config';
 
 const SKILL_REGISTRY_ADDRESS = getContractAddress('SKILL_REGISTRY');
+const SEPOLIA_CHAIN_ID = 11155111;
 
 export interface Skill {
   agentId: bigint;
@@ -94,6 +95,7 @@ export function useRegisterSkill() {
       domains: string[]
     ) =>
       writeContract({
+        chainId: SEPOLIA_CHAIN_ID,
         address: SKILL_REGISTRY_ADDRESS,
         abi: AGENT_SKILL_REGISTRY_ABI,
         functionName: 'registerSkill',
@@ -118,6 +120,7 @@ export function useUpdateSkill() {
       domains: string[]
     ) =>
       writeContract({
+        chainId: SEPOLIA_CHAIN_ID,
         address: SKILL_REGISTRY_ADDRESS,
         abi: AGENT_SKILL_REGISTRY_ABI,
         functionName: 'updateSkill',
@@ -135,6 +138,7 @@ export function useDeactivateSkill() {
   return {
     deactivateSkill: (skillId: bigint) =>
       writeContract({
+        chainId: SEPOLIA_CHAIN_ID,
         address: SKILL_REGISTRY_ADDRESS,
         abi: AGENT_SKILL_REGISTRY_ABI,
         functionName: 'deactivateSkill',

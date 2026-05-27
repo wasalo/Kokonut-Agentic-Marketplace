@@ -4,6 +4,7 @@ import { use, useState, useCallback, useEffect, useRef } from 'react';
 import { useQueryClient } from '@tanstack/react-query';
 import {
   useAccount,
+  useWalletClient,
   useWaitForTransactionReceipt,
   useWriteContract,
   usePublicClient,
@@ -71,6 +72,7 @@ const MilestoneSection = dynamic(() => import('@/components/MilestoneSection').t
 import { Address } from '@/components/Address';
 import { ErrorDisplay } from '@/components/ErrorDisplay';
 import { showToast } from '@/lib/toast';
+import { createOwnerAuthHeaders } from '@/lib/client-auth';
 import { useDispute, useFlagDispute, useJobMilestones } from '@/lib/hooks/useMilestoneEscrow';
 import { JobHeader } from '@/components/jobs/JobHeader';
 import { JobWarnings } from '@/components/jobs/JobWarnings';
@@ -90,6 +92,7 @@ export default function JobDetailPage({
   const { id } = use(params);
   const jobId = BigInt(id);
   const { address } = useAccount();
+  const { data: walletClient } = useWalletClient();
   const queryClient = useQueryClient();
 
   const { job, isLoading, refetch } = useJob(jobId);
@@ -161,6 +164,7 @@ export default function JobDetailPage({
       writeFundETH({
         address: AGENTIC_COMMERCE_ADDRESS,
         abi: AGENTIC_COMMERCE_ABI,
+        chainId: 11155111,
         functionName: 'fund',
         args: [jobId, expectedBudget],
         value,
@@ -324,13 +328,14 @@ export default function JobDetailPage({
 
   // LLM Evaluation handler
   const handleEvaluate = useCallback(async () => {
-    if (!fulfillmentText || !job?.description) return;
+    if (!fulfillmentText || !job?.description || !address || !walletClient) return;
     setIsEvaluating(true);
     setEvaluationResult(null);
     try {
+      const authHeaders = await createOwnerAuthHeaders(address, walletClient);
       const response = await fetch('/api/llm/evaluate', {
         method: 'POST',
-        headers: { 'Content-Type': 'application/json' },
+        headers: { 'Content-Type': 'application/json', ...authHeaders },
         body: JSON.stringify({
           jobDescription: job.description,
           fulfillmentText,
@@ -345,7 +350,7 @@ export default function JobDetailPage({
     } finally {
       setIsEvaluating(false);
     }
-  }, [fulfillmentText, job?.description]);
+  }, [fulfillmentText, job?.description, address, walletClient]);
 
   // Client review handler (Phase 3) — actually calls approveByClient on-chain
   const handleClientApprove = useCallback(() => {

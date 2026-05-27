@@ -4,6 +4,7 @@ import { CONTRACT_ADDRESSES } from '@/lib/contracts/config';
 
 const ERC8004_REGISTRY = CONTRACT_ADDRESSES.sepolia.erc8004Registry;
 const ERC8004_REPUTATION = CONTRACT_ADDRESSES.sepolia.erc8004Reputation;
+const SEPOLIA_CHAIN_ID = 11155111;
 
 const ERC8004_REGISTRY_ABI = parseAbi([
   'function setAgentURI(uint256 agentId, string newURI) external',
@@ -21,6 +22,7 @@ export function useSetAgentURI() {
 
   const setAgentURI = (agentId: bigint, newURI: string) => {
     writeContract({
+      chainId: SEPOLIA_CHAIN_ID,
       address: ERC8004_REGISTRY,
       abi: ERC8004_REGISTRY_ABI,
       functionName: 'setAgentURI',
@@ -36,6 +38,7 @@ export function useSetAgentMetadata() {
 
   const setMetadata = (agentId: bigint, metadataKey: string, metadataValue: `0x${string}`) => {
     writeContract({
+      chainId: SEPOLIA_CHAIN_ID,
       address: ERC8004_REGISTRY,
       abi: ERC8004_REGISTRY_ABI,
       functionName: 'setMetadata',

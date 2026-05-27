@@ -33,6 +33,7 @@ const SKILL_REGISTRY_ADDRESS = getContractAddress(
   process.env.NEXT_PUBLIC_SKILL_REGISTRY_ADDRESS,
   CONTRACT_ADDRESSES.sepolia.skillRegistry
 );
+const SEPOLIA_CHAIN_ID = 11155111;
 
 interface Skill {
   agentId: bigint;
@@ -119,6 +120,7 @@ function SkillForm({
       if (isEditing && initialData?.skillId !== undefined) {
         // Update existing skill
         writeContract({
+          chainId: SEPOLIA_CHAIN_ID,
           address: SKILL_REGISTRY_ADDRESS,
           abi: AGENT_SKILL_REGISTRY_ABI,
           functionName: 'updateSkill',
@@ -127,6 +129,7 @@ function SkillForm({
       } else {
         // Register new skill
         writeContract({
+          chainId: SEPOLIA_CHAIN_ID,
           address: SKILL_REGISTRY_ADDRESS,
           abi: AGENT_SKILL_REGISTRY_ABI,
           functionName: 'registerSkill',

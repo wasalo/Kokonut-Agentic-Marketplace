@@ -25,13 +25,9 @@ env:
   FOUNDRY_PROFILE: ci
   NODE_VERSION: '20'
   FORCE_JAVASCRIPT_ACTIONS_TO_NODE24: true
-  DOCKER_REGISTRY: ${{ secrets.DOCKER_REGISTRY }}
-  DOCKER_USERNAME: ${{ secrets.DOCKER_USERNAME }}
-  DOCKER_PASSWORD: ${{ secrets.DOCKER_PASSWORD }}
-  PRODUCTION_SERVER_HOST: ${{ secrets.PRODUCTION_SERVER_HOST }}
-  PRODUCTION_SSH_KEY: ${{ secrets.PRODUCTION_SSH_KEY }}
-  IPFS_PROJECT_ID: ${{ secrets.IPFS_PROJECT_ID }}
-  IPFS_PROJECT_SECRET: ${{ secrets.IPFS_PROJECT_SECRET }}
+
+permissions:
+  contents: read
 
 jobs:
   # ============================================
@@ -66,12 +62,12 @@ jobs:
     name: Smart Contract Tests
     runs-on: ubuntu-latest
     steps:
-      - uses: actions/checkout@v5
+      - uses: actions/checkout@93cb6efe18208431cddfb8368fd83d5badbf9bfd # v5.0.0
         with:
           submodules: recursive
 
       - name: Install Foundry
-        uses: foundry-rs/foundry-toolchain@v1
+        uses: foundry-rs/foundry-toolchain@c7450ba673e133f5ee30098b3b54f444d3a2ca2d # v1.7.0
         with:
           version: stable
 
@@ -104,12 +100,12 @@ jobs:
     name: Gas Benchmarking
     runs-on: ubuntu-latest
     steps:
-      - uses: actions/checkout@v5
+      - uses: actions/checkout@93cb6efe18208431cddfb8368fd83d5badbf9bfd # v5.0.0
         with:
           submodules: recursive
 
       - name: Install Foundry
-        uses: foundry-rs/foundry-toolchain@v1
+        uses: foundry-rs/foundry-toolchain@c7450ba673e133f5ee30098b3b54f444d3a2ca2d # v1.7.0
         with:
           version: stable
 
@@ -123,12 +119,12 @@ jobs:
     name: Fuzzing Tests
     runs-on: ubuntu-latest
     steps:
-      - uses: actions/checkout@v5
+      - uses: actions/checkout@93cb6efe18208431cddfb8368fd83d5badbf9bfd # v5.0.0
         with:
           submodules: recursive
 
       - name: Install Foundry
-        uses: foundry-rs/foundry-toolchain@v1
+        uses: foundry-rs/foundry-toolchain@c7450ba673e133f5ee30098b3b54f444d3a2ca2d # v1.7.0
         with:
           version: stable
 
@@ -142,15 +138,15 @@ jobs:
     name: Frontend Build
     runs-on: ubuntu-latest
     steps:
-      - uses: actions/checkout@v5
+      - uses: actions/checkout@93cb6efe18208431cddfb8368fd83d5badbf9bfd # v5.0.0
 
       - name: Setup pnpm
-        uses: pnpm/action-setup@v5
+        uses: pnpm/action-setup@a8198c4bff370c8506180b035930dea56dbd5288 # v5.0.0
         with:
           version: 9
 
       - name: Setup Node.js
-        uses: actions/setup-node@v5
+        uses: actions/setup-node@a0853c24544627f65ddf259abe73b1d18a591444 # v5.0.0
         with:
           node-version: ${{ env.NODE_VERSION }}
           cache: 'pnpm'
@@ -170,7 +166,7 @@ jobs:
           NEXT_PUBLIC_DEPLOY_ENV: production
 
       - name: Upload build artifacts
-        uses: actions/upload-artifact@v5
+        uses: actions/upload-artifact@330a01c490aca151604b8cf639adc76d48f6c5d4 # v5.0.0
         with:
           name: frontend-build
           path: apps/web/.next
@@ -183,15 +179,15 @@ jobs:
     name: E2E Tests
     runs-on: ubuntu-latest
     steps:
-      - uses: actions/checkout@v5
+      - uses: actions/checkout@93cb6efe18208431cddfb8368fd83d5badbf9bfd # v5.0.0
 
       - name: Setup pnpm
-        uses: pnpm/action-setup@v5
+        uses: pnpm/action-setup@a8198c4bff370c8506180b035930dea56dbd5288 # v5.0.0
         with:
           version: 9
 
       - name: Setup Node.js
-        uses: actions/setup-node@v5
+        uses: actions/setup-node@a0853c24544627f65ddf259abe73b1d18a591444 # v5.0.0
         with:
           node-version: ${{ env.NODE_VERSION }}
           cache: 'pnpm'
@@ -217,15 +213,15 @@ jobs:
     name: Security Audit
     runs-on: ubuntu-latest
     steps:
-      - uses: actions/checkout@v5
+      - uses: actions/checkout@93cb6efe18208431cddfb8368fd83d5badbf9bfd # v5.0.0
 
       - name: Setup pnpm
-        uses: pnpm/action-setup@v5
+        uses: pnpm/action-setup@a8198c4bff370c8506180b035930dea56dbd5288 # v5.0.0
         with:
           version: 9
 
       - name: Setup Node.js
-        uses: actions/setup-node@v5
+        uses: actions/setup-node@a0853c24544627f65ddf259abe73b1d18a591444 # v5.0.0
         with:
           node-version: ${{ env.NODE_VERSION }}
           cache: 'pnpm'
@@ -236,6 +232,11 @@ jobs:
       - name: Run security audit
         run: pnpm audit --audit-level critical
 
+      - name: Secret scan
+        uses: gitleaks/gitleaks-action@dcedce43c6f43de0b836d1fe38946645c9c638dc # v2.3.9
+        env:
+          GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+
   # ============================================
   # Production Approval Gate
   # ============================================
@@ -243,7 +244,7 @@ jobs:
     name: Approve Production Deploy
     runs-on: ubuntu-latest
     needs: [prepare, contracts, frontend, e2e, security]
-    if: github.ref == 'refs/heads/main'
+    if: github.ref == 'refs/heads/main' || startsWith(github.ref, 'refs/tags/v') || github.event_name == 'workflow_dispatch'
     environment: production
     steps:
       - run: echo "Production deployment approved"
@@ -255,61 +256,63 @@ jobs:
     name: Deploy Docker to Production
     runs-on: ubuntu-latest
     needs: [prepare, contracts, frontend, e2e, security, deploy_approval]
+    permissions:
+      contents: write
     if: |
       github.event.inputs.deploy_type == 'docker' ||
       github.event.inputs.deploy_type == 'both' ||
       (github.event_name == 'push' && github.ref == 'refs/heads/main') ||
       startsWith(github.ref, 'refs/tags/v')
     steps:
-      - uses: actions/checkout@v5
+      - uses: actions/checkout@93cb6efe18208431cddfb8368fd83d5badbf9bfd # v5.0.0
         with:
           ref: ${{ github.ref }}
 
       - name: Download build artifacts
-        uses: actions/download-artifact@v5
+        uses: actions/download-artifact@634f93cb2916e3fdff6788551b99b062d0335ce0 # v5.0.0
         with:
           name: frontend-build
           path: apps/web/.next
 
       - name: Set up Docker Buildx
-        uses: docker/setup-buildx-action@v3
+        uses: docker/setup-buildx-action@8d2750c68a42422c14e847fe6c8ac0403b4cbd6f # v3.12.0
 
       - name: Login to Docker Registry
-        uses: docker/login-action@v3
+        uses: docker/login-action@c94ce9fb468520275223c153574b00df6fe4bcc9 # v3.3.0
         with:
-          registry: ${{ env.DOCKER_REGISTRY }}
-          username: ${{ env.DOCKER_USERNAME }}
-          password: ${{ env.DOCKER_PASSWORD }}
+          registry: ${{ secrets.DOCKER_REGISTRY }}
+          username: ${{ secrets.DOCKER_USERNAME }}
+          password: ${{ secrets.DOCKER_PASSWORD }}
 
       - name: Build and push Docker image
-        uses: docker/build-push-action@v5
+        uses: docker/build-push-action@ca052bb54ab0790a636c9b5f226502c73d547a25 # v5.4.0
         with:
           context: ./apps/web
           push: true
           tags: |
-            ${{ env.DOCKER_REGISTRY }}/kokonut-marketplace:latest
-            ${{ env.DOCKER_REGISTRY }}/kokonut-marketplace:${{ needs.prepare.outputs.version }}
+            ${{ secrets.DOCKER_REGISTRY }}/kokonut-marketplace:latest
+            ${{ secrets.DOCKER_REGISTRY }}/kokonut-marketplace:${{ needs.prepare.outputs.version }}
           build-args: |
             NEXT_PUBLIC_DEPLOY_ENV=production
           cache-from: type=gha
           cache-to: type=gha,mode=max
 
       - name: Deploy to Production Server via SSH
-        uses: appleboy/ssh-action@v1.2.0
+        uses: appleboy/ssh-action@7eaf76671a0d7eec5d98ee897acda4f968735a17 # v1.2.0
         with:
-          host: ${{ env.PRODUCTION_SERVER_HOST }}
+          host: ${{ secrets.PRODUCTION_SERVER_HOST }}
           username: ${{ secrets.PRODUCTION_SSH_USER }}
-          key: ${{ env.PRODUCTION_SSH_KEY }}
+          key: ${{ secrets.PRODUCTION_SSH_KEY }}
           script: |
             cd /opt/kokonut-production
-            docker pull ${{ env.DOCKER_REGISTRY }}/kokonut-marketplace:${{ needs.prepare.outputs.version }}
+            docker pull ${{ secrets.DOCKER_REGISTRY }}/kokonut-marketplace:${{ needs.prepare.outputs.version }}
             docker-compose down
             docker-compose up -d
             echo "Docker production deployment complete"
 
       - name: Create GitHub Release
         if: needs.prepare.outputs.is_tag == 'true'
-        uses: softprops/action-gh-release@v1
+        uses: softprops/action-gh-release@26994186c0ac3ef5cae75ac16aa32e8153525f77 # v1.2.0
         with:
           tag_name: ${{ needs.prepare.outputs.version }}
           name: Kokonut v${{ needs.prepare.outputs.version }}
@@ -324,30 +327,32 @@ jobs:
   deploy-ipfs:
     name: Deploy to IPFS
     runs-on: ubuntu-latest
-    needs: [prepare, contracts, frontend]
+    needs: [prepare, contracts, frontend, e2e, security, deploy_approval]
+    permissions:
+      contents: write
     if: |
       github.event.inputs.deploy_type == 'ipfs' ||
       github.event.inputs.deploy_type == 'both' ||
       (github.event_name == 'push' && github.ref == 'refs/heads/main') ||
       startsWith(github.ref, 'refs/tags/v')
     steps:
-      - uses: actions/checkout@v5
+      - uses: actions/checkout@93cb6efe18208431cddfb8368fd83d5badbf9bfd # v5.0.0
         with:
           ref: ${{ github.ref }}
 
       - name: Download build artifacts
-        uses: actions/download-artifact@v5
+        uses: actions/download-artifact@634f93cb2916e3fdff6788551b99b062d0335ce0 # v5.0.0
         with:
           name: frontend-build
           path: apps/web/.next
 
       - name: Setup pnpm
-        uses: pnpm/action-setup@v5
+        uses: pnpm/action-setup@a8198c4bff370c8506180b035930dea56dbd5288 # v5.0.0
         with:
           version: 9
 
       - name: Setup Node.js
-        uses: actions/setup-node@v5
+        uses: actions/setup-node@a0853c24544627f65ddf259abe73b1d18a591444 # v5.0.0
         with:
           node-version: ${{ env.NODE_VERSION }}
           cache: 'pnpm'
@@ -376,7 +381,7 @@ jobs:
 
       - name: Create GitHub Release with IPFS info
         if: needs.prepare.outputs.is_tag == 'true'
-        uses: softprops/action-gh-release@v1
+        uses: softprops/action-gh-release@26994186c0ac3ef5cae75ac16aa32e8153525f77 # v1.2.0
         with:
           tag_name: ${{ needs.prepare.outputs.version }}
           name: Kokonut v${{ needs.prepare.outputs.version }}
@@ -395,7 +400,7 @@ jobs:
     if: always()
     steps:
       - name: Send deployment notification
-        uses: 8398a7/action-slack@v3
+        uses: 8398a7/action-slack@77eaa4f1c608a7d68b38af4e3f739dcd8cba273e # v3.19.0
         with:
           status: ${{ job.status }}
           fields: repo,message,commit,author

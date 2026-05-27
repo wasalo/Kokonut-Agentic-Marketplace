@@ -8,6 +8,7 @@ import { getContractAddress } from '@/lib/contracts/config';
 import { useDebug } from '@/contexts/DebugContext';
 
 const ERC8004_ADDRESS = getContractAddress('ERC8004_REGISTRY');
+const SEPOLIA_CHAIN_ID = 11155111;
 
 interface UseAddKokonutTagReturn {
   addTag: (agentId: number) => Promise<void>;
@@ -97,6 +98,7 @@ export function useAddKokonutTag(): UseAddKokonutTagReturn {
         addLog('contract', 'Calling setAgentURI...');
 
         writeContract({
+          chainId: SEPOLIA_CHAIN_ID,
           address: ERC8004_ADDRESS,
           abi: ERC8004_ABI,
           functionName: 'setAgentURI',

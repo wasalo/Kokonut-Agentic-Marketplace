@@ -216,9 +216,9 @@ The wildcard format (e.g., `10.108.1.*`) allows any IP in that subnet. Add expli
 | **MilestoneEscrowV2 Impl** | `0x8F9Bae14966Af0BceE5c291A764cE3503f9D49F3` | Phase 34: Isolated milestone custody + native currency |
 | **AgentSkillRegistryV2** | `0xA84684261558f342d6871DD2CFef90A2117Aa20A` | Skills/capabilities (UUPS) |
 | **ServiceRegistryV2**    | `0x62E1eeEa1A2Ab987004F35bDA430457Ed6077201` | Service listings (UUPS)    |
-| **ServiceRegistryV2 Impl** | `0xb75B02D4523171ABdB6f5bcB9D60903ed3e30fAD` | Phase 29e: blacklist recheck + Pashov fixes |
+| **ServiceRegistryV2 Impl** | `0xe8dEf9ce280ebDf43d8273223C1957747a292e23` | Phase 34c: bond withdrawal + 7-day cooldown |
 | **AgenticCommerceV9**    | `0x3a1Bc03cC84040A282F6bf238b917D8351499239` | Job escrow (V9: Multi-Token Configurable Minimums) |
-| **AgenticCommerceV9 Impl** | `0x40b4029dDd11fb0177B28B2d3537B073Da96b0c4` | Phase 34: Storage recovery + auth patch + native currency |
+| **AgenticCommerceV9 Impl** | `0x5677c6B3133796A6066Bf4bB202edb9D594a022D` | Phase 34c: Remove auto bond refund |
 | **PriceOracleV2**        | `0x29c27a26DD2F80f840cb4D7B5E53b7db3D67143d` | PriceOracleV2 - UUPS upgradeable per-token feeds |
 | **PriceOracleV2 Impl**   | `0x7Bad7cc9754814246814299ca50041a939a244b1` | Phase 31: L-03 ETH/USD Chainlink feed |
 | **AgentReviewV5**        | `0x5CDb592Fd37749bF87448FBf5725D1Cd986dd1Cb` | A/B evaluation             |
@@ -518,7 +518,7 @@ All core contracts use **UUPS (Universal Upgradeable Proxy Standard)**:
 
 **Proxy vs Implementation:**
 - **Proxy** (`0x3a1Bc03cC84040A282F6bf238b917D8351499239`) — This is the address you interact with. Stores all data. Never changes.
-- **Implementation** (`0x40b4029dDd11fb0177B28B2d3537B073Da96b0c4`) — Contains the logic/code. Can be swapped for new versions.
+- **Implementation** (`0x5677c6B3133796A6066Bf4bB202edb9D594a022D`) — Contains the logic/code. Can be swapped for new versions.
 
 ---
 

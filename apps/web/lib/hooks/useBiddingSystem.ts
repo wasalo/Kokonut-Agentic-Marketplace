@@ -5,6 +5,7 @@ import { getContractAddress } from '@/lib/contracts/config';
 import { parseEther } from 'viem';
 
 const BIDDING_SYSTEM_ADDRESS = getContractAddress('BIDDING_SYSTEM');
+const SEPOLIA_CHAIN_ID = 11155111;
 
 export const SessionStatus = {
   Active: 0,
@@ -244,6 +245,7 @@ export function useCreateBiddingSession() {
     const stake = (params.maxBudget * 100n) / 10000n; // 1% stake
 
     writeContract({
+      chainId: SEPOLIA_CHAIN_ID,
       address: BIDDING_SYSTEM_ADDRESS,
       abi: BIDDING_SYSTEM_ABI,
       functionName: 'createBiddingSession',
@@ -277,6 +279,7 @@ export function useBiddingCommitBid() {
 
   function commitBid(params: { sessionId: bigint; commitHash: `0x${string}`; stake: bigint }) {
     writeContract({
+      chainId: SEPOLIA_CHAIN_ID,
       address: BIDDING_SYSTEM_ADDRESS,
       abi: BIDDING_SYSTEM_ABI,
       functionName: 'commitBid',
@@ -309,6 +312,7 @@ export function useBiddingRevealBid() {
     salt: `0x${string}`;
   }) {
     writeContract({
+      chainId: SEPOLIA_CHAIN_ID,
       address: BIDDING_SYSTEM_ADDRESS,
       abi: BIDDING_SYSTEM_ABI,
       functionName: 'revealBid',
@@ -335,6 +339,7 @@ export function useBiddingAcceptBid() {
 
   function acceptBid(params: { sessionId: bigint; bidId: bigint }) {
     writeContract({
+      chainId: SEPOLIA_CHAIN_ID,
       address: BIDDING_SYSTEM_ADDRESS,
       abi: BIDDING_SYSTEM_ABI,
       functionName: 'acceptBid',
@@ -361,6 +366,7 @@ export function useBiddingRejectBid() {
 
   function rejectBid(params: { sessionId: bigint; bidId: bigint; reason: string }) {
     writeContract({
+      chainId: SEPOLIA_CHAIN_ID,
       address: BIDDING_SYSTEM_ADDRESS,
       abi: BIDDING_SYSTEM_ABI,
       functionName: 'rejectBid',
@@ -387,6 +393,7 @@ export function useBiddingWithdrawStake() {
 
   function withdrawStake(sessionId: bigint) {
     writeContract({
+      chainId: SEPOLIA_CHAIN_ID,
       address: BIDDING_SYSTEM_ADDRESS,
       abi: BIDDING_SYSTEM_ABI,
       functionName: 'withdrawStake',
@@ -413,6 +420,7 @@ export function useBiddingWithdrawCreatorStake() {
 
   function withdrawCreatorStake(sessionId: bigint) {
     writeContract({
+      chainId: SEPOLIA_CHAIN_ID,
       address: BIDDING_SYSTEM_ADDRESS,
       abi: BIDDING_SYSTEM_ABI,
       functionName: 'withdrawCreatorStake',
@@ -447,6 +455,7 @@ export function useBiddingCreateJobAndFund() {
     const totalPayment = params.bidAmount + params.platformFee;
 
     writeContract({
+      chainId: SEPOLIA_CHAIN_ID,
       address: BIDDING_SYSTEM_ADDRESS,
       abi: BIDDING_SYSTEM_ABI,
       functionName: 'createJobAndFund',
@@ -474,6 +483,7 @@ export function useBiddingCancelSession() {
 
   function cancelSession(sessionId: bigint) {
     writeContract({
+      chainId: SEPOLIA_CHAIN_ID,
       address: BIDDING_SYSTEM_ADDRESS,
       abi: BIDDING_SYSTEM_ABI,
       functionName: 'cancelSession',
@@ -500,6 +510,7 @@ export function useBiddingExtendRevealWindow() {
 
   function extendRevealWindow(params: { sessionId: bigint; additionalSeconds: bigint }) {
     writeContract({
+      chainId: SEPOLIA_CHAIN_ID,
       address: BIDDING_SYSTEM_ADDRESS,
       abi: BIDDING_SYSTEM_ABI,
       functionName: 'extendRevealWindow',
@@ -526,6 +537,7 @@ export function useBiddingCompleteSession() {
 
   function completeSession(sessionId: bigint) {
     writeContract({
+      chainId: SEPOLIA_CHAIN_ID,
       address: BIDDING_SYSTEM_ADDRESS,
       abi: BIDDING_SYSTEM_ABI,
       functionName: 'completeSession',

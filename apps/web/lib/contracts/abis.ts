@@ -20,8 +20,8 @@ export const AGENT_IDENTITY_REGISTRY_ABI = parseAbi([
  
  
 export const SERVICE_REGISTRY_ABI = parseAbi([
-  'function createService(uint256 agentId, string name, string description, string metadataURI, uint256 price, address paymentToken) external returns (uint256 serviceId)',
-  'function createService(uint256 agentId, string name, string description, string metadataURI, uint256 price, address paymentToken, address paymentAddress) external returns (uint256 serviceId)',
+  'function createService(uint256 agentId, string name, string description, string metadataURI, uint256 price, address paymentToken) external payable returns (uint256 serviceId)',
+  'function createService(uint256 agentId, string name, string description, string metadataURI, uint256 price, address paymentToken, address paymentAddress) external payable returns (uint256 serviceId)',
   'function updateService(uint256 serviceId, string name, string description, string metadataURI, uint256 price) external',
   'function deactivateService(uint256 serviceId) external',
   'function activateService(uint256 serviceId) external',
@@ -32,6 +32,9 @@ export const SERVICE_REGISTRY_ABI = parseAbi([
   'function getProviderServices(address provider) external view returns (uint256[] memory)',
   'function getServicesByAgent(uint256 agentId) external view returns (uint256[] memory)',
   'function getServiceCounter() external view returns (uint256)',
+  'function withdrawServiceBond(uint256 serviceId) external',
+  'function getServiceBond(uint256 serviceId) external view returns (uint256)',
+  'function deactivatedAt(uint256 serviceId) external view returns (uint256)',
 ]);
  
 
@@ -144,6 +147,15 @@ export const AGENTIC_COMMERCE_ABI = parseAbi([
   'function priceOracle() external view returns (address)',
   'function setAllowedToken(address token, bool allowed) external',
   'function allowedTokens(address token) external view returns (bool)',
+  'function owner() external view returns (address)',
+  'function platformTreasury() external view returns (address)',
+  'function setPlatformTreasury(address _treasury) external',
+  'function adminRegistry() external view returns (address)',
+  'function setAdminRegistry(address _registry) external',
+  'function minEvaluatorStake() external view returns (uint256)',
+  'function setMinEvaluatorStake(uint256 newStake) external',
+  'function authorizedJobCreators(address creator) external view returns (bool)',
+  'function setAuthorizedJobCreator(address creator, bool authorized) external',
   'function serviceRegistry() external view returns (address)',
   'function setServiceRegistry(address _serviceRegistry) external',
   'function createJobForClient(address client, address provider, uint256 budget, address paymentToken, uint256 serviceId, uint256 expiredAt, string description, address evaluator, address hook, bool evaluatorFee, bool clientReview, bool fundNow, uint256 fundAmount) external payable returns (uint256 jobId)',

@@ -15,6 +15,7 @@ const AGENT_REVIEW_ABI_WITH_NEW = AGENT_REVIEW_ABI as typeof AGENT_REVIEW_ABI & 
 )[];
 
 const AGENT_REVIEW_ADDRESS = getContractAddress('AGENT_REVIEW');
+const SEPOLIA_CHAIN_ID = 11155111;
 
 export interface Proposal {
   id: bigint;
@@ -433,6 +434,7 @@ export function useCreateProposal() {
       });
 
       writeContract({
+        chainId: SEPOLIA_CHAIN_ID,
         address: AGENT_REVIEW_ADDRESS,
         abi: AGENT_REVIEW_ABI,
         functionName: 'createProposal',
@@ -464,6 +466,7 @@ export function useSubmitEvaluation() {
       });
 
       writeContract({
+        chainId: SEPOLIA_CHAIN_ID,
         address: AGENT_REVIEW_ADDRESS,
         abi: AGENT_REVIEW_ABI,
         functionName: 'submitEvaluation',
@@ -494,6 +497,7 @@ export function useAttestDecision() {
       });
 
       writeContract({
+        chainId: SEPOLIA_CHAIN_ID,
         address: AGENT_REVIEW_ADDRESS,
         abi: AGENT_REVIEW_ABI,
         functionName: 'attestDecision',
@@ -526,6 +530,7 @@ export function useClaimReward() {
       });
 
       writeContract({
+        chainId: SEPOLIA_CHAIN_ID,
         address: AGENT_REVIEW_ADDRESS,
         abi: AGENT_REVIEW_ABI,
         functionName: 'claimReward',
@@ -554,6 +559,7 @@ export function useReleaseStake() {
       });
 
       writeContract({
+        chainId: SEPOLIA_CHAIN_ID,
         address: AGENT_REVIEW_ADDRESS,
         abi: AGENT_REVIEW_ABI,
         functionName: 'releaseStake',
@@ -635,6 +641,7 @@ export function useCancelProposal() {
   return {
     cancelProposal: (proposalId: bigint) =>
       writeContract({
+        chainId: SEPOLIA_CHAIN_ID,
         address: AGENT_REVIEW_ADDRESS,
         abi: AGENT_REVIEW_ABI,
         functionName: 'cancelProposal',
@@ -653,6 +660,7 @@ export function useSlashEvaluator() {
   return {
     slashEvaluator: (evaluator: `0x${string}`, proposalId: bigint, slashBP: bigint, reason: string) =>
       writeContract({
+        chainId: SEPOLIA_CHAIN_ID,
         address: AGENT_REVIEW_ADDRESS,
         abi: AGENT_REVIEW_ABI,
         functionName: 'slashEvaluator',
@@ -678,6 +686,7 @@ export function useFinalizeDecision() {
   return {
     finalizeDecision: (proposalId: bigint) =>
       writeContract({
+        chainId: SEPOLIA_CHAIN_ID,
         address: AGENT_REVIEW_ADDRESS,
         abi: AGENT_REVIEW_ABI_WITH_NEW,
         functionName: 'finalizeDecision' as 'finalizeDecision',

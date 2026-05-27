@@ -39,10 +39,10 @@ const sepoliaContracts = {
   skillRegistry: '0xA84684261558f342d6871DD2CFef90A2117Aa20A',
   skillRegistryImpl: '0x656B6520CE44Bb0Fb08552274Be3a9B11aaa3569', // Phase 14: O(1) domain lookup
   serviceRegistry: '0x62E1eeEa1A2Ab987004F35bDA430457Ed6077201',
-  serviceRegistryImpl: '0xb75B02D4523171ABdB6f5bcB9D60903ed3e30fAD', // Phase 29e: blacklist recheck
-  // Phase 29: V9 - Multi-token configurable minimum budgets
+  serviceRegistryImpl: '0xe8dEf9ce280ebDf43d8273223C1957747a292e23', // Phase 34c: bond withdrawal + cooldown
+    // Phase 29: V9 - Multi-token configurable minimum budgets
   agenticCommerce: '0x3a1Bc03cC84040A282F6bf238b917D8351499239',
-  agenticCommerceImpl: '0x40b4029dDd11fb0177B28B2d3537B073Da96b0c4', // Phase 34: auth patch
+  agenticCommerceImpl: '0x5677c6B3133796A6066Bf4bB202edb9D594a022D', // Phase 34c: remove auto bond refund
   // Phase 11: BiddingSystem - Standalone commit-reveal bidding
   biddingSystem: '0x4D7F38C6A9DE5De44A7B789962B7A2B06bFE8fd6',
   biddingSystemImpl: '0x9FfE85CBC78144B1bAd32d2Fd61a1fdc3740f047', // Phase 34: creator stake patch
@@ -173,10 +173,10 @@ export const CONTRACT_ADDRESSES = {
     skillRegistry: '0xA84684261558f342d6871DD2CFef90A2117Aa20A',
     skillRegistryImpl: '0x656B6520CE44Bb0Fb08552274Be3a9B11aaa3569', // Phase 14: O(1) domain lookup
     serviceRegistry: '0x62E1eeEa1A2Ab987004F35bDA430457Ed6077201',
-    serviceRegistryImpl: '0xb75B02D4523171ABdB6f5bcB9D60903ed3e30fAD', // Phase 29e: blacklist recheck
-    // Phase 29: V9 - Multi-token configurable minimum budgets
+  serviceRegistryImpl: '0xe8dEf9ce280ebDf43d8273223C1957747a292e23', // Phase 34c: bond withdrawal + cooldown
+  // Phase 29: V9 - Multi-token configurable minimum budgets
   agenticCommerce: '0x3a1Bc03cC84040A282F6bf238b917D8351499239',
-  agenticCommerceImpl: '0x40b4029dDd11fb0177B28B2d3537B073Da96b0c4', // Phase 34: auth patch
+  agenticCommerceImpl: '0x5677c6B3133796A6066Bf4bB202edb9D594a022D', // Phase 34c: remove auto bond refund
     // Phase 11: BiddingSystem - Standalone commit-reveal bidding
   biddingSystem: '0x4D7F38C6A9DE5De44A7B789962B7A2B06bFE8fd6',
   biddingSystemImpl: '0x9FfE85CBC78144B1bAd32d2Fd61a1fdc3740f047', // Phase 34: creator stake patch

@@ -1109,20 +1109,24 @@ class CommerceModule {
     return result as unknown as bigint;
   }
 
-  async commitBid(jobId: bigint, amount: bigint, message: string): Promise<TransactionResult & { salt: `0x${string}`; commitHash: `0x${string}` }> {
+  async commitBid(sessionId: bigint, amount: bigint, message: string): Promise<TransactionResult & { salt: `0x${string}`; commitHash: `0x${string}` }> {
     const stake = (amount * 100n) / 10000n;
     const saltBytes = globalThis.crypto?.getRandomValues?.(new Uint8Array(32))
       || new Uint8Array(32).map(() => Math.floor(Math.random() * 256));
     const salt = `0x${Buffer.from(saltBytes).toString('hex')}` as `0x${string}`;
-    const commitHash = `0x${Buffer.from(
-      globalThis.crypto?.getRandomValues?.(new Uint8Array(32))
-        || new Uint8Array(32).map(() => Math.floor(Math.random() * 256))
-    ).toString('hex')}` as `0x${string}`;
+    const commitHash = keccak256(encodeAbiParameters(
+      [
+        { type: 'uint256' },
+        { type: 'string' },
+        { type: 'bytes32' },
+      ],
+      [amount, message, salt]
+    ));
     const hash = await this.wallet.writeContract({
-      address: this.contracts.agenticCommerce,
-      abi: AGENTIC_COMMERCE_ABI,
+      address: this.contracts.biddingSystem! as Address,
+      abi: BIDDING_SYSTEM_ABI,
       functionName: 'commitBid',
-      args: [jobId, commitHash],
+      args: [sessionId, commitHash],
       value: stake,
     } as any);
 
@@ -1136,10 +1140,10 @@ class CommerceModule {
 
   async revealBid(params: RevealBidParams): Promise<TransactionResult> {
     const hash = await this.wallet.writeContract({
-      address: this.contracts.agenticCommerce,
-      abi: AGENTIC_COMMERCE_ABI,
+      address: this.contracts.biddingSystem! as Address,
+      abi: BIDDING_SYSTEM_ABI,
       functionName: 'revealBid',
-      args: [params.jobId, params.amount, params.message, params.salt],
+      args: [params.sessionId, params.amount, params.message, params.salt],
     } as any);
 
     return {
@@ -1148,12 +1152,12 @@ class CommerceModule {
     };
   }
 
-  async acceptBid(jobId: bigint, bidId: bigint): Promise<TransactionResult> {
+  async acceptBid(sessionId: bigint, bidId: bigint): Promise<TransactionResult> {
     const hash = await this.wallet.writeContract({
-      address: this.contracts.agenticCommerce,
-      abi: AGENTIC_COMMERCE_ABI,
+      address: this.contracts.biddingSystem! as Address,
+      abi: BIDDING_SYSTEM_ABI,
       functionName: 'acceptBid',
-      args: [jobId, bidId],
+      args: [sessionId, bidId],
     } as any);
 
     return {
@@ -1162,12 +1166,12 @@ class CommerceModule {
     };
   }
 
-  async withdrawStake(jobId: bigint): Promise<TransactionResult> {
+  async withdrawStake(sessionId: bigint): Promise<TransactionResult> {
     const hash = await this.wallet.writeContract({
-      address: this.contracts.agenticCommerce,
-      abi: AGENTIC_COMMERCE_ABI,
+      address: this.contracts.biddingSystem! as Address,
+      abi: BIDDING_SYSTEM_ABI,
       functionName: 'withdrawStake',
-      args: [jobId],
+      args: [sessionId],
     } as any);
 
     return {

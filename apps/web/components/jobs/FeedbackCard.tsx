@@ -8,6 +8,7 @@ import { keccak256, toHex } from 'viem';
 import { ERC8004_ABI } from '@/lib/8004contracts';
 
 const ERC8004_REP = process.env.NEXT_PUBLIC_8004_REPUTATION_ADDRESS as `0x${string}`;
+const SEPOLIA_CHAIN_ID = 11155111;
 
 export function FeedbackCard({ agentId, jobId }: { agentId: bigint; jobId: bigint }) {
   const [rating, setRating] = useState('850');
@@ -20,6 +21,7 @@ export function FeedbackCard({ agentId, jobId }: { agentId: bigint; jobId: bigin
   const handleSubmit = useCallback(() => {
     const salt = keccak256(toHex(`feedback-${jobId}-${Date.now()}`));
     writeContract({
+      chainId: SEPOLIA_CHAIN_ID,
       address: ERC8004_REP,
       abi: ERC8004_ABI,
       functionName: 'giveFeedback',

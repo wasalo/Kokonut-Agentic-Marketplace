@@ -102,8 +102,85 @@ export class ServiceUpdated__Params {
   }
 }
 
+export class ServiceRegistry__getServiceResultValue0Struct extends ethereum.Tuple {
+  get id(): BigInt {
+    return this[0].toBigInt();
+  }
+
+  get provider(): Address {
+    return this[1].toAddress();
+  }
+
+  get paymentAddress(): Address {
+    return this[2].toAddress();
+  }
+
+  get agentId(): BigInt {
+    return this[3].toBigInt();
+  }
+
+  get name(): string {
+    return this[4].toString();
+  }
+
+  get description(): string {
+    return this[5].toString();
+  }
+
+  get metadataURI(): string {
+    return this[6].toString();
+  }
+
+  get price(): BigInt {
+    return this[7].toBigInt();
+  }
+
+  get paymentToken(): Address {
+    return this[8].toAddress();
+  }
+
+  get isActive(): boolean {
+    return this[9].toBoolean();
+  }
+
+  get createdAt(): BigInt {
+    return this[10].toBigInt();
+  }
+}
+
 export class ServiceRegistry extends ethereum.SmartContract {
   static bind(address: Address): ServiceRegistry {
     return new ServiceRegistry("ServiceRegistry", address);
+  }
+
+  getService(serviceId: BigInt): ServiceRegistry__getServiceResultValue0Struct {
+    let result = super.call(
+      "getService",
+      "getService(uint256):((uint256,address,address,uint256,string,string,string,uint256,address,bool,uint256))",
+      [ethereum.Value.fromUnsignedBigInt(serviceId)],
+    );
+
+    return changetype<ServiceRegistry__getServiceResultValue0Struct>(
+      result[0].toTuple(),
+    );
+  }
+
+  try_getService(
+    serviceId: BigInt,
+  ): ethereum.CallResult<ServiceRegistry__getServiceResultValue0Struct> {
+    let result = super.tryCall(
+      "getService",
+      "getService(uint256):((uint256,address,address,uint256,string,string,string,uint256,address,bool,uint256))",
+      [ethereum.Value.fromUnsignedBigInt(serviceId)],
+    );
+    if (result.reverted) {
+      return new ethereum.CallResult();
+    }
+    let value = result.value;
+    return ethereum.CallResult.fromValue(
+      changetype<ServiceRegistry__getServiceResultValue0Struct>(
+        value[0].toTuple(),
+      ),
+    );
   }
 }

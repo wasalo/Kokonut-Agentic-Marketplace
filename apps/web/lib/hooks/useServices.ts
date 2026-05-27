@@ -7,6 +7,7 @@ import type { Service } from '@/lib/types/contracts';
 
 const SERVICE_REGISTRY_ADDRESS = getContractAddress('SERVICE_REGISTRY');
 const SERVICE_BOND_AMOUNT = parseEther('0.01');
+const SEPOLIA_CHAIN_ID = 11155111;
 
 export type { Service };
 
@@ -275,6 +276,7 @@ export function useCreateService() {
       paymentAddress: `0x${string}`;
     }) => {
       const tx = await writeContract({
+        chainId: SEPOLIA_CHAIN_ID,
         address: SERVICE_REGISTRY_ADDRESS,
         abi: SERVICE_REGISTRY_ABI,
         functionName: 'createService',
@@ -316,6 +318,7 @@ export function useUpdateService() {
       price: bigint;
     }) => {
       const tx = await writeContract({
+        chainId: SEPOLIA_CHAIN_ID,
         address: SERVICE_REGISTRY_ADDRESS,
         abi: SERVICE_REGISTRY_ABI,
         functionName: 'updateService',
@@ -342,6 +345,7 @@ export function useSetPaymentAddress() {
   const setPaymentAddress = useCallback(
     async (args: { serviceId: bigint; paymentAddress: `0x${string}` }) => {
       const tx = await writeContract({
+        chainId: SEPOLIA_CHAIN_ID,
         address: SERVICE_REGISTRY_ADDRESS,
         abi: SERVICE_REGISTRY_ABI,
         functionName: 'setPaymentAddress',
@@ -367,6 +371,7 @@ export function useActivateService() {
   const activate = useCallback(
     async (serviceId: bigint) => {
       const tx = await writeContract({
+        chainId: SEPOLIA_CHAIN_ID,
         address: SERVICE_REGISTRY_ADDRESS,
         abi: SERVICE_REGISTRY_ABI,
         functionName: 'activateService',
@@ -393,6 +398,7 @@ export function useDeactivateService() {
   const deactivate = useCallback(
     async (serviceId: bigint) => {
       const tx = await writeContract({
+        chainId: SEPOLIA_CHAIN_ID,
         address: SERVICE_REGISTRY_ADDRESS,
         abi: SERVICE_REGISTRY_ABI,
         functionName: 'deactivateService',
@@ -410,6 +416,77 @@ export function useDeactivateService() {
     isPending,
     error: error as Error | null,
     reset,
+  };
+}
+
+export function useWithdrawServiceBond() {
+  const { writeContract, data, isPending, error, reset } = useWriteContract();
+
+  const withdraw = useCallback(
+    async (serviceId: bigint) => {
+      const tx = await writeContract({
+        chainId: SEPOLIA_CHAIN_ID,
+        address: SERVICE_REGISTRY_ADDRESS,
+        abi: SERVICE_REGISTRY_ABI,
+        functionName: 'withdrawServiceBond',
+        args: [serviceId],
+      });
+      return tx;
+    },
+    [writeContract]
+  );
+
+  return {
+    withdraw,
+    withdrawServiceBond: withdraw,
+    hash: data,
+    isPending,
+    error: error as Error | null,
+    reset,
+  };
+}
+
+export function useGetServiceBond(serviceId: bigint | number | undefined) {
+  const id = serviceId !== undefined ? (typeof serviceId === 'bigint' ? serviceId : BigInt(serviceId)) : undefined;
+
+  const { data, isLoading, error, refetch } = useReadContract({
+    address: SERVICE_REGISTRY_ADDRESS,
+    abi: SERVICE_REGISTRY_ABI,
+    functionName: 'getServiceBond',
+    args: id !== undefined ? [id] : undefined,
+    query: {
+      enabled: id !== undefined,
+      staleTime: 30000,
+    },
+  });
+
+  return {
+    bond: data ? (data as bigint) : BigInt(0),
+    isLoading,
+    error: error as Error | null,
+    refetch,
+  };
+}
+
+export function useDeactivatedAt(serviceId: bigint | number | undefined) {
+  const id = serviceId !== undefined ? (typeof serviceId === 'bigint' ? serviceId : BigInt(serviceId)) : undefined;
+
+  const { data, isLoading, error, refetch } = useReadContract({
+    address: SERVICE_REGISTRY_ADDRESS,
+    abi: SERVICE_REGISTRY_ABI,
+    functionName: 'deactivatedAt',
+    args: id !== undefined ? [id] : undefined,
+    query: {
+      enabled: id !== undefined,
+      staleTime: 30000,
+    },
+  });
+
+  return {
+    deactivatedAt: data ? Number(data) * 1000 : 0, // convert to ms for JS Date
+    isLoading,
+    error: error as Error | null,
+    refetch,
   };
 }
 

@@ -1,12 +1,15 @@
 import { NextRequest, NextResponse } from 'next/server';
+import { z } from 'zod';
+import { requireAuthenticatedOwner } from '@/lib/api-auth';
+import { rateLimit } from '@/lib/rate-limit';
 
 const OPENROUTER_API_KEY = process.env.OPENROUTER_API_KEY;
 const OPENROUTER_BASE_URL = 'https://openrouter.ai/api/v1/chat/completions';
 
-interface EvaluateRequest {
-  jobDescription: string;
-  fulfillmentText: string;
-}
+const evaluateRequestSchema = z.object({
+  jobDescription: z.string().trim().min(1).max(4_000),
+  fulfillmentText: z.string().trim().min(1).max(12_000),
+});
 
 interface EvaluationResult {
   meetsRequirements: boolean;
@@ -75,8 +78,7 @@ Be strict but fair. Only mark as passed if the fulfillment actually addresses th
   });
 
   if (!response.ok) {
-    const error = await response.text();
-    throw new Error(`OpenRouter API error: ${error}`);
+    throw new Error('LLM provider request failed');
   }
 
   const data = await response.json();
@@ -91,23 +93,38 @@ Be strict but fair. Only mark as passed if the fulfillment actually addresses th
 
 export async function POST(request: NextRequest) {
   try {
-    if (!OPENROUTER_API_KEY) {
+    const auth = await requireAuthenticatedOwner(request);
+    if ('response' in auth) return auth.response;
+
+    const rateLimitResult = rateLimit(request, {
+      windowMs: 60 * 1000,
+      maxRequests: 5,
+      message: 'Too many evaluation requests. Please try again later.',
+    });
+
+    if (!rateLimitResult) {
       return NextResponse.json(
-        { error: 'OpenRouter API key not configured' },
-        { status: 500 }
+        { error: 'Too many evaluation requests. Please try again later.' },
+        { status: 429 }
       );
     }
 
-    const body: EvaluateRequest = await request.json();
-
-    if (!body.jobDescription || !body.fulfillmentText) {
+    if (!OPENROUTER_API_KEY) {
       return NextResponse.json(
-        { error: 'jobDescription and fulfillmentText are required' },
+        { error: 'OpenRouter API key not configured' },
+        { status: 503 }
+      );
+    }
+
+    const parsed = evaluateRequestSchema.safeParse(await request.json());
+    if (!parsed.success) {
+      return NextResponse.json(
+        { error: 'Invalid evaluation request' },
         { status: 400 }
       );
     }
 
-    const result = await evaluateWithLLM(body.jobDescription, body.fulfillmentText);
+    const result = await evaluateWithLLM(parsed.data.jobDescription, parsed.data.fulfillmentText);
 
     return NextResponse.json({
       success: true,
@@ -116,10 +133,8 @@ export async function POST(request: NextRequest) {
   } catch (error) {
     console.error('[llm/evaluate] Error:', error);
 
-    const message = error instanceof Error ? error.message : 'Evaluation failed';
-
     return NextResponse.json(
-      { error: message },
+      { error: 'Evaluation failed' },
       { status: 500 }
     );
   }

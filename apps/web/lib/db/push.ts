@@ -81,9 +81,14 @@ export async function createPushSubscription(params: {
   return mapSubscription(newSub);
 }
 
-export async function deletePushSubscription(endpoint: string): Promise<boolean> {
+export async function deletePushSubscription(endpoint: string, userAddress?: string): Promise<boolean> {
   const subscriptions = readSubscriptions();
-  const index = subscriptions.findIndex(s => s.endpoint === endpoint);
+  const owner = userAddress?.toLowerCase();
+  const index = subscriptions.findIndex(s => {
+    if (s.endpoint !== endpoint) return false;
+    if (owner && s.userAddress !== owner) return false;
+    return true;
+  });
 
   if (index === -1) return false;
 

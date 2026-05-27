@@ -3,6 +3,7 @@
   "version": "0.1.0",
   "description": "The Kokonut Agent Economy Stack - Identity → Commerce → Coordination",
   "private": true,
+  "packageManager": "pnpm@9.15.9",
   "scripts": {
     "build": "pnpm run build:sdk && pnpm run build:projects",
     "build:sdk": "pnpm --filter @kokonut/sdk build",
@@ -18,6 +19,7 @@
     "test:visual": "pnpm --filter @kokonut/web test:visual",
     "check:storage": "node scripts/check-storage-layout.js",
     "test:sepolia": "tsx scripts/sepolia-test.ts",
+    "generate:addresses": "node scripts/generate-address-configs.js",
     "lint": "pnpm -r --if-present run lint",
     "format": "prettier --write \"**/*.{ts,tsx,json,md}\"",
     "clean": "pnpm -r exec rm -rf dist node_modules .turbo",

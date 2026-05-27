@@ -1528,6 +1528,70 @@ export class Dispute extends Entity {
     }
   }
 
+  get token(): Bytes | null {
+    let value = this.get("token");
+    if (!value || value.kind == ValueKind.NULL) {
+      return null;
+    } else {
+      return value.toBytes();
+    }
+  }
+
+  set token(value: Bytes | null) {
+    if (!value) {
+      this.unset("token");
+    } else {
+      this.set("token", Value.fromBytes(<Bytes>value));
+    }
+  }
+
+  get feePaid(): BigInt | null {
+    let value = this.get("feePaid");
+    if (!value || value.kind == ValueKind.NULL) {
+      return null;
+    } else {
+      return value.toBigInt();
+    }
+  }
+
+  set feePaid(value: BigInt | null) {
+    if (!value) {
+      this.unset("feePaid");
+    } else {
+      this.set("feePaid", Value.fromBigInt(<BigInt>value));
+    }
+  }
+
+  get releasedToProvider(): boolean {
+    let value = this.get("releasedToProvider");
+    if (!value || value.kind == ValueKind.NULL) {
+      return false;
+    } else {
+      return value.toBoolean();
+    }
+  }
+
+  set releasedToProvider(value: boolean) {
+    this.set("releasedToProvider", Value.fromBoolean(value));
+  }
+
+  get arbiterFee(): BigInt | null {
+    let value = this.get("arbiterFee");
+    if (!value || value.kind == ValueKind.NULL) {
+      return null;
+    } else {
+      return value.toBigInt();
+    }
+  }
+
+  set arbiterFee(value: BigInt | null) {
+    if (!value) {
+      this.unset("arbiterFee");
+    } else {
+      this.set("arbiterFee", Value.fromBigInt(<BigInt>value));
+    }
+  }
+
   get resolved(): boolean {
     let value = this.get("resolved");
     if (!value || value.kind == ValueKind.NULL) {

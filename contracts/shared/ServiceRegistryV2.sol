@@ -54,7 +54,10 @@ interface IServiceRegistryV2 {
     function getActiveServiceCount() external view returns (uint256);
     function getServices(uint256 start, uint256 count) external view returns (uint256[] memory);
     function refundServiceBond(uint256 serviceId) external;
-    
+    function withdrawServiceBond(uint256 serviceId) external;
+    function getServiceBond(uint256 serviceId) external view returns (uint256);
+    function deactivatedAt(uint256 serviceId) external view returns (uint256);
+
     event ServiceCreated(
         uint256 indexed serviceId,
         address indexed provider,
@@ -94,6 +97,9 @@ contract ServiceRegistryV2 is
     error ServiceRegistryV2__Already_initialized();
     error ServiceRegistryV2__Bond_refund_failed();
     error ServiceRegistryV2__Bond_required();
+    error ServiceRegistryV2__Cooldown_not_passed();
+    error ServiceRegistryV2__No_bond_to_withdraw();
+    error ServiceRegistryV2__Service_still_active();
     error ServiceRegistryV2__Description_required();
     error ServiceRegistryV2__Invalid_address();
     error ServiceRegistryV2__Invalid_agent();
@@ -148,7 +154,10 @@ contract ServiceRegistryV2 is
     address public agenticCommerce;
     address public slashManager;
     address public adminRegistry;
-    
+
+    // V2 Fix: Track when a service was deactivated for bond withdrawal cooldown
+    mapping(uint256 => uint256) public deactivatedAt;
+
     // M3 Fix: Service listing bond (in native token/ETH)
     uint256 public constant SERVICE_BOND_AMOUNT = 0.01 ether;
     
@@ -158,6 +167,7 @@ contract ServiceRegistryV2 is
     event AgentServicesDeactivated(uint256 indexed agentId, uint256[] serviceIds);
     event ServiceBondDeposited(uint256 indexed serviceId, address indexed provider, uint256 amount);
     event ServiceBondRefunded(uint256 indexed serviceId, address indexed provider, uint256 amount);
+    event ServiceBondWithdrawn(uint256 indexed serviceId, address indexed provider, uint256 amount);
 
     /// @custom:oz-upgrades-unsafe-allow constructor
     constructor() {
@@ -301,7 +311,8 @@ contract ServiceRegistryV2 is
         if (!(_services[serviceId].isActive)) revert ServiceRegistryV2__Already_inactive();
 
         _services[serviceId].isActive = false;
-        
+        deactivatedAt[serviceId] = block.timestamp;
+
         // O(1) update: decrement active service count
         _activeServiceCount--;
 
@@ -376,16 +387,43 @@ contract ServiceRegistryV2 is
         if (!(msg.sender == agenticCommerce)) revert ServiceRegistryV2__Not_agentic_commerce();
         if (!(serviceId < _serviceCounter)) revert ServiceRegistryV2__Invalid_serviceId();
         if (!(_serviceBonds[serviceId] > 0)) revert ServiceRegistryV2__No_bond();
-        
+
         address provider = _services[serviceId].provider;
         uint256 bondAmount = _serviceBonds[serviceId];
         _serviceBonds[serviceId] = 0;
-        
+
         _sendEth(provider, bondAmount);
-        
+
         emit ServiceBondRefunded(serviceId, provider, bondAmount);
     }
-    
+
+    /**
+     * @dev Withdraw service bond after deactivation + 7-day cooldown
+     * V2 Fix: Provider-controlled bond withdrawal. Bond stays locked while service is active.
+     */
+    function withdrawServiceBond(uint256 serviceId) external whenNotPaused {
+        if (!(serviceId < _serviceCounter)) revert ServiceRegistryV2__Invalid_serviceId();
+        if (!(_services[serviceId].provider == msg.sender)) revert ServiceRegistryV2__Not_owner();
+        if (_services[serviceId].isActive) revert ServiceRegistryV2__Service_still_active();
+        if (!(block.timestamp >= deactivatedAt[serviceId] + 7 days)) revert ServiceRegistryV2__Cooldown_not_passed();
+        if (!(_serviceBonds[serviceId] > 0)) revert ServiceRegistryV2__No_bond_to_withdraw();
+
+        uint256 bondAmount = _serviceBonds[serviceId];
+        _serviceBonds[serviceId] = 0;
+        deactivatedAt[serviceId] = 0;
+
+        _sendEth(msg.sender, bondAmount);
+
+        emit ServiceBondWithdrawn(serviceId, msg.sender, bondAmount);
+    }
+
+    /**
+     * @dev Get the remaining bond for a service
+     */
+    function getServiceBond(uint256 serviceId) external view returns (uint256) {
+        return _serviceBonds[serviceId];
+    }
+
     // ============ View Functions ============
     
     function getService(uint256 serviceId) external view override returns (Service memory) {
@@ -505,7 +543,7 @@ contract ServiceRegistryV2 is
     event ActiveServiceCountInitialized(uint256 count);
 
     /// @dev Storage gap for upgrade safety
-    uint256[50] private __gap;
+    uint256[49] private __gap;
 
     /***********************************/
     /* Internal Helpers */

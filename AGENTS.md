@@ -97,9 +97,9 @@ USDC:      0x1c7D4B196Cb0C7B01d743Fbc6116a902379C7238
 | Contract | Proxy Address | Implementation Address | Purpose |
 |----------|---------------|----------------------|---------|
 | `AgentSkillRegistryV2` | `0xA84684261558f342d6871DD2CFef90A2117Aa20A` | `0x656B6520CE44Bb0Fb08552274Be3a9B11aaa3569` | Agent capabilities (UUPS) |
-| `ServiceRegistryV2` | `0x62E1eeEa1A2Ab987004F35bDA430457Ed6077201` | `0xb75B02D4523171ABdB6f5bcB9D60903ed3e30fAD` | Service listings (UUPS) |
+| `ServiceRegistryV2` | `0x62E1eeEa1A2Ab987004F35bDA430457Ed6077201` | `0xe8dEf9ce280ebDf43d8273223C1957747a292e23` | Service listings (UUPS) |
 | `AdminRegistry` | `0xC81C864CEAb6231ad764cf9867e031D8b6dee41d` | `0xE0611728f270172E1627267138BF96BfEF08F731` | Owner-managed registry (UUPS) |
-| `AgenticCommerceV9` | `0x3a1Bc03cC84040A282F6bf238b917D8351499239` | `0x40b4029dDd11fb0177B28B2d3537B073Da96b0c4` | Job escrow + payments (UUPS) |
+| `AgenticCommerceV9` | `0x3a1Bc03cC84040A282F6bf238b917D8351499239` | `0x5677c6B3133796A6066Bf4bB202edb9D594a022D` | Job escrow + payments (UUPS) |
 | `BiddingSystem` | `0x4D7F38C6A9DE5De44A7B789962B7A2B06bFE8fd6` | `0x9FfE85CBC78144B1bAd32d2Fd61a1fdc3740f047` | Commit-reveal bidding (UUPS) |
 | `AgentReviewV5` | `0x5CDb592Fd37749bF87448FBf5725D1Cd986dd1Cb` | `0xb87Af66B11B00E5341990A9f05c934c2e66181fd` | Evaluation + slashing (UUPS) |
 | `PriceOracleV2` | `0x29c27a26DD2F80f840cb4D7B5E53b7db3D67143d` | `0x7Bad7cc9754814246814299ca50041a939a244b1` | Chainlink price feeds (UUPS) |

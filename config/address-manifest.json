@@ -1,0 +1,63 @@
+{
+  "version": "2026-05-27-phase-34c",
+  "defaultNetwork": "sepolia",
+  "networks": {
+    "sepolia": {
+      "chainId": 11155111,
+      "name": "Sepolia",
+      "rpcUrl": "https://ethereum-sepolia.publicnode.com",
+      "explorerUrl": "https://sepolia.etherscan.io",
+      "startBlock": 9989393,
+      "contracts": {
+        "identityRegistry": "0x8004A818BFB912233c491871b3d84c89A494BD9e",
+        "erc8004Registry": "0x8004A818BFB912233c491871b3d84c89A494BD9e",
+        "reputationRegistry": "0x8004B663056A597Dffe9eCcC1965A193B7388713",
+        "erc8004Reputation": "0x8004B663056A597Dffe9eCcC1965A193B7388713",
+        "skillRegistry": "0xA84684261558f342d6871DD2CFef90A2117Aa20A",
+        "skillRegistryImpl": "0x656B6520CE44Bb0Fb08552274Be3a9B11aaa3569",
+        "serviceRegistry": "0x62E1eeEa1A2Ab987004F35bDA430457Ed6077201",
+        "serviceRegistryImpl": "0xe8dEf9ce280ebDf43d8273223C1957747a292e23",
+        "agentReview": "0x5CDb592Fd37749bF87448FBf5725D1Cd986dd1Cb",
+        "agentReviewImpl": "0xb87Af66B11B00E5341990A9f05c934c2e66181fd",
+        "agenticCommerce": "0x3a1Bc03cC84040A282F6bf238b917D8351499239",
+        "agenticCommerceImpl": "0x5677c6B3133796A6066Bf4bB202edb9D594a022D",
+        "biddingSystem": "0x4D7F38C6A9DE5De44A7B789962B7A2B06bFE8fd6",
+        "biddingSystemImpl": "0x9FfE85CBC78144B1bAd32d2Fd61a1fdc3740f047",
+        "priceOracle": "0x29c27a26DD2F80f840cb4D7B5E53b7db3D67143d",
+        "priceOracleImpl": "0x7Bad7cc9754814246814299ca50041a939a244b1",
+        "commitReveal": "0x85F193670fCb7B0c97D55E70Bf2a950b1065Fb3a",
+        "commitRevealImpl": "0x0456fb2B6ef68B9133B22809D48D4f3748bEf87C",
+        "slashManager": "0x1B8373cDF4f2eD740c3478e0129f0B8494CE4Fa3",
+        "slashManagerImpl": "0x865ebF8EaC43FE343985058e56E08aAB4E605214",
+        "milestoneEscrow": "0xc89D63057288092012c5D3cEF66121C1F8449a9f",
+        "milestoneEscrowImpl": "0x8F9Bae14966Af0BceE5c291A764cE3503f9D49F3",
+        "adminRegistry": "0xC81C864CEAb6231ad764cf9867e031D8b6dee41d",
+        "adminRegistryImpl": "0xE0611728f270172E1627267138BF96BfEF08F731",
+        "usdc": "0x1c7D4B196Cb0C7B01d743Fbc6116a902379C7238"
+      }
+    },
+    "mainnet": {
+      "chainId": 1,
+      "name": "Ethereum Mainnet",
+      "rpcUrl": "https://ethereum.publicnode.com",
+      "explorerUrl": "https://etherscan.io",
+      "contracts": {
+        "identityRegistry": "",
+        "erc8004Registry": "",
+        "reputationRegistry": "",
+        "erc8004Reputation": "",
+        "skillRegistry": "",
+        "serviceRegistry": "",
+        "agentReview": "",
+        "agenticCommerce": "",
+        "biddingSystem": "",
+        "priceOracle": "",
+        "commitReveal": "",
+        "slashManager": "",
+        "milestoneEscrow": "",
+        "adminRegistry": "",
+        "usdc": "0xA0b86991c6218b36c1d19D4a2e9Eb0cE3606eB48"
+      }
+    }
+  }
+}

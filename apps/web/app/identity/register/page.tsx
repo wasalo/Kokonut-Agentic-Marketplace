@@ -21,6 +21,7 @@ const ERC8004_ADDRESS = getContractAddress(
   process.env.NEXT_PUBLIC_8004_REGISTRY_ADDRESS,
   CONTRACT_ADDRESSES.sepolia.erc8004Registry
 );
+const SEPOLIA_CHAIN_ID = 11155111;
 
 interface FormData {
   name: string;
@@ -120,6 +121,7 @@ export default function RegisterAgentPage(): JSX.Element {
 
       // Use simple register function with source tag in metadata JSON
       writeContract({
+        chainId: SEPOLIA_CHAIN_ID,
         address: ERC8004_ADDRESS,
         abi: ERC8004_ABI,
         functionName: 'register',

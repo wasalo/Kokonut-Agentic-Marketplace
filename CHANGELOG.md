@@ -5,6 +5,52 @@ All notable changes to the Kokonut Agent Economy Stack are documented in this fi
 The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.0.0/),
 and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0.html).
 
+## [2026-05-25] — Phase 34c: Service Bond Redesign + Provider UX Improvements
+
+### 🔧 Service Bond Redesign
+
+**Problem:** `AgenticCommerceV9` auto-refunded the 0.01 ETH service bond on **every job completion**, making services unbonded after the first job. The UI falsely claimed bonds were "refundable when you deactivate."
+
+**Solution:**
+- **Bond stays locked** while service is active (supports unlimited clients)
+- **Provider withdraws** only after `deactivateService` + 7-day cooldown
+- **`deactivatedAt` timestamp** tracked per service for cooldown enforcement
+
+#### Smart Contract Changes
+
+| Change | Contract | Detail |
+|--------|----------|--------|
+| `withdrawServiceBond()` | `ServiceRegistryV2` | Provider-only. Requires inactive + 7-day cooldown + `_serviceBonds > 0`. Emits `ServiceBondWithdrawn`. |
+| `getServiceBond()` | `ServiceRegistryV2` | View function returning remaining bond for a service |
+| `deactivatedAt` mapping | `ServiceRegistryV2` | Records timestamp on `deactivateService` |
+| Remove auto-refund | `AgenticCommerceV9` | Deleted two `try IServiceRegistryV2(serviceRegistry).refundServiceBond()` calls from `_releasePayment()` and `completeAfterTimeout()` |
+
+#### Frontend Changes
+
+| Change | File | Detail |
+|--------|------|--------|
+| **Dashboard services** | `app/dashboard/services/page.tsx` | Inline dropdown per card with Activate/Deactivate/Withdraw Bond actions. Bond status badge with live countdown ("Withdrawable in 5d 12h"). |
+| **Service detail** | `app/marketplace/[id]/page.tsx` | Bond info panel showing locked/withdrawable state. Set Payment Address lightweight modal. Withdraw Bond button after cooldown. |
+| **Create service** | `app/marketplace/create/page.tsx` | Fixed misleading copy: "bond secures your service listing and stays locked while active... withdraw after deactivation (7-day cooldown)" |
+| **New hooks** | `lib/hooks/useServices.ts` | `useWithdrawServiceBond`, `useGetServiceBond`, `useDeactivatedAt` |
+| **ABI update** | `lib/contracts/abis.ts` | Added `withdrawServiceBond`, `getServiceBond`, `deactivatedAt` to `SERVICE_REGISTRY_ABI` |
+
+### 📦 Deployment (Sepolia)
+
+| Contract | Proxy | Implementation (NEW) | Status |
+|----------|-------|----------------------|--------|
+| `ServiceRegistryV2` | `0x62E1eeEa1A2Ab987004F35bDA430457Ed6077201` | `0xe8dEf9ce280ebDf43d8273223C1957747a292e23` | ✅ Verified |
+| `AgenticCommerceV9` | `0x3a1Bc03cC84040A282F6bf238b917D8351499239` | `0x5677c6B3133796A6066Bf4bB202edb9D594a022D` | ✅ Verified |
+
+### ✅ Verification
+
+- **Build**: 0 warnings, 0 errors
+- **Tests**: 327/327 passing (43 ServiceRegistryV2 + 8 new bond tests)
+- **Type-check**: 0 errors
+- **Lint**: Clean
+
+---
+
 ## [2026-05-25] — Phase 34b: Multi-Audit Remediation + Security Hardening + Storage Recovery
 
 ### 🚨 Critical: Storage Corruption Recovery (AgenticCommerceV9)

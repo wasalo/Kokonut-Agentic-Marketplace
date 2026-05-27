@@ -12,7 +12,6 @@ import {IACPHook} from "./IACPHook.sol";
 import {IAgenticCommerceV9} from "../interfaces/IAgenticCommerceV9.sol";
 import {IPriceOracleV2} from "../interfaces/IPriceOracleV2.sol";
 import {AdminRegistry} from "./AdminRegistry.sol";
-import {IServiceRegistryV2} from "./ServiceRegistryV2.sol";
 
 /**
  * @title AgenticCommerceV9
@@ -828,10 +827,8 @@ contract AgenticCommerceV9 is
 
         _transferPayment(job.paymentToken, job.provider, providerPayment);
 
-        // Refund service listing bond if serviceId is provided and registry is configured
-        if (serviceRegistry != address(0) && job.serviceId > 0) {
-            try IServiceRegistryV2(serviceRegistry).refundServiceBond(job.serviceId) {} catch {}
-        }
+        // V2 Fix: Service bond is no longer auto-refunded on job completion.
+        // Bonds are provider-controlled via ServiceRegistryV2.withdrawServiceBond() after deactivation + cooldown.
 
         emit PaymentReleased(jobId, providerPayment, platformFee, evaluatorFeeAmount);
         emit JobStatusChanged(jobId, oldStatus, JobStatus.Completed, _msgSender(), block.timestamp);
@@ -1028,10 +1025,8 @@ contract AgenticCommerceV9 is
             _transferPayment(paymentToken, prov, net);
         }
 
-        // Refund service listing bond if serviceId is provided and registry is configured
-        if (serviceRegistry != address(0) && job.serviceId > 0) {
-            try IServiceRegistryV2(serviceRegistry).refundServiceBond(job.serviceId) {} catch {}
-        }
+        // V2 Fix: Service bond is no longer auto-refunded on job completion.
+        // Bonds are provider-controlled via ServiceRegistryV2.withdrawServiceBond() after deactivation + cooldown.
 
         emit JobCompleted(jobId, _msgSender(), job.provider, slashAmount);
         emit PaymentReleased(jobId, net, platformFee, slashAmount);

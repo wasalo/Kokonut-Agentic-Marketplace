@@ -550,9 +550,10 @@ export default function CreateServicePage() {
                       0.01 ETH Service Bond Required
                     </p>
                     <p className="text-sm text-default-600 dark:text-default-400 mt-1">
-                      Creating a service requires depositing a 0.01 ETH bond. This bond is
-                      refundable when you deactivate your service. Make sure you have enough ETH in
-                      your wallet to cover this deposit.
+                      Creating a service requires depositing a 0.01 ETH listing bond. This bond
+                      secures your service listing and stays locked while the service is active.
+                      You can withdraw it after deactivating your service (7-day cooldown).
+                      Make sure you have enough ETH in your wallet to cover this deposit.
                     </p>
                   </div>
                 </div>

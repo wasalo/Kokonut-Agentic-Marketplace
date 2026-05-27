@@ -100,10 +100,16 @@ export function usePushNotifications() {
         applicationServerKey: urlBase64ToUint8Array(VAPID_PUBLIC_KEY),
       });
 
+      if (!walletClient) {
+        throw new Error('Wallet client required for signed push subscription');
+      }
+
+      const authHeaders = await createOwnerAuthHeaders(address, walletClient);
       await fetch('/api/push/subscribe', {
         method: 'POST',
         headers: {
           'Content-Type': 'application/json',
+          ...authHeaders,
         },
         body: JSON.stringify({
           subscription: subscription.toJSON(),
@@ -126,7 +132,7 @@ export function usePushNotifications() {
         error: 'Failed to subscribe to push notifications',
       }));
     }
-  }, [state.supported, isConnected, address]);
+  }, [state.supported, isConnected, address, walletClient]);
 
   const unsubscribe = useCallback(async () => {
     if (!state.subscription) return;
@@ -136,10 +142,16 @@ export function usePushNotifications() {
 
       await state.subscription.unsubscribe();
 
+      if (!address || !walletClient) {
+        throw new Error('Wallet client required for signed push unsubscribe');
+      }
+
+      const authHeaders = await createOwnerAuthHeaders(address, walletClient);
       await fetch('/api/push/unsubscribe', {
         method: 'POST',
         headers: {
           'Content-Type': 'application/json',
+          ...authHeaders,
         },
         body: JSON.stringify({
           endpoint: state.subscription.endpoint,
@@ -161,7 +173,7 @@ export function usePushNotifications() {
         error: 'Failed to unsubscribe from push notifications',
       }));
     }
-  }, [state.subscription, address]);
+  }, [state.subscription, address, walletClient]);
 
   const sendTestNotification = useCallback(async () => {
     if (!state.subscription || !address || !walletClient) return;

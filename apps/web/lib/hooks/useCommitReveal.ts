@@ -4,6 +4,7 @@ import { getContractAddress } from '@/lib/contracts/config';
 import { COMMIT_REVEAL_ABI } from '@/lib/contracts/abis';
 
 const COMMIT_REVEAL_ADDRESS = getContractAddress('COMMIT_REVEAL');
+const SEPOLIA_CHAIN_ID = 11155111;
 
 /**
  * Hook to make a commitment (front-running protection)
@@ -15,6 +16,7 @@ export function useCommit() {
   return {
     commit: (commitmentHash: `0x${string}`) =>
       writeContract({
+        chainId: SEPOLIA_CHAIN_ID,
         address: COMMIT_REVEAL_ADDRESS,
         abi: COMMIT_REVEAL_ABI,
         functionName: 'commit',
@@ -37,6 +39,7 @@ export function useReveal() {
   return {
     reveal: (data: string, nonce: bigint, serviceId: bigint) =>
       writeContract({
+        chainId: SEPOLIA_CHAIN_ID,
         address: COMMIT_REVEAL_ADDRESS,
         abi: COMMIT_REVEAL_ABI,
         functionName: 'reveal',
@@ -59,6 +62,7 @@ export function useCancelCommitment() {
   return {
     cancel: (commitmentHash: `0x${string}`) =>
       writeContract({
+        chainId: SEPOLIA_CHAIN_ID,
         address: COMMIT_REVEAL_ADDRESS,
         abi: COMMIT_REVEAL_ABI,
         functionName: 'cancel',

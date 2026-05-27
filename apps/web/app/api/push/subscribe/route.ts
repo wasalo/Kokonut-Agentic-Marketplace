@@ -1,6 +1,7 @@
 import { NextRequest, NextResponse } from 'next/server';
 import { createPushSubscription } from '@/lib/db/push';
 import { rateLimit } from '@/lib/rate-limit';
+import { requireAuthenticatedOwner } from '@/lib/api-auth';
 
 /**
  * @swagger
@@ -56,11 +57,18 @@ export async function POST(request: NextRequest) {
       );
     }
 
+    const auth = await requireAuthenticatedOwner(request);
+    if ('response' in auth) return auth.response;
+
     const body = await request.json();
     const { subscription, address } = body;
 
-    if (!subscription || !address) {
+    if (!subscription || typeof subscription.endpoint !== 'string' || typeof address !== 'string') {
       return NextResponse.json({ error: 'Missing subscription or address' }, { status: 400 });
+    }
+
+    if (address.toLowerCase() !== auth.owner.toLowerCase()) {
+      return NextResponse.json({ error: 'Address does not match authenticated owner' }, { status: 403 });
     }
 
     const userAgent = request.headers.get('user-agent') || undefined;

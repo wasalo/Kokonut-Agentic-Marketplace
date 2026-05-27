@@ -3,6 +3,7 @@ import { getContractAddress } from '@/lib/contracts/config';
 import { SLASH_MANAGER_ABI } from '@/lib/contracts/abis';
 
 const SLASH_MANAGER_ADDRESS = getContractAddress('SLASH_MANAGER');
+const SEPOLIA_CHAIN_ID = 11155111;
 
 /**
  * Hook to check if an address is a registered signer
@@ -128,6 +129,7 @@ export function useCreateSlashProposal() {
       reason: string
     ) =>
       writeContract({
+        chainId: SEPOLIA_CHAIN_ID,
         address: SLASH_MANAGER_ADDRESS,
         abi: SLASH_MANAGER_ABI,
         functionName: 'createProposal',
@@ -150,6 +152,7 @@ export function useConfirmSlashProposal() {
   return {
     confirm: (proposalId: `0x${string}`) =>
       writeContract({
+        chainId: SEPOLIA_CHAIN_ID,
         address: SLASH_MANAGER_ADDRESS,
         abi: SLASH_MANAGER_ABI,
         functionName: 'confirmProposal',
@@ -172,6 +175,7 @@ export function useExecuteSlashProposal() {
   return {
     execute: (proposalId: `0x${string}`) =>
       writeContract({
+        chainId: SEPOLIA_CHAIN_ID,
         address: SLASH_MANAGER_ADDRESS,
         abi: SLASH_MANAGER_ABI,
         functionName: 'executeSlash',
@@ -194,6 +198,7 @@ export function useCancelSlashProposal() {
   return {
     cancel: (proposalId: `0x${string}`) =>
       writeContract({
+        chainId: SEPOLIA_CHAIN_ID,
         address: SLASH_MANAGER_ADDRESS,
         abi: SLASH_MANAGER_ABI,
         functionName: 'cancelProposal',

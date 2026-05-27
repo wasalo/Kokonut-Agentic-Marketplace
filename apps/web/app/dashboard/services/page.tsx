@@ -10,11 +10,33 @@ import {
   DollarSign,
   ArrowLeft,
   RefreshCw,
+  MoreVertical,
+  Power,
+  PowerOff,
+  Wallet,
+  Shield,
+  Clock,
+  AlertCircle,
 } from 'lucide-react';
 import { StatusBadge } from '@/components/StatusBadge';
 import NextLink from 'next/link';
-import { useProviderServices, type Service } from '@/lib/hooks/useServices';
+import {
+  useProviderServices,
+  useActivateService,
+  useDeactivateService,
+  useWithdrawServiceBond,
+  useGetServiceBond,
+  useDeactivatedAt,
+  type Service,
+} from '@/lib/hooks/useServices';
 import { formatAmount, getTokenByAddress } from '@/lib/tokenUtils';
+import { showToast, getTransactionError } from '@/lib/toast';
+import { useState, useRef, useEffect } from 'react';
+import { parseEther } from 'viem';
+
+const SERVICE_BOND_AMOUNT = parseEther('0.01');
+const COOLDOWN_DAYS = 7;
+const COOLDOWN_MS = COOLDOWN_DAYS * 24 * 60 * 60 * 1000;
 
 function WalletConnectPrompt() {
   return (
@@ -26,7 +48,193 @@ function WalletConnectPrompt() {
   );
 }
 
-function ServiceCard({ service }: { service: Service }) {
+function BondStatusBadge({ serviceId, isActive }: { serviceId: bigint; isActive: boolean }) {
+  const { bond, isLoading } = useGetServiceBond(serviceId);
+  const { deactivatedAt } = useDeactivatedAt(serviceId);
+
+  if (isLoading) return <Skeleton className="h-4 w-20 rounded" />;
+
+  const hasBond = bond >= SERVICE_BOND_AMOUNT;
+
+  if (isActive) {
+    return hasBond ? (
+      <span className="inline-flex items-center gap-1 text-xs text-success">
+        <Shield className="w-3 h-3" />
+        Bonded
+      </span>
+    ) : (
+      <span className="inline-flex items-center gap-1 text-xs text-warning">
+        <AlertCircle className="w-3 h-3" />
+        Unbonded
+      </span>
+    );
+  }
+
+  // Inactive service
+  if (!hasBond) {
+    return (
+      <span className="inline-flex items-center gap-1 text-xs text-default-400">
+        <AlertCircle className="w-3 h-3" />
+        No bond
+      </span>
+    );
+  }
+
+  const cooldownEnd = deactivatedAt + COOLDOWN_MS;
+  const now = Date.now();
+  const remaining = cooldownEnd - now;
+
+  if (remaining > 0) {
+    const days = Math.floor(remaining / (24 * 60 * 60 * 1000));
+    const hours = Math.floor((remaining % (24 * 60 * 60 * 1000)) / (60 * 60 * 1000));
+    return (
+      <span className="inline-flex items-center gap-1 text-xs text-warning">
+        <Clock className="w-3 h-3" />
+        Withdraw in {days}d {hours}h
+      </span>
+    );
+  }
+
+  return (
+    <span className="inline-flex items-center gap-1 text-xs text-success">
+      <Wallet className="w-3 h-3" />
+      Bond withdrawable
+    </span>
+  );
+}
+
+function ServiceCardActions({
+  service,
+  onRefetch,
+}: {
+  service: Service;
+  onRefetch: () => void;
+}) {
+  const [isOpen, setIsOpen] = useState(false);
+  const dropdownRef = useRef<HTMLDivElement>(null);
+  const { activateService, isPending: isActivatePending } = useActivateService();
+  const { deactivateService, isPending: isDeactivatePending } = useDeactivateService();
+  const { withdrawServiceBond, isPending: isWithdrawPending } = useWithdrawServiceBond();
+  const { bond } = useGetServiceBond(service.id);
+  const { deactivatedAt } = useDeactivatedAt(service.id);
+
+  useEffect(() => {
+    function handleClickOutside(event: MouseEvent) {
+      if (dropdownRef.current && !dropdownRef.current.contains(event.target as Node)) {
+        setIsOpen(false);
+      }
+    }
+    document.addEventListener('mousedown', handleClickOutside);
+    return () => document.removeEventListener('mousedown', handleClickOutside);
+  }, []);
+
+  const handleActivate = async () => {
+    try {
+      const toastId = showToast.loading('Activating service...');
+      await activateService(service.id);
+      showToast.dismiss(toastId);
+      showToast.success('Service activated', 'Your service is now visible in the marketplace.');
+      onRefetch();
+    } catch (err) {
+      showToast.error('Activation failed', getTransactionError(err));
+    }
+    setIsOpen(false);
+  };
+
+  const handleDeactivate = async () => {
+    try {
+      const toastId = showToast.loading('Deactivating service...');
+      await deactivateService(service.id);
+      showToast.dismiss(toastId);
+      showToast.success('Service deactivated', 'Your service is now hidden from the marketplace.');
+      onRefetch();
+    } catch (err) {
+      showToast.error('Deactivation failed', getTransactionError(err));
+    }
+    setIsOpen(false);
+  };
+
+  const handleWithdrawBond = async () => {
+    try {
+      const toastId = showToast.loading('Withdrawing bond...');
+      await withdrawServiceBond(service.id);
+      showToast.dismiss(toastId);
+      showToast.success('Bond withdrawn', '0.01 ETH has been returned to your wallet.');
+      onRefetch();
+    } catch (err) {
+      showToast.error('Withdrawal failed', getTransactionError(err));
+    }
+    setIsOpen(false);
+  };
+
+  const canWithdrawBond =
+    !service.isActive &&
+    bond >= SERVICE_BOND_AMOUNT &&
+    deactivatedAt > 0 &&
+    Date.now() >= deactivatedAt + COOLDOWN_MS;
+
+  return (
+    <div className="relative" ref={dropdownRef}>
+      <button
+        onClick={() => setIsOpen(!isOpen)}
+        className="p-2 text-default-400 hover:text-foreground hover:bg-content2 rounded-lg transition-colors"
+        title="Actions"
+      >
+        <MoreVertical className="w-4 h-4" />
+      </button>
+
+      {isOpen && (
+        <div className="absolute right-0 top-full mt-1 w-56 bg-content1 border border-divider rounded-lg shadow-lg z-50 py-1">
+          <NextLink
+            href={`/marketplace/${service.id.toString()}`}
+            className="flex items-center gap-2 px-3 py-2 text-sm text-foreground hover:bg-content2 transition-colors"
+            onClick={() => setIsOpen(false)}
+          >
+            <Edit3 className="w-4 h-4" />
+            View / Edit
+          </NextLink>
+
+          {service.isActive && (
+            <button
+              onClick={handleDeactivate}
+              disabled={isDeactivatePending}
+              className="w-full flex items-center gap-2 px-3 py-2 text-sm text-danger hover:bg-danger/5 transition-colors disabled:opacity-50"
+            >
+              <PowerOff className="w-4 h-4" />
+              {isDeactivatePending ? 'Deactivating...' : 'Deactivate'}
+            </button>
+          )}
+
+          {!service.isActive && (
+            <>
+              <button
+                onClick={handleActivate}
+                disabled={isActivatePending}
+                className="w-full flex items-center gap-2 px-3 py-2 text-sm text-success hover:bg-success/5 transition-colors disabled:opacity-50"
+              >
+                <Power className="w-4 h-4" />
+                {isActivatePending ? 'Activating...' : 'Activate'}
+              </button>
+
+              {canWithdrawBond && (
+                <button
+                  onClick={handleWithdrawBond}
+                  disabled={isWithdrawPending}
+                  className="w-full flex items-center gap-2 px-3 py-2 text-sm text-primary hover:bg-primary/5 transition-colors disabled:opacity-50"
+                >
+                  <Wallet className="w-4 h-4" />
+                  {isWithdrawPending ? 'Withdrawing...' : 'Withdraw Bond (0.01 ETH)'}
+                </button>
+              )}
+            </>
+          )}
+        </div>
+      )}
+    </div>
+  );
+}
+
+function ServiceCard({ service, onRefetch }: { service: Service; onRefetch: () => void }) {
   const token = getTokenByAddress(service.paymentToken);
   const formattedPrice = formatAmount(service.price, token, {
     includeSymbol: true,
@@ -51,17 +259,10 @@ function ServiceCard({ service }: { service: Service }) {
               <span className="font-medium">{formattedPrice}</span>
             </div>
             <span className="text-xs text-default-400">Agent #{service.agentId.toString()}</span>
+            <BondStatusBadge serviceId={service.id} isActive={service.isActive} />
           </div>
         </div>
-        <div className="flex gap-1 ml-3">
-          <NextLink
-            href={`/marketplace/${service.id.toString()}`}
-            className="p-2 text-default-400 hover:text-primary hover:bg-content2 rounded-lg transition-colors"
-            title="View service"
-          >
-            <Edit3 className="w-4 h-4" />
-          </NextLink>
-        </div>
+        <ServiceCardActions service={service} onRefetch={onRefetch} />
       </div>
     </Card>
   );
@@ -172,20 +373,21 @@ export default function DashboardServicesPage() {
               </h2>
               <div className="space-y-3">
                 {activeServices.map((service: Service) => (
-                  <ServiceCard key={service.id.toString()} service={service} />
+                  <ServiceCard key={service.id.toString()} service={service} onRefetch={refetch} />
                 ))}
               </div>
             </div>
           )}
 
           {inactiveServices.length > 0 && (
-            <div className="mb-6 opacity-60">
-              <h2 className="text-lg font-semibold mb-3 text-default-500">
+            <div className="mb-6">
+              <h2 className="text-lg font-semibold mb-3 flex items-center gap-2 text-default-500">
+                <PowerOff className="w-5 h-5" />
                 Inactive Services ({inactiveServices.length})
               </h2>
               <div className="space-y-3">
                 {inactiveServices.map((service: Service) => (
-                  <ServiceCard key={service.id.toString()} service={service} />
+                  <ServiceCard key={service.id.toString()} service={service} onRefetch={refetch} />
                 ))}
               </div>
             </div>

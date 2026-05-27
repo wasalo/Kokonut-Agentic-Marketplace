@@ -4,6 +4,7 @@ import { getContractAddress, debugLog } from '@/lib/contracts/config';
 
 
 const MILESTONE_ESCROW_ADDRESS = getContractAddress('MILESTONE_ESCROW');
+const SEPOLIA_CHAIN_ID = 11155111;
 
 // V2: Arbiter stake/fee are per-token (ERC-20 or native ETH via address(0))
 // Use getArbiterStake/getArbiterFee to check per-token requirements
@@ -294,6 +295,7 @@ export function useEnableMilestones() {
     debugLog('contracts', `useEnableMilestones: Enabling milestones for job ${Number(jobId)}`);
 
     writeContract({
+      chainId: SEPOLIA_CHAIN_ID,
       address: MILESTONE_ESCROW_ADDRESS,
       abi: MILESTONE_ESCROW_ABI,
       functionName: 'enableMilestones',
@@ -322,6 +324,7 @@ export function useAddMilestone() {
     debugLog('contracts', `useAddMilestone: Adding milestone to job ${Number(jobId)}`);
 
     writeContract({
+      chainId: SEPOLIA_CHAIN_ID,
       address: MILESTONE_ESCROW_ADDRESS,
       abi: MILESTONE_ESCROW_ABI,
       functionName: 'addMilestone',
@@ -350,6 +353,7 @@ export function useCompleteMilestone() {
     debugLog('contracts', `useCompleteMilestone: Submitting milestone ${Number(jobId)}-${Number(milestoneIndex)}`);
 
     writeContract({
+      chainId: SEPOLIA_CHAIN_ID,
       address: MILESTONE_ESCROW_ADDRESS,
       abi: MILESTONE_ESCROW_ABI,
       functionName: 'submitMilestone',
@@ -378,6 +382,7 @@ export function useReleaseMilestone() {
     debugLog('contracts', `useReleaseMilestone: Releasing milestone ${Number(jobId)}-${Number(milestoneIndex)}`);
 
     writeContract({
+      chainId: SEPOLIA_CHAIN_ID,
       address: MILESTONE_ESCROW_ADDRESS,
       abi: MILESTONE_ESCROW_ABI,
       functionName: 'releaseMilestone',
@@ -408,6 +413,7 @@ export function useRegisterAsArbiter() {
     const isNative = token === '0x0000000000000000000000000000000000000000';
 
     const params: any = {
+      chainId: SEPOLIA_CHAIN_ID,
       address: MILESTONE_ESCROW_ADDRESS,
       abi: MILESTONE_ESCROW_ABI,
       functionName: 'registerAsArbiter',
@@ -440,6 +446,7 @@ export function useUnregisterAsArbiter() {
     debugLog('contracts', 'useUnregisterAsArbiter: Unregistering as arbiter');
 
     writeContract({
+      chainId: SEPOLIA_CHAIN_ID,
       address: MILESTONE_ESCROW_ADDRESS,
       abi: MILESTONE_ESCROW_ABI,
       functionName: 'unregisterAsArbiter',
@@ -467,6 +474,7 @@ export function useFlagDispute() {
     debugLog('contracts', `useFlagDispute: Flagging dispute for job ${Number(jobId)}, milestone ${Number(milestoneIndex)}`);
 
     const params: any = {
+      chainId: SEPOLIA_CHAIN_ID,
       address: MILESTONE_ESCROW_ADDRESS,
       abi: MILESTONE_ESCROW_ABI,
       functionName: 'flagDispute',
@@ -499,6 +507,7 @@ export function useSubmitEvidence() {
     debugLog('contracts', `useSubmitEvidence: Submitting evidence for job ${Number(jobId)}`);
 
     writeContract({
+      chainId: SEPOLIA_CHAIN_ID,
       address: MILESTONE_ESCROW_ADDRESS,
       abi: MILESTONE_ESCROW_ABI,
       functionName: 'submitEvidence',
@@ -527,6 +536,7 @@ export function useResolveDispute() {
     debugLog('contracts', `useResolveDispute: Resolving dispute for job ${Number(jobId)} (releaseToProvider: ${releaseToProvider})`);
 
     writeContract({
+      chainId: SEPOLIA_CHAIN_ID,
       address: MILESTONE_ESCROW_ADDRESS,
       abi: MILESTONE_ESCROW_ABI,
       functionName: 'resolveDispute',

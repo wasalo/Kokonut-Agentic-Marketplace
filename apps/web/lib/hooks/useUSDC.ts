@@ -3,6 +3,7 @@ import { getContractAddress } from '@/lib/contracts/config';
 import { ERC20_ABI } from '@/lib/contracts/abis';
 
 const USDC_ADDRESS = getContractAddress('USDC');
+const SEPOLIA_CHAIN_ID = 11155111;
 
 /**
  * Hook to get USDC balance for an address
@@ -72,6 +73,7 @@ export function useUSDCApprove() {
   return {
     approve: (spender: `0x${string}`, amount: bigint) =>
       writeContract({
+        chainId: SEPOLIA_CHAIN_ID,
         address: USDC_ADDRESS,
         abi: ERC20_ABI,
         functionName: 'approve',

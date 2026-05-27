@@ -10,7 +10,9 @@ import {
   createPublicClient,
   createWalletClient,
   formatEther as viemFormatEther,
+  formatUnits as viemFormatUnits,
   parseEther as viemParseEther,
+  parseUnits as viemParseUnits,
   keccak256 as viemKeccak256,
   encodePacked as viemEncodePacked,
   toBytes as viemToBytes,
@@ -3395,7 +3397,7 @@ const BIDDING_SYSTEM_ABI_PARSED = parseAbi([
   'function createJobAndFund(uint256 sessionId, uint256 jobExpiredAt, string description) external payable returns (uint256 jobId)',
   'function cancelSession(uint256 sessionId) external',
   'function getSession(uint256 sessionId) external view returns ((uint256 id, address creator, address evaluator, uint256 maxBudget, uint256 deadline, uint256 revealWindowEnd, bytes metadata, uint256 serviceId, uint256 jobId, address winner, uint256 winningBidId, bool jobCreated, uint8 status))',
-  'function getUserBid(uint256 sessionId, address user) external view returns ((uint256 bidId, address bidder, uint256 proposedAmount, uint256 stake, string message, bytes32 commitHash, bool revealed, bool accepted, bool stakeWithdrawn, uint256 timestamp))',
+  'function getUserBid(uint256 sessionId, address user) external view returns ((uint256 bidId, address bidder, uint256 proposedAmount, uint256 stake, string message, bytes32 commitHash, bool revealed, bool accepted, bool rejected, bool stakeWithdrawn, uint256 timestamp))',
   'function sessionCounter() external view returns (uint256)',
   'function calculateStake(uint256 maxBudget) external pure returns (uint256)',
   'event BiddingSessionCreated(uint256 indexed sessionId, address indexed creator, uint256 maxBudget)',
@@ -3701,24 +3703,53 @@ program
 // ============================================================================
 
 const MILESTONE_ESCROW_ABI = parseAbi([
-  'function enableMilestones(uint256 jobId, address provider, address paymentToken, uint256 totalBudget) external',
-  'function addMilestone(uint256 jobId, string description, uint256 amount, uint256 dueDate) external',
-  'function completeMilestone(uint256 jobId, uint256 milestoneIndex, bytes32 proofHash) external',
+  'function enableMilestones(uint256 jobId, address client, address provider, address paymentToken, uint256 totalBudget) external',
+  'function addMilestone(uint256 jobId, uint256 amount, string description, uint256 dueDate) external',
+  'function fundMilestones(uint256 jobId, uint256 amount) external payable',
+  'function submitMilestone(uint256 jobId, uint256 milestoneIndex, bytes32 proofHash) external',
   'function releaseMilestone(uint256 jobId, uint256 milestoneIndex) external',
   'function getJobMilestones(uint256 jobId) external view returns ((string description, uint256 amount, uint256 dueDate, bool completed, bool released, bytes32 proofHash)[])',
-  'function registerAsArbiter() external payable',
+  'function jobMilestones(uint256 jobId) external view returns (address client, address provider, address paymentToken, uint256 totalBudget, bool usesMilestones)',
+  'function milestoneEscrowBalance(uint256 jobId) external view returns (uint256)',
+  'function arbiterFeePerToken(address token) external view returns (uint256)',
+  'function registerAsArbiter(address token, uint256 amount) external payable',
   'function unregisterAsArbiter() external',
-  'function isArbiter(address account) external view returns (bool)',
+  'function isRegisteredArbiter(address account) external view returns (bool)',
   'function getArbiterStake(address arbiter) external view returns (uint256)',
-  'function getArbiterCount() external view returns (uint256)',
-  'function flagDispute(uint256 jobId) external payable',
-  'function getDispute(uint256 jobId) external view returns (uint256, address, address, uint256, bool, bool)',
+  'function getArbiterStakeToken(address arbiter) external view returns (address)',
+  'function getArbiters() external view returns (address[])',
+  'function flagDispute(uint256 jobId, uint256 milestoneIndex) external payable',
+  'function getDispute(uint256 jobId) external view returns (uint256 jobId, address flagger, address arbiter, uint256 flaggedAt, bool resolved, bool releaseToProvider, uint256 feePaid, uint256 milestoneIndex)',
 ]);
+
+function isNativeToken(token: string): boolean {
+  return token.toLowerCase() === ZeroAddress.toLowerCase();
+}
+
+function getTokenMetadata(token: string): { symbol: string; decimals: number } {
+  if (isNativeToken(token)) return { symbol: 'ETH', decimals: 18 };
+  if (config.contracts.usdc && token.toLowerCase() === String(config.contracts.usdc).toLowerCase()) {
+    return { symbol: 'USDC', decimals: 6 };
+  }
+  return { symbol: token, decimals: 18 };
+}
+
+function formatTokenAmount(amount: bigint, token: string): string {
+  const meta = getTokenMetadata(token);
+  return `${viemFormatUnits(amount, meta.decimals)} ${meta.symbol}`;
+}
+
+function parseTokenAmount(amount: string, token: string): bigint {
+  const meta = getTokenMetadata(token);
+  return viemParseUnits(amount, meta.decimals);
+}
 
 program
   .command('register-arbiter')
-  .description('Register as an arbiter with 0.01 ETH stake')
-  .action(async () => {
+  .description('Register as an arbiter with native ETH or ERC-20 stake')
+  .option('--token <address>', 'Stake token address (address(0) for native ETH)', ZeroAddress)
+  .option('--amount <amount>', 'Stake amount in token units', '0.01')
+  .action(async (options: { token: string; amount: string }) => {
     try {
       initWallet();
 
@@ -3732,8 +3763,14 @@ program
         MILESTONE_ESCROW_ABI
       );
 
-      console.log(chalk.cyan('Registering as arbiter (stake: 0.01 ETH)...'));
-      const hash = await contract.write.registerAsArbiter([], { value: BigInt(1e16) });
+      const token = options.token as Address;
+      const amount = parseTokenAmount(options.amount, token);
+      const isNative = isNativeToken(token);
+
+      console.log(chalk.cyan('Registering as arbiter...'));
+      console.log(chalk.dim('  Token:'), isNative ? 'native ETH' : token);
+      console.log(chalk.dim('  Stake:'), formatTokenAmount(amount, token));
+      const hash = await contract.write.registerAsArbiter([token, amount], isNative ? { value: amount } : {});
 
       console.log(chalk.cyan('Transaction sent:'), hash);
       await waitForTransactionReceipt(hash);
@@ -3790,7 +3827,7 @@ program
         MILESTONE_ESCROW_ABI
       );
 
-      const result = await contract.read.isArbiter([targetAddress as Address]);
+      const result = await contract.read.isRegisteredArbiter([targetAddress as Address]);
       console.log(chalk.cyan('Address:'), targetAddress);
       console.log(chalk.green('Is Arbiter:'), result);
     } catch (error: unknown) {
@@ -3814,8 +3851,8 @@ program
         MILESTONE_ESCROW_ABI
       );
 
-      const count = await contract.read.getArbiterCount();
-      console.log(chalk.green('Total Arbiters:'), Number(count));
+      const arbiters = await contract.read.getArbiters();
+      console.log(chalk.green('Total Arbiters:'), arbiters.length);
     } catch (error: unknown) {
       const err = error as { message?: string };
       console.error(chalk.red('❌ Error:'), err.message);
@@ -3826,10 +3863,11 @@ program
   .command('enable-milestones')
   .description('Enable milestone payments for a job')
   .requiredOption('-j, --job <number>', 'Job ID')
+  .option('-c, --client <address>', 'Client address (defaults to signer)')
   .requiredOption('-p, --provider <address>', 'Provider address')
   .requiredOption('-t, --token <address>', 'Payment token address')
   .requiredOption('-b, --budget <number>', 'Total budget in wei')
-  .action(async (options: { job: string; provider: string; token: string; budget: string }) => {
+  .action(async (options: { job: string; client?: string; provider: string; token: string; budget: string }) => {
     try {
       initWallet();
 
@@ -3845,8 +3883,10 @@ program
 
       console.log(chalk.cyan('Enabling milestones...'));
       console.log(chalk.dim('  Job ID:'), options.job);
+      console.log(chalk.dim('  Client:'), options.client || config.signerAddress);
       const hash = await contract.write.enableMilestones([
         BigInt(options.job),
+        (options.client || config.signerAddress) as Address,
         options.provider as Address,
         options.token as Address,
         BigInt(options.budget),
@@ -3855,6 +3895,49 @@ program
       console.log(chalk.cyan('Transaction sent:'), hash);
       await waitForTransactionReceipt(hash);
       console.log(chalk.green('✅ Milestones enabled!'));
+    } catch (error: unknown) {
+      const err = error as { message?: string };
+      console.error(chalk.red('❌ Error:'), err.message);
+    }
+  });
+
+program
+  .command('fund-milestones')
+  .description('Fund milestone escrow for a job')
+  .requiredOption('-j, --job <number>', 'Job ID')
+  .requiredOption('-a, --amount <number>', 'Amount in token base units')
+  .action(async (options: { job: string; amount: string }) => {
+    try {
+      initWallet();
+
+      if (!config.contracts.milestoneEscrow) {
+        console.error(chalk.red('❌ MilestoneEscrow not configured'));
+        return;
+      }
+
+      const contract = getContractInstance(
+        config.contracts.milestoneEscrow as Address,
+        MILESTONE_ESCROW_ABI
+      );
+
+      const jobId = BigInt(options.job);
+      const amount = BigInt(options.amount);
+      const details = await contract.read.jobMilestones([jobId]) as any;
+      const paymentToken = (details.paymentToken || details[2]) as Address;
+      const isNative = isNativeToken(paymentToken);
+
+      console.log(chalk.cyan('Funding milestone escrow...'));
+      console.log(chalk.dim('  Job ID:'), options.job);
+      console.log(chalk.dim('  Amount:'), formatTokenAmount(amount, paymentToken));
+      if (!isNative) {
+        console.log(chalk.yellow('  Note: ERC-20 funding requires prior token approval for MilestoneEscrowV2.'));
+      }
+
+      const hash = await contract.write.fundMilestones([jobId, amount], isNative ? { value: amount } : {});
+
+      console.log(chalk.cyan('Transaction sent:'), hash);
+      await waitForTransactionReceipt(hash);
+      console.log(chalk.green('✅ Milestone escrow funded!'));
     } catch (error: unknown) {
       const err = error as { message?: string };
       console.error(chalk.red('❌ Error:'), err.message);
@@ -3885,8 +3968,8 @@ program
       console.log(chalk.cyan('Adding milestone...'));
       const hash = await contract.write.addMilestone([
         BigInt(options.job),
-        options.description,
         BigInt(options.amount),
+        options.description,
         options.due ? BigInt(options.due) : 0n,
       ]);
 
@@ -3920,7 +4003,7 @@ program
       );
 
       console.log(chalk.cyan('Completing milestone...'));
-      const hash = await contract.write.completeMilestone([
+      const hash = await contract.write.submitMilestone([
         BigInt(options.job),
         BigInt(options.index),
         options.proof as `0x${string}`,
@@ -3986,11 +4069,16 @@ program
       );
 
       const milestones = await contract.read.getJobMilestones([BigInt(options.job)]);
+      const details = await contract.read.jobMilestones([BigInt(options.job)]) as any;
+      const paymentToken = (details.paymentToken || details[2]) as Address;
+      const escrowBalance = await contract.read.milestoneEscrowBalance([BigInt(options.job)]);
 
       console.log(chalk.cyan(`Milestones for Job #${options.job}:`));
+      console.log(chalk.dim('Payment token:'), isNativeToken(paymentToken) ? 'native ETH' : paymentToken);
+      console.log(chalk.dim('Escrow balance:'), formatTokenAmount(escrowBalance as bigint, paymentToken));
       milestones.forEach((m: any, i: number) => {
         console.log(`\n${i + 1}. ${m.description}`);
-        console.log(`   Amount: ${viemFormatEther(m.amount)} ETH`);
+        console.log(`   Amount: ${formatTokenAmount(m.amount, paymentToken)}`);
         console.log(`   Completed: ${m.completed ? '✅' : '❌'}`);
         console.log(`   Released: ${m.released ? '✅' : '❌'}`);
       });
@@ -4002,9 +4090,10 @@ program
 
 program
   .command('flag-dispute')
-  .description('Flag a dispute for a job (requires 0.001 ETH fee)')
+  .description('Flag a milestone dispute for a job')
   .requiredOption('-j, --job <number>', 'Job ID')
-  .action(async (options: { job: string }) => {
+  .requiredOption('-i, --index <number>', 'Milestone index')
+  .action(async (options: { job: string; index: string }) => {
     try {
       initWallet();
 
@@ -4018,8 +4107,20 @@ program
         MILESTONE_ESCROW_ABI
       );
 
-      console.log(chalk.cyan('Flagging dispute (fee: 0.001 ETH)...'));
-      const hash = await contract.write.flagDispute([BigInt(options.job)], { value: BigInt(1e15) });
+      const jobId = BigInt(options.job);
+      const details = await contract.read.jobMilestones([jobId]) as any;
+      const paymentToken = (details.paymentToken || details[2]) as Address;
+      const fee = await contract.read.arbiterFeePerToken([paymentToken]) as bigint;
+      const isNative = isNativeToken(paymentToken);
+
+      console.log(chalk.cyan('Flagging dispute...'));
+      console.log(chalk.dim('  Job ID:'), options.job);
+      console.log(chalk.dim('  Milestone:'), options.index);
+      console.log(chalk.dim('  Fee:'), formatTokenAmount(fee, paymentToken));
+      if (!isNative) {
+        console.log(chalk.yellow('  Note: ERC-20 dispute fees require prior token approval for MilestoneEscrowV2.'));
+      }
+      const hash = await contract.write.flagDispute([jobId, BigInt(options.index)], isNative ? { value: fee } : {});
 
       console.log(chalk.cyan('Transaction sent:'), hash);
       await waitForTransactionReceipt(hash);

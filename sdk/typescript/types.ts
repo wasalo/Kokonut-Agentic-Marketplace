@@ -248,13 +248,13 @@ export interface Bid {
 }
 
 export interface CommitBidParams {
-  jobId: bigint;
+  sessionId: bigint;
   amount: bigint;
   message: string;
 }
 
 export interface RevealBidParams {
-  jobId: bigint;
+  sessionId: bigint;
   amount: bigint;
   message: string;
   salt: `0x${string}`;

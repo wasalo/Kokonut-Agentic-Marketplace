@@ -113,6 +113,10 @@ type Dispute @entity {
   milestoneIndex: BigInt!
   flagger: Bytes!
   arbiter: Bytes
+  token: Bytes
+  feePaid: BigInt
+  releasedToProvider: Boolean
+  arbiterFee: BigInt
   resolved: Boolean!
   createdAt: BigInt!
   resolvedAt: BigInt

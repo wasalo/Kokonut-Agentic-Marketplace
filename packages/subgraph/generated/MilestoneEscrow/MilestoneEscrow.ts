@@ -226,8 +226,73 @@ export class ArbiterUnregistered__Params {
   }
 }
 
+export class MilestoneEscrow__getDisputeResultValue0Struct extends ethereum.Tuple {
+  get jobId(): BigInt {
+    return this[0].toBigInt();
+  }
+
+  get flagger(): Address {
+    return this[1].toAddress();
+  }
+
+  get arbiter(): Address {
+    return this[2].toAddress();
+  }
+
+  get flaggedAt(): BigInt {
+    return this[3].toBigInt();
+  }
+
+  get resolved(): boolean {
+    return this[4].toBoolean();
+  }
+
+  get releaseToProvider(): boolean {
+    return this[5].toBoolean();
+  }
+
+  get feePaid(): BigInt {
+    return this[6].toBigInt();
+  }
+
+  get milestoneIndex(): BigInt {
+    return this[7].toBigInt();
+  }
+}
+
 export class MilestoneEscrow extends ethereum.SmartContract {
   static bind(address: Address): MilestoneEscrow {
     return new MilestoneEscrow("MilestoneEscrow", address);
+  }
+
+  getDispute(jobId: BigInt): MilestoneEscrow__getDisputeResultValue0Struct {
+    let result = super.call(
+      "getDispute",
+      "getDispute(uint256):((uint256,address,address,uint256,bool,bool,uint256,uint256))",
+      [ethereum.Value.fromUnsignedBigInt(jobId)],
+    );
+
+    return changetype<MilestoneEscrow__getDisputeResultValue0Struct>(
+      result[0].toTuple(),
+    );
+  }
+
+  try_getDispute(
+    jobId: BigInt,
+  ): ethereum.CallResult<MilestoneEscrow__getDisputeResultValue0Struct> {
+    let result = super.tryCall(
+      "getDispute",
+      "getDispute(uint256):((uint256,address,address,uint256,bool,bool,uint256,uint256))",
+      [ethereum.Value.fromUnsignedBigInt(jobId)],
+    );
+    if (result.reverted) {
+      return new ethereum.CallResult();
+    }
+    let value = result.value;
+    return ethereum.CallResult.fromValue(
+      changetype<MilestoneEscrow__getDisputeResultValue0Struct>(
+        value[0].toTuple(),
+      ),
+    );
   }
 }

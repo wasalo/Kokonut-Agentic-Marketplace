@@ -184,5 +184,32 @@
     ],
     "name": "ArbiterUnregistered",
     "type": "event"
+  },
+  {
+    "inputs": [
+      {
+        "name": "jobId",
+        "type": "uint256"
+      }
+    ],
+    "name": "getDispute",
+    "outputs": [
+      {
+        "components": [
+          { "name": "jobId", "type": "uint256" },
+          { "name": "flagger", "type": "address" },
+          { "name": "arbiter", "type": "address" },
+          { "name": "flaggedAt", "type": "uint256" },
+          { "name": "resolved", "type": "bool" },
+          { "name": "releaseToProvider", "type": "bool" },
+          { "name": "feePaid", "type": "uint256" },
+          { "name": "milestoneIndex", "type": "uint256" }
+        ],
+        "name": "",
+        "type": "tuple"
+      }
+    ],
+    "stateMutability": "view",
+    "type": "function"
   }
 ]

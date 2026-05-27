@@ -9,13 +9,9 @@ env:
   FOUNDRY_PROFILE: ci
   NODE_VERSION: '20'
   FORCE_JAVASCRIPT_ACTIONS_TO_NODE24: true
-  DOCKER_REGISTRY: ${{ secrets.DOCKER_REGISTRY }}
-  DOCKER_USERNAME: ${{ secrets.DOCKER_USERNAME }}
-  DOCKER_PASSWORD: ${{ secrets.DOCKER_PASSWORD }}
-  STAGING_SERVER_HOST: ${{ secrets.STAGING_SERVER_HOST }}
-  STAGING_SSH_KEY: ${{ secrets.STAGING_SSH_KEY }}
-  IPFS_PROJECT_ID: ${{ secrets.IPFS_PROJECT_ID }}
-  IPFS_PROJECT_SECRET: ${{ secrets.IPFS_PROJECT_SECRET }}
+
+permissions:
+  contents: read
 
 jobs:
   # ============================================
@@ -25,12 +21,12 @@ jobs:
     name: Smart Contract Tests
     runs-on: ubuntu-latest
     steps:
-      - uses: actions/checkout@v5
+      - uses: actions/checkout@93cb6efe18208431cddfb8368fd83d5badbf9bfd # v5.0.0
         with:
           submodules: recursive
 
       - name: Install Foundry
-        uses: foundry-rs/foundry-toolchain@v1
+        uses: foundry-rs/foundry-toolchain@c7450ba673e133f5ee30098b3b54f444d3a2ca2d # v1.7.0
         with:
           version: stable
 
@@ -63,12 +59,12 @@ jobs:
     name: Gas Benchmarking
     runs-on: ubuntu-latest
     steps:
-      - uses: actions/checkout@v5
+      - uses: actions/checkout@93cb6efe18208431cddfb8368fd83d5badbf9bfd # v5.0.0
         with:
           submodules: recursive
 
       - name: Install Foundry
-        uses: foundry-rs/foundry-toolchain@v1
+        uses: foundry-rs/foundry-toolchain@c7450ba673e133f5ee30098b3b54f444d3a2ca2d # v1.7.0
         with:
           version: stable
 
@@ -82,12 +78,12 @@ jobs:
     name: Fuzzing Tests
     runs-on: ubuntu-latest
     steps:
-      - uses: actions/checkout@v5
+      - uses: actions/checkout@93cb6efe18208431cddfb8368fd83d5badbf9bfd # v5.0.0
         with:
           submodules: recursive
 
       - name: Install Foundry
-        uses: foundry-rs/foundry-toolchain@v1
+        uses: foundry-rs/foundry-toolchain@c7450ba673e133f5ee30098b3b54f444d3a2ca2d # v1.7.0
         with:
           version: stable
 
@@ -101,15 +97,15 @@ jobs:
     name: Frontend Build
     runs-on: ubuntu-latest
     steps:
-      - uses: actions/checkout@v5
+      - uses: actions/checkout@93cb6efe18208431cddfb8368fd83d5badbf9bfd # v5.0.0
 
       - name: Setup pnpm
-        uses: pnpm/action-setup@v5
+        uses: pnpm/action-setup@a8198c4bff370c8506180b035930dea56dbd5288 # v5.0.0
         with:
           version: 9
 
       - name: Setup Node.js
-        uses: actions/setup-node@v5
+        uses: actions/setup-node@a0853c24544627f65ddf259abe73b1d18a591444 # v5.0.0
         with:
           node-version: ${{ env.NODE_VERSION }}
           cache: 'pnpm'
@@ -135,15 +131,15 @@ jobs:
     name: E2E Tests
     runs-on: ubuntu-latest
     steps:
-      - uses: actions/checkout@v5
+      - uses: actions/checkout@93cb6efe18208431cddfb8368fd83d5badbf9bfd # v5.0.0
 
       - name: Setup pnpm
-        uses: pnpm/action-setup@v5
+        uses: pnpm/action-setup@a8198c4bff370c8506180b035930dea56dbd5288 # v5.0.0
         with:
           version: 9
 
       - name: Setup Node.js
-        uses: actions/setup-node@v5
+        uses: actions/setup-node@a0853c24544627f65ddf259abe73b1d18a591444 # v5.0.0
         with:
           node-version: ${{ env.NODE_VERSION }}
           cache: 'pnpm'
@@ -169,15 +165,15 @@ jobs:
     name: Security Audit
     runs-on: ubuntu-latest
     steps:
-      - uses: actions/checkout@v5
+      - uses: actions/checkout@93cb6efe18208431cddfb8368fd83d5badbf9bfd # v5.0.0
 
       - name: Setup pnpm
-        uses: pnpm/action-setup@v5
+        uses: pnpm/action-setup@a8198c4bff370c8506180b035930dea56dbd5288 # v5.0.0
         with:
           version: 9
 
       - name: Setup Node.js
-        uses: actions/setup-node@v5
+        uses: actions/setup-node@a0853c24544627f65ddf259abe73b1d18a591444 # v5.0.0
         with:
           node-version: ${{ env.NODE_VERSION }}
           cache: 'pnpm'
@@ -188,6 +184,11 @@ jobs:
       - name: Run security audit
         run: pnpm audit --audit-level critical
 
+      - name: Secret scan
+        uses: gitleaks/gitleaks-action@dcedce43c6f43de0b836d1fe38946645c9c638dc # v2.3.9
+        env:
+          GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+
   # ============================================
   # Deploy to Staging (Docker)
   # ============================================
@@ -197,40 +198,40 @@ jobs:
     needs: [contracts, frontend, e2e]
     if: github.event_name == 'push' && github.ref == 'refs/heads/staging'
     steps:
-      - uses: actions/checkout@v5
+      - uses: actions/checkout@93cb6efe18208431cddfb8368fd83d5badbf9bfd # v5.0.0
 
       - name: Set up Docker Buildx
-        uses: docker/setup-buildx-action@v3
+        uses: docker/setup-buildx-action@8d2750c68a42422c14e847fe6c8ac0403b4cbd6f # v3.12.0
 
       - name: Login to Docker Registry
-        uses: docker/login-action@v3
+        uses: docker/login-action@c94ce9fb468520275223c153574b00df6fe4bcc9 # v3.3.0
         with:
-          registry: ${{ env.DOCKER_REGISTRY }}
-          username: ${{ env.DOCKER_USERNAME }}
-          password: ${{ env.DOCKER_PASSWORD }}
+          registry: ${{ secrets.DOCKER_REGISTRY }}
+          username: ${{ secrets.DOCKER_USERNAME }}
+          password: ${{ secrets.DOCKER_PASSWORD }}
 
       - name: Build and push Docker image
-        uses: docker/build-push-action@v5
+        uses: docker/build-push-action@ca052bb54ab0790a636c9b5f226502c73d547a25 # v5.4.0
         with:
           context: ./apps/web
           push: true
           tags: |
-            ${{ env.DOCKER_REGISTRY }}/kokonut-marketplace:staging
-            ${{ env.DOCKER_REGISTRY }}/kokonut-marketplace:staging-${{ github.sha }}
+            ${{ secrets.DOCKER_REGISTRY }}/kokonut-marketplace:staging
+            ${{ secrets.DOCKER_REGISTRY }}/kokonut-marketplace:staging-${{ github.sha }}
           build-args: |
             NEXT_PUBLIC_DEPLOY_ENV=staging
           cache-from: type=gha
           cache-to: type=gha,mode=max
 
       - name: Deploy to Staging Server via SSH
-        uses: appleboy/ssh-action@v1.2.0
+        uses: appleboy/ssh-action@7eaf76671a0d7eec5d98ee897acda4f968735a17 # v1.2.0
         with:
-          host: ${{ env.STAGING_SERVER_HOST }}
+          host: ${{ secrets.STAGING_SERVER_HOST }}
           username: ${{ secrets.STAGING_SSH_USER }}
-          key: ${{ env.STAGING_SSH_KEY }}
+          key: ${{ secrets.STAGING_SSH_KEY }}
           script: |
             cd /opt/kokonut-staging
-            docker pull ${{ env.DOCKER_REGISTRY }}/kokonut-marketplace:staging
+            docker pull ${{ secrets.DOCKER_REGISTRY }}/kokonut-marketplace:staging
             docker-compose down
             docker-compose up -d
             echo "Docker staging deployment complete"
@@ -241,18 +242,18 @@ jobs:
   deploy-ipfs:
     name: Deploy to IPFS
     runs-on: ubuntu-latest
-    needs: [contracts, frontend]
+    needs: [contracts, frontend, e2e, security]
     if: github.event_name == 'push' && github.ref == 'refs/heads/staging'
     steps:
-      - uses: actions/checkout@v5
+      - uses: actions/checkout@93cb6efe18208431cddfb8368fd83d5badbf9bfd # v5.0.0
 
       - name: Setup pnpm
-        uses: pnpm/action-setup@v5
+        uses: pnpm/action-setup@a8198c4bff370c8506180b035930dea56dbd5288 # v5.0.0
         with:
           version: 9
 
       - name: Setup Node.js
-        uses: actions/setup-node@v5
+        uses: actions/setup-node@a0853c24544627f65ddf259abe73b1d18a591444 # v5.0.0
         with:
           node-version: ${{ env.NODE_VERSION }}
           cache: 'pnpm'
@@ -280,7 +281,7 @@ jobs:
           PINATA_JWT: ${{ secrets.PINATA_JWT }}
 
       - name: Post IPFS hash to Slack/Discord
-        uses: 8398a7/action-slack@v3
+        uses: 8398a7/action-slack@77eaa4f1c608a7d68b38af4e3f739dcd8cba273e # v3.19.0
         with:
           status: custom
           fields: repo,message,commit,author
@@ -323,7 +324,7 @@ jobs:
     if: always()
     steps:
       - name: Send deployment notification
-        uses: 8398a7/action-slack@v3
+        uses: 8398a7/action-slack@77eaa4f1c608a7d68b38af4e3f739dcd8cba273e # v3.19.0
         with:
           status: ${{ job.status }}
           fields: repo,message,commit,author

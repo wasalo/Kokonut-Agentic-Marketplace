@@ -8,6 +8,9 @@ export interface A2AServerConfig {
   skills?: string[];
   endpoint?: string;
   source?: string;
+  apiKey?: string;
+  requireAuth?: boolean;
+  verifyMessage?: (message: unknown) => boolean | Promise<boolean>;
 }
 
 export interface A2AServer {
@@ -37,6 +40,19 @@ export function createA2AServer(config: A2AServerConfig): A2AServer {
       }
 
       const msg = message as Record<string, unknown>;
+
+      if (config.requireAuth || config.apiKey || config.verifyMessage) {
+        let authenticated = false;
+        if (config.apiKey && msg.apiKey === config.apiKey) {
+          authenticated = true;
+        }
+        if (!authenticated && config.verifyMessage) {
+          authenticated = await config.verifyMessage(message);
+        }
+        if (!authenticated) {
+          return { error: 'Unauthorized' };
+        }
+      }
 
       switch (msg.type) {
         case 'task-offer':

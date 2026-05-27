@@ -3,6 +3,7 @@ import {
   ServiceCreated as ServiceCreatedEvent,
   ServiceUpdated as ServiceUpdatedEvent,
   ServiceDeactivated as ServiceDeactivatedEvent,
+  ServiceRegistry,
 } from '../generated/ServiceRegistry/ServiceRegistry';
 import { Service, Activity } from '../generated/schema';
 import { updatePlatformStat } from './helpers';
@@ -34,9 +35,17 @@ export function handleServiceCreated(event: ServiceCreatedEvent): void {
 
 export function handleServiceUpdated(event: ServiceUpdatedEvent): void {
   let service = Service.load(event.params.serviceId.toString());
-  if (service) {
-    service.name = event.params.name;
-    service.price = event.params.price;
+  if (!service) return;
+
+  let contract = ServiceRegistry.bind(event.address);
+  let result = contract.try_getService(event.params.serviceId);
+  if (!result.reverted) {
+    let data = result.value;
+    service.name = data.name;
+    service.description = data.description;
+    service.metadataURI = data.metadataURI;
+    service.price = data.price;
+    service.paymentToken = data.paymentToken;
     service.save();
   }
 }
