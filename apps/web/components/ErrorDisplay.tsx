@@ -17,6 +17,7 @@ export function ErrorDisplay({ error, title = 'Error', className = '' }: ErrorDi
   return (
     <div
       className={`p-4 bg-danger-50 border border-danger-200 rounded-lg text-danger ${className}`}
+      role="alert"
     >
       <div className="flex items-start gap-3">
         <AlertCircle className="w-5 h-5 flex-shrink-0 mt-0.5" />

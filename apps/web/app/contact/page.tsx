@@ -1,10 +1,11 @@
 'use client';
 
 import { useState } from 'react';
-import { Button, Card } from '@heroui/react';
 import { MessageSquare } from 'lucide-react';
 import { useAccount } from 'wagmi';
 import { Address } from '@/components/Address';
+import { DS, btn } from '@/lib/design-system';
+import { Button } from '@/components/ui/Button';
 
 export default function ContactPage() {
   const { isConnected, address } = useAccount();
@@ -34,50 +35,50 @@ export default function ContactPage() {
 
   if (submitted) {
     return (
-      <div className="container mx-auto px-4 py-16 max-w-2xl">
-        <Card className="p-8 text-center">
+      <div className={DS.spacing.page + ' max-w-2xl'}>
+        <div className={DS.cards.padded + ' text-center'}>
           <MessageSquare className="w-12 h-12 text-success mx-auto mb-4" />
           <h1 className="text-2xl font-bold mb-2">Message Sent!</h1>
           <p className="text-default-500 mb-4">
             Thank you for reaching out. We&apos;ll get back to you as soon as possible.
           </p>
-          <Button onPress={() => setSubmitted(false)}>Send Another Message</Button>
-        </Card>
+          <Button onClick={() => setSubmitted(false)}>Send Another Message</Button>
+        </div>
       </div>
     );
   }
 
   return (
-    <div className="container mx-auto px-4 py-8 max-w-2xl">
+    <div className={DS.spacing.page + ' max-w-2xl'}>
       <div className="text-center mb-8">
-        <h1 className="text-3xl font-bold mb-2">Contact Us</h1>
-        <p className="text-default-500">
+        <h1 className={DS.typography.pageTitle}>Contact Us</h1>
+        <p className={DS.typography.pageSubtitle}>
           Have questions or feedback? We&apos;d love to hear from you.
         </p>
       </div>
 
-      <Card className="p-6">
+      <div className={DS.cards.padded}>
         <form onSubmit={handleSubmit} className="space-y-4">
-          <div className="space-y-1">
-            <label htmlFor="name" className="text-sm font-medium">Name</label>
+          <div className={DS.spacing.formField}>
+            <label htmlFor="name" className={DS.labels.base}>Name</label>
             <input
               id="name"
               name="name"
               type="text"
-              className="w-full p-2 rounded-lg border border-divider bg-default"
+              className={DS.inputs.base}
               placeholder="Your name"
               value={formData.name}
               onChange={(e) => setFormData({ ...formData, name: e.target.value })}
             />
           </div>
 
-          <div className="space-y-1">
-            <label htmlFor="email" className="text-sm font-medium">Email *</label>
+          <div className={DS.spacing.formField}>
+            <label htmlFor="email" className={DS.labels.base}>Email *</label>
             <input
               id="email"
               name="email"
               type="email"
-              className="w-full p-2 rounded-lg border border-divider bg-default"
+              className={DS.inputs.base}
               placeholder="your@email.com"
               value={formData.email}
               onChange={(e) => setFormData({ ...formData, email: e.target.value })}
@@ -85,12 +86,12 @@ export default function ContactPage() {
             />
           </div>
 
-          <div className="space-y-1">
-            <label htmlFor="category" className="text-sm font-medium">Category</label>
+          <div className={DS.spacing.formField}>
+            <label htmlFor="category" className={DS.labels.base}>Category</label>
             <select
               id="category"
               name="category"
-              className="w-full p-2 rounded-lg border border-divider bg-default"
+              className={DS.inputs.select}
               value={formData.category}
               onChange={(e) => setFormData({ ...formData, category: e.target.value })}
             >
@@ -102,12 +103,12 @@ export default function ContactPage() {
             </select>
           </div>
 
-          <div className="space-y-1">
-            <label htmlFor="message" className="text-sm font-medium">Message *</label>
+          <div className={DS.spacing.formField}>
+            <label htmlFor="message" className={DS.labels.base}>Message *</label>
             <textarea
               id="message"
               name="message"
-              className="w-full p-2 rounded-lg border border-divider bg-default min-h-[120px]"
+              className={DS.inputs.base + ' ' + DS.inputs.textarea}
               placeholder="Tell us what's on your mind..."
               value={formData.message}
               onChange={(e) => setFormData({ ...formData, message: e.target.value })}
@@ -115,17 +116,17 @@ export default function ContactPage() {
             />
           </div>
 
-<div className="pt-2">
-              <Button
-                type="submit"
-                isDisabled={!formData.email || !formData.message}
-                className="border-2 border-[#009F4D] text-[#009F4D] hover:bg-[#009F4D]/5 font-semibold w-full"
-              >
-                Send Message
-              </Button>
-            </div>
+          <div className="pt-2">
+            <Button
+              type="submit"
+              disabled={!formData.email || !formData.message}
+              className="w-full"
+            >
+              Send Message
+            </Button>
+          </div>
         </form>
-      </Card>
+      </div>
 
       <p className="text-sm text-default-400 mt-4 text-center">
         For urgent issues, email us directly at{' '}

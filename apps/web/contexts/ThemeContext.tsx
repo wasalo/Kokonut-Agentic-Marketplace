@@ -22,6 +22,10 @@ export function ThemeProvider({ children }: { children: ReactNode }) {
         setThemeState(stored);
         document.documentElement.classList.remove('light', 'dark');
         document.documentElement.classList.add(stored);
+      } else if (window.matchMedia?.('(prefers-color-scheme: light)').matches) {
+        setThemeState('light');
+        document.documentElement.classList.remove('light', 'dark');
+        document.documentElement.classList.add('light');
       } else {
         document.documentElement.classList.add('dark');
       }

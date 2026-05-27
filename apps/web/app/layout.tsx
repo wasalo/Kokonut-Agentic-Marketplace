@@ -17,6 +17,7 @@ import { BottomNav } from '@/components/BottomNav';
 import { ClientErrorBoundary } from '@/components/error/ClientErrorBoundary';
 import { WebVitalsProvider } from '@/components/WebVitalsProvider';
 import { Toaster } from 'sonner';
+import { SearchModal } from '@/components/SearchModal';
 
 const inter = Inter({ subsets: ['latin'] });
 
@@ -59,7 +60,7 @@ export default function RootLayout({
   children: React.ReactNode;
 }>): JSX.Element {
   return (
-    <html lang="en" suppressHydrationWarning className="dark">
+    <html lang="en" suppressHydrationWarning>
       <head>
         <Script src="/crypto-polyfill.js" strategy="beforeInteractive" />
       </head>
@@ -83,6 +84,7 @@ export default function RootLayout({
             <WebVitalsProvider>
               <Providers>
                 <div className="min-h-screen flex flex-col bg-background">
+                  <SearchModal />
                   <a
                     href="#main-content"
                     data-skip-link

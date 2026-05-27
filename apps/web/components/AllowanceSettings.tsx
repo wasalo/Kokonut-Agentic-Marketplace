@@ -55,6 +55,9 @@ export function AllowanceSettings({ token }: AllowanceSettingsProps) {
           </div>
           <button
             onClick={() => setMode(mode === 'unlimited' ? 'per-transaction' : 'unlimited')}
+            role="switch"
+            aria-checked={mode === 'unlimited'}
+            aria-label="Toggle unlimited approval"
             className={`relative w-12 h-6 rounded-full transition-colors ${
               mode === 'unlimited' ? 'bg-primary' : 'bg-default-300'
             }`}

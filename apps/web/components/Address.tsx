@@ -31,6 +31,7 @@ function CopyButton({ text, className = '' }: { text: string; variant?: string; 
       type="button"
       onClick={handleCopy}
       className={`inline-flex items-center justify-center rounded transition-colors ${className}`}
+      aria-label={copied ? 'Address copied' : 'Copy address'}
       title={copied ? 'Copied!' : 'Copy address'}
     >
       {copied ? (

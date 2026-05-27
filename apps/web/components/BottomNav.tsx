@@ -9,8 +9,8 @@ import { useTransactionRegistry } from '@/lib/stores/transactionRegistry';
 const navItems = [
   { href: '/marketplace', label: 'Discover', icon: Search },
   { href: '/jobs', label: 'Jobs', icon: Briefcase },
-  { href: '/dashboard', label: 'Activity', icon: Activity },
-  { href: '/identity/me', label: 'Profile', icon: User },
+  { href: '/activity', label: 'Activity', icon: Activity },
+  { href: '/dashboard/agents', label: 'Profile', icon: User },
 ];
 
 export function BottomNav() {
@@ -26,7 +26,7 @@ export function BottomNav() {
           const Icon = item.icon;
 
           // Don't show profile tab if not connected
-          if (item.href === '/identity/me' && !isConnected) {
+          if (item.href === '/dashboard/agents' && !isConnected) {
             return null;
           }
 
@@ -34,6 +34,7 @@ export function BottomNav() {
             <NextLink
               key={item.href}
               href={item.href}
+              aria-current={isActive ? 'page' : undefined}
               className={`relative flex flex-col items-center justify-center gap-0.5 w-full h-full transition-colors ${
                 isActive
                   ? 'text-[#009F4D]'

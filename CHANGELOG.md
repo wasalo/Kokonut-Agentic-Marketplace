@@ -5,6 +5,60 @@ All notable changes to the Kokonut Agent Economy Stack are documented in this fi
 The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.0.0/),
 and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0.html).
 
+## [2026-05-27] — Phase 35: UI/UX Overhaul + Accessibility + Search
+
+### 🎨 UI/UX Improvements (4 Sprints)
+
+Comprehensive frontend overhaul addressing navigation gaps, design system alignment, accessibility, and new features.
+
+#### Sprint 1 — Quick Wins
+
+| Fix | File | Detail |
+|-----|------|--------|
+| **Dead link fixed** | `BottomNav.tsx` | Profile tab: `/identity/me` → `/dashboard/agents` (route didn't exist) |
+| **Activity link fixed** | `BottomNav.tsx` | Activity tab: `/dashboard` → `/activity` (correct route) |
+| **md breakpoint gap fixed** | `navbar.tsx` | Desktop nav `hidden lg:flex` → `hidden md:flex`; hamburger `lg:hidden` → `md:hidden`. Medium screens now have visible navigation. |
+| **Full page reloads eliminated** | `empty-state.tsx` | Replaced `window.location.href` with Next.js `<Link>` for client-side navigation |
+| **Dead code removed** | Multiple | Deleted 3 unused error boundary files (`ErrorBoundary.tsx`, `error/ErrorBoundary.tsx`, `PageErrorBoundary.tsx`), unused `notification-bell.tsx`, 4 empty component directories (`identity/`, `marketplace/`, `review/`, `x402/`) |
+
+#### Sprint 2 — Design System Alignment
+
+| Fix | File | Detail |
+|-----|------|--------|
+| **Contact page standardized** | `contact/page.tsx` | Replaced HeroUI Button/Card + raw HTML inputs with DS `inputs.base`, `buttons.secondary`, `cards.padded`, `labels.base` |
+| **About page standardized** | `about/page.tsx` | Replaced HeroUI `<Card>` with `DS.cards.padded` |
+| **Admin page standardized** | `admin/page.tsx` | Replaced inline button styles with `DS.buttons.danger`, `DS.buttons.ghost` |
+| **Homepage cards standardized** | `page.tsx` | Replaced HeroUI Card with `DS.cards.padded` for feature cards and CTA section |
+| **Error messages friendly** | `error.tsx` | Root error page now parses wallet rejection, insufficient funds, network, contract revert errors into human-readable messages |
+
+#### Sprint 3 — Scale Improvements
+
+| Fix | File | Detail |
+|-----|------|--------|
+| **Loading skeletons** | 8 new `loading.tsx` | Added to `/bidding`, `/skills`, `/notifications`, `/networks`, `/governance`, `/featured`, `/integrations`, `/contracts` |
+| **Component barrel file** | `components/index.ts` | Re-exports 50+ components for cleaner imports |
+| **Breadcrumb component** | `components/ui/Breadcrumb.tsx` | New accessible breadcrumb navigation with `aria-label` |
+| **Onboarding link** | `navbar.tsx` | Added "Get Started" link to mobile menu pointing to `/onboarding` |
+
+#### Sprint 4 — Major Features
+
+| Feature | File | Detail |
+|---------|------|--------|
+| **Cmd+K search** | `components/SearchModal.tsx` | Global search modal triggered by Cmd/Ctrl+K. Searches pages, actions, and info. Keyboard navigation (arrow keys + Enter). Grouped results by category. |
+| **Dark mode preference** | `contexts/ThemeContext.tsx` | Detects `prefers-color-scheme` system preference. Removed hardcoded `className="dark"` from `<html>`. |
+| **Tailwind primary token** | `globals.css` | Added `--color-primary-brand: #009F4D` to Tailwind CSS v4 theme for future migration from hardcoded hex |
+| **Accessibility fixes** | Multiple | `ErrorDisplay`: added `role="alert"`; `AllowanceSettings` toggle: added `role="switch"`, `aria-checked`, `aria-label`; `BottomNav` items: added `aria-current="page"`; `Address` CopyButton: added `aria-label` |
+
+### ✅ Verification
+
+| Check | Status |
+|-------|--------|
+| **Build** | 0 warnings, 0 errors |
+| **Type-check** | 0 errors |
+| **Lint** | Clean |
+
+---
+
 ## [2026-05-25] — Phase 34c: Service Bond Redesign + Provider UX Improvements
 
 ### 🔧 Service Bond Redesign

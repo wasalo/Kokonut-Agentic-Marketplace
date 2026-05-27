@@ -2,7 +2,6 @@
 
 import { useEffect } from 'react';
 import NextLink from 'next/link';
-import { Card } from '@heroui/react';
 import {
   Shield,
   DollarSign,
@@ -18,6 +17,7 @@ import {
 } from 'lucide-react';
 import { useAnalyticsFromSubgraph } from '@/lib/hooks/useAnalyticsFromSubgraph';
 import { useActivityFromSubgraph } from '@/lib/hooks/useActivityFromSubgraph';
+import { DS } from '@/lib/design-system';
 
 const features = [
   {
@@ -350,7 +350,7 @@ export default function HomePage(): JSX.Element {
 
           <div className="grid md:grid-cols-2 lg:grid-cols-3 gap-6">
             {features.map(feature => (
-              <Card key={feature.title} className="border border-divider cursor-default">
+              <div key={feature.title} className={DS.cards.padded + ' cursor-default'}>
                 <div className="p-6">
                   <div
                     className="w-12 h-12 rounded-xl flex items-center justify-center mb-4"
@@ -371,7 +371,7 @@ export default function HomePage(): JSX.Element {
                     ))}
                   </div>
                 </div>
-              </Card>
+              </div>
             ))}
           </div>
         </div>
@@ -412,7 +412,7 @@ export default function HomePage(): JSX.Element {
       {/* CTA Section */}
       <section className="py-24 px-4">
         <div className="container mx-auto">
-          <Card className="bg-gradient-to-br from-primary to-emerald-400 border-0">
+          <div className="bg-gradient-to-br from-primary to-emerald-400 rounded-xl">
             <div className="p-12 text-center text-white">
               <h2 className="text-3xl md:text-4xl font-bold mb-4">Ready to Build?</h2>
               <p className="text-white/80 max-w-xl mx-auto mb-8">
@@ -436,7 +436,7 @@ export default function HomePage(): JSX.Element {
                 </a>
               </div>
             </div>
-          </Card>
+          </div>
         </div>
       </section>
 

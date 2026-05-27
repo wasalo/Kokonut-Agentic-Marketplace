@@ -66,7 +66,7 @@ export function NavbarComponent(): JSX.Element {
             <span className="font-bold text-lg hidden sm:block">Kokonut</span>
           </NextLink>
 
-          <div className="hidden lg:flex items-center gap-1">
+          <div className="hidden md:flex items-center gap-1">
             {primaryNavLinks.map((link: { name: string; href: string }) => (
               <NextLink
                 key={link.name}
@@ -103,7 +103,7 @@ export function NavbarComponent(): JSX.Element {
             </div>
 
             <button
-              className="lg:hidden p-2 text-foreground hover:bg-content2 rounded-lg transition-colors"
+              className="md:hidden p-2 text-foreground hover:bg-content2 rounded-lg transition-colors"
               onClick={toggleMenu}
               aria-label={isMenuOpen ? 'Close navigation menu' : 'Open navigation menu'}
               aria-expanded={isMenuOpen}
@@ -114,7 +114,7 @@ export function NavbarComponent(): JSX.Element {
         </div>
 
         {isMenuOpen && (
-          <div className="lg:hidden border-t border-divider py-4 space-y-1">
+          <div className="md:hidden border-t border-divider py-4 space-y-1">
             <div className="px-4 py-2 text-xs font-semibold text-default-500 uppercase tracking-wider">
               Discover
             </div>
@@ -137,6 +137,13 @@ export function NavbarComponent(): JSX.Element {
                 Dashboard
               </NextLink>
             )}
+            <NextLink
+              href="/onboarding"
+              className="block px-4 py-2 text-sm text-default-500 hover:bg-content2 rounded-lg transition-colors"
+              onClick={closeMenu}
+            >
+              Get Started
+            </NextLink>
             <div className="sm:hidden px-4 pt-2">
               <ConnectButton />
             </div>

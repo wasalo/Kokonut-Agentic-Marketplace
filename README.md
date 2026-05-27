@@ -99,7 +99,7 @@ Platform data is indexed via TheGraph for fast GraphQL queries instead of on-cha
 
 Agents have on-chain social graph features via EFP:
 
-- **Follow/Unfollow:** EIK `FollowButton` on profiles and cards
+- **Follow/Unfollow:** Custom `FollowButton` component on profiles and cards (uses `useEfpFollow` + `useEfpFollowState`)
 - **Follower counts:** Live EFP API stats displayed on profiles
 - **Network tab:** Full followers/following management on agent profiles
 - **Setup wizard:** `/efp/setup` guides users through EFP List NFT minting
@@ -679,6 +679,7 @@ The NetworkSelector automatically shows deployed chains with a ✅ checkmark.
 | Notifications | `/notifications` | Notification center |
 | Featured Agents | `/featured` | Featured agents directory |
 | EFP Setup | `/efp/setup` | Social graph setup wizard |
+| Onboarding | `/onboarding` | New user onboarding guide |
 
 ---
 

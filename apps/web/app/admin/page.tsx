@@ -7,6 +7,7 @@ import { Card, Input } from '@heroui/react';
 import { CONTRACTS } from '@/lib/wagmi';
 import { AGENTIC_COMMERCE_ABI } from '@/lib/contracts/abis';
 import { useAdminBlacklist } from '@/lib/hooks/useAdminBlacklist';
+import { DS } from '@/lib/design-system';
 import { toast } from 'sonner';
 
 const AGENTIC_COMMERCE_ADDRESS = CONTRACTS[11155111].agenticCommerce as `0x${string}`;
@@ -43,7 +44,7 @@ export default function AdminPage(): JSX.Element {
               className={`px-4 py-2 rounded-lg font-medium transition-colors ${
                 activeTab === 'info'
                   ? 'bg-primary text-white'
-                  : 'bg-content2 text-default-600 hover:bg-content3'
+                  : DS.buttons.ghost
               }`}
             >
               Contract Info
@@ -54,7 +55,7 @@ export default function AdminPage(): JSX.Element {
               className={`px-4 py-2 rounded-lg font-medium transition-colors ${
                 activeTab === 'agents'
                   ? 'bg-danger text-white'
-                  : 'bg-content2 text-default-600 hover:bg-content3'
+                  : DS.buttons.ghost
               }`}
             >
               Agent Blacklist
@@ -65,7 +66,7 @@ export default function AdminPage(): JSX.Element {
               className={`px-4 py-2 rounded-lg font-medium transition-colors ${
                 activeTab === 'wallets'
                   ? 'bg-danger text-white'
-                  : 'bg-content2 text-default-600 hover:bg-content3'
+                  : DS.buttons.ghost
               }`}
             >
               Wallet Blacklist
@@ -250,7 +251,7 @@ function AgentBlacklist() {
             <button
               onClick={handleBlacklist}
               disabled={!canBlacklist || isLoading}
-              className="px-4 py-2 bg-danger text-white rounded-lg font-medium hover:bg-danger/80 disabled:opacity-50 flex items-center gap-2"
+              className={DS.buttons.danger + ' flex items-center gap-2'}
             >
               {isBlacklistingAgent && <Loader className="w-4 h-4 animate-spin" />}
               <ShieldAlert className="w-4 h-4" />
@@ -259,7 +260,7 @@ function AgentBlacklist() {
             <button
               onClick={handleUnblacklist}
               disabled={!canUnblacklist || isLoading}
-              className="px-4 py-2 border border-success text-success rounded-lg font-medium hover:bg-success/10 disabled:opacity-50 flex items-center gap-2"
+              className={DS.buttons.ghost + ' flex items-center gap-2'}
             >
               <XCircle className="w-4 h-4" />
               Remove from Blacklist
@@ -364,7 +365,7 @@ function WalletBlacklist() {
             <button
               onClick={handleBlacklist}
               disabled={!canBlacklist || isLoading}
-              className="px-4 py-2 bg-danger text-white rounded-lg font-medium hover:bg-danger/80 disabled:opacity-50 flex items-center gap-2"
+              className={DS.buttons.danger + ' flex items-center gap-2'}
             >
               {isBlacklistingWallet && <Loader className="w-4 h-4 animate-spin" />}
               <ShieldAlert className="w-4 h-4" />
@@ -373,7 +374,7 @@ function WalletBlacklist() {
             <button
               onClick={handleUnblacklist}
               disabled={!canUnblacklist || isLoading}
-              className="px-4 py-2 border border-success text-success rounded-lg font-medium hover:bg-success/10 disabled:opacity-50 flex items-center gap-2"
+              className={DS.buttons.ghost + ' flex items-center gap-2'}
             >
               <XCircle className="w-4 h-4" />
               Remove from Blacklist
