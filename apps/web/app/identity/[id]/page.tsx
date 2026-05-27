@@ -9,7 +9,8 @@ import { formatUsd } from '@/lib/tokenUtils';
 
 import { useAccount } from 'wagmi';
 import { Address } from '@/components/Address';
-import { FollowButton, FollowersYouKnow, FollowersAndFollowing, FollowerTag } from 'ethereum-identity-kit';
+import { FollowersYouKnow, FollowersAndFollowing, FollowerTag } from 'ethereum-identity-kit';
+import { FollowButton } from '@/components/FollowButton';
 
 import { 
   Wallet,

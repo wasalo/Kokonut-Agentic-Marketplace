@@ -12,15 +12,23 @@ export function useCapabilities(): { data: any } {
 }
 
 export function useWriteContracts(): UseWriteContractReturnType {
-  throw new Error(
-    'wagmi/experimental: useWriteContracts is not available in wagmi v3. ' +
-    'Batch transactions and paymaster features are not supported in this build.'
-  );
+  // No-op for wagmi v3 compatibility with ethereum-identity-kit
+  return {
+    data: undefined,
+    error: null,
+    isIdle: true,
+    isPending: false,
+    isSuccess: false,
+    isError: false,
+    isPaused: false,
+    writeContract: (() => {}) as any,
+    writeContractAsync: (async () => undefined) as any,
+    reset: () => {},
+    status: 'idle',
+    failureReason: null,
+  } as unknown as UseWriteContractReturnType;
 }
 
-export function writeContracts(): never {
-  throw new Error(
-    'wagmi/experimental: writeContracts is not available in wagmi v3. ' +
-    'This function was part of wagmi v2 experimental and has been removed.'
-  );
+export function writeContracts() {
+  return undefined;
 }

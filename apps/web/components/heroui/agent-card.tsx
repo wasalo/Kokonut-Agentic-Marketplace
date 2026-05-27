@@ -6,7 +6,7 @@ import { Card, Chip } from '@heroui/react';
 import { Star, ExternalLink, Shield, Users, UserCheck } from 'lucide-react';
 import { useRouter } from 'next/navigation';
 import { useAccount } from 'wagmi';
-import { FollowButton } from 'ethereum-identity-kit';
+import { FollowButton } from '@/components/FollowButton';
 import { Address } from '@/components/Address';
 
 interface AgentCardProps {

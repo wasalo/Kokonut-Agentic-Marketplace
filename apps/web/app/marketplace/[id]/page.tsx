@@ -3,7 +3,7 @@
 import { use, useState } from 'react';
 import { useAccount } from 'wagmi';
 import NextLink from 'next/link';
-import { FollowButton } from 'ethereum-identity-kit';
+import { FollowButton } from '@/components/FollowButton';
 import { useUnifiedAgentProfile } from '@/lib/hooks/useUnifiedAgentProfile';
 import {
   ArrowLeft,
