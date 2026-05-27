@@ -51,6 +51,70 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ---
 
+## [2026-05-27] — Phase 34d: Supply Chain Hardening + CI/Opsec + Subgraph Build Fix
+
+### 🔒 Supply Chain & CI Opsec Hardening
+
+**pnpm audit: 107 vulns → 0 through deep overrides + false-positive suppression:**
+
+| Change | Detail |
+|--------|--------|
+| **Root `package.json` overrides** | Pinned 19 transitive dependencies: `undici`, `fast-uri`, `qs`, `ws`, `yaml`, `postcss`, `follow-redirects`, `bn.js`, `ejs`, `ip-address`, `dompurify`, `hono`, `js-yaml`, `tmp`, `uuid`, `axios` (3 version targets) |
+| **False-positive suppression** | `auditConfig.ignoreCves` suppresses `CVE-2016-10538` (our `@kokonut/cli` workspace mismatched with npm `cli` package — not in dependency tree) |
+| **`pnpm update` applied** | `next` upgraded 16.2.4 → 16.2.6 |
+
+**GitHub Actions SHA-pinned across all 4 workflow files:**
+
+| Workflow | Changes |
+|----------|---------|
+| `ci.yml` | All actions SHA-pinned; `permissions: contents: read`; trufflehog secret scan; SBOM scans workspace root |
+| `staging.yml` | SHA-pinned; removed `env` global secrets (moved to job-level `secrets.*`); Docker registry fix; restricted permissions |
+| `deploy.yml` | SHA-pinned; `version: 9` removed from `pnpm/action-setup`; deploy jobs escalate to `contents: write`; approval job condition fixed |
+| `storage-layout.yml` | SHA-pinned |
+
+**Additional CI changes:**
+- **`gitleaks/gitleaks-action` → `trufflesecurity/trufflehog`** — gitleaks requires paid license for org repos; trufflehog is OSS
+- **`pnpm/action-setup version: 9` removed** from all 11 occurrences across all workflows (conflicted with `"packageManager": "pnpm@9.15.9"` in root `package.json`)
+- **Dependabot config** (`.github/dependabot.yml`) created with weekly updates for `github-actions` (grouped minor/patch) and `npm`
+
+### 🛠️ SDK / Config / Ledger Fixes
+
+| Fix | File | Detail |
+|-----|------|--------|
+| **SDK legacy V6 bidding fixed** | `sdk/typescript/client.ts` | `CommerceModule.commitBid()` now targets `biddingSystem` contract + `BIDDING_SYSTEM_ABI`, derives `commitHash = keccak256(encode([amount,message,salt]))` matching Solidity |
+| **`revealBid`/`acceptBid`/`withdrawStake`** | Same file | Also target correct contract/ABI |
+| **Type fix** | `sdk/typescript/types.ts` | `CommitBidParams`/`RevealBidParams`: `jobId` → `sessionId` |
+| **Address manifest** | `config/address-manifest.json` (NEW) | Canonical source of truth for all Sepolia proxy + impl addresses + mainnet placeholders |
+| **Config generator** | `scripts/generate-address-configs.js` (NEW) | Regenerates `config/networks.ts` + `config/networks.js` from manifest |
+| **Root script** | `package.json` | Added `pnpm run generate:addresses` |
+
+### 📦 Subgraph Build Unblocked
+
+The subgraph had two layered build failures:
+
+**1. `webidl.util.markAsUncloneable` error:**
+- **Root cause**: `"undici": ">=7.24.0"` resolved to undici@8.3.0, which moved `webidl` from `lib/webidl.js` → `lib/web/webidl/`. graph-cli's internal `kubo-rpc-client` expected 7.x structure.
+- **Fix**: Pinned `"undici": "7.26.0"` (latest 7.x); upgraded `@graphprotocol/graph-cli` from `^0.96.0` to `^0.98.0`.
+
+**2. `@entity directive requires immutable argument` error:**
+- **Root cause**: graph-cli 0.98.x requires explicit `immutable: true/false` on every `@entity` directive.
+- **Fix**: Added `immutable:` to all 12 entities in `schema.graphql`:
+  - `immutable: true` — Review, Evaluation, Activity (created once, never updated)
+  - `immutable: false` — Agent, Service, Job, Proposal, Skill, Milestone, Dispute, BlacklistEntry, PlatformStat (updated after creation)
+
+### ✅ Verification
+
+| Check | Status |
+|-------|--------|
+| **Build** | 0 warnings, 0 errors |
+| **Tests** | 327/327 passing (no contract changes) |
+| **Type-check** | 0 errors |
+| **Lint** | Clean |
+| **Audit** | 0 vulnerabilities (exit 0 at `--audit-level moderate`) |
+| **Subgraph** | Builds cleanly |
+
+---
+
 ## [2026-05-25] — Phase 34b: Multi-Audit Remediation + Security Hardening + Storage Recovery
 
 ### 🚨 Critical: Storage Corruption Recovery (AgenticCommerceV9)

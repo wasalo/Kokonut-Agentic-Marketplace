@@ -179,9 +179,9 @@ jobs:
         run: pnpm audit --audit-level critical
 
       - name: Secret scan
-        uses: gitleaks/gitleaks-action@dcedce43c6f43de0b836d1fe38946645c9c638dc # v2.3.9
-        env:
-          GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+        uses: trufflesecurity/trufflehog@37b77001d0174ebec2fcca2bd83ff83a6d45a3ab # v3.95.3
+        with:
+          extra_args: --results=verified,unknown
 
   # ============================================
   # Deploy to Staging (Docker)

@@ -1,4 +1,4 @@
-type Agent @entity {
+type Agent @entity(immutable: false) {
   id: ID!
   agentId: BigInt!
   owner: Bytes!
@@ -16,7 +16,7 @@ type Agent @entity {
   featured: Boolean
 }
 
-type Review @entity {
+type Review @entity(immutable: true) {
   id: ID!
   agent: Bytes!
   reviewer: Bytes!
@@ -25,7 +25,7 @@ type Review @entity {
   timestamp: BigInt!
 }
 
-type Service @entity {
+type Service @entity(immutable: false) {
   id: ID!
   serviceId: BigInt!
   agent: Agent!
@@ -41,7 +41,7 @@ type Service @entity {
   bond: BigInt
 }
 
-type Job @entity {
+type Job @entity(immutable: false) {
   id: ID!
   jobId: BigInt!
   client: Bytes!
@@ -64,7 +64,7 @@ type Job @entity {
   evaluatorFee: BigInt
 }
 
-type Proposal @entity {
+type Proposal @entity(immutable: false) {
   id: ID!
   proposalId: BigInt!
   proposer: Bytes!
@@ -78,7 +78,7 @@ type Proposal @entity {
   evaluations: [Evaluation!] @derivedFrom(field: "proposal")
 }
 
-type Evaluation @entity {
+type Evaluation @entity(immutable: true) {
   id: ID!
   proposal: Proposal!
   evaluator: Bytes!
@@ -87,7 +87,7 @@ type Evaluation @entity {
   createdAt: BigInt!
 }
 
-type Skill @entity {
+type Skill @entity(immutable: false) {
   id: ID!
   skillId: BigInt!
   agent: Agent!
@@ -96,7 +96,7 @@ type Skill @entity {
   createdAt: BigInt!
 }
 
-type Milestone @entity {
+type Milestone @entity(immutable: false) {
   id: ID!
   jobId: BigInt!
   milestoneIndex: BigInt!
@@ -107,7 +107,7 @@ type Milestone @entity {
   completedAt: BigInt
 }
 
-type Dispute @entity {
+type Dispute @entity(immutable: false) {
   id: ID!
   jobId: BigInt!
   milestoneIndex: BigInt!
@@ -122,7 +122,7 @@ type Dispute @entity {
   resolvedAt: BigInt
 }
 
-type Activity @entity {
+type Activity @entity(immutable: true) {
   id: ID!
   type: String!
   actor: Bytes!
@@ -133,7 +133,7 @@ type Activity @entity {
   metadata: String
 }
 
-type BlacklistEntry @entity {
+type BlacklistEntry @entity(immutable: false) {
   id: ID!
   agentId: BigInt
   wallet: Bytes
@@ -144,7 +144,7 @@ type BlacklistEntry @entity {
   active: Boolean!
 }
 
-type PlatformStat @entity {
+type PlatformStat @entity(immutable: false) {
   id: ID!
   totalAgents: Int!
   totalActiveAgents: Int!
