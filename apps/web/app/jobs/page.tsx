@@ -1,198 +1,47 @@
 'use client';
 
-import { useAccount } from 'wagmi';
-import { useSearchParams, useRouter } from 'next/navigation';
-import {
-  Clock,
-  Plus,
-  DollarSign,
-  Search,
-  SlidersHorizontal,
-  Bookmark,
-} from 'lucide-react';
-import { Card } from '@heroui/react';
+import { Plus } from 'lucide-react';
 import NextLink from 'next/link';
-import {
-  useJobs,
-} from '@/lib/hooks/useJobs';
-import { JobStatus } from '@/lib/types/contracts';
-import { useJobEvents } from '@/lib/hooks/useJobEvents';
-import { useJobBookmarks, useBookmarkCounts } from '@/lib/hooks/useBookmarks';
-import { useService } from '@/lib/hooks/useServices';
 import { GridSkeleton } from '@/components/Skeletons';
-import { useState, useCallback, useEffect, memo, Suspense } from 'react';
-import { StatusBadge, getJobStatusBadgeType } from '@/components/StatusBadge';
-import { useDebounce } from '@/lib/hooks/useDebounce';
+import { useEffect, Suspense } from 'react';
 import { EmptyStateJobs } from '@/components/ui/empty-state';
 import { Pagination } from '@/components/ui/pagination';
-import { useJobStatsFromSubgraph } from '@/lib/hooks/useJobStatsFromSubgraph';
-import { formatAmount, getTokenByAddress, tokenAmountToUsd } from '@/lib/tokenUtils';
-
-const JobCard = memo(function JobCard({ job }: { job: any }) {
-  const { service } = useService(job.serviceId ?? BigInt(0));
-  const { isBookmarked, toggleBookmark } = useJobBookmarks();
-  const { getJobCount } = useBookmarkCounts();
-  const token = getTokenByAddress(job.paymentToken);
-  const formattedBudget = formatAmount(job.budget, token, {
-    includeSymbol: true,
-    minFractionDigits: token.symbol === 'USDC' ? 2 : 0,
-    maxFractionDigits: token.symbol === 'USDC' ? 2 : 6,
-  });
-  const jobIdStr = job.id.toString();
-  const bookmarked = isBookmarked(jobIdStr);
-  const bookmarkCount = getJobCount(jobIdStr);
-
-  const handleBookmark = (e: React.MouseEvent) => {
-    e.preventDefault();
-    e.stopPropagation();
-    toggleBookmark(jobIdStr);
-  };
-
-  return (
-    <Card className="border border-divider p-4 hover:border-[#009F4D]/30 hover:shadow-sm transition-all">
-      <div className="flex items-start justify-between gap-4">
-        <NextLink href={`/jobs/${jobIdStr}`} className="flex-1 min-w-0">
-          <div className="flex items-center gap-2">
-            <h3 className="font-semibold">Job #{jobIdStr}</h3>
-            <StatusBadge status={getJobStatusBadgeType(job.status)} size="sm" />
-          </div>
-          <p className="text-sm text-default-500 mt-0.5 truncate">{job.description}</p>
-          {service && Number(service.id) > 0 && (
-            <p className="text-xs text-default-400 mt-0.5">Service: {service.name}</p>
-          )}
-          <div className="flex items-center gap-4 mt-2 text-xs text-default-400">
-            <span className="flex items-center gap-1">
-              <DollarSign className="size-3" />
-              {formattedBudget}
-            </span>
-            <span className="flex items-center gap-1">
-              <Clock className="size-3" />
-              {new Date(Number(job.expiredAt) * 1000).toLocaleDateString()}
-            </span>
-          </div>
-        </NextLink>
-
-        <div className="flex flex-col items-end gap-2">
-          <button type="button"
-            onClick={handleBookmark}
-            className={`p-2 rounded-lg transition-colors ${
-              bookmarked
-                ? 'text-[#009F4D] hover:bg-[#009F4D]/10'
-                : 'text-default-400 hover:text-default-600 hover:bg-default-100'
-            }`}
-            title={bookmarked ? 'Remove bookmark' : 'Bookmark this job'}
-          >
-            <Bookmark className={`size-5 ${bookmarked ? 'fill-current' : ''}`} />
-          </button>
-          {bookmarkCount > 0 && <span className="text-xs text-default-400">{bookmarkCount}</span>}
-        </div>
-      </div>
-    </Card>
-  );
-});
+import { useJobsDirectory } from '@/lib/hooks/useJobsDirectory';
+import { JobDirectoryCard } from '@/components/jobs/directory/JobDirectoryCard';
+import { JobsCommandBar } from '@/components/jobs/directory/JobsCommandBar';
+import { JobsStatsStrip } from '@/components/jobs/directory/JobsStatsStrip';
 
 const ITEMS_PER_PAGE = 10;
 
 function JobsContent() {
-  const { address, isConnected } = useAccount();
-  const searchParams = useSearchParams();
-  const router = useRouter();
-
-  // Enable event-driven updates for real-time job status
-  useJobEvents();
-
-  // URL-based sorting
-  const sortBy = searchParams.get('sort') || 'newest';
-  const sortOrder = searchParams.get('order') || 'desc';
-
-  const handleSortChange = useCallback(
-    (newSortBy: string, newSortOrder: string) => {
-      const params = new URLSearchParams(searchParams.toString());
-      params.set('sort', newSortBy);
-      params.set('order', newSortOrder);
-      router.push(`/jobs?${params.toString()}`);
-    },
-    [searchParams, router]
-  );
-
-  // Filter states
-  const [searchQuery, setSearchQuery] = useState('');
-  const [debouncedSearchQuery, setDebouncedSearchQuery] = useState('');
-  const [statusFilter, setStatusFilter] = useState<string>('all');
-  const [roleFilter, setRoleFilter] = useState<string>('all'); // all, myJobs
-  const [minBudget, setMinBudget] = useState('');
-  const [maxBudget, setMaxBudget] = useState('');
-  const [showFilters, setShowFilters] = useState(false);
-  const [page, setPage] = useState(0);
-
-  // Debounce search query
-  const [debouncedSearch, isSearching] = useDebounce((value: string) => {
-    setDebouncedSearchQuery(value);
-    setPage(0); // Reset to first page on search
-  }, 300);
-
-  useEffect(() => {
-    debouncedSearch(searchQuery);
-  }, [searchQuery, debouncedSearch]);
-
-  const { jobs, isLoading } = useJobs(0, 100);
-  const { stats: subgraphStats, isLoading: isStatsLoading } = useJobStatsFromSubgraph();
-
-  // Filter jobs
-  const filteredJobs = jobs.filter(job => {
-    // Search filter (debounced)
-    if (
-      debouncedSearchQuery &&
-      !job.description.toLowerCase().includes(debouncedSearchQuery.toLowerCase())
-    ) {
-      return false;
-    }
-
-// Role filter
-    if (roleFilter === 'myJobs' && address) {
-      // Show jobs where user is client, provider, or evaluator
-      const isClient = job.client?.toLowerCase() === address.toLowerCase();
-      const isProvider = job.provider?.toLowerCase() === address.toLowerCase();
-      const isEvaluator = job.evaluator?.toLowerCase() === address.toLowerCase();
-      if (!isClient && !isProvider && !isEvaluator) return false;
-    }
-
-    // Status filter
-    if (statusFilter !== 'all') {
-      const statusNum = parseInt(statusFilter);
-      if (job.status !== statusNum) return false;
-    }
-
-    // Budget filter
-    const token = getTokenByAddress(job.paymentToken);
-    const budgetInUsd = tokenAmountToUsd(job.budget, token);
-    if (minBudget && budgetInUsd < Number(minBudget)) return false;
-    if (maxBudget && budgetInUsd > Number(maxBudget)) return false;
-
-    return true;
-  });
-
-  // Apply URL-based sorting
-  const sortedJobs = [...filteredJobs].sort((a, b) => {
-    const multiplier = sortOrder === 'asc' ? 1 : -1;
-
-    switch (sortBy) {
-      case 'budget':
-        return multiplier * (
-          tokenAmountToUsd(a.budget, getTokenByAddress(a.paymentToken)) -
-          tokenAmountToUsd(b.budget, getTokenByAddress(b.paymentToken))
-        );
-      case 'deadline':
-        return multiplier * (Number(a.expiredAt) - Number(b.expiredAt));
-      case 'newest':
-      default:
-        return multiplier * (Number(a.id) - Number(b.id));
-    }
-  });
-
-  // Pagination
-  const totalPages = Math.ceil(sortedJobs.length / ITEMS_PER_PAGE);
-  const paginatedJobs = sortedJobs.slice(page * ITEMS_PER_PAGE, (page + 1) * ITEMS_PER_PAGE);
+  const {
+    isConnected,
+    jobs,
+    isLoading,
+    stats,
+    isStatsLoading,
+    searchQuery,
+    setSearchQuery,
+    isSearching,
+    statusFilter,
+    setStatusFilter,
+    roleFilter,
+    setRoleFilter,
+    minBudget,
+    setMinBudget,
+    maxBudget,
+    setMaxBudget,
+    showFilters,
+    setShowFilters,
+    sortBy,
+    sortOrder,
+    handleSortChange,
+    sortedJobs,
+    paginatedJobs,
+    page,
+    setPage,
+    totalPages,
+  } = useJobsDirectory({ pageSize: ITEMS_PER_PAGE });
 
   return (
     <div className="container mx-auto px-4 py-8">
@@ -210,130 +59,24 @@ function JobsContent() {
         </NextLink>
       </div>
 
-      {/* Stats */}
-      <div className="grid grid-cols-2 md:grid-cols-4 gap-4 mb-8">
-        <Card className="border border-divider p-4">
-          <div className="text-sm text-default-500">Open Jobs</div>
-          <div className="text-2xl font-bold">
-            {isStatsLoading ? '…' : subgraphStats.openJobs}
-          </div>
-        </Card>
-        <Card className="border border-divider p-4">
-          <div className="text-sm text-default-500">In Progress</div>
-          <div className="text-2xl font-bold">
-            {isStatsLoading ? '…' : subgraphStats.inProgressJobs}
-          </div>
-        </Card>
-        <Card className="border border-divider p-4">
-          <div className="text-sm text-default-500">Completed</div>
-          <div className="text-2xl font-bold">
-            {isStatsLoading ? '…' : subgraphStats.completedJobs}
-          </div>
-        </Card>
-        <Card className="border border-divider p-4">
-          <div className="text-sm text-default-500">Total Jobs</div>
-          <div className="text-2xl font-bold">
-            {isStatsLoading ? '…' : subgraphStats.totalJobs}
-          </div>
-        </Card>
-      </div>
+      <JobsStatsStrip stats={stats} isLoading={isStatsLoading} />
 
-      {/* Filters */}
-      <Card className="border border-divider p-4 mb-6">
-        <div className="flex items-center gap-4">
-          <div className="relative flex-1">
-            <Search className="absolute left-3 top-1/2 -translate-y-1/2 h-4 w-4 text-default-400" />
-            <input
-              type="text"
-              placeholder="Search jobsâ¦"
-              className="w-full pl-10 pr-10 py-2 border border-divider rounded-lg bg-content2 focus:outline-none focus:ring-2 focus:ring-success text-foreground"
-              value={searchQuery}
-              onChange={e => setSearchQuery(e.target.value)}
-            />
-            {isSearching && (
-              <span className="absolute right-3 top-1/2 -translate-y-1/2 h-4 w-4 animate-spin rounded-full border-2 border-default-400 border-t-transparent" />
-            )}
-          </div>
-          <button type="button"
-            onClick={() => setShowFilters(!showFilters)}
-            className={`flex items-center gap-2 px-4 py-2 border border-divider rounded-lg hover:bg-content2 transition-colors ${showFilters ? 'bg-content2' : ''}`}
-          >
-            <SlidersHorizontal className="h-4 w-4" />
-            <span className="hidden sm:inline">Filters</span>
-          </button>
-        </div>
-
-        {showFilters && (
-          <div className="mt-4 pt-4 border-t border-divider grid grid-cols-1 sm:grid-cols-4 gap-4">
-            {isConnected && (
-              <div>
-                <label className="text-sm font-medium text-default-500 mb-2 block">Role</label>
-                <select
-                  value={roleFilter}
-                  onChange={e => {
-                    setRoleFilter(e.target.value);
-                    setPage(0);
-                  }}
-                  className="w-full px-3 py-2 border border-divider rounded-lg bg-content2 focus:outline-none focus:ring-2 focus:ring-success"
-                >
-                  <option value="all">All Jobs</option>
-                  <option value="myJobs">My Jobs</option>
-                </select>
-              </div>
-            )}
-
-            <div>
-              <label className="text-sm font-medium text-default-500 mb-2 block">Status</label>
-              <select
-                value={statusFilter}
-                onChange={e => {
-                  setStatusFilter(e.target.value);
-                  setPage(0);
-                }}
-                className="w-full px-3 py-2 border border-divider rounded-lg bg-content2 focus:outline-none focus:ring-2 focus:ring-success"
-              >
-                <option value="all">All Statuses</option>
-                <option value={JobStatus.Open.toString()}>Open</option>
-                <option value={JobStatus.Funded.toString()}>Funded</option>
-                <option value={JobStatus.Submitted.toString()}>In Progress</option>
-                <option value={JobStatus.Completed.toString()}>Completed</option>
-              </select>
-            </div>
-
-            <div>
-              <label className="text-sm font-medium text-default-500 mb-2 block">
-                Min Budget (USDC)
-              </label>
-              <input
-                type="number"
-                placeholder="0"
-                value={minBudget}
-                onChange={e => {
-                  setMinBudget(e.target.value);
-                  setPage(0);
-                }}
-                className="w-full px-3 py-2 border border-divider rounded-lg bg-content2 focus:outline-none focus:ring-2 focus:ring-success"
-              />
-            </div>
-
-            <div>
-              <label className="text-sm font-medium text-default-500 mb-2 block">
-                Max Budget (USDC)
-              </label>
-              <input
-                type="number"
-                placeholder="Any"
-                value={maxBudget}
-                onChange={e => {
-                  setMaxBudget(e.target.value);
-                  setPage(0);
-                }}
-                className="w-full px-3 py-2 border border-divider rounded-lg bg-content2 focus:outline-none focus:ring-2 focus:ring-success"
-              />
-            </div>
-          </div>
-        )}
-      </Card>
+      <JobsCommandBar
+        searchQuery={searchQuery}
+        onSearchChange={setSearchQuery}
+        isSearching={isSearching}
+        showFilters={showFilters}
+        onToggleFilters={() => setShowFilters(!showFilters)}
+        isConnected={isConnected}
+        roleFilter={roleFilter}
+        onRoleFilterChange={setRoleFilter}
+        statusFilter={statusFilter}
+        onStatusFilterChange={setStatusFilter}
+        minBudget={minBudget}
+        onMinBudgetChange={setMinBudget}
+        maxBudget={maxBudget}
+        onMaxBudgetChange={setMaxBudget}
+      />
 
       {/* Sort Controls */}
       <div className="flex items-center justify-between mb-6">
@@ -372,7 +115,7 @@ function JobsContent() {
         <>
           <div className="space-y-3">
             {paginatedJobs.map(job => (
-              <JobCard key={job.id.toString()} job={job} />
+              <JobDirectoryCard key={job.id.toString()} job={job} />
             ))}
           </div>
 

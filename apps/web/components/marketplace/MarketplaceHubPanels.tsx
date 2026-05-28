@@ -2,23 +2,28 @@
 
 import type { ReactNode } from 'react';
 import NextLink from 'next/link';
-import { ArrowRight, Briefcase, Code, Gavel, Plus, Store } from 'lucide-react';
-import { formatEther } from 'viem';
+import { ArrowRight, Briefcase, Code, Plus, Store } from 'lucide-react';
 import { StatusBadge, getJobStatusBadgeType } from '@/components/StatusBadge';
 import { JobStatus, type Job } from '@/lib/hooks/useJobs';
-import { SessionStatus, type BiddingSession, type SessionStatusType } from '@/lib/hooks/useBiddingSystem';
 import { formatAmount, getTokenByAddress } from '@/lib/tokenUtils';
 import { UnifiedWorkCard } from '@/components/marketplace/UnifiedWorkCard';
 import type { Service } from '@/lib/hooks/useServices';
+import { Pagination } from '@/components/ui/pagination';
+import { BiddingCommandBar } from '@/components/bidding/BiddingCommandBar';
+import { BiddingSessionCard } from '@/components/bidding/BiddingSessionCard';
+import { BiddingStatsStrip } from '@/components/bidding/BiddingStatsStrip';
+import { JobDirectoryCard } from '@/components/jobs/directory/JobDirectoryCard';
+import { JobsCommandBar } from '@/components/jobs/directory/JobsCommandBar';
+import { JobsStatsStrip } from '@/components/jobs/directory/JobsStatsStrip';
+import { MarketplaceSkillCard } from '@/components/marketplace/MarketplaceSkillCard';
+import { ProviderServiceCard } from '@/components/marketplace/ProviderServiceCard';
+import { SkillDomainGrid } from '@/components/marketplace/SkillDomainGrid';
+import { SkillsCommandBar } from '@/components/marketplace/SkillsCommandBar';
+import { useBiddingDirectory } from '@/lib/hooks/useBiddingDirectory';
+import { useJobsDirectory } from '@/lib/hooks/useJobsDirectory';
+import { useMarketplaceSkillsDirectory } from '@/lib/hooks/useMarketplaceSkillsDirectory';
 
-const SESSION_STATUS_BADGE: Record<SessionStatusType, string> = {
-  [SessionStatus.Active]: 'active',
-  [SessionStatus.BiddingClosed]: 'pending',
-  [SessionStatus.WinnerSelected]: 'under-review',
-  [SessionStatus.JobCreated]: 'under-review',
-  [SessionStatus.Completed]: 'completed',
-  [SessionStatus.Cancelled]: 'cancelled',
-};
+const HUB_PAGE_SIZE = 10;
 
 export function getAttentionReason(job: Job, user: `0x${string}`): string | null {
   const lower = user.toLowerCase();
@@ -40,8 +45,35 @@ export function getAttentionReason(job: Job, user: `0x${string}`): string | null
   return null;
 }
 
-export function JobsHubPanel({ jobs, isLoading }: { jobs: Job[]; isLoading: boolean }) {
-  const openJobs = jobs.filter(job => job.status === JobStatus.Open).slice(0, 9);
+export function JobsHubPanel() {
+  const {
+    isConnected,
+    jobs,
+    isLoading,
+    stats,
+    isStatsLoading,
+    searchQuery,
+    setSearchQuery,
+    isSearching,
+    statusFilter,
+    setStatusFilter,
+    roleFilter,
+    setRoleFilter,
+    minBudget,
+    setMinBudget,
+    maxBudget,
+    setMaxBudget,
+    showFilters,
+    setShowFilters,
+    sortBy,
+    sortOrder,
+    handleSortChange,
+    sortedJobs,
+    paginatedJobs,
+    page,
+    setPage,
+    totalPages,
+  } = useJobsDirectory({ routePath: '/marketplace', pageSize: HUB_PAGE_SIZE });
 
   return (
     <section>
@@ -55,36 +87,97 @@ export function JobsHubPanel({ jobs, isLoading }: { jobs: Job[]; isLoading: bool
           </NextLink>
         }
       />
+      <JobsStatsStrip stats={stats} isLoading={isStatsLoading} />
+      <JobsCommandBar
+        searchQuery={searchQuery}
+        onSearchChange={setSearchQuery}
+        isSearching={isSearching}
+        showFilters={showFilters}
+        onToggleFilters={() => setShowFilters(!showFilters)}
+        isConnected={isConnected}
+        roleFilter={roleFilter}
+        onRoleFilterChange={setRoleFilter}
+        statusFilter={statusFilter}
+        onStatusFilterChange={setStatusFilter}
+        minBudget={minBudget}
+        onMinBudgetChange={setMinBudget}
+        maxBudget={maxBudget}
+        onMaxBudgetChange={setMaxBudget}
+      />
+      <SortControl
+        sortBy={sortBy}
+        sortOrder={sortOrder}
+        onSortChange={handleSortChange}
+        countLabel={`${sortedJobs.length} jobs`}
+        options={[
+          { value: 'newest-desc', label: 'Newest First' },
+          { value: 'newest-asc', label: 'Oldest First' },
+          { value: 'budget-asc', label: 'Budget: Low to High' },
+          { value: 'budget-desc', label: 'Budget: High to Low' },
+          { value: 'deadline-asc', label: 'Deadline: Soonest' },
+          { value: 'deadline-desc', label: 'Deadline: Latest' },
+        ]}
+      />
       {isLoading ? (
         <PanelSkeleton />
-      ) : openJobs.length === 0 ? (
-        <EmptyHubState title="No open jobs right now" description="Create a job request or check back when clients post new work." href="/jobs/create" action="Post a job" />
+      ) : sortedJobs.length === 0 ? (
+        <EmptyHubState
+          title="No jobs found"
+          description={
+            jobs.length === 0
+              ? 'Create a job request or check back when clients post new work.'
+              : 'Try adjusting your job filters.'
+          }
+          href={jobs.length === 0 ? '/jobs/create' : undefined}
+          action={jobs.length === 0 ? 'Post a job' : undefined}
+        />
       ) : (
-        <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-4">
-          {openJobs.map(job => (
-            <UnifiedWorkCard
-              key={job.id.toString()}
-              title={`Job #${job.id.toString()}`}
-              description={job.description}
-              href={`/jobs/${job.id.toString()}`}
-              eyebrow="Open Request"
-              status={<StatusBadge status={getJobStatusBadgeType(job.status)} size="sm" />}
-              meta={[
-                { label: 'Budget', value: formatJobBudget(job) },
-                { label: 'Deadline', value: new Date(Number(job.expiredAt) * 1000).toLocaleDateString() },
-              ]}
-              actionLabel="View job"
-            />
-          ))}
-        </div>
+        <>
+          <div className="space-y-3">
+            {paginatedJobs.map(job => (
+              <JobDirectoryCard key={job.id.toString()} job={job} />
+            ))}
+          </div>
+          {totalPages > 1 && (
+            <div className="mt-8">
+              <Pagination
+                currentPage={page}
+                totalItems={sortedJobs.length}
+                itemsPerPage={HUB_PAGE_SIZE}
+                onPageChange={setPage}
+              />
+            </div>
+          )}
+        </>
       )}
       <FullDirectoryLink href="/jobs" label="Open full jobs directory" />
     </section>
   );
 }
 
-export function BiddingHubPanel({ sessions, isLoading }: { sessions: BiddingSession[]; isLoading: boolean }) {
-  const visibleSessions = sessions.slice(0, 9);
+export function BiddingHubPanel() {
+  const {
+    isConnected,
+    totalCount,
+    isLoading,
+    sortBy,
+    sortOrder,
+    handleSortChange,
+    page,
+    searchQuery,
+    setSearchQuery,
+    statusFilter,
+    setStatusFilter,
+    showFilters,
+    setShowFilters,
+    filteredSessions,
+    paginatedSessions,
+    totalPages,
+    activeCount,
+    inProgressCount,
+    handleNextPage,
+    handlePrevPage,
+  } = useBiddingDirectory({ routePath: '/marketplace', pageSize: HUB_PAGE_SIZE });
 
   return (
     <section>
@@ -98,55 +191,125 @@ export function BiddingHubPanel({ sessions, isLoading }: { sessions: BiddingSess
           </NextLink>
         }
       />
+      <BiddingStatsStrip
+        totalCount={totalCount}
+        activeCount={activeCount}
+        inProgressCount={inProgressCount}
+        isLoading={isLoading}
+      />
+      <BiddingCommandBar
+        searchQuery={searchQuery}
+        onSearchChange={setSearchQuery}
+        showFilters={showFilters}
+        onToggleFilters={() => setShowFilters(!showFilters)}
+        statusFilter={statusFilter}
+        onStatusFilterChange={setStatusFilter}
+        sortBy={sortBy}
+        sortOrder={sortOrder}
+        onSortChange={handleSortChange}
+      />
       {isLoading ? (
         <PanelSkeleton />
-      ) : visibleSessions.length === 0 ? (
-        <EmptyHubState title="No bidding sessions yet" description="Start a session when you want providers to compete for a project." href="/bidding/create" action="Create session" />
+      ) : filteredSessions.length === 0 ? (
+        <EmptyHubState
+          title="No bidding sessions found"
+          description={
+            searchQuery || statusFilter !== 'all'
+              ? 'Try adjusting your bidding filters.'
+              : 'Start a session when you want providers to compete for a project.'
+          }
+          href={!searchQuery && statusFilter === 'all' ? '/bidding/create' : undefined}
+          action={!searchQuery && statusFilter === 'all' ? 'Create session' : undefined}
+        />
       ) : (
-        <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-4">
-          {visibleSessions.map(session => (
-            <UnifiedWorkCard
-              key={session.id.toString()}
-              title={`Session #${session.id.toString()}`}
-              description={`Evaluator: ${session.evaluator}`}
-              href={`/bidding/${session.id.toString()}`}
-              eyebrow="Bidding Session"
-              status={<StatusBadge status={SESSION_STATUS_BADGE[session.status] as any} size="sm" />}
-              meta={[
-                { label: 'Max Budget', value: `${Number(formatEther(session.maxBudget)).toFixed(4)} ETH` },
-                { label: 'Deadline', value: new Date(Number(session.deadline) * 1000).toLocaleDateString() },
-              ]}
-              actionLabel="Open session"
-            />
-          ))}
-        </div>
+        <>
+          <div className="space-y-4">
+            {paginatedSessions.map(session => (
+              <BiddingSessionCard
+                key={session.id.toString()}
+                session={session}
+                isConnected={isConnected}
+              />
+            ))}
+          </div>
+          {totalPages > 1 && (
+            <div className="flex items-center justify-center gap-4 mt-8">
+              <button
+                type="button"
+                disabled={page === 0}
+                onClick={handlePrevPage}
+                className="rounded-lg border border-divider px-4 py-2 text-sm transition-colors hover:bg-content2 disabled:cursor-not-allowed disabled:opacity-50"
+              >
+                Previous
+              </button>
+              <span className="text-sm text-default-500">
+                Page {page + 1} of {totalPages}
+              </span>
+              <button
+                type="button"
+                disabled={page + 1 >= totalPages}
+                onClick={handleNextPage}
+                className="rounded-lg border border-divider px-4 py-2 text-sm transition-colors hover:bg-content2 disabled:cursor-not-allowed disabled:opacity-50"
+              >
+                Next
+              </button>
+            </div>
+          )}
+        </>
       )}
       <FullDirectoryLink href="/bidding" label="Open full bidding directory" />
     </section>
   );
 }
 
-export function SkillsHubPanel({ skillDomains }: { skillDomains: Array<{ value: string; label: string }> }) {
+export function SkillsHubPanel() {
+  const {
+    selectedDomain,
+    setSelectedDomain,
+    searchQuery,
+    setSearchQuery,
+    skills,
+    isLoading,
+  } = useMarketplaceSkillsDirectory();
+
   return (
     <section>
       <PanelHeader
         title="Skill Explorer"
-        description="Filter discovery by agent capability, or open the dedicated skills browser for deeper search."
+        description="Filter discovery by agent capability, inspect registered skills, and find matching services."
         action={<FullDirectoryLink href="/marketplace/skills" label="Browse all skills" compact />}
       />
-      <div className="grid grid-cols-2 md:grid-cols-4 gap-3">
-        {skillDomains.slice(1).map(domain => (
-          <NextLink
-            key={domain.value}
-            href={`/marketplace?tab=discover&skill=${encodeURIComponent(domain.value)}`}
-            className="rounded-2xl border border-divider bg-content1 p-4 transition hover:border-success/40 hover:bg-content2/60"
-          >
-            <Code className="mb-3 size-5 text-success" />
-            <p className="font-semibold">{domain.label}</p>
-            <p className="mt-1 text-xs text-default-500">Find matching services</p>
-          </NextLink>
-        ))}
+      <div className="mb-5 flex flex-col gap-3 md:flex-row md:items-center md:justify-between">
+        <h3 className="text-lg font-semibold">
+          {selectedDomain ? (
+            <>
+              Skills in <span className="text-success capitalize">{selectedDomain}</span>
+            </>
+          ) : (
+            'Skill Directory'
+          )}
+        </h3>
+        <SkillsCommandBar searchQuery={searchQuery} onSearchChange={setSearchQuery} />
       </div>
+      <SkillDomainGrid selectedDomain={selectedDomain} onSelectDomain={setSelectedDomain} />
+      {isLoading ? (
+        <PanelSkeleton />
+      ) : skills.length === 0 ? (
+        <EmptyHubState
+          title="No skills found"
+          description={
+            selectedDomain
+              ? `No skills found in the "${selectedDomain}" domain. Try another domain.`
+              : 'Select a domain to browse registered agent capabilities.'
+          }
+        />
+      ) : (
+        <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-4">
+          {skills.map(skill => (
+            <MarketplaceSkillCard key={skill.skillId.toString()} skill={skill} />
+          ))}
+        </div>
+      )}
     </section>
   );
 }
@@ -199,16 +362,19 @@ export function StudioHubPanel({
   services,
   isConnected,
   isLoading,
+  onRefetch,
 }: {
   services: Service[];
   isConnected: boolean;
   isLoading: boolean;
+  onRefetch: () => void;
 }) {
   if (!isConnected) {
     return <EmptyHubState title="Connect to manage your studio" description="Your services, agents, and skills live here once connected." />;
   }
 
   const activeServices = services.filter(service => service.isActive);
+  const inactiveServices = services.filter(service => !service.isActive);
 
   return (
     <section>
@@ -232,28 +398,87 @@ export function StudioHubPanel({
       ) : services.length === 0 ? (
         <EmptyHubState title="No services listed yet" description="Create your first listing to start receiving work." href="/marketplace/create" action="List service" />
       ) : (
-        <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-4">
-          {services.slice(0, 6).map(service => {
-            const token = getTokenByAddress(service.paymentToken);
-            return (
-              <UnifiedWorkCard
-                key={service.id.toString()}
-                title={service.name || `Service #${service.id.toString()}`}
-                description={service.description}
-                href={`/marketplace/${service.id.toString()}`}
-                eyebrow="Your Service"
-                status={<StatusBadge status={service.isActive ? 'active' : 'inactive'} size="sm" />}
-                meta={[
-                  { label: 'Price', value: formatAmount(service.price, token, { includeSymbol: true }) },
-                  { label: 'Agent', value: `#${service.agentId.toString()}` },
-                ]}
-                actionLabel="Manage"
-              />
-            );
-          })}
+        <div className="space-y-6">
+          {activeServices.length > 0 && (
+            <ServiceGroup title={`Active Services (${activeServices.length})`}>
+              {activeServices.map(service => (
+                <ProviderServiceCard
+                  key={service.id.toString()}
+                  service={service}
+                  onRefetch={onRefetch}
+                />
+              ))}
+            </ServiceGroup>
+          )}
+
+          {inactiveServices.length > 0 && (
+            <ServiceGroup title={`Inactive Services (${inactiveServices.length})`} muted>
+              {inactiveServices.map(service => (
+                <ProviderServiceCard
+                  key={service.id.toString()}
+                  service={service}
+                  onRefetch={onRefetch}
+                />
+              ))}
+            </ServiceGroup>
+          )}
         </div>
       )}
     </section>
+  );
+}
+
+function SortControl({
+  sortBy,
+  sortOrder,
+  onSortChange,
+  countLabel,
+  options,
+}: {
+  sortBy: string;
+  sortOrder: string;
+  onSortChange: (sortBy: string, sortOrder: string) => void;
+  countLabel: string;
+  options: Array<{ value: string; label: string }>;
+}) {
+  return (
+    <div className="flex items-center justify-between mb-6">
+      <div className="flex items-center gap-3">
+        <span className="text-sm text-default-500">Sort by:</span>
+        <select
+          value={`${sortBy}-${sortOrder}`}
+          onChange={event => {
+            const [newSortBy, newSortOrder] = event.target.value.split('-');
+            onSortChange(newSortBy, newSortOrder);
+          }}
+          className="px-3 py-2 border border-divider rounded-lg bg-content2 focus:outline-none focus:ring-2 focus:ring-success text-sm"
+        >
+          {options.map(option => (
+            <option key={option.value} value={option.value}>
+              {option.label}
+            </option>
+          ))}
+        </select>
+      </div>
+      <span className="text-sm text-default-500">{countLabel}</span>
+    </div>
+  );
+}
+
+function ServiceGroup({
+  title,
+  muted = false,
+  children,
+}: {
+  title: string;
+  muted?: boolean;
+  children: ReactNode;
+}) {
+  return (
+    <div>
+      <h3 className={`text-lg font-semibold mb-3 ${muted ? 'text-default-500' : ''}`}>{title}</h3>
+      <div className="space-y-3">{children}</div>
+    </div>
   );
 }
 

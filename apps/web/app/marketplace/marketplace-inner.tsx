@@ -126,7 +126,11 @@ export default function MarketplaceInner() {
   const { services: providerFilteredServices, isLoading: isProviderLoading } = useProviderServices(
     providerParam && providerParam.startsWith('0x') ? (providerParam as `0x${string}`) : undefined
   );
-  const { services: ownServices, isLoading: isOwnServicesLoading } = useProviderServices(address);
+  const {
+    services: ownServices,
+    isLoading: isOwnServicesLoading,
+    refetch: refetchOwnServices,
+  } = useProviderServices(address);
   const { jobs: hubJobs, isLoading: isJobsLoading } = useJobs(0, 60);
   const {
     sessions: biddingSessions,
@@ -479,12 +483,17 @@ export default function MarketplaceInner() {
         </section>
       )}
 
-      {activeTab === 'jobs' && <JobsHubPanel jobs={hubJobs} isLoading={isJobsLoading} />}
-      {activeTab === 'bidding' && <BiddingHubPanel sessions={biddingSessions} isLoading={isBiddingLoading} />}
-      {activeTab === 'skills' && <SkillsHubPanel skillDomains={SKILL_DOMAINS} />}
+      {activeTab === 'jobs' && <JobsHubPanel />}
+      {activeTab === 'bidding' && <BiddingHubPanel />}
+      {activeTab === 'skills' && <SkillsHubPanel />}
       {activeTab === 'my-work' && <MyWorkHubPanel jobs={hubJobs} user={address} isLoading={isJobsLoading} />}
       {activeTab === 'studio' && (
-        <StudioHubPanel services={ownServices} isConnected={isConnected} isLoading={isOwnServicesLoading} />
+        <StudioHubPanel
+          services={ownServices}
+          isConnected={isConnected}
+          isLoading={isOwnServicesLoading}
+          onRefetch={refetchOwnServices}
+        />
       )}
     </MarketplaceHubShell>
   );
