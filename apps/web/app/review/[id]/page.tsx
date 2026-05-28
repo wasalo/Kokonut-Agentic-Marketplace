@@ -187,7 +187,7 @@ export default function ProposalDetailPage({
     return (
       <div className="container mx-auto px-4 py-8">
         <Card className="max-w-2xl mx-auto border border-divider p-8 text-center">
-          <AlertCircle className="size-122 text-default-400 mx-auto mb-4" />
+          <AlertCircle className="size-12 text-default-400 mx-auto mb-4" />
           <h2 className="text-xl font-semibold mb-2">Proposal Not Found</h2>
         </Card>
       </div>
@@ -271,7 +271,7 @@ export default function ProposalDetailPage({
             <div className="flex items-center gap-3">
               <Loader2 className="size-5 animate-spin text-primary" />
               <div>
-                <p className="text-sm font-medium text-primary">{txStep}â¦</p>
+                <p className="text-sm font-medium text-primary">{txStep}…</p>
               </div>
             </div>
           </Card>
@@ -330,7 +330,7 @@ export default function ProposalDetailPage({
                 <label className="text-sm font-medium">Reasoning URI</label>
                 <input
                   type="text"
-                  placeholder="ipfs://... or https://â¦"
+                  placeholder="ipfs://... or https://…"
                   value={reasoning}
                   onChange={e => setReasoning(e.target.value)}
                   className="w-full mt-1 px-3 py-2 bg-content2 border border-divider rounded-lg focus:outline-none focus:ring-2 focus:ring-success"
@@ -428,7 +428,7 @@ export default function ProposalDetailPage({
               {isFinalizePending ? 'Finalizing…' : 'Finalize Decision (Anyone)'}
             </button>
             <p className="text-xs text-default-400 mt-2 text-center">
-              Permissionless â anyone can call this function
+              Permissionless — anyone can call this function
             </p>
           </Card>
         )}

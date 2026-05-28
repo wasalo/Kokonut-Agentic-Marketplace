@@ -415,7 +415,7 @@ export default function ServiceDetailPage({
           </h2>
 
           <div className="flex items-start gap-4">
-            <div className="size-122 rounded-full bg-gradient-to-br from-primary to-primary/60 flex items-center justify-center text-white font-bold shrink-0">
+            <div className="size-12 rounded-full bg-gradient-to-br from-primary to-primary/60 flex items-center justify-center text-white font-bold shrink-0">
               <Shield className="size-6" />
             </div>
 

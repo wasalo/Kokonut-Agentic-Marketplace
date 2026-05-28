@@ -24,7 +24,7 @@ export default function AdminPage(): JSX.Element {
   return (
     <div className="container mx-auto px-4 py-8">
       <div className="flex items-center gap-3 mb-8">
-        <div className="size-122 rounded-full bg-primary/10 flex items-center justify-center">
+        <div className="size-12 rounded-full bg-primary/10 flex items-center justify-center">
           <Settings className="size-6 text-primary" />
         </div>
         <div>
@@ -35,7 +35,7 @@ export default function AdminPage(): JSX.Element {
 
       {!isConnected ? (
         <Card className="border border-divider p-8 text-center">
-          <AlertCircle className="size-122 text-default-400 mx-auto mb-4" />
+          <AlertCircle className="size-12 text-default-400 mx-auto mb-4" />
           <h2 className="text-xl font-semibold mb-2">Wallet Not Connected</h2>
           <p className="text-default-500">Connect your wallet to access the admin dashboard.</p>
         </Card>

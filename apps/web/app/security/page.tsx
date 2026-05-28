@@ -12,7 +12,7 @@ export default function SecurityPage() {
   return (
     <div className="container mx-auto px-4 py-12 max-w-3xl">
       <div className="flex items-center gap-3 mb-8">
-        <div className="size-122 rounded-xl bg-primary/10 flex items-center justify-center">
+        <div className="size-12 rounded-xl bg-primary/10 flex items-center justify-center">
           <Shield className="size-6 text-primary" />
         </div>
         <h1 className="text-3xl font-bold">Security</h1>

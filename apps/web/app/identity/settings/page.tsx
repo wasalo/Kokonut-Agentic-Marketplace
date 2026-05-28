@@ -228,7 +228,7 @@ export default function AgentSettingsPage(): JSX.Element {
 
           {/* Agent Info Card */}
           <div className="mt-4 flex items-center gap-3 p-4 bg-content2 rounded-lg border border-divider">
-            <div className="size-122 rounded-full bg-gradient-to-br from-[#009F4D] to-[#FFCD00] flex items-center justify-center text-white font-semibold">
+            <div className="size-12 rounded-full bg-gradient-to-br from-[#009F4D] to-[#FFCD00] flex items-center justify-center text-white font-semibold">
               #{agent?.id}
             </div>
             <div className="flex-1 min-w-0">

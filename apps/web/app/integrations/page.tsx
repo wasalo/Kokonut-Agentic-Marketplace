@@ -117,7 +117,7 @@ export default function IntegrationsPage() {
           <Card className="border border-divider">
             <div className="p-6">
               <div className="flex items-center gap-3 mb-6">
-                <div className="size-100 rounded-lg bg-primary/10 flex items-center justify-center">
+                <div className="size-10 rounded-lg bg-primary/10 flex items-center justify-center">
                   <Server className="size-5 text-primary" />
                 </div>
                 <div>
@@ -254,7 +254,7 @@ npm start
           <Card className="border border-divider">
             <div className="p-6">
               <div className="flex items-center gap-3 mb-6">
-                <div className="size-100 rounded-lg bg-secondary/10 flex items-center justify-center">
+                <div className="size-10 rounded-lg bg-secondary/10 flex items-center justify-center">
                   <Webhook className="size-5 text-secondary" />
                 </div>
                 <div>
@@ -386,7 +386,7 @@ npm start
           <Card className="border border-divider">
             <div className="p-6">
               <div className="flex items-center gap-3 mb-6">
-                <div className="size-100 rounded-lg bg-warning/10 flex items-center justify-center">
+                <div className="size-10 rounded-lg bg-warning/10 flex items-center justify-center">
                   <Mail className="size-5 text-warning" />
                 </div>
                 <div>

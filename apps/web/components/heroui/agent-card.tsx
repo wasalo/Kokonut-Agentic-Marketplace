@@ -66,7 +66,7 @@ export const AgentCard = memo(function AgentCard({
                 alt={name}
                 width={48}
                 height={48}
-                className="size-122 rounded-full object-cover bg-content2"
+                className="size-12 rounded-full object-cover bg-content2"
                 unoptimized
                 onError={e => {
                   e.currentTarget.style.display = 'none';
@@ -76,7 +76,7 @@ export const AgentCard = memo(function AgentCard({
               />
             ) : null}
             <div
-              className={`size-122 rounded-full bg-gradient-to-br from-[#009F4D] to-[#FFCD00] flex items-center justify-center text-white font-bold ${agentURI ? 'hidden' : ''}`}
+              className={`size-12 rounded-full bg-gradient-to-br from-[#009F4D] to-[#FFCD00] flex items-center justify-center text-white font-bold ${agentURI ? 'hidden' : ''}`}
               style={agentURI ? { display: 'flex' } : { display: 'none' }}
             >
               <Shield className="size-6" />

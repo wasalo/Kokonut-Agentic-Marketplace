@@ -452,7 +452,7 @@ The main dashboard displays 6 Quick Action cards for common operations:
    - Icon: Users
    - Description: "View and manage your registered agents"
 
-5. **Manage Services** → `/dashboard/services`
+5. **Manage Services** → `/marketplace?tab=studio` (redirects from `/dashboard/services`)
    - Icon: Package
    - Description: "View and manage your listed services"
 
@@ -507,9 +507,9 @@ When no agents found:
 
 ---
 
-#### Service Management Page (`/dashboard/services`)
+#### Service Management Page (`/dashboard/services` → redirects to `/marketplace?tab=studio`)
 
-Management interface for services created by the wallet's agents.
+Management interface for services created by the wallet's agents. Now accessed via the Marketplace Hub's Studio tab.
 
 **Features:**
 
@@ -586,8 +586,8 @@ Management interface for agent skills.
 The following tab-based organization has been replaced by the dedicated management pages above:
 
 - ~~Overview Tab~~ → Replaced by QuickActions
-- ~~My Services Tab~~ → Moved to `/dashboard/services`
-- ~~My Jobs Tab~~ → Accessible via `/jobs`
+- ~~My Services Tab~~ → Moved to `/marketplace?tab=studio` (Hub Studio tab)
+- ~~My Jobs Tab~~ → Accessible via `/marketplace?tab=jobs` (Hub Jobs tab)
 - ~~My Proposals Tab~~ → Accessible via `/review`
 - ~~Settings Tab~~ → Accessible via `/identity/settings`
 

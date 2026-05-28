@@ -41,7 +41,7 @@ export default function ContactPage() {
     return (
       <div className={DS.spacing.page + ' max-w-2xl'}>
         <div className={DS.cards.padded + ' text-center'}>
-          <MessageSquare className="size-122 text-success mx-auto mb-4" />
+          <MessageSquare className="size-12 text-success mx-auto mb-4" />
           <h1 className="text-2xl font-bold mb-2">Message Sent!</h1>
           <p className="text-default-500 mb-4">
             Thank you for reaching out. We&apos;ll get back to you as soon as possible.

@@ -128,7 +128,7 @@ export const DS = {
   /** Empty state */
   emptyState: {
     wrapper: 'text-center py-12',
-    icon: 'size-166 text-default-300 mx-auto mb-4',
+    icon: 'size-16 text-default-300 mx-auto mb-4',
     title: 'text-lg font-semibold text-foreground mb-2',
     message: 'text-sm text-default-500 mb-4 max-w-md mx-auto',
   },

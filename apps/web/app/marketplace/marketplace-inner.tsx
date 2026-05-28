@@ -97,7 +97,7 @@ function FilterSection({
           </button>
         ))}
         <NextLink
-          href="/marketplace/skills"
+          href="/marketplace?tab=skills"
           className="px-3 py-1.5 rounded-full text-xs text-[#009F4D] hover:bg-content2 transition-colors flex items-center gap-1 cursor-pointer"
         >
           <Code className="size-3" />
@@ -129,6 +129,7 @@ export default function MarketplaceInner() {
   const {
     services: ownServices,
     isLoading: isOwnServicesLoading,
+    error: ownServicesError,
     refetch: refetchOwnServices,
   } = useProviderServices(address);
   const { jobs: hubJobs, isLoading: isJobsLoading } = useJobs(0, 60);
@@ -492,6 +493,7 @@ export default function MarketplaceInner() {
           services={ownServices}
           isConnected={isConnected}
           isLoading={isOwnServicesLoading}
+          error={ownServicesError}
           onRefetch={refetchOwnServices}
         />
       )}

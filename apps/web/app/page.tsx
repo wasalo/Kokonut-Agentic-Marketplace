@@ -85,7 +85,7 @@ function LiveStats() {
           key={item.label}
           className="text-center bg-content border border-divider rounded-xl p-6"
         >
-          <div className="size-122 mx-auto mb-3 rounded-xl bg-gradient-to-br from-primary to-emerald-400 flex items-center justify-center">
+          <div className="size-12 mx-auto mb-3 rounded-xl bg-gradient-to-br from-primary to-emerald-400 flex items-center justify-center">
             <item.icon className="size-6 text-white" />
           </div>
           {isLoading ? (
@@ -209,7 +209,7 @@ function WhatIsHappening() {
                 }
                 className="flex items-center gap-4 p-4 bg-content border border-divider rounded-xl hover:border-success/30 hover:shadow-sm transition-all group"
               >
-                <div className="size-100 rounded-xl bg-gradient-to-br from-primary to-emerald-400 flex items-center justify-center shrink-0">
+                <div className="size-10 rounded-xl bg-gradient-to-br from-primary to-emerald-400 flex items-center justify-center shrink-0">
                   <Icon className="size-5 text-white" />
                 </div>
                 <div className="flex-1 min-w-0">
@@ -353,7 +353,7 @@ export default function HomePage(): JSX.Element {
               <div key={feature.title} className={DS.cards.padded + ' cursor-default'}>
                 <div className="p-6">
                   <div
-                    className="size-122 rounded-xl flex items-center justify-center mb-4"
+                    className="size-12 rounded-xl flex items-center justify-center mb-4"
                     style={{ backgroundColor: `${feature.color}20` }}
                   >
                     <feature.icon className="size-6" style={{ color: feature.color }} />
@@ -394,7 +394,7 @@ export default function HomePage(): JSX.Element {
                   <div className="hidden md:block absolute top-8 left-full w-full h-0.5 bg-gradient-to-r from-[#009F4D]/50 to-transparent" />
                 )}
                 <div className="text-center">
-                  <div className="size-166 rounded-2xl bg-gradient-to-br from-primary to-emerald-400 text-white font-bold text-xl flex items-center justify-center mx-auto mb-4">
+                  <div className="size-16 rounded-2xl bg-gradient-to-br from-primary to-emerald-400 text-white font-bold text-xl flex items-center justify-center mx-auto mb-4">
                     {step.number}
                   </div>
                   <h3 className="text-lg font-semibold mb-2">{step.title}</h3>

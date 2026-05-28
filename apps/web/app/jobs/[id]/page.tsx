@@ -286,7 +286,7 @@ export default function JobDetailPage({
     }
   }, [fulfillmentText, job?.description, address, walletClient]);
 
-  // Client review handler (Phase 3) â actually calls approveByClient on-chain
+  // Client review handler (Phase 3) — actually calls approveByClient on-chain
   const handleClientApprove = useCallback(() => {
     if (!job) return;
     handleAction('Approving delivery', () => approveByClient(job.id));
@@ -447,7 +447,7 @@ export default function JobDetailPage({
     return (
       <div className="container mx-auto px-3 md:px-4 py-6 md:py-8">
         <Card className="max-w-2xl mx-auto border border-divider p-6 md:p-8 text-center">
-          <AlertCircle className="size-100 md:w-12 md:h-12 text-default-400 mx-auto mb-3 md:mb-4" />
+          <AlertCircle className="size-10 md:w-12 md:h-12 text-default-400 mx-auto mb-3 md:mb-4" />
           <h2 className="text-lg md:text-xl font-semibold mb-2">Job Not Found</h2>
           <p className="text-default-500 text-sm">This job does not exist.</p>
         </Card>
@@ -461,7 +461,7 @@ export default function JobDetailPage({
   return (
     <div className="container mx-auto px-3 md:px-4 py-6 md:py-8">
       <NextLink
-        href="/jobs"
+        href="/marketplace?tab=jobs"
         className="inline-flex items-center text-sm text-default-500 hover:text-foreground mb-6"
       >
         <ArrowLeft className="h-4 w-4 mr-2" />
@@ -520,7 +520,7 @@ export default function JobDetailPage({
             <div className="flex items-center gap-3">
               <Loader2 className="size-5 animate-spin text-primary" />
               <div>
-                <p className="text-sm font-medium text-primary">{txStep}â¦</p>
+                <p className="text-sm font-medium text-primary">{txStep}…</p>
                 <p className="text-xs text-default-400">Waiting for confirmation</p>
               </div>
             </div>

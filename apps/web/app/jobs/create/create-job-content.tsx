@@ -141,7 +141,7 @@ function CreateJobContent() {
 
     if (!newJobId) {
       showToast.warning('Job created', 'Could not read the job id from the receipt. Opening jobs.');
-      router.push('/jobs');
+      router.push('/marketplace?tab=jobs');
       return;
     }
 

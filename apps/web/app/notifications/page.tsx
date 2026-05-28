@@ -82,7 +82,7 @@ function NotificationItem({
       onClick={handleClick}
     >
       <div className="flex-shrink-0 mt-0.5">
-        <div className="size-100 rounded-full bg-default-100 flex items-center justify-center">
+        <div className="size-10 rounded-full bg-default-100 flex items-center justify-center">
           <Icon className="size-5 text-default-600" />
         </div>
       </div>
@@ -131,7 +131,7 @@ function NotificationItem({
 function NotificationSkeleton() {
   return (
     <div className="flex items-start gap-4 p-4 animate-pulse">
-      <div className="size-100 rounded-full bg-default-200" />
+      <div className="size-10 rounded-full bg-default-200" />
       <div className="flex-1 space-y-2">
         <div className="h-4 bg-default-200 rounded w-3/4" />
         <div className="h-3 bg-default-200 rounded w-1/2" />
@@ -240,7 +240,7 @@ export default function NotificationsPage() {
             </div>
           ) : filteredNotifications.length === 0 ? (
             <div className="p-12 text-center">
-              <BellOff className="size-122 text-default-300 mx-auto mb-4" />
+              <BellOff className="size-12 text-default-300 mx-auto mb-4" />
               <h3 className="text-lg font-medium text-default-600 mb-2">
                 {activeFilter === 'all'
                   ? 'No notifications yet'

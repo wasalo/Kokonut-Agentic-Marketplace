@@ -27,7 +27,7 @@ function NetworkCard({ chain, stats, isLoading }: NetworkCardProps) {
         <div className="flex items-start justify-between mb-4">
           <div className="flex items-center gap-3">
             <div
-              className="size-100 rounded-full flex items-center justify-center font-bold text-white"
+              className="size-10 rounded-full flex items-center justify-center font-bold text-white"
               style={{ backgroundColor: chain.color }}
             >
               {chain.shortName.slice(0, 2)}
@@ -99,7 +99,7 @@ function LoadingSkeleton() {
         <Card key={i} className="border border-divider p-6 animate-pulse">
           <div className="flex items-start justify-between mb-4">
             <div className="flex items-center gap-3">
-              <div className="size-100 rounded-full bg-content2" />
+              <div className="size-10 rounded-full bg-content2" />
               <div>
                 <div className="h-5 bg-content2 rounded w-24 mb-2" />
                 <div className="h-3 bg-content2 rounded w-12" />

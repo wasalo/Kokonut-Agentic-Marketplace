@@ -150,7 +150,7 @@ export default function GovernancePage() {
                 <input
                   id="evaluator-addr"
                   type="text"
-                  placeholder="0xâ¦"
+                  placeholder="0x…"
                   value={evaluator}
                   onChange={e => setEvaluator(e.target.value)}
                   required
@@ -187,7 +187,7 @@ export default function GovernancePage() {
               <div>
                 <label className="text-sm font-medium">Reason</label>
                 <textarea
-                  placeholder="Why this evaluator should be slashedâ¦"
+                  placeholder="Why this evaluator should be slashed…"
                   value={slashReason}
                   onChange={e => setSlashReason(e.target.value)}
                   rows={2}
@@ -222,7 +222,7 @@ export default function GovernancePage() {
                 <label className="text-sm font-medium">Proposal ID</label>
                 <input
                   type="text"
-                  placeholder="0xâ¦"
+                  placeholder="0x…"
                   value={confirmProposalId}
                   onChange={e => setConfirmProposalId(e.target.value)}
                   className="w-full mt-1 px-3 py-2 bg-content2 border border-divider rounded-lg focus:outline-none focus:ring-2 focus:ring-primary"
@@ -250,7 +250,7 @@ export default function GovernancePage() {
               <label className="text-sm font-medium">Proposal ID</label>
               <input
                 type="text"
-                placeholder="0xâ¦"
+                placeholder="0x…"
                 value={executeProposalId}
                 onChange={e => setExecuteProposalId(e.target.value)}
                 className="w-full mt-1 px-3 py-2 bg-content2 border border-divider rounded-lg focus:outline-none focus:ring-2 focus:ring-success"
@@ -271,7 +271,7 @@ export default function GovernancePage() {
           <Card className="border border-primary/20 p-4 mb-6">
             <div className="flex items-center gap-3">
               <Loader2 className="size-5 animate-spin text-primary" />
-              <p className="text-sm font-medium text-primary">{txStep}â¦</p>
+              <p className="text-sm font-medium text-primary">{txStep}…</p>
             </div>
           </Card>
         )}

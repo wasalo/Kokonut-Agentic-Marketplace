@@ -55,7 +55,7 @@ function AgentHeader({
     <div className="bg-gradient-to-br from-content2 to-content3 border border-divider rounded-xl md:rounded-2xl p-4 md:p-6 mb-4 md:mb-6">
       <div className="flex flex-col md:flex-row gap-3 md:gap-6">
         <div className="flex-shrink-0 self-center md:self-auto">
-          <div className="size-166 md:w-24 md:h-24 rounded-xl md:rounded-2xl bg-gradient-to-br from-primary to-primary/60 flex items-center justify-center text-white text-xl md:text-3xl font-bold">
+          <div className="size-16 md:w-24 md:h-24 rounded-xl md:rounded-2xl bg-gradient-to-br from-primary to-primary/60 flex items-center justify-center text-white text-xl md:text-3xl font-bold">
             {metadata?.name ? metadata.name.charAt(0).toUpperCase() : `#${agentId}`}
           </div>
         </div>
@@ -302,7 +302,7 @@ function ServicesTab({ services, isLoading }: { services: any[]; isLoading: bool
     return (
       <Card className="bg-content2 border-divider">
         <div className="p-6 md:p-8 text-center">
-          <Package className="size-100 md:w-12 md:h-12 text-default-400 mx-auto mb-3 md:mb-4" />
+          <Package className="size-10 md:w-12 md:h-12 text-default-400 mx-auto mb-3 md:mb-4" />
           <p className="text-default-500 text-sm md:text-base">No services listed yet</p>
         </div>
       </Card>
@@ -382,7 +382,7 @@ function AllJobsTab({ providerJobs, clientJobs }: { providerJobs: any[]; clientJ
     return (
       <Card className="bg-content2 border-divider">
         <div className="p-6 md:p-8 text-center">
-          <Briefcase className="size-100 md:w-12 md:h-12 text-default-400 mx-auto mb-3 md:mb-4" />
+          <Briefcase className="size-10 md:w-12 md:h-12 text-default-400 mx-auto mb-3 md:mb-4" />
           <p className="text-default-500 text-sm md:text-base">No jobs yet</p>
         </div>
       </Card>
@@ -406,7 +406,7 @@ function PortfolioTab({ metadata }: { metadata: any }) {
     return (
       <Card className="bg-content2 border-divider">
         <div className="p-6 md:p-8 text-center">
-          <Package className="size-100 md:w-12 md:h-12 text-default-400 mx-auto mb-3 md:mb-4" />
+          <Package className="size-10 md:w-12 md:h-12 text-default-400 mx-auto mb-3 md:mb-4" />
           <p className="text-default-500 text-sm md:text-base">No portfolio items yet</p>
           <p className="text-default-400 text-xs md:text-sm mt-2">
             Add portfolio items in settings to showcase your work
@@ -424,7 +424,7 @@ function NetworkTab({ owner }: { owner: `0x${string}` | undefined }) {
     return (
       <Card className="bg-content2 border-divider">
         <div className="p-6 md:p-8 text-center">
-          <Users className="size-100 md:w-12 md:h-12 text-default-400 mx-auto mb-3 md:mb-4" />
+          <Users className="size-10 md:w-12 md:h-12 text-default-400 mx-auto mb-3 md:mb-4" />
           <p className="text-default-500 text-sm md:text-base">Loading network data…</p>
         </div>
       </Card>
@@ -454,7 +454,7 @@ function ConnectionsTab({ metadata, owner, connectedAddress }: { metadata: any; 
     return (
       <Card className="bg-content2 border-divider">
         <div className="p-6 md:p-8 text-center">
-          <Plug className="size-100 md:w-12 md:h-12 text-default-400 mx-auto mb-3 md:mb-4" />
+          <Plug className="size-10 md:w-12 md:h-12 text-default-400 mx-auto mb-3 md:mb-4" />
           <p className="text-default-500 text-sm md:text-base">No connections configured</p>
           <p className="text-default-400 text-xs md:text-sm mt-2">
             Add endpoints to your agent metadata to enable MCP, A2A, email, or webhooks
@@ -597,7 +597,7 @@ function SkillsTab({ skillIds, isLoading }: { skillIds: bigint[] | undefined; is
     return (
       <Card className="bg-content2 border-divider">
         <div className="p-6 md:p-8 text-center">
-          <Code className="size-100 md:w-12 md:h-12 text-default-400 mx-auto mb-3 md:mb-4" />
+          <Code className="size-10 md:w-12 md:h-12 text-default-400 mx-auto mb-3 md:mb-4" />
           <p className="text-default-500 text-sm md:text-base">No skills registered yet</p>
         </div>
       </Card>

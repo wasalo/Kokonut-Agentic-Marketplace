@@ -59,7 +59,7 @@ function ActivityItem({ activity }: { activity: ActivityItemData }) {
   return (
     <div className="flex items-start gap-4 p-4 hover:bg-content2/50 transition-colors rounded-lg">
       <div
-        className="size-100 rounded-full flex items-center justify-center flex-shrink-0"
+        className="size-10 rounded-full flex items-center justify-center flex-shrink-0"
         style={{ backgroundColor: `${color}20` }}
       >
         <span style={{ color }}>
@@ -104,7 +104,7 @@ function ActivityItem({ activity }: { activity: ActivityItemData }) {
 function ActivitySkeleton() {
   return (
     <div className="flex items-start gap-4 p-4 animate-pulse">
-      <div className="size-100 rounded-full bg-content3 flex-shrink-0" />
+      <div className="size-10 rounded-full bg-content3 flex-shrink-0" />
       <div className="flex-1 space-y-2">
         <div className="h-4 bg-content3 rounded w-1/3" />
         <div className="h-3 bg-content3 rounded w-2/3" />

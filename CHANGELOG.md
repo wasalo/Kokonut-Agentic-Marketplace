@@ -5,6 +5,111 @@ All notable changes to the Kokonut Agent Economy Stack are documented in this fi
 The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.0.0/),
 and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0.html).
 
+## [2026-05-28] — Phase 37: Dashboard Streamlining + Hub Redirects + Bug Fixes
+
+### 🐛 Critical Bug Fixes
+
+#### UI Size Corruption (46 instances, 27 files)
+
+**Root Cause:** Systematic copy-paste corruption replaced valid Tailwind size values with invalid ones. Every icon, avatar, step circle, and logo rendered 10-20x too large.
+
+| Bogus Class | Rendered Size | Correct Class | Correct Size |
+|-------------|---------------|---------------|--------------|
+| `size-100` | 400px | `size-10` | 40px |
+| `size-122` | 488px | `size-12` | 48px |
+| `size-166` | 664px | `size-16` | 64px |
+
+**Fix:** Bulk replacement across 27 files including `app/page.tsx`, `components/heroui/agent-card.tsx`, `components/heroui/footer.tsx`, `lib/design-system.ts`, and 23 others.
+
+#### Unicode Mojibake (21 instances, 6 files)
+
+**Root Cause:** Double-encoded UTF-8 characters — em dash (`—`), ellipsis (`…`), approximately-equal (`≈`) — displayed as `â€"`, `â€¦`, `â‰ˆ` in the browser.
+
+**Fix:** Re-encoded to proper UTF-8 in `app/jobs/[id]/page.tsx`, `app/governance/page.tsx`, `app/review/create/page.tsx`, `app/review/[id]/page.tsx`, `components/BiddingForms.tsx`, `components/heroui/efp-setup-wizard.tsx`.
+
+#### wagmi/experimental Build Error
+
+**Root Cause:** `ethereum-identity-kit@0.2.74` imports `useWriteContracts` and `useCapabilities` from `wagmi/experimental`, which was removed in wagmi v3. A `next.config.js` webpack alias pointed to a missing shim file.
+
+**Fix:** Created `lib/efp/wagmi-experimental-shim.ts` with stub exports. The hooks are never called at runtime — only imported by the library's ESM bundle.
+
+### 🎯 Dashboard Streamlining
+
+**Goal:** Reduce duplication between Dashboard and Marketplace Hub. Dashboard is now a lightweight companion to the Hub.
+
+| Change | Detail |
+|--------|--------|
+| **Removed PlatformActivityWidget** | Global subgraph feed duplicated by Homepage + `/activity` page |
+| **Removed RecentActivity** | User jobs list duplicated by Hub "My Work" tab |
+| **Streamlined QuickActions** | Removed "Create Job" and "List Service" (Hub has CTAs). Added "Create Bid Session" and "Explore Marketplace" CTA. |
+| **Renamed "On-Chain Activity"** | → "Your Transactions" (local tx registry, not subgraph events) |
+
+**Dashboard now has 4 sections** (down from 6): PriorityActions, QuickActions, Arbiter+Evaluator, Your Transactions.
+
+### 🔀 Hub Redirects
+
+Converted 5 standalone directory pages to server-component redirects, consolidating navigation into the Marketplace Hub:
+
+| Old URL | New URL |
+|---------|---------|
+| `/jobs` | `/marketplace?tab=jobs` |
+| `/bidding` | `/marketplace?tab=bidding` |
+| `/marketplace/skills` | `/marketplace?tab=skills` |
+| `/skills` | `/marketplace?tab=skills` (single hop, was two hops) |
+| `/dashboard/services` | `/marketplace?tab=studio` |
+
+All inbound "Back to..." links across 8 detail/create pages updated to point to hub tabs.
+
+### 🧩 Extracted Directory Primitives
+
+Created reusable hooks and components from standalone directory pages, enabling both the hub tabs and future reuse.
+
+#### New Hooks
+
+| Hook | File | Purpose |
+|------|------|---------|
+| `useJobsDirectory` | `lib/hooks/useJobsDirectory.ts` | Search, filter (status/role/budget), sort (newest/budget/deadline), paginate, URL-synced sort params |
+| `useBiddingDirectory` | `lib/hooks/useBiddingDirectory.ts` | Search, filter (status), sort (newest/budget), paginate bidding sessions |
+| `useMarketplaceSkillsDirectory` | `lib/hooks/useMarketplaceSkillsDirectory.ts` | Domain-based skill discovery with search, exports `MarketplaceSkill` type |
+| `useProviderStudioServices` | `lib/hooks/useProviderStudioServices.ts` | Wraps `useProviderServices`, splits active/inactive, exposes error and refetch |
+
+#### New Components
+
+| Component | File | Purpose |
+|-----------|------|---------|
+| `JobDirectoryCard` | `components/jobs/directory/JobDirectoryCard.tsx` | Memoized job card with bookmark toggle |
+| `JobsCommandBar` | `components/jobs/directory/JobsCommandBar.tsx` | Search + filter panel (status, role, budget) |
+| `JobsStatsStrip` | `components/jobs/directory/JobsStatsStrip.tsx` | 4-stat grid: Open, In Progress, Completed, Total |
+| `BiddingCommandBar` | `components/bidding/BiddingCommandBar.tsx` | Search + status filter + sort for sessions |
+| `BiddingSessionCard` | `components/bidding/BiddingSessionCard.tsx` | Session card with status, budget, deadline |
+| `BiddingStatsStrip` | `components/bidding/BiddingStatsStrip.tsx` | 3-stat grid: Total, Active, In Progress |
+| `MarketplaceSkillCard` | `components/marketplace/MarketplaceSkillCard.tsx` | Skill card with domains, version, "Find Services" link |
+| `SkillDomainGrid` | `components/marketplace/SkillDomainGrid.tsx` | 8-domain filter grid with live skill counts |
+| `SkillsCommandBar` | `components/marketplace/SkillsCommandBar.tsx` | Search input for skills |
+| `ProviderServiceCard` | `components/marketplace/ProviderServiceCard.tsx` | Service card with bond status and action dropdown |
+| `ProviderServiceActions` | `components/marketplace/ProviderServiceActions.tsx` | Activate/Deactivate/Withdraw Bond dropdown |
+| `ServiceBondStatus` | `components/marketplace/ServiceBondStatus.tsx` | Inline bond status badge with cooldown timer |
+
+### ✅ StudioHubPanel Parity
+
+Added error handling and refresh capability to the Marketplace Hub's Studio tab:
+
+| Change | Detail |
+|--------|--------|
+| **Error display** | Error banner with message and retry link when `useProviderServices` fails |
+| **Refresh button** | Top-level `RefreshCw` button in panel header |
+| **Removed circular links** | Deleted `StudioShortcut` to `/dashboard/services` (now redirects to hub) |
+
+### ✅ Verification
+
+| Check | Status |
+|-------|--------|
+| **Type-check** | 0 errors |
+| **Lint** | Clean |
+| **Diff check** | Clean |
+
+---
+
 ## [2026-05-28] — Phase 36: Marketplace Hub + Component Modularization
 
 ### 🎯 Unified Marketplace Experience

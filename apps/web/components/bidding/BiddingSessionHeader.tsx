@@ -37,7 +37,7 @@ export function BiddingSessionHeader({ sessionId, session, stake }: BiddingSessi
   return (
     <>
       <div className="flex items-center gap-4 mb-8">
-        <NextLink href="/bidding" className="p-2 hover:bg-content2 rounded-lg transition-colors">
+        <NextLink href="/marketplace?tab=bidding" className="p-2 hover:bg-content2 rounded-lg transition-colors">
           <ArrowLeft className="size-5" />
         </NextLink>
         <div className="flex-1">

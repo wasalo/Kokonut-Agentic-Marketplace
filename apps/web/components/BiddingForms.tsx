@@ -169,7 +169,7 @@ export function CommitBidForm({ job, onSuccess }: CommitBidFormProps) {
           <textarea
             value={bidMessage}
             onChange={e => setBidMessage(e.target.value)}
-            placeholder="Introduce yourself and explain why you're the best fitâ¦"
+            placeholder="Introduce yourself and explain why you're the best fit…"
             rows={3}
             className="w-full px-3 py-2 bg-content2 border border-divider rounded-lg resize-none"
           />
@@ -178,7 +178,7 @@ export function CommitBidForm({ job, onSuccess }: CommitBidFormProps) {
         <div className="space-y-2">
           <label className="text-sm font-medium">Commit Hash (auto-generated)</label>
           <div className="p-3 bg-content2 rounded-lg break-all">
-            <code className="text-xs text-default-500">{commitHash.slice(0, 20)}â¦</code>
+            <code className="text-xs text-default-500">{commitHash.slice(0, 20)}…</code>
           </div>
           <p className="text-xs text-default-500">
             This hash hides your bid amount until the reveal phase
@@ -279,7 +279,7 @@ export function RevealBidForm({ job, onSuccess }: RevealBidFormProps) {
 
           <div className="p-3 bg-content2 rounded-lg">
             <p className="text-xs text-default-500">Committed Amount</p>
-            <p className="text-xs font-mono">{userBid.commitHash.slice(0, 20)}â¦</p>
+            <p className="text-xs font-mono">{userBid.commitHash.slice(0, 20)}…</p>
           </div>
 
           <div className="space-y-2">
@@ -300,7 +300,7 @@ export function RevealBidForm({ job, onSuccess }: RevealBidFormProps) {
               type="text"
               value={salt}
               onChange={e => setSalt(e.target.value)}
-              placeholder="0xâ¦"
+              placeholder="0x…"
               className="w-full px-3 py-2 bg-content2 border border-divider rounded-lg font-mono text-sm"
             />
           </div>
@@ -310,7 +310,7 @@ export function RevealBidForm({ job, onSuccess }: RevealBidFormProps) {
             <textarea
               value={bidMessage}
               onChange={e => setBidMessage(e.target.value)}
-              placeholder="Your pitch messageâ¦"
+              placeholder="Your pitch message…"
               rows={2}
               className="w-full px-3 py-2 bg-content2 border border-divider rounded-lg resize-none"
             />
@@ -410,7 +410,7 @@ export function AcceptBidForm({ job, bids, onSuccess }: AcceptBidFormProps) {
                       {Number(bid.proposedAmount) / 1e18} ETH
                     </p>
                     <p className="text-xs text-default-400 mt-0.5">
-                      â {formatUsdValue(bid.proposedAmount, ETH_TOKEN)} USD
+                      ≈ {formatUsdValue(bid.proposedAmount, ETH_TOKEN)} USD
                     </p>
                     <p className="text-xs text-default-500 mt-1">
                       Bidder: <Address address={bid.bidder as `0x${string}`} truncate />

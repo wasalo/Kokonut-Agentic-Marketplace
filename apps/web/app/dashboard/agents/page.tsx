@@ -38,7 +38,7 @@ function AgentCard({
   return (
     <Card className="border border-divider p-4 hover:border-[#009F4D]/30 hover:shadow-sm transition-all">
       <div className="flex items-center gap-3 mb-3">
-        <div className="size-100 rounded-full bg-gradient-to-br from-[#009F4D] to-[#FFCD00] flex items-center justify-center text-white font-semibold">
+        <div className="size-10 rounded-full bg-gradient-to-br from-[#009F4D] to-[#FFCD00] flex items-center justify-center text-white font-semibold">
           #{agent.id}
         </div>
         <div className="flex-1 min-w-0">
@@ -118,7 +118,7 @@ function AgentCardSkeleton() {
   return (
     <Card className="border border-divider p-4">
       <div className="flex items-center gap-3 mb-3">
-        <Skeleton className="size-100 rounded-full" />
+        <Skeleton className="size-10 rounded-full" />
         <div className="flex-1">
           <Skeleton className="h-5 w-32 mb-1" />
           <Skeleton className="h-4 w-16" />

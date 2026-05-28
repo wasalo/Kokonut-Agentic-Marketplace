@@ -79,7 +79,7 @@ export default function ContractsPage() {
   return (
     <div className="container mx-auto px-4 py-12 max-w-4xl">
       <div className="flex items-center gap-3 mb-8">
-        <div className="size-122 rounded-xl bg-primary/10 flex items-center justify-center">
+        <div className="size-12 rounded-xl bg-primary/10 flex items-center justify-center">
           <Code2 className="size-6 text-primary" />
         </div>
         <div>

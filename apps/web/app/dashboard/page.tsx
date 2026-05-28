@@ -8,23 +8,18 @@ import {
   Wallet,
   ShoppingBag,
   Scale,
-  Loader2,
-  Plus,
   ArrowRight,
   Code,
-  Activity,
+  Gavel,
+  ExternalLink,
 } from 'lucide-react';
 import NextLink from 'next/link';
 import dynamicImport from 'next/dynamic';
 import { useUserJobs } from '@/lib/hooks/useJobs';
-
-import { useActivityFromSubgraph } from '@/lib/hooks';
 import { JobStatus } from '@/lib/types/contracts';
 import { DS } from '@/lib/design-system';
-import { Address } from '@/components/Address';
 import { StatusBadge, getJobStatusBadgeType } from '@/components/StatusBadge';
 import { ActivityFeed } from '@/components/ActivityFeed';
-import { EmptyStateJobs } from '@/components/ui/empty-state';
 import { DashboardCard } from '@/components/ui/DashboardCard';
 
 const ArbiterSection = dynamicImport(() => import('@/components/ArbiterSection').then(m => m.ArbiterSection), {
@@ -44,84 +39,13 @@ function WalletConnectPrompt() {
   );
 }
 
-function UserJobsList({ user }: { user: `0x${string}` }) {
-  const { jobs, isLoading, error } = useUserJobs(user, 'all');
-
-  if (isLoading) {
-    return (
-      <div className="flex justify-center py-4">
-        <Loader2 className="h-6 w-6 animate-spin text-default-400" />
-      </div>
-    );
-  }
-
-  if (!jobs || jobs.length === 0) {
-    return <EmptyStateJobs />;
-  }
-
-  if (error) {
-    return (
-      <div className="text-center py-4">
-        <p className="text-danger text-sm">Error loading jobs</p>
-      </div>
-    );
-  }
-
-  const activeJobs = jobs.filter(j => j.status <= 2);
-
-  if (activeJobs.length === 0) {
-    return <p className="text-default-500 text-sm py-4">No active jobs</p>;
-  }
-
-  return (
-    <div className="space-y-2">
-      {activeJobs.slice(0, 5).map(job => (
-        <NextLink
-          key={job.id.toString()}
-          href={`/jobs/${job.id.toString()}`}
-          className="flex justify-between items-center p-3 bg-content2 rounded-lg hover:bg-content3 transition-colors cursor-pointer"
-        >
-          <div>
-            <p className="text-sm font-medium">Job #{job.id.toString()}</p>
-            <p className="text-xs text-default-500 flex items-center gap-1">
-              <Address address={job.provider as `0x${string}`} truncate /> →{' '}
-              <Address address={job.client as `0x${string}`} truncate />
-            </p>
-          </div>
-          <StatusBadge status={getJobStatusBadgeType(job.status)} size="sm" />
-        </NextLink>
-      ))}
-    </div>
-  );
-}
-
-function RecentActivity({ user }: { user: `0x${string}` }) {
-  return (
-    <DashboardCard title="Recent Jobs" icon={<Activity />}>
-      <UserJobsList user={user} />
-    </DashboardCard>
-  );
-}
-
 function QuickActions() {
   const actions = [
-    {
-      label: 'Create Job',
-      description: 'Post a new job request',
-      icon: Plus,
-      href: '/jobs/create',
-    },
-    {
-      label: 'List Service',
-      description: 'Offer your services',
-      icon: ShoppingBag,
-      href: '/marketplace/create',
-    },
     {
       label: 'Manage Services',
       description: 'View your service listings',
       icon: ShoppingBag,
-      href: '/dashboard/services',
+      href: '/marketplace?tab=studio',
     },
     {
       label: 'Manage Agents',
@@ -141,6 +65,12 @@ function QuickActions() {
       icon: Scale,
       href: '/review/create',
     },
+    {
+      label: 'Create Bid Session',
+      description: 'Start competitive bidding',
+      icon: Gavel,
+      href: '/bidding/create',
+    },
   ];
 
   return (
@@ -155,7 +85,7 @@ function QuickActions() {
               className={DS.cards.clickable}
             >
               <div className="flex items-start justify-between mb-2">
-                <div className="size-100 rounded-lg flex items-center justify-center bg-primary/10">
+                <div className="size-10 rounded-lg flex items-center justify-center bg-primary/10">
                   <Icon className="size-5 text-primary" />
                 </div>
                 <ArrowRight className="size-4 text-default-400 group-hover:text-primary transition-colors" />
@@ -165,6 +95,19 @@ function QuickActions() {
             </NextLink>
           );
         })}
+        <NextLink
+          href="/marketplace"
+          className={DS.cards.clickable}
+        >
+          <div className="flex items-start justify-between mb-2">
+            <div className="size-10 rounded-lg flex items-center justify-center bg-gradient-to-br from-[#009F4D] to-[#00c853]">
+              <ExternalLink className="size-5 text-white" />
+            </div>
+            <ArrowRight className="size-4 text-default-400 group-hover:text-primary transition-colors" />
+          </div>
+          <p className="font-medium text-foreground">Explore Marketplace</p>
+          <p className="text-xs text-default-500 mt-0.5">Browse services, jobs, and bidding</p>
+        </NextLink>
       </div>
     </DashboardCard>
   );
@@ -215,7 +158,7 @@ function PriorityActions({ user }: { user: `0x${string}` }) {
   };
 
   return (
-    <DashboardCard title="Needs Attention" icon={<Activity />} className="mb-8">
+    <DashboardCard title="Needs Attention" icon={<ArrowRight />} className="mb-8">
       <div className="grid grid-cols-1 md:grid-cols-2 gap-3">
         {items.map(item => (
           <NextLink
@@ -233,75 +176,6 @@ function PriorityActions({ user }: { user: `0x${string}` }) {
           </NextLink>
         ))}
       </div>
-    </DashboardCard>
-  );
-}
-
-function PlatformActivityWidget() {
-  const { activities, isLoading } = useActivityFromSubgraph(undefined, undefined, 0, 5);
-
-  const typeBadge = (type: string) => {
-    if (type.startsWith('JOB')) return { color: 'bg-primary', label: 'Job' };
-    if (type.startsWith('SERVICE')) return { color: 'bg-warning', label: 'Service' };
-    return { color: 'bg-primary', label: 'Review' };
-  };
-
-  return (
-    <DashboardCard
-      title="Platform Activity"
-      icon={<Activity />}
-      actions={
-        <NextLink
-          href="/activity"
-          className="text-sm text-primary hover:underline flex items-center gap-1"
-        >
-          View All
-          <ArrowRight className="size-3" />
-        </NextLink>
-      }
-    >
-      {isLoading ? (
-        <div className="space-y-3">
-          {[...Array(3)].map((_, i) => (
-            <div key={i} className="h-16 bg-content2 rounded animate-pulse" />
-          ))}
-        </div>
-      ) : activities.length === 0 ? (
-        <div className="text-center py-8 text-default-500">
-          <Activity className="size-8 mx-auto mb-2 text-default-400" />
-          <p className="text-sm">No recent activity</p>
-        </div>
-      ) : (
-        <div className="space-y-3">
-          {activities.slice(0, 5).map(activity => {
-            const badge = typeBadge(activity.type);
-            const linkPath = activity.type.startsWith('JOB')
-              ? `/jobs/${activity.details.targetId}`
-              : activity.type.startsWith('SERVICE')
-                ? `/marketplace/${activity.details.targetId}`
-                : `/review/${activity.details.targetId}`;
-
-            return (
-              <NextLink
-                key={activity.id}
-                href={linkPath}
-                className="flex items-center gap-3 p-3 border border-divider rounded-lg hover:bg-content2/50 transition-colors"
-              >
-                <div className={`size-2 rounded-full flex-shrink-0 ${badge.color}`} />
-                <div className="flex-1 min-w-0">
-                  <p className="text-sm font-medium truncate">{activity.action}</p>
-                  <p className="text-xs text-default-500 truncate">
-                    {activity.details.title || 'Activity'}
-                  </p>
-                </div>
-                <span className="text-[10px] px-1.5 py-0.5 rounded-full bg-content2 text-default-500">
-                  {badge.label}
-                </span>
-              </NextLink>
-            );
-          })}
-        </div>
-      )}
     </DashboardCard>
   );
 }
@@ -344,13 +218,8 @@ export default function DashboardPage(): JSX.Element {
         <EvaluatorSection />
       </div>
 
-      <div className="grid grid-cols-1 lg:grid-cols-2 gap-8 mb-8">
-        <RecentActivity user={user} />
-        <PlatformActivityWidget />
-      </div>
-
       <div className="mb-4">
-        <h2 className={DS.typography.sectionTitle}>On-Chain Activity</h2>
+        <h2 className={DS.typography.sectionTitle}>Your Transactions</h2>
       </div>
       <ActivityFeed limit={10} showViewAll={false} />
     </div>

@@ -368,7 +368,7 @@ export default function WebhooksPage() {
     return (
       <div className="container mx-auto px-4 py-12 max-w-4xl">
         <Card className="border border-divider p-12 text-center">
-          <Webhook className="size-122 text-default-400 mx-auto mb-4" />
+          <Webhook className="size-12 text-default-400 mx-auto mb-4" />
           <h2 className="text-xl font-semibold mb-2">Connect Your Wallet</h2>
           <p className="text-default-500">Connect your wallet to manage your webhooks.</p>
         </Card>
@@ -430,7 +430,7 @@ export default function WebhooksPage() {
         </div>
       ) : serverWebhooks.length === 0 && !showCreateForm ? (
         <Card className="border border-divider p-12 text-center">
-          <Webhook className="size-122 text-default-400 mx-auto mb-4" />
+          <Webhook className="size-12 text-default-400 mx-auto mb-4" />
           <h2 className="text-xl font-semibold mb-2">No Webhooks Yet</h2>
           <p className="text-default-500 mb-6">
             Create your first webhook to receive notifications about platform events.

@@ -29,7 +29,7 @@ export class ClientErrorBoundary extends Component<Props, State> {
     if (this.state.hasError) {
       return (
         <div className="min-h-screen flex flex-col items-center justify-center p-8 text-center bg-background text-foreground">
-          <div className="size-166 rounded-full bg-danger-500/20 flex items-center justify-center mb-4">
+          <div className="size-16 rounded-full bg-danger-500/20 flex items-center justify-center mb-4">
             <svg
               className="size-8 text-danger"
               fill="none"

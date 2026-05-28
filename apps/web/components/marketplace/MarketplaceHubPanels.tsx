@@ -2,7 +2,7 @@
 
 import type { ReactNode } from 'react';
 import NextLink from 'next/link';
-import { ArrowRight, Briefcase, Code, Plus, Store } from 'lucide-react';
+import { ArrowRight, Briefcase, Code, Plus, RefreshCw } from 'lucide-react';
 import { StatusBadge, getJobStatusBadgeType } from '@/components/StatusBadge';
 import { JobStatus, type Job } from '@/lib/hooks/useJobs';
 import { formatAmount, getTokenByAddress } from '@/lib/tokenUtils';
@@ -150,7 +150,6 @@ export function JobsHubPanel() {
           )}
         </>
       )}
-      <FullDirectoryLink href="/jobs" label="Open full jobs directory" />
     </section>
   );
 }
@@ -257,7 +256,6 @@ export function BiddingHubPanel() {
           )}
         </>
       )}
-      <FullDirectoryLink href="/bidding" label="Open full bidding directory" />
     </section>
   );
 }
@@ -277,7 +275,6 @@ export function SkillsHubPanel() {
       <PanelHeader
         title="Skill Explorer"
         description="Filter discovery by agent capability, inspect registered skills, and find matching services."
-        action={<FullDirectoryLink href="/marketplace/skills" label="Browse all skills" compact />}
       />
       <div className="mb-5 flex flex-col gap-3 md:flex-row md:items-center md:justify-between">
         <h3 className="text-lg font-semibold">
@@ -362,11 +359,13 @@ export function StudioHubPanel({
   services,
   isConnected,
   isLoading,
+  error,
   onRefetch,
 }: {
   services: Service[];
   isConnected: boolean;
   isLoading: boolean;
+  error?: Error | null;
   onRefetch: () => void;
 }) {
   if (!isConnected) {
@@ -382,14 +381,41 @@ export function StudioHubPanel({
         title="Provider Studio"
         description="Manage what you offer without leaving the marketplace workspace."
         action={
-          <NextLink href="/marketplace/create" className="inline-flex items-center gap-2 rounded-xl bg-success px-4 py-2 text-sm font-medium text-white hover:opacity-90">
-            <Plus className="size-4" />
-            List Service
-          </NextLink>
+          <div className="flex items-center gap-2">
+            <button
+              type="button"
+              onClick={onRefetch}
+              disabled={isLoading}
+              className="inline-flex items-center gap-2 rounded-xl border border-divider bg-content2 px-3 py-2 text-sm font-medium hover:bg-content3 transition-colors disabled:opacity-50"
+            >
+              <RefreshCw className={`size-4 ${isLoading ? 'animate-spin' : ''}`} />
+              Refresh
+            </button>
+            <NextLink href="/marketplace/create" className="inline-flex items-center gap-2 rounded-xl bg-success px-4 py-2 text-sm font-medium text-white hover:opacity-90">
+              <Plus className="size-4" />
+              List Service
+            </NextLink>
+          </div>
         }
       />
-      <div className="grid grid-cols-1 md:grid-cols-3 gap-4 mb-6">
-        <StudioShortcut href="/dashboard/services" icon={<Store className="size-5" />} title="Services" detail={`${services.length} total, ${activeServices.length} active`} />
+      {error && (
+        <div className="mb-6 p-4 rounded-xl border border-danger-200 bg-danger-50">
+          <div className="flex items-start gap-3">
+            <div className="flex-1">
+              <p className="text-danger font-medium text-sm">Error loading services</p>
+              <p className="text-danger-600 text-xs mt-1">{error.message}</p>
+            </div>
+            <button
+              type="button"
+              onClick={onRefetch}
+              className="text-xs text-danger hover:underline font-medium"
+            >
+              Retry
+            </button>
+          </div>
+        </div>
+      )}
+      <div className="grid grid-cols-1 md:grid-cols-2 gap-4 mb-6">
         <StudioShortcut href="/dashboard/agents" icon={<Briefcase className="size-5" />} title="Agents" detail="Manage identities" />
         <StudioShortcut href="/dashboard/skills" icon={<Code className="size-5" />} title="Skills" detail="Add capabilities" />
       </div>

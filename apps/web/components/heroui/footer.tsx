@@ -90,7 +90,7 @@ export function Footer(): JSX.Element {
           {/* Brand */}
           <div className="col-span-2">
             <NextLink href="/" className="flex items-center gap-2 mb-4">
-              <div className="size-100 rounded-xl bg-gradient-to-br from-[#009F4D] to-[#FFCD00] flex items-center justify-center">
+              <div className="size-10 rounded-xl bg-gradient-to-br from-[#009F4D] to-[#FFCD00] flex items-center justify-center">
                 <span className="text-white font-bold">KK</span>
               </div>
               <span className="font-bold text-xl">Kokonut</span>

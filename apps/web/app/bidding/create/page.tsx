@@ -109,7 +109,7 @@ export default function CreateBiddingSessionPage(): JSX.Element {
 
     const timeoutId = window.setTimeout(() => {
       showToast.success('Session created!', 'Your bidding session has been created successfully.');
-      router.push('/bidding');
+      router.push('/marketplace?tab=bidding');
     }, 2000);
 
     return () => window.clearTimeout(timeoutId);
@@ -119,12 +119,12 @@ export default function CreateBiddingSessionPage(): JSX.Element {
     return (
       <div className="container mx-auto px-4 py-8 max-w-2xl">
         <Card className="border border-divider p-12 text-center">
-          <AlertCircle className="size-122 mx-auto text-default-300 mb-4" />
+          <AlertCircle className="size-12 mx-auto text-default-300 mb-4" />
           <h3 className="text-lg font-semibold mb-2">Wallet Not Connected</h3>
           <p className="text-default-500 mb-4">
             Please connect your wallet to create a bidding session.
           </p>
-          <NextLink href="/bidding" className="text-[#009F4D] hover:underline">
+          <NextLink href="/marketplace?tab=bidding" className="text-[#009F4D] hover:underline">
             Back to Bidding Sessions
           </NextLink>
         </Card>
@@ -136,7 +136,7 @@ export default function CreateBiddingSessionPage(): JSX.Element {
     <div className="container mx-auto px-4 py-8 max-w-2xl">
       {/* Header */}
       <div className="flex items-center gap-4 mb-8">
-        <NextLink href="/bidding" className="p-2 hover:bg-content2 rounded-lg transition-colors">
+        <NextLink href="/marketplace?tab=bidding" className="p-2 hover:bg-content2 rounded-lg transition-colors">
           <ArrowLeft className="size-5" />
         </NextLink>
         <div>
@@ -290,7 +290,7 @@ export default function CreateBiddingSessionPage(): JSX.Element {
 
           {/* Submit */}
           <div className="flex items-center justify-between pt-4">
-            <NextLink href="/bidding" className="text-default-500 hover:text-default-700">
+            <NextLink href="/marketplace?tab=bidding" className="text-default-500 hover:text-default-700">
               Cancel
             </NextLink>
             <button type="submit"

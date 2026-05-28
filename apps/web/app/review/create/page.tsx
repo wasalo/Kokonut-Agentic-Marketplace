@@ -141,7 +141,7 @@ export default function CreateProposalPage() {
                 </label>
                 <textarea
                   id="description"
-                  placeholder="Describe your proposal and what you need evaluatedâ¦"
+                  placeholder="Describe your proposal and what you need evaluated…"
                   rows={4}
                   value={formData.description}
                   onChange={e => updateFormField('description', e.target.value)}
@@ -157,7 +157,7 @@ export default function CreateProposalPage() {
                 <input
                   id="criteriaURI"
                   type="text"
-                  placeholder="ipfs://â¦"
+                  placeholder="ipfs://…"
                   value={formData.criteriaURI}
                   onChange={e => updateFormField('criteriaURI', e.target.value)}
                   className="w-full px-3 py-2 bg-content2 border border-divider rounded-lg text-foreground placeholder:text-default-400 focus:outline-none focus:ring-2 focus:ring-[#009F4D] focus:border-transparent disabled:opacity-50"
@@ -187,7 +187,7 @@ export default function CreateProposalPage() {
                   </p>
                   {formData.reward && ethPriceInUsd && ethPriceInUsd > 0 && (
                     <p className="text-xs text-default-400">
-                      â ${(parseFloat(formData.reward) * ethPriceInUsd).toFixed(2)} USD
+                      ≈ ${(parseFloat(formData.reward) * ethPriceInUsd).toFixed(2)} USD
                     </p>
                   )}
                 </div>

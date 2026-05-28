@@ -92,7 +92,7 @@ export function EfpSetupWizard({ onComplete, onCancel }: EfpSetupWizardProps) {
   if (!address) {
     return (
       <Card className="bg-content2 border-divider p-8 text-center">
-        <Wallet className="size-122 text-default-400 mx-auto mb-4" />
+        <Wallet className="size-12 text-default-400 mx-auto mb-4" />
         <p className="text-default-500">Connect your wallet to set up EFP</p>
       </Card>
     );
@@ -102,7 +102,7 @@ export function EfpSetupWizard({ onComplete, onCancel }: EfpSetupWizardProps) {
     return (
       <Card className="bg-content2 border-divider p-8 text-center">
         <Loader className="size-8 animate-spin text-primary mx-auto mb-4" />
-        <p className="text-default-500">Checking your EFP setupâ¦</p>
+        <p className="text-default-500">Checking your EFP setup…</p>
       </Card>
     );
   }
@@ -183,7 +183,7 @@ export function EfpSetupWizard({ onComplete, onCancel }: EfpSetupWizardProps) {
                 )}
                 {hasList && hasPrimaryList && (
                   <button type="button" className={`${btnBase} bg-success text-white hover:bg-success/90`} onClick={onComplete}>
-                    You&apos;re All Set â Continue
+                    You&apos;re All Set — Continue
                   </button>
                 )}
                 {onCancel && (
@@ -295,7 +295,7 @@ export function EfpSetupWizard({ onComplete, onCancel }: EfpSetupWizardProps) {
 
           {currentStep === 3 && (
             <div className="space-y-4 text-center">
-              <CheckCircle className="size-166 text-success mx-auto" />
+              <CheckCircle className="size-16 text-success mx-auto" />
               <h2 className="text-xl font-bold">EFP Setup Complete!</h2>
               <p className="text-default-500 text-sm">
                 Your EFP List is ready. You can now follow agents, build your network, and show your

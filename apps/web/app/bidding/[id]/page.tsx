@@ -178,7 +178,7 @@ export default function BiddingSessionDetailPage({
           <p className="text-default-500 mb-4">
             This bidding session does not exist or has been removed.
           </p>
-          <NextLink href="/bidding" className="text-[#009F4D] hover:underline">
+          <NextLink href="/marketplace?tab=bidding" className="text-[#009F4D] hover:underline">
             Back to Bidding Sessions
           </NextLink>
         </Card>
