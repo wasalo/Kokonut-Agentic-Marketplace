@@ -48,7 +48,7 @@ export function FeedbackCard({ agentId, jobId }: { agentId: bigint; jobId: bigin
     return (
       <Card className="border border-success/30 p-6">
         <div className="flex items-center gap-2 text-success">
-          <CheckCircle2 className="w-5 h-5" />
+          <CheckCircle2 className="size-5" />
           <p className="font-medium">Feedback Submitted!</p>
         </div>
       </Card>
@@ -93,12 +93,12 @@ export function FeedbackCard({ agentId, jobId }: { agentId: bigint; jobId: bigin
             {error.message}
           </div>
         )}
-        <button
+        <button type="button"
           onClick={handleSubmit}
           disabled={isPending}
           className="w-full px-6 py-3 bg-gradient-to-r from-[#009F4D] to-[#00c853] text-white rounded-lg font-medium hover:opacity-90 disabled:opacity-50"
         >
-          {isPending ? 'Submitting...' : 'Submit Feedback'}
+          {isPending ? 'Submitting…' : 'Submit Feedback'}
         </button>
       </div>
     </Card>

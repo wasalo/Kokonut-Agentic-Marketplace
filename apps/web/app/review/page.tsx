@@ -1,5 +1,6 @@
 'use client';
 
+import { useEffect } from 'react';
 import dynamic from 'next/dynamic';
 
 const ReviewContent = dynamic(() => import('./review-content'), {
@@ -12,5 +13,9 @@ const ReviewContent = dynamic(() => import('./review-content'), {
 });
 
 export default function ReviewPage(): JSX.Element {
+  useEffect(() => {
+    document.title = 'Review Proposals | Kokonut Agent Economy';
+  }, []);
+
   return <ReviewContent />;
 }

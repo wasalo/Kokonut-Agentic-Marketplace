@@ -1,6 +1,6 @@
 'use client';
 
-import { useState } from 'react';
+import { useState, useEffect } from 'react';
 import { useAccount, useReadContract } from 'wagmi';
 import { Settings, AlertCircle, ShieldAlert, Wallet, XCircle, Loader } from 'lucide-react';
 import { Card, Input } from '@heroui/react';
@@ -14,14 +14,18 @@ const AGENTIC_COMMERCE_ADDRESS = CONTRACTS[11155111].agenticCommerce as `0x${str
 
 
 export default function AdminPage(): JSX.Element {
+  useEffect(() => {
+    document.title = 'Admin | Kokonut Agent Economy';
+  }, []);
+
   const { isConnected } = useAccount();
   const [activeTab, setActiveTab] = useState<'info' | 'agents' | 'wallets'>('info');
 
   return (
     <div className="container mx-auto px-4 py-8">
       <div className="flex items-center gap-3 mb-8">
-        <div className="w-12 h-12 rounded-full bg-primary/10 flex items-center justify-center">
-          <Settings className="w-6 h-6 text-primary" />
+        <div className="size-122 rounded-full bg-primary/10 flex items-center justify-center">
+          <Settings className="size-6 text-primary" />
         </div>
         <div>
           <h1 className="text-3xl font-bold">Admin Dashboard</h1>
@@ -31,15 +35,14 @@ export default function AdminPage(): JSX.Element {
 
       {!isConnected ? (
         <Card className="border border-divider p-8 text-center">
-          <AlertCircle className="w-12 h-12 text-default-400 mx-auto mb-4" />
+          <AlertCircle className="size-122 text-default-400 mx-auto mb-4" />
           <h2 className="text-xl font-semibold mb-2">Wallet Not Connected</h2>
           <p className="text-default-500">Connect your wallet to access the admin dashboard.</p>
         </Card>
       ) : (
         <div>
           <div className="flex gap-2 mb-6">
-            <button
-              type="button"
+            <button type="button"
               onClick={() => setActiveTab('info')}
               className={`px-4 py-2 rounded-lg font-medium transition-colors ${
                 activeTab === 'info'
@@ -49,8 +52,7 @@ export default function AdminPage(): JSX.Element {
             >
               Contract Info
             </button>
-            <button
-              type="button"
+            <button type="button"
               onClick={() => setActiveTab('agents')}
               className={`px-4 py-2 rounded-lg font-medium transition-colors ${
                 activeTab === 'agents'
@@ -60,8 +62,7 @@ export default function AdminPage(): JSX.Element {
             >
               Agent Blacklist
             </button>
-            <button
-              type="button"
+            <button type="button"
               onClick={() => setActiveTab('wallets')}
               className={`px-4 py-2 rounded-lg font-medium transition-colors ${
                 activeTab === 'wallets'
@@ -219,7 +220,7 @@ function AgentBlacklist() {
     <div className="space-y-6 max-w-3xl">
       <Card className="border border-divider p-6">
         <div className="flex items-center gap-3 mb-4">
-          <ShieldAlert className="w-5 h-5 text-danger" />
+          <ShieldAlert className="size-5 text-danger" />
           <h2 className="text-lg font-semibold">Agent Blacklist</h2>
         </div>
         
@@ -248,21 +249,21 @@ function AgentBlacklist() {
           </div>
           
           <div className="flex gap-2">
-            <button
+            <button type="button"
               onClick={handleBlacklist}
               disabled={!canBlacklist || isLoading}
               className={DS.buttons.danger + ' flex items-center gap-2'}
             >
-              {isBlacklistingAgent && <Loader className="w-4 h-4 animate-spin" />}
-              <ShieldAlert className="w-4 h-4" />
+              {isBlacklistingAgent && <Loader className="size-4 animate-spin" />}
+              <ShieldAlert className="size-4" />
               Blacklist Agent
             </button>
-            <button
+            <button type="button"
               onClick={handleUnblacklist}
               disabled={!canUnblacklist || isLoading}
               className={DS.buttons.ghost + ' flex items-center gap-2'}
             >
-              <XCircle className="w-4 h-4" />
+              <XCircle className="size-4" />
               Remove from Blacklist
             </button>
           </div>
@@ -334,7 +335,7 @@ function WalletBlacklist() {
     <div className="space-y-6 max-w-3xl">
       <Card className="border border-divider p-6">
         <div className="flex items-center gap-3 mb-4">
-          <Wallet className="w-5 h-5 text-danger" />
+          <Wallet className="size-5 text-danger" />
           <h2 className="text-lg font-semibold">Wallet Blacklist</h2>
         </div>
 
@@ -362,21 +363,21 @@ function WalletBlacklist() {
           </div>
           
           <div className="flex gap-2">
-            <button
+            <button type="button"
               onClick={handleBlacklist}
               disabled={!canBlacklist || isLoading}
               className={DS.buttons.danger + ' flex items-center gap-2'}
             >
-              {isBlacklistingWallet && <Loader className="w-4 h-4 animate-spin" />}
-              <ShieldAlert className="w-4 h-4" />
+              {isBlacklistingWallet && <Loader className="size-4 animate-spin" />}
+              <ShieldAlert className="size-4" />
               Blacklist Wallet
             </button>
-            <button
+            <button type="button"
               onClick={handleUnblacklist}
               disabled={!canUnblacklist || isLoading}
               className={DS.buttons.ghost + ' flex items-center gap-2'}
             >
-              <XCircle className="w-4 h-4" />
+              <XCircle className="size-4" />
               Remove from Blacklist
             </button>
           </div>

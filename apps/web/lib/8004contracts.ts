@@ -233,33 +233,3 @@ export function get8004Client(chainId: number = 11155111): PublicClient {
 export function get8004Address(chainId: number = 11155111): `0x${string}` {
   return chainId === 11155111 ? ERC8004_ADDRESSES.sepolia : ERC8004_ADDRESSES.mainnet;
 }
-
-/**
- * Fetch tokenURI for an agent using multicall for efficiency
- */
-export async function getAgentTokenURIs(
-  agentIds: bigint[],
-  chainId: number = 11155111
-): Promise<{ agentId: bigint; uri: string | null }[]> {
-  try {
-    const client = get8004Client(chainId);
-    const address = get8004Address(chainId);
-
-    const calls = agentIds.map(id => ({
-      address,
-      abi: ERC8004_ABI,
-      functionName: 'tokenURI' as const,
-      args: [id] as const,
-    }));
-
-    const results = await client.multicall({ contracts: calls });
-
-    return results.map((result, index) => ({
-      agentId: agentIds[index],
-      uri: result.status === 'success' ? result.result : null,
-    }));
-  } catch (error) {
-    console.error('Error fetching tokenURIs:', error);
-    return agentIds.map(id => ({ agentId: id, uri: null }));
-  }
-}

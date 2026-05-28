@@ -37,6 +37,10 @@ import { EmailPreferencesForm } from '@/components/EmailPreferencesForm';
 import { PortfolioForm, type PortfolioItem } from '@/components/PortfolioForm';
 
 export default function AgentSettingsPage(): JSX.Element {
+  useEffect(() => {
+    document.title = 'Identity Settings | Kokonut Agent Economy';
+  }, []);
+
   const searchParams = useSearchParams();
   const { address } = useAccount();
   const { agents, isLoading: isLoadingAgents } = useAgentsByOwnerFromSubgraph(address);
@@ -158,8 +162,8 @@ export default function AgentSettingsPage(): JSX.Element {
     return (
       <div className="container mx-auto px-4 py-8">
         <Card className="max-w-2xl mx-auto border border-divider p-8 text-center">
-          <Loader2 className="w-8 h-8 animate-spin mx-auto text-primary mb-4" />
-          <p className="text-default-500">Loading your agents...</p>
+          <Loader2 className="size-8 animate-spin mx-auto text-primary mb-4" />
+          <p className="text-default-500">Loading your agents…</p>
         </Card>
       </div>
     );
@@ -198,7 +202,7 @@ export default function AgentSettingsPage(): JSX.Element {
           <div className="flex flex-col sm:flex-row sm:items-center sm:justify-between gap-4">
             <div>
               <h1 className="text-3xl font-bold flex items-center gap-2">
-                <Shield className="w-7 h-7 text-success" />
+                <Shield className="size-7 text-success" />
                 Agent Settings
               </h1>
               <p className="text-default-500 mt-1">Manage your agent identity</p>
@@ -217,14 +221,14 @@ export default function AgentSettingsPage(): JSX.Element {
                     </option>
                   ))}
                 </select>
-                <ChevronDown className="absolute right-3 top-1/2 -translate-y-1/2 w-4 h-4 text-default-400 pointer-events-none" />
+                <ChevronDown className="absolute right-3 top-1/2 -translate-y-1/2 size-4 text-default-400 pointer-events-none" />
               </div>
             )}
           </div>
 
           {/* Agent Info Card */}
           <div className="mt-4 flex items-center gap-3 p-4 bg-content2 rounded-lg border border-divider">
-            <div className="w-12 h-12 rounded-full bg-gradient-to-br from-[#009F4D] to-[#FFCD00] flex items-center justify-center text-white font-semibold">
+            <div className="size-122 rounded-full bg-gradient-to-br from-[#009F4D] to-[#FFCD00] flex items-center justify-center text-white font-semibold">
               #{agent?.id}
             </div>
             <div className="flex-1 min-w-0">
@@ -245,27 +249,27 @@ export default function AgentSettingsPage(): JSX.Element {
         {/* Quick Stats */}
         <Card className="border border-divider p-6">
           <h2 className="text-lg font-semibold mb-4 flex items-center gap-2">
-            <TrendingUp className="w-5 h-5 text-primary" />
+            <TrendingUp className="size-5 text-primary" />
             Quick Stats
           </h2>
           <div className="grid grid-cols-2 md:grid-cols-4 gap-4">
             <div className="text-center p-3 bg-content2 rounded-lg">
-              <DollarSign className="w-5 h-5 text-success mx-auto mb-1" />
+              <DollarSign className="size-5 text-success mx-auto mb-1" />
               <p className="text-xl font-bold">{jobsCompleted}</p>
               <p className="text-xs text-default-500">Jobs Completed</p>
             </div>
             <div className="text-center p-3 bg-content2 rounded-lg">
-              <DollarSign className="w-5 h-5 text-warning mx-auto mb-1" />
+              <DollarSign className="size-5 text-warning mx-auto mb-1" />
               <p className="text-xl font-bold">$0</p>
               <p className="text-xs text-default-500">Total Earned</p>
             </div>
             <div className="text-center p-3 bg-content2 rounded-lg">
-              <Star className="w-5 h-5 text-warning mx-auto mb-1" />
+              <Star className="size-5 text-warning mx-auto mb-1" />
               <p className="text-xl font-bold">{rating > 0 ? rating.toFixed(1) : '—'}</p>
               <p className="text-xs text-default-500">Rating</p>
             </div>
             <div className="text-center p-3 bg-content2 rounded-lg">
-              <Calendar className="w-5 h-5 text-primary mx-auto mb-1" />
+              <Calendar className="size-5 text-primary mx-auto mb-1" />
               <p className="text-xl font-bold">{feedbackCount}</p>
               <p className="text-xs text-default-500">Reviews</p>
             </div>
@@ -275,7 +279,7 @@ export default function AgentSettingsPage(): JSX.Element {
         {/* Set Custom Metadata */}
         <Card className="border border-divider p-6">
           <h2 className="text-lg font-semibold mb-4 flex items-center gap-2">
-            <Database className="w-5 h-5 text-primary" />
+            <Database className="size-5 text-primary" />
             Set Custom Metadata
           </h2>
           <form onSubmit={handleSetMetadata} className="space-y-4">
@@ -295,7 +299,7 @@ export default function AgentSettingsPage(): JSX.Element {
                 <label className="text-sm font-medium">Value (hex)</label>
                 <input
                   type="text"
-                  placeholder="0x..."
+                  placeholder="0x…"
                   value={metadataValue}
                   onChange={e => setMetadataValue(e.target.value)}
                   required
@@ -303,21 +307,20 @@ export default function AgentSettingsPage(): JSX.Element {
                 />
               </div>
             </div>
-            <button
-              type="submit"
+            <button type="submit"
               disabled={isMetaPending}
               className="flex items-center gap-2 px-4 py-2 bg-primary text-white rounded-lg font-medium hover:opacity-90 disabled:opacity-50"
             >
               {isMetaPending ? (
-                <Loader2 className="w-4 h-4 animate-spin" />
+                <Loader2 className="size-4 animate-spin" />
               ) : (
-                <Save className="w-4 h-4" />
+                <Save className="size-4" />
               )}
               Set Metadata
             </button>
             {metaSuccess && (
               <div className="flex items-center gap-2 text-success text-sm">
-                <CheckCircle2 className="w-4 h-4" />
+                <CheckCircle2 className="size-4" />
                 Metadata set successfully!
               </div>
             )}

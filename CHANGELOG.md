@@ -5,6 +5,42 @@ All notable changes to the Kokonut Agent Economy Stack are documented in this fi
 The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.0.0/),
 and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0.html).
 
+## [2026-05-28] — Phase 36: Marketplace Hub + Component Modularization
+
+### 🎯 Unified Marketplace Experience
+
+Reduced top-level product fragmentation by making `/marketplace` the primary workspace for service discovery, jobs, bidding, skills, user work, and provider management.
+
+| Change | File | Detail |
+|--------|------|--------|
+| **Marketplace Hub** | `app/marketplace/marketplace-inner.tsx` | Added tabbed hub model: Discover, Jobs, Bidding, Skills, My Work, Studio. Existing `/jobs`, `/bidding`, `/marketplace/skills`, and dashboard routes remain as deep links. |
+| **Hub shell** | `components/marketplace/MarketplaceHubShell.tsx` | New responsive shell with hero, tab navigation, and unified actions. |
+| **Hub panels** | `components/marketplace/MarketplaceHubPanels.tsx` | New Jobs, Bidding, Skills, My Work, and Provider Studio panels using shared work-card patterns. |
+| **Command bar + stats** | `MarketplaceCommandBar.tsx`, `MarketplaceStatsStrip.tsx` | Shared search/filter surface and cross-market metrics for services, jobs, bidding, and user attention queue. |
+| **Unified work cards** | `UnifiedWorkCard.tsx` | Common card layout for jobs, bidding sessions, and provider services. |
+| **Navigation consolidation** | `navbar.tsx`, `BottomNav.tsx` | Desktop nav now promotes Marketplace Hub instead of separate Jobs/Bidding. Mobile bottom nav points Market and Work to `/marketplace` hub tabs. |
+
+### 🧩 Giant Component Splitting
+
+Split high-complexity frontend pages into smaller focused components/hooks to make future UX work safer and faster.
+
+| Area | Detail |
+|------|--------|
+| **Skills dashboard** | Extracted `SkillForm`, `SkillCard`, `SkillsList`, `SkillsSidebar`; `useAgentSkills` is centralized in `useSkills.ts`. |
+| **Service creation** | Extracted `ServiceFormFields`, `AgentTagSetup`, `CreateServiceSteps`, and service token selector pieces. |
+| **Bidding detail** | Extracted `BiddingSessionHeader`, `CommitBidForm`, `RevealBidForm`, `BiddingWinnerSelection`, `ExtendRevealWindow`, plus `useBiddingSalt` and `lib/crypto.ts`. |
+| **Create job** | Extracted create-job UI sections, `useUSDCApproval`, and `extractJobIdFromReceipt`. |
+| **Job detail** | Extracted `JobFundingSection`, `JobActionsCard`, `JobBidListCard`, `useJobBids`, and wired `PaymentTokenSetupModal`. |
+
+### ✅ Verification
+
+| Check | Status |
+|-------|--------|
+| **Type-check** | 0 errors |
+| **Lint** | Clean |
+
+---
+
 ## [2026-05-27] — Phase 35: UI/UX Overhaul + Accessibility + Search
 
 ### 🎨 UI/UX Improvements (4 Sprints)

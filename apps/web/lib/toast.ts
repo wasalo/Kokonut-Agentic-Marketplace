@@ -9,7 +9,7 @@ export interface ErrorResolution {
   actionLabel?: string;
 }
 
-export const ERROR_CODES: Record<string, ErrorResolution> = {
+const ERROR_CODES: Record<string, ErrorResolution> = {
   // User Action Errors
   USER_REJECTED: {
     code: 'USER_REJECTED',
@@ -279,21 +279,11 @@ export const showToast = {
   },
 };
 
-export function formatError(error: unknown): string {
-  if (error instanceof Error) {
-    return error.message;
-  }
-  if (typeof error === 'string') {
-    return error;
-  }
-  return 'An unexpected error occurred';
-}
-
 export function getTransactionError(error: unknown): string {
   return getErrorResolution(error).message;
 }
 
-export function getErrorResolution(error: unknown): ErrorResolution {
+function getErrorResolution(error: unknown): ErrorResolution {
   if (error instanceof Error) {
     const message = error.message.toLowerCase();
 
@@ -432,7 +422,7 @@ export function getErrorResolution(error: unknown): ErrorResolution {
  * Sanitize error messages to remove sensitive information
  * Removes addresses, transaction hashes, and excessive technical details
  */
-export function sanitizeErrorMessage(message: string): string {
+function sanitizeErrorMessage(message: string): string {
   // Remove Ethereum addresses (0x followed by 40 hex characters)
   let sanitized = message.replace(/0x[a-fA-F0-9]{40}/g, '[ADDRESS]');
 
@@ -453,7 +443,7 @@ export function sanitizeErrorMessage(message: string): string {
   // Trim and limit length
   sanitized = sanitized.trim();
   if (sanitized.length > 200) {
-    sanitized = sanitized.substring(0, 200) + '...';
+    sanitized = sanitized.substring(0, 200) + '…';
   }
 
   // If after sanitization it's empty or just brackets, return generic message

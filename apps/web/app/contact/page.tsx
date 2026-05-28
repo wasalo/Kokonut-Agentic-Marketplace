@@ -1,6 +1,6 @@
 'use client';
 
-import { useState } from 'react';
+import { useState, useEffect } from 'react';
 import { MessageSquare } from 'lucide-react';
 import { useAccount } from 'wagmi';
 import { Address } from '@/components/Address';
@@ -8,6 +8,10 @@ import { DS } from '@/lib/design-system';
 import { Button } from '@/components/ui/Button';
 
 export default function ContactPage() {
+  useEffect(() => {
+    document.title = 'Contact | Kokonut Agent Economy';
+  }, []);
+
   const { isConnected, address } = useAccount();
   const [formData, setFormData] = useState({
     name: '',
@@ -37,7 +41,7 @@ export default function ContactPage() {
     return (
       <div className={DS.spacing.page + ' max-w-2xl'}>
         <div className={DS.cards.padded + ' text-center'}>
-          <MessageSquare className="w-12 h-12 text-success mx-auto mb-4" />
+          <MessageSquare className="size-122 text-success mx-auto mb-4" />
           <h1 className="text-2xl font-bold mb-2">Message Sent!</h1>
           <p className="text-default-500 mb-4">
             Thank you for reaching out. We&apos;ll get back to you as soon as possible.
@@ -109,7 +113,7 @@ export default function ContactPage() {
               id="message"
               name="message"
               className={DS.inputs.base + ' ' + DS.inputs.textarea}
-              placeholder="Tell us what's on your mind..."
+              placeholder="Tell us what's on your mind…"
               value={formData.message}
               onChange={(e) => setFormData({ ...formData, message: e.target.value })}
               required

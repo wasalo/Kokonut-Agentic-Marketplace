@@ -143,7 +143,7 @@ export function MilestoneSection({
     return (
       <Card className="border border-divider p-6">
         <div className="flex items-center gap-3 mb-4">
-          <ListChecks className="w-4 h-4 text-default-400" />
+          <ListChecks className="size-4 text-default-400" />
           <h2 className="text-base font-semibold">Milestones</h2>
         </div>
         {isClient && !isTerminal ? (
@@ -151,12 +151,12 @@ export function MilestoneSection({
             <p className="text-sm text-default-500">
               No milestones configured. Enable milestone-based payments to split this job into payable phases.
             </p>
-            <button
+            <button type="button"
               onClick={() => enableMilestones(jobId, client as `0x${string}`, provider as `0x${string}`, paymentToken as `0x${string}`, budget)}
               disabled={isEnablePending}
               className="px-4 py-2 bg-[#009F4D] text-white rounded-lg font-medium hover:opacity-90 disabled:opacity-50 text-sm"
             >
-              {isEnablePending ? 'Enabling...' : 'Enable Milestones'}
+              {isEnablePending ? 'Enabling…' : 'Enable Milestones'}
             </button>
             {enableError && <ErrorDisplay error={enableError} />}
           </div>
@@ -207,7 +207,7 @@ export function MilestoneSection({
     <Card className="border border-divider p-6">
       <div className="flex items-center justify-between mb-4">
         <div className="flex items-center gap-3">
-          <ListChecks className="w-5 h-5 text-primary" />
+          <ListChecks className="size-5 text-primary" />
           <h2 className="text-base font-semibold">Milestones</h2>
           <Chip size="sm" variant="soft" color="accent">
             {milestones?.length || 0} phase{milestones?.length !== 1 ? 's' : ''}
@@ -229,11 +229,11 @@ export function MilestoneSection({
             </div>
           )}
           {isClient && !showAddForm && !isTerminal && (
-            <button
+            <button type="button"
               onClick={() => setShowAddForm(true)}
               className="px-3 py-1.5 text-sm text-primary bg-primary/10 rounded-lg font-medium hover:bg-primary/20 flex items-center gap-1"
             >
-              <Plus className="w-4 h-4" />
+              <Plus className="size-4" />
               Add
             </button>
           )}
@@ -286,7 +286,7 @@ export function MilestoneSection({
               />
             </div>
             <div className="flex gap-2 justify-end">
-              <button
+              <button type="button"
                 onClick={() => {
                   setShowAddForm(false);
                   setNewDescription('');
@@ -297,12 +297,12 @@ export function MilestoneSection({
               >
                 Cancel
               </button>
-              <button
+              <button type="button"
                 onClick={handleAddMilestone}
                 disabled={!newDescription || !newAmount || isAddMilestonePending}
                 className="px-3 py-1.5 bg-[#009F4D] text-white text-sm rounded-lg font-medium hover:opacity-90 disabled:opacity-50"
               >
-                {isAddMilestonePending ? 'Adding...' : 'Add Milestone'}
+                {isAddMilestonePending ? 'Adding…' : 'Add Milestone'}
               </button>
             </div>
             {addMilestoneError && <ErrorDisplay error={addMilestoneError} />}
@@ -312,7 +312,7 @@ export function MilestoneSection({
 
       {loadingMilestones ? (
         <div className="flex items-center justify-center py-8">
-          <Loader2 className="w-6 h-6 animate-spin text-primary" />
+          <Loader2 className="size-6 animate-spin text-primary" />
         </div>
       ) : milestones && milestones.length > 0 ? (
         <div className="space-y-3">
@@ -362,7 +362,7 @@ export function MilestoneSection({
                   </p>
                   {milestone.dueDate > 0 && (
                     <div className="flex items-center gap-1 text-xs text-default-400 mt-2">
-                      <Clock className="w-3 h-3" />
+                      <Clock className="size-3" />
                       <span>Due: {new Date(Number(milestone.dueDate) * 1000).toLocaleDateString()}</span>
                     </div>
                   )}
@@ -387,7 +387,7 @@ export function MilestoneSection({
                       onPress={() => handleCompleteMilestone(index)}
                       isDisabled={!proofHash || isCompletePending || isTerminal}
                     >
-                      {isCompletePending ? 'Submitting...' : 'Submit'}
+                      {isCompletePending ? 'Submitting…' : 'Submit'}
                     </Button>
                   </div>
                 </div>
@@ -396,12 +396,12 @@ export function MilestoneSection({
               {/* Client: Release milestone */}
               {isClient && milestone.completed && !milestone.released && !isTerminal && (
                 <div className="mt-4 pt-4 border-t border-divider">
-                  <button
+                  <button type="button"
                     onClick={() => handleReleaseMilestone(index)}
                     disabled={isReleasePending || isTerminal}
                     className="px-3 py-1.5 bg-success text-white text-sm rounded-lg font-medium hover:opacity-90 disabled:opacity-50"
                   >
-                    {isReleasePending ? 'Releasing...' : 'Release Payment'}
+                    {isReleasePending ? 'Releasing…' : 'Release Payment'}
                   </button>
                 </div>
               )}

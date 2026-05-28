@@ -4,18 +4,30 @@ import { useMemo, useState, useCallback, useEffect, useRef } from 'react';
 import { useAccount, usePublicClient } from 'wagmi';
 import { useSearchParams, useRouter } from 'next/navigation';
 import NextLink from 'next/link';
-import { Plus, Code } from 'lucide-react';
+import { ArrowRight, Briefcase, Code, Gavel, Store } from 'lucide-react';
 import { ServiceList } from '@/components/heroui/service-list';
 import { useAllServices, useProviderServices, useTotalServiceCount, type Service } from '@/lib/hooks/useServices';
 import { useFindSkillsByDomain } from '@/lib/hooks/useSkills';
 import { useServiceEvents } from '@/lib/hooks/useServiceEvents';
 import { useTokenPriceConversion } from '@/lib/hooks/useTokenConversion';
 import { useDebounce } from '@/lib/hooks/useDebounce';
-import { StatCard } from '@/components/ui/stat-card';
 import { EmptyStateServices } from '@/components/ui/empty-state';
 import { AGENT_SKILL_REGISTRY_ABI } from '@/lib/contracts/abis';
 import { CONTRACTS } from '@/lib/wagmi';
 import { getTokenByAddress, tokenAmountToUsd } from '@/lib/tokenUtils';
+import { JobStatus, useJobs } from '@/lib/hooks/useJobs';
+import { useBiddingSessions, SessionStatus } from '@/lib/hooks/useBiddingSystem';
+import { MarketplaceHubShell, type MarketplaceHubTab } from '@/components/marketplace/MarketplaceHubShell';
+import { MarketplaceStatsStrip } from '@/components/marketplace/MarketplaceStatsStrip';
+import { MarketplaceCommandBar } from '@/components/marketplace/MarketplaceCommandBar';
+import {
+  BiddingHubPanel,
+  JobsHubPanel,
+  MyWorkHubPanel,
+  SkillsHubPanel,
+  StudioHubPanel,
+  getAttentionReason,
+} from '@/components/marketplace/MarketplaceHubPanels';
 
 const ITEMS_PER_PAGE = 12;
 const MAX_MARKETPLACE_BATCH = 50;
@@ -35,6 +47,19 @@ const SKILL_DOMAINS = [
   { value: '@skills/verification', label: 'Verification' },
 ];
 
+const HUB_TABS = new Set<MarketplaceHubTab>([
+  'discover',
+  'jobs',
+  'bidding',
+  'skills',
+  'my-work',
+  'studio',
+]);
+
+function parseMarketplaceTab(value: string | null): MarketplaceHubTab {
+  return value && HUB_TABS.has(value as MarketplaceHubTab) ? (value as MarketplaceHubTab) : 'discover';
+}
+
 function FilterSection({
   searchQuery,
   setSearchQuery,
@@ -53,19 +78,13 @@ function FilterSection({
   setSkillDomain: (v: string) => void;
 }) {
   return (
-    <div className="mb-6">
-      <div className="relative">
-        <input
-          type="text"
-          placeholder="Search services..."
-          value={searchQuery}
-          onChange={e => setSearchQuery(e.target.value)}
-          className="w-full pl-4 pr-4 py-2.5 bg-content2 border border-divider rounded-lg text-sm focus:outline-none focus:ring-2 focus:ring-success focus:border-transparent transition-all"
-        />
-      </div>
-      <div className="flex flex-wrap gap-2 mt-4">
+    <MarketplaceCommandBar
+      value={searchQuery}
+      onChange={setSearchQuery}
+      placeholder="Search services, providers, or outcomes..."
+    >
         {SKILL_DOMAINS.slice(1, 6).map(domain => (
-          <button
+          <button type="button"
             key={domain.value}
             onClick={() => setSkillDomain(skillDomain === domain.value ? '' : domain.value)}
             className={`px-3 py-1.5 rounded-full text-xs transition-colors cursor-pointer ${
@@ -81,21 +100,21 @@ function FilterSection({
           href="/marketplace/skills"
           className="px-3 py-1.5 rounded-full text-xs text-[#009F4D] hover:bg-content2 transition-colors flex items-center gap-1 cursor-pointer"
         >
-          <Code className="w-3 h-3" />
+          <Code className="size-3" />
           Browse Skills
         </NextLink>
-      </div>
-    </div>
+    </MarketplaceCommandBar>
   );
 }
 
 export default function MarketplaceInner() {
-  const { isConnected } = useAccount();
+  const { address, isConnected } = useAccount();
   const publicClient = usePublicClient();
   const router = useRouter();
   const searchParams = useSearchParams();
   const { ethToUsdcRate } = useTokenPriceConversion();
 
+  const activeTab = parseMarketplaceTab(searchParams.get('tab'));
   const providerParam = searchParams.get('provider');
   const pageParam = Math.max(0, parseInt(searchParams.get('page') || '0', 10) || 0);
   const initialQuery = searchParams.get('q') || '';
@@ -104,9 +123,16 @@ export default function MarketplaceInner() {
   const { count: totalCount, isLoading: isTotalCountLoading } = useTotalServiceCount();
   const marketBatchSize = Math.min(Math.max(totalCount || MAX_MARKETPLACE_BATCH, 1), MAX_MARKETPLACE_BATCH);
 
-  const { services: providerServices, isLoading: isProviderLoading } = useProviderServices(
+  const { services: providerFilteredServices, isLoading: isProviderLoading } = useProviderServices(
     providerParam && providerParam.startsWith('0x') ? (providerParam as `0x${string}`) : undefined
   );
+  const { services: ownServices, isLoading: isOwnServicesLoading } = useProviderServices(address);
+  const { jobs: hubJobs, isLoading: isJobsLoading } = useJobs(0, 60);
+  const {
+    sessions: biddingSessions,
+    totalCount: biddingTotalCount,
+    isLoading: isBiddingLoading,
+  } = useBiddingSessions(0, 60);
 
   const {
     services: allMarketServices,
@@ -115,7 +141,7 @@ export default function MarketplaceInner() {
     refetch: refetchAllServices,
   } = useAllServices(0, marketBatchSize);
 
-  const services = providerParam ? providerServices : allMarketServices;
+  const services = providerParam ? providerFilteredServices : allMarketServices;
   const isServicesLoading = providerParam ? isProviderLoading : isAllLoading;
   const activeServicesCount = services.filter(service => service.isActive).length;
 
@@ -277,148 +303,189 @@ export default function MarketplaceInner() {
     [updateMarketplaceUrl]
   );
 
+  const handleTabChange = useCallback(
+    (tab: MarketplaceHubTab) => {
+      updateMarketplaceUrl({ tab: tab === 'discover' ? null : tab, page: '0' });
+    },
+    [updateMarketplaceUrl]
+  );
+
+  const openJobsCount = hubJobs.filter(job => job.status === JobStatus.Open).length;
+  const activeSessionsCount = biddingSessions.filter(session => session.status === SessionStatus.Active).length;
+  const needsAttentionCount = address
+    ? hubJobs.filter(job => getAttentionReason(job, address)).length
+    : 0;
+
+  const hubStats = [
+    {
+      label: 'Services',
+      value: activeServicesCount,
+      detail: `${uniqueProviders} provider${uniqueProviders === 1 ? '' : 's'} · avg $${avgPrice.toFixed(0)}`,
+      icon: <Store className="size-4" />,
+      isLoading: isServicesLoading || isTotalCountLoading,
+    },
+    {
+      label: 'Open Jobs',
+      value: openJobsCount,
+      detail: 'Available work',
+      icon: <Briefcase className="size-4" />,
+      isLoading: isJobsLoading,
+    },
+    {
+      label: 'Bidding',
+      value: activeSessionsCount,
+      detail: `${biddingTotalCount} total sessions`,
+      icon: <Gavel className="size-4" />,
+      isLoading: isBiddingLoading,
+    },
+    {
+      label: 'Needs Attention',
+      value: needsAttentionCount,
+      detail: isConnected ? 'Your action queue' : 'Connect wallet',
+      icon: <ArrowRight className="size-4" />,
+      isLoading: isJobsLoading,
+    },
+  ];
+
   return (
-    <div className="container mx-auto px-4 py-8">
-      <div className="flex flex-col md:flex-row justify-between items-start md:items-center gap-4 mb-8">
-        <div>
-          <h1 className="text-3xl font-bold">Marketplace</h1>
-          <p className="text-default-500">Discover and purchase AI agent services</p>
-        </div>
-        {isConnected && (
-          <NextLink
-            href="/marketplace/create"
-            className="inline-flex items-center gap-2 px-4 py-2 bg-gradient-to-r from-[#009F4D] to-[#00c853] text-white rounded-lg font-medium hover:opacity-90 transition-opacity"
-          >
-            <Plus className="h-4 w-4" />
-            Create Service
-          </NextLink>
-        )}
-      </div>
+    <MarketplaceHubShell
+      activeTab={activeTab}
+      onTabChange={handleTabChange}
+      actions={
+        isConnected ? (
+          <>
+            <NextLink
+              href="/marketplace/create"
+              className="inline-flex items-center justify-center rounded-xl bg-gradient-to-r from-[#009F4D] to-[#00c853] px-4 py-2 text-sm font-medium text-white hover:opacity-90"
+            >
+              List Service
+            </NextLink>
+            <NextLink
+              href="/jobs/create"
+              className="inline-flex items-center justify-center rounded-xl border border-divider bg-content2 px-4 py-2 text-sm font-medium hover:bg-content3"
+            >
+              Post Job
+            </NextLink>
+            <NextLink
+              href="/bidding/create"
+              className="inline-flex items-center justify-center rounded-xl border border-divider bg-content2 px-4 py-2 text-sm font-medium hover:bg-content3"
+            >
+              Create Bid Session
+            </NextLink>
+          </>
+        ) : undefined
+      }
+    >
+      <MarketplaceStatsStrip items={hubStats} />
 
-      <div className="grid grid-cols-2 md:grid-cols-4 gap-4 mb-8">
-        <StatCard
-          label="Active Services"
-          value={activeServicesCount.toString()}
-          isLoading={isServicesLoading}
-        />
-        <StatCard
-          label="Total Services"
-          value={totalCount.toString()}
-          isLoading={isTotalCountLoading}
-        />
-        <StatCard
-          label="Providers"
-          value={uniqueProviders.toString()}
-          isLoading={isServicesLoading}
-        />
-        <StatCard
-          label="Avg Price"
-          value={`$${avgPrice.toFixed(0)}`}
-          isLoading={isServicesLoading}
-        />
-      </div>
-
-      {providerParam && (
-        <div className="mb-4 p-3 bg-primary/5 border border-primary/20 rounded-lg flex items-center justify-between">
-          <div className="flex items-center gap-2">
-            <span className="text-sm font-medium text-primary">Filtered by provider:</span>
-            <span className="text-sm font-mono text-default-600">{providerParam}</span>
-          </div>
-          <button
-            onClick={() => {
-              const params = new URLSearchParams(searchParams.toString());
-              params.delete('provider');
-              router.push(`/marketplace?${params.toString()}`);
-            }}
-            className="text-sm text-primary hover:underline"
-          >
-            Clear filter
-          </button>
-        </div>
-      )}
-
-      <FilterSection
-        searchQuery={searchQuery}
-        setSearchQuery={setSearchQuery}
-        showActiveOnly={showActiveOnly}
-        setShowActiveOnly={setShowActiveOnly}
-        minPrice={minPrice}
-        setMinPrice={setMinPrice}
-        maxPrice={maxPrice}
-        setMaxPrice={setMaxPrice}
-        skillDomain={skillDomain}
-        setSkillDomain={handleSkillDomainChange}
-      />
-
-      {!isServicesLoading && services.length === 0 ? (
-        <EmptyStateServices
-          action={
-            isConnected
-              ? { label: 'List Your Service', href: '/marketplace/create' }
-              : undefined
-          }
-        />
-      ) : (
-        <>
-          <div className="flex items-center justify-between mb-6">
-            <div className="flex items-center gap-3">
-              <span className="text-sm text-default-500">Sort by:</span>
-              <select
-                value={`${sortBy}-${sortOrder}`}
-                onChange={e => {
-                  const [newSortBy, newSortOrder] = e.target.value.split('-');
-                  handleSortChange(newSortBy, newSortOrder);
-                }}
-                className="px-3 py-2 border border-divider rounded-lg bg-content2 focus:outline-none focus:ring-2 focus:ring-success text-sm"
-              >
-                <option value="newest-desc">Newest First</option>
-                <option value="newest-asc">Oldest First</option>
-                <option value="price-asc">Price: Low to High</option>
-                <option value="price-desc">Price: High to Low</option>
-                <option value="name-asc">Name: A-Z</option>
-                <option value="name-desc">Name: Z-A</option>
-              </select>
-            </div>
-            <span className="text-sm text-default-500">{filteredServices.length} services</span>
-          </div>
-
-          <ServiceList
-            services={displayServices}
-            isLoading={isServicesLoading || isLoadingSkills}
-            error={allServicesError as Error | null}
-            onRetry={() => refetchAllServices()}
-            skillDomain={skillDomain}
-            skillDomainsByAgent={agentIdsBySkill}
-            totalFilteredCount={filteredServices.length}
-          />
-
-          {totalPages > 1 && (
-            <div className="flex items-center justify-center gap-2 mt-8">
+      {activeTab === 'discover' && (
+        <section>
+          {providerParam && (
+            <div className="mb-4 flex items-center justify-between rounded-lg border border-primary/20 bg-primary/5 p-3">
+              <div className="flex items-center gap-2">
+                <span className="text-sm font-medium text-primary">Filtered by provider:</span>
+                <span className="text-sm font-mono text-default-600">{providerParam}</span>
+              </div>
               <button
-                onClick={() => {
-                  updateMarketplaceUrl({ page: String(Math.max(0, currentPage - 1)) });
-                }}
-                disabled={currentPage === 0}
-                className="px-4 py-2 rounded-lg border border-divider disabled:opacity-50 disabled:cursor-not-allowed hover:bg-content2 transition-colors text-sm"
+                type="button"
+                onClick={() => updateMarketplaceUrl({ provider: null })}
+                className="text-sm text-primary hover:underline"
               >
-                Previous
-              </button>
-              <span className="text-sm text-default-500">
-                Page {currentPage + 1} of {totalPages}
-              </span>
-              <button
-                onClick={() => {
-                  updateMarketplaceUrl({ page: String(Math.min(totalPages - 1, currentPage + 1)) });
-                }}
-                disabled={currentPage >= totalPages - 1}
-                className="px-4 py-2 rounded-lg border border-divider disabled:opacity-50 disabled:cursor-not-allowed hover:bg-content2 transition-colors text-sm"
-              >
-                Next
+                Clear filter
               </button>
             </div>
           )}
-        </>
+
+          <FilterSection
+            searchQuery={searchQuery}
+            setSearchQuery={setSearchQuery}
+            showActiveOnly={showActiveOnly}
+            setShowActiveOnly={setShowActiveOnly}
+            minPrice={minPrice}
+            setMinPrice={setMinPrice}
+            maxPrice={maxPrice}
+            setMaxPrice={setMaxPrice}
+            skillDomain={skillDomain}
+            setSkillDomain={handleSkillDomainChange}
+          />
+
+          {!isServicesLoading && services.length === 0 ? (
+            <EmptyStateServices
+              action={
+                isConnected
+                  ? { label: 'List Your Service', href: '/marketplace/create' }
+                  : undefined
+              }
+            />
+          ) : (
+            <>
+              <div className="mb-6 flex items-center justify-between">
+                <div className="flex items-center gap-3">
+                  <span className="text-sm text-default-500">Sort by:</span>
+                  <select
+                    value={`${sortBy}-${sortOrder}`}
+                    onChange={e => {
+                      const [newSortBy, newSortOrder] = e.target.value.split('-');
+                      handleSortChange(newSortBy, newSortOrder);
+                    }}
+                    className="rounded-lg border border-divider bg-content2 px-3 py-2 text-sm focus:outline-none focus:ring-2 focus:ring-success"
+                  >
+                    <option value="newest-desc">Newest First</option>
+                    <option value="newest-asc">Oldest First</option>
+                    <option value="price-asc">Price: Low to High</option>
+                    <option value="price-desc">Price: High to Low</option>
+                    <option value="name-asc">Name: A-Z</option>
+                    <option value="name-desc">Name: Z-A</option>
+                  </select>
+                </div>
+                <span className="text-sm text-default-500">{filteredServices.length} services</span>
+              </div>
+
+              <ServiceList
+                services={displayServices}
+                isLoading={isServicesLoading || isLoadingSkills}
+                error={allServicesError as Error | null}
+                onRetry={() => refetchAllServices()}
+                skillDomain={skillDomain}
+                skillDomainsByAgent={agentIdsBySkill}
+                totalFilteredCount={filteredServices.length}
+              />
+
+              {totalPages > 1 && (
+                <div className="mt-8 flex items-center justify-center gap-2">
+                  <button
+                    type="button"
+                    onClick={() => updateMarketplaceUrl({ page: String(Math.max(0, currentPage - 1)) })}
+                    disabled={currentPage === 0}
+                    className="rounded-lg border border-divider px-4 py-2 text-sm transition-colors hover:bg-content2 disabled:cursor-not-allowed disabled:opacity-50"
+                  >
+                    Previous
+                  </button>
+                  <span className="text-sm text-default-500">
+                    Page {currentPage + 1} of {totalPages}
+                  </span>
+                  <button
+                    type="button"
+                    onClick={() => updateMarketplaceUrl({ page: String(Math.min(totalPages - 1, currentPage + 1)) })}
+                    disabled={currentPage >= totalPages - 1}
+                    className="rounded-lg border border-divider px-4 py-2 text-sm transition-colors hover:bg-content2 disabled:cursor-not-allowed disabled:opacity-50"
+                  >
+                    Next
+                  </button>
+                </div>
+              )}
+            </>
+          )}
+        </section>
       )}
-    </div>
+
+      {activeTab === 'jobs' && <JobsHubPanel jobs={hubJobs} isLoading={isJobsLoading} />}
+      {activeTab === 'bidding' && <BiddingHubPanel sessions={biddingSessions} isLoading={isBiddingLoading} />}
+      {activeTab === 'skills' && <SkillsHubPanel skillDomains={SKILL_DOMAINS} />}
+      {activeTab === 'my-work' && <MyWorkHubPanel jobs={hubJobs} user={address} isLoading={isJobsLoading} />}
+      {activeTab === 'studio' && (
+        <StudioHubPanel services={ownServices} isConnected={isConnected} isLoading={isOwnServicesLoading} />
+      )}
+    </MarketplaceHubShell>
   );
 }

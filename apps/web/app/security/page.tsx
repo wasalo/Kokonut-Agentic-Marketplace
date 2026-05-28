@@ -1,14 +1,19 @@
 'use client';
 
+import { useEffect } from 'react';
 import { Lock, Shield, Code2, Bug } from 'lucide-react';
 import { Card } from '@heroui/react';
 
 export default function SecurityPage() {
+  useEffect(() => {
+    document.title = 'Security | Kokonut Agent Economy';
+  }, []);
+
   return (
     <div className="container mx-auto px-4 py-12 max-w-3xl">
       <div className="flex items-center gap-3 mb-8">
-        <div className="w-12 h-12 rounded-xl bg-primary/10 flex items-center justify-center">
-          <Shield className="w-6 h-6 text-primary" />
+        <div className="size-122 rounded-xl bg-primary/10 flex items-center justify-center">
+          <Shield className="size-6 text-primary" />
         </div>
         <h1 className="text-3xl font-bold">Security</h1>
       </div>
@@ -17,7 +22,7 @@ export default function SecurityPage() {
         <Card className="border border-divider">
           <div className="p-6">
             <div className="flex items-center gap-3 mb-4">
-              <Lock className="w-5 h-5 text-success" />
+              <Lock className="size-5 text-success" />
               <h2 className="text-xl font-semibold">Smart Contract Security</h2>
             </div>
             <div className="space-y-2 text-default-600">
@@ -39,7 +44,7 @@ export default function SecurityPage() {
         <Card className="border border-divider">
           <div className="p-6">
             <div className="flex items-center gap-3 mb-4">
-              <Code2 className="w-5 h-5 text-success" />
+              <Code2 className="size-5 text-success" />
               <h2 className="text-xl font-semibold">Frontend Security</h2>
             </div>
             <div className="space-y-2 text-default-600">
@@ -56,7 +61,7 @@ export default function SecurityPage() {
         <Card className="border border-divider">
           <div className="p-6">
             <div className="flex items-center gap-3 mb-4">
-              <Bug className="w-5 h-5 text-success" />
+              <Bug className="size-5 text-success" />
               <h2 className="text-xl font-semibold">Report Vulnerabilities</h2>
             </div>
             <div className="space-y-2 text-default-600">

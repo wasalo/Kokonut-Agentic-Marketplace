@@ -39,6 +39,10 @@ export default function ProposalDetailPage({
 }: {
   params: Promise<{ id: string }>;
 }): JSX.Element {
+  useEffect(() => {
+    document.title = 'Proposal Details | Kokonut Agent Economy';
+  }, []);
+
   const { id } = use(params);
   const proposalId = BigInt(id);
   const { address } = useAccount();
@@ -183,7 +187,7 @@ export default function ProposalDetailPage({
     return (
       <div className="container mx-auto px-4 py-8">
         <Card className="max-w-2xl mx-auto border border-divider p-8 text-center">
-          <AlertCircle className="w-12 h-12 text-default-400 mx-auto mb-4" />
+          <AlertCircle className="size-122 text-default-400 mx-auto mb-4" />
           <h2 className="text-xl font-semibold mb-2">Proposal Not Found</h2>
         </Card>
       </div>
@@ -235,7 +239,7 @@ export default function ProposalDetailPage({
             <div>
               <p className="text-xs text-default-400 uppercase tracking-wide">Deadline</p>
               <p className="text-sm flex items-center gap-1">
-                <Clock className="w-3 h-3" />
+                <Clock className="size-3" />
                 {new Date(Number(proposal.decisionDeadline) * 1000).toLocaleDateString()}
               </p>
               {deadlinePassed && <p className="text-xs text-success">Past deadline</p>}
@@ -246,12 +250,12 @@ export default function ProposalDetailPage({
           {/* NOTE: cancelProposal function is not in the current AgentReview ABI
           {isProposer && proposal.status === 0 && (
             <div className="mt-4 pt-4 border-t border-divider">
-              <button
+              <button type="button"
                 onClick={handleCancel}
                 disabled={anyPending || !!txStep}
                 className="w-full px-4 py-2 border border-danger text-danger rounded-lg font-medium hover:bg-danger/10 disabled:opacity-50 flex items-center justify-center gap-2"
               >
-                <X className="w-4 h-4" />
+                <X className="size-4" />
                 Cancel Proposal
               </button>
               <p className="text-xs text-default-400 mt-2 text-center">
@@ -265,9 +269,9 @@ export default function ProposalDetailPage({
         {txStep && (
           <Card className="border border-primary/20 p-4">
             <div className="flex items-center gap-3">
-              <Loader2 className="w-5 h-5 animate-spin text-primary" />
+              <Loader2 className="size-5 animate-spin text-primary" />
               <div>
-                <p className="text-sm font-medium text-primary">{txStep}...</p>
+                <p className="text-sm font-medium text-primary">{txStep}â¦</p>
               </div>
             </div>
           </Card>
@@ -279,7 +283,7 @@ export default function ProposalDetailPage({
         {evaluators.length > 0 && (
           <Card className="border border-divider p-6">
             <h2 className="text-base font-semibold mb-4 flex items-center gap-2">
-              <Users className="w-4 h-4 text-primary" />
+              <Users className="size-4 text-primary" />
               Evaluations ({evaluators.length})
             </h2>
             <div className="space-y-3">
@@ -302,7 +306,7 @@ export default function ProposalDetailPage({
         {(proposal.status === 0 || proposal.status === 1) && !hasEvaluated && (
           <Card className="border border-divider p-6">
             <h2 className="text-base font-semibold mb-4 flex items-center gap-2">
-              <Send className="w-4 h-4 text-primary" />
+              <Send className="size-4 text-primary" />
               Submit Evaluation
             </h2>
 
@@ -326,7 +330,7 @@ export default function ProposalDetailPage({
                 <label className="text-sm font-medium">Reasoning URI</label>
                 <input
                   type="text"
-                  placeholder="ipfs://... or https://..."
+                  placeholder="ipfs://... or https://â¦"
                   value={reasoning}
                   onChange={e => setReasoning(e.target.value)}
                   className="w-full mt-1 px-3 py-2 bg-content2 border border-divider rounded-lg focus:outline-none focus:ring-2 focus:ring-success"
@@ -345,12 +349,12 @@ export default function ProposalDetailPage({
                 />
               </div>
 
-              <button
+              <button type="button"
                 onClick={handleSubmitEvaluation}
                 disabled={anyPending || !!txStep}
                 className="w-full px-6 py-3 bg-gradient-to-r from-[#009F4D] to-[#00c853] text-white rounded-lg font-medium hover:opacity-90 disabled:opacity-50"
               >
-                {isEvalPending ? 'Submitting...' : 'Submit Evaluation'}
+                {isEvalPending ? 'Submitting…' : 'Submit Evaluation'}
               </button>
             </div>
           </Card>
@@ -360,7 +364,7 @@ export default function ProposalDetailPage({
         {isProposer && deadlinePassed && proposal.status <= 1 && evaluators.length > 0 && (
           <Card className="border border-success/30 p-6">
             <h2 className="text-base font-semibold mb-4 flex items-center gap-2">
-              <Award className="w-4 h-4 text-success" />
+              <Award className="size-4 text-success" />
               Select Winner
             </h2>
             <div className="space-y-3">
@@ -385,12 +389,12 @@ export default function ProposalDetailPage({
                   </span>
                 </label>
               ))}
-              <button
+              <button type="button"
                 onClick={handleAttest}
                 disabled={!selectedWinner || anyPending || !!txStep}
                 className="w-full px-6 py-3 bg-gradient-to-r from-[#009F4D] to-[#00c853] text-white rounded-lg font-medium hover:opacity-90 disabled:opacity-50"
               >
-                {isAttestPending ? 'Attesting...' : 'Attest Decision'}
+                {isAttestPending ? 'Attesting…' : 'Attest Decision'}
               </button>
             </div>
           </Card>
@@ -400,7 +404,7 @@ export default function ProposalDetailPage({
         {gracePeriodPassed && proposal.status <= 1 && (
           <Card className="border border-primary/30 bg-primary/5 p-6">
             <h2 className="text-base font-semibold mb-4 flex items-center gap-2">
-              <Unlock className="w-4 h-4 text-primary" />
+              <Unlock className="size-4 text-primary" />
               Finalize Proposal
             </h2>
             <p className="text-sm text-default-600 mb-4">
@@ -413,7 +417,7 @@ export default function ProposalDetailPage({
                 <p className="text-lg font-semibold text-primary">{Number(medianScore)}</p>
               </div>
             )}
-            <button
+            <button type="button"
               onClick={() => {
                 setTxStep('Finalizing decision');
                 finalizeDecision(proposalId);
@@ -421,10 +425,10 @@ export default function ProposalDetailPage({
               disabled={anyPending || !!txStep || isFinalizePending}
               className="w-full px-6 py-3 bg-gradient-to-r from-primary to-primary/80 text-white rounded-lg font-medium hover:opacity-90 disabled:opacity-50"
             >
-              {isFinalizePending ? 'Finalizing...' : 'Finalize Decision (Anyone)'}
+              {isFinalizePending ? 'Finalizing…' : 'Finalize Decision (Anyone)'}
             </button>
             <p className="text-xs text-default-400 mt-2 text-center">
-              Permissionless — anyone can call this function
+              Permissionless â anyone can call this function
             </p>
           </Card>
         )}
@@ -433,19 +437,19 @@ export default function ProposalDetailPage({
         {isProposer && proposal.status === 0 && (
           <Card className="border border-warning/30 bg-warning/5 p-6">
             <h2 className="text-base font-semibold mb-2 flex items-center gap-2">
-              <X className="w-4 h-4 text-warning" />
+              <X className="size-4 text-warning" />
               Cancel Proposal
             </h2>
             <p className="text-sm text-default-500 mb-4">
               If you no longer need an evaluation, you can cancel this proposal. Your staked ETH
               will be refunded.
             </p>
-            <button
+            <button type="button"
               onClick={handleCancel}
               disabled={anyPending || !!txStep}
               className="w-full px-6 py-3 border border-warning/30 bg-warning/10 text-warning rounded-lg font-medium hover:bg-warning/20 disabled:opacity-50"
             >
-              {isCancelPending ? 'Cancelling...' : 'Cancel Proposal'}
+              {isCancelPending ? 'Cancelling…' : 'Cancel Proposal'}
             </button>
           </Card>
         )}
@@ -456,7 +460,7 @@ export default function ProposalDetailPage({
             <h2 className="text-base font-semibold mb-2 flex items-center gap-2">
               {myEvaluation?.rewardClaimed ? (
                 <>
-                  <CheckCircle2 className="w-5 h-5 text-success" />
+                  <CheckCircle2 className="size-5 text-success" />
                   Reward Claimed!
                 </>
               ) : (
@@ -473,12 +477,12 @@ export default function ProposalDetailPage({
                   ' ETH.'}
             </p>
             {!myEvaluation?.rewardClaimed && (
-              <button
+              <button type="button"
                 onClick={handleClaim}
                 disabled={anyPending || !!txStep}
                 className="w-full px-6 py-3 bg-gradient-to-r from-[#009F4D] to-[#00c853] text-white rounded-lg font-medium hover:opacity-90 disabled:opacity-50"
               >
-                {isClaimPending ? 'Claiming...' : 'Claim Reward'}
+                {isClaimPending ? 'Claiming…' : 'Claim Reward'}
               </button>
             )}
           </Card>
@@ -488,7 +492,7 @@ export default function ProposalDetailPage({
         {hasEvaluated && !isWinner && proposal.status === 2 && (
           <Card className="border border-divider p-6">
             <h2 className="text-base font-semibold mb-2 flex items-center gap-2">
-              <Unlock className="w-4 h-4" />
+              <Unlock className="size-4" />
               {myEvaluation?.stakeReleased ? 'Stake Released' : 'Release Your Stake'}
             </h2>
             <p className="text-sm text-default-500 mb-4">
@@ -497,12 +501,12 @@ export default function ProposalDetailPage({
                 : 'The decision has been made. Release your stake back.'}
             </p>
             {!myEvaluation?.stakeReleased && (
-              <button
+              <button type="button"
                 onClick={handleRelease}
                 disabled={anyPending || !!txStep}
                 className="w-full px-6 py-3 border border-divider rounded-lg font-medium hover:bg-content2 disabled:opacity-50"
               >
-                {isReleasePending ? 'Releasing...' : 'Release Stake'}
+                {isReleasePending ? 'Releasing…' : 'Release Stake'}
               </button>
             )}
           </Card>

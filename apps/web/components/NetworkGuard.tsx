@@ -15,7 +15,7 @@ export function NetworkGuard() {
   if (isCorrectChain) {
     return (
       <div className="bg-green-500/10 border-b border-green-500/20 px-4 py-1 text-xs text-green-400 flex items-center justify-center gap-2">
-        <CheckCircle className="w-3 h-3" />
+        <CheckCircle className="size-3" />
         Connected to Sepolia Testnet
       </div>
     );
@@ -23,11 +23,11 @@ export function NetworkGuard() {
 
   return (
     <div className="bg-red-500/10 border-b border-red-500/20 px-4 py-2 flex items-center justify-center gap-3">
-      <AlertTriangle className="w-4 h-4 text-red-400" />
+      <AlertTriangle className="size-4 text-red-400" />
       <span className="text-sm text-red-300">
         Wrong network: switch to Sepolia to use Kokonut
       </span>
-      <button
+      <button type="button"
         onClick={() => switchChain?.({ chainId: sepolia.id })}
         className="px-3 py-1.5 text-sm bg-red-500/20 text-red-300 rounded-lg hover:bg-red-500/30 transition-colors"
       >

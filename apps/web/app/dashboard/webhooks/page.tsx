@@ -62,13 +62,12 @@ function Button({
   };
 
   return (
-    <button
-      type="button"
+    <button type="button"
       onClick={onClick}
       disabled={disabled || loading}
       className={`${baseClasses} ${sizeClasses[size]} ${variantClasses[variant]} ${className}`}
     >
-      {loading && <RefreshCw className="w-4 h-4 animate-spin" />}
+      {loading && <RefreshCw className="size-4 animate-spin" />}
       {children}
     </button>
   );
@@ -137,7 +136,7 @@ function WebhookCard({
         <div className="flex items-start justify-between gap-4 mb-4">
           <div className="flex-1 min-w-0">
             <div className="flex items-center gap-2 mb-2">
-              <Webhook className="w-4 h-4 text-default-500 shrink-0" />
+              <Webhook className="size-4 text-default-500 shrink-0" />
               <code className="text-sm truncate">{webhook.url}</code>
             </div>
             <div className="flex items-center gap-2">
@@ -151,10 +150,10 @@ function WebhookCard({
           </div>
           <div className="flex items-center gap-1">
             <Button size="sm" variant="ghost" onClick={onTest}>
-              <RefreshCw className="w-4 h-4" />
+              <RefreshCw className="size-4" />
             </Button>
             <Button size="sm" variant="ghost" onClick={onDelete}>
-              <Trash2 className="w-4 h-4 text-danger" />
+              <Trash2 className="size-4 text-danger" />
             </Button>
           </div>
         </div>
@@ -227,7 +226,7 @@ function CreateWebhookForm({
   if (maxReached) {
     return (
       <Card className="border border-divider p-6 text-center">
-        <AlertCircle className="w-8 h-8 text-warning mx-auto mb-3" />
+        <AlertCircle className="size-8 text-warning mx-auto mb-3" />
         <p className="text-default-600">
           Maximum webhooks reached ({MAX_WEBHOOKS_PER_AGENT}). Delete one to create more.
         </p>
@@ -263,9 +262,8 @@ function CreateWebhookForm({
             <label className="text-sm font-medium mb-2 block">Events to receive</label>
             <div className="flex flex-wrap gap-2">
               {EVENT_OPTIONS.map(event => (
-                <button
+                <button type="button"
                   key={event}
-                  type="button"
                   onClick={() => toggleEvent(event)}
                   className={`px-3 py-1.5 text-xs rounded-lg border transition-colors ${
                     selectedEvents.includes(event)
@@ -281,7 +279,7 @@ function CreateWebhookForm({
 
           {error && (
             <div className="flex items-center gap-2 text-danger text-sm bg-danger/10 p-3 rounded-lg">
-              <AlertCircle className="w-4 h-4 shrink-0" />
+              <AlertCircle className="size-4 shrink-0" />
               {error}
             </div>
           )}
@@ -303,6 +301,10 @@ function CreateWebhookForm({
 }
 
 export default function WebhooksPage() {
+  useEffect(() => {
+    document.title = 'Webhooks | Kokonut Agent Economy';
+  }, []);
+
   const { address, isConnected } = useAccount();
   const { createWebhook, removeWebhook, triggerTestEvent, listWebhooks } = useWebhooks();
   const [showCreateForm, setShowCreateForm] = useState(false);
@@ -366,7 +368,7 @@ export default function WebhooksPage() {
     return (
       <div className="container mx-auto px-4 py-12 max-w-4xl">
         <Card className="border border-divider p-12 text-center">
-          <Webhook className="w-12 h-12 text-default-400 mx-auto mb-4" />
+          <Webhook className="size-122 text-default-400 mx-auto mb-4" />
           <h2 className="text-xl font-semibold mb-2">Connect Your Wallet</h2>
           <p className="text-default-500">Connect your wallet to manage your webhooks.</p>
         </Card>
@@ -391,7 +393,7 @@ export default function WebhooksPage() {
             disabled={serverWebhooks.length >= MAX_WEBHOOKS_PER_AGENT}
             className="bg-gradient-to-r from-[#009F4D] to-[#00c853] text-white font-semibold"
           >
-            <Plus className="w-4 h-4" />
+            <Plus className="size-4" />
             Create Webhook
           </Button>
         </div>
@@ -399,7 +401,7 @@ export default function WebhooksPage() {
 
       <div className="bg-warning/10 border border-warning/20 rounded-lg p-4 mb-8">
         <div className="flex items-start gap-3">
-          <AlertCircle className="w-5 h-5 text-warning mt-0.5 shrink-0" />
+          <AlertCircle className="size-5 text-warning mt-0.5 shrink-0" />
           <div className="text-sm">
             <p className="font-medium mb-1">Webhook Delivery</p>
             <p className="text-default-600">
@@ -428,7 +430,7 @@ export default function WebhooksPage() {
         </div>
       ) : serverWebhooks.length === 0 && !showCreateForm ? (
         <Card className="border border-divider p-12 text-center">
-          <Webhook className="w-12 h-12 text-default-400 mx-auto mb-4" />
+          <Webhook className="size-122 text-default-400 mx-auto mb-4" />
           <h2 className="text-xl font-semibold mb-2">No Webhooks Yet</h2>
           <p className="text-default-500 mb-6">
             Create your first webhook to receive notifications about platform events.
@@ -438,7 +440,7 @@ export default function WebhooksPage() {
             onClick={() => setShowCreateForm(true)}
             className="bg-gradient-to-r from-[#009F4D] to-[#00c853] text-white font-semibold"
           >
-            <Plus className="w-4 h-4" />
+            <Plus className="size-4" />
             Create Webhook
           </Button>
         </Card>
@@ -455,19 +457,19 @@ export default function WebhooksPage() {
                 <div className="absolute inset-0 bg-background/90 backdrop-blur-sm rounded-lg flex items-center justify-center">
                   {testResults[webhook.id] === 'testing' && (
                     <div className="flex items-center gap-2 text-default-500">
-                      <RefreshCw className="w-5 h-5 animate-spin" />
+                      <RefreshCw className="size-5 animate-spin" />
                       Testing webhook...
                     </div>
                   )}
                   {testResults[webhook.id] === 'success' && (
                     <div className="flex items-center gap-2 text-success font-medium">
-                      <Check className="w-5 h-5" />
+                      <Check className="size-5" />
                       Test event sent!
                     </div>
                   )}
                   {testResults[webhook.id] === 'error' && (
                     <div className="flex items-center gap-2 text-danger font-medium">
-                      <X className="w-5 h-5" />
+                      <X className="size-5" />
                       Test failed
                     </div>
                   )}

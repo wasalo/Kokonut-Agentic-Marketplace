@@ -52,7 +52,7 @@ export default function Error({
       <div className="text-center max-w-md">
         <h2 className="text-2xl font-bold text-danger mb-2">Something went wrong!</h2>
         <p className="text-muted-foreground mb-6">{message}</p>
-        <button
+        <button type="button"
           onClick={reset}
           className="inline-flex items-center justify-center px-6 py-3 bg-primary text-primary-foreground rounded-lg font-medium hover:opacity-90 transition-opacity"
         >

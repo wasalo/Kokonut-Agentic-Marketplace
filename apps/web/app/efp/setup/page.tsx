@@ -1,9 +1,14 @@
 'use client';
 
+import { useEffect } from 'react';
 import { useRouter } from 'next/navigation';
 import { EfpSetupWizard } from '@/components/heroui/efp-setup-wizard';
 
 export default function EfpSetupPage() {
+  useEffect(() => {
+    document.title = 'EFP Setup | Kokonut Agent Economy';
+  }, []);
+
   const router = useRouter();
 
   return (

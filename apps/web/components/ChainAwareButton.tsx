@@ -21,7 +21,7 @@ export function ChainAwareButton({
   if (isWrongChain) {
     return (
       <span className="inline-block" title="Switch to Sepolia to continue">
-        <button
+        <button type="button"
           {...buttonProps}
           disabled
           className={`opacity-50 cursor-not-allowed ${buttonProps.className || ''}`}
@@ -32,5 +32,5 @@ export function ChainAwareButton({
     );
   }
 
-  return <button {...buttonProps}>{children}</button>;
+  return <button type="button" {...buttonProps}>{children}</button>;
 }

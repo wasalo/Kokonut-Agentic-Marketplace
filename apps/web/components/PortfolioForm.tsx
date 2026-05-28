@@ -85,16 +85,15 @@ export function PortfolioForm({ portfolio, onChange, isSaving, saveSuccess }: Po
                       className="inline-flex items-center gap-1 text-xs text-primary hover:underline mt-1"
                     >
                       {item.link.slice(0, 30)}...
-                      <ExternalLink className="w-3 h-3" />
+                      <ExternalLink className="size-3" />
                     </a>
                   )}
                 </div>
-                <button
-                  type="button"
+                <button type="button"
                   onClick={() => handleRemoveItem(index)}
                   className="p-1 text-default-400 hover:text-danger transition-colors"
                 >
-                  <X className="w-4 h-4" />
+                  <X className="size-4" />
                 </button>
               </div>
             </div>
@@ -135,13 +134,12 @@ export function PortfolioForm({ portfolio, onChange, isSaving, saveSuccess }: Po
               className="w-full px-3 py-2 bg-content2 border border-divider rounded-lg focus:outline-none focus:ring-2 focus:ring-primary text-sm"
             />
           </div>
-          <button
-            type="button"
+          <button type="button"
             disabled={!newItem.title.trim() || !newItem.description.trim()}
             onClick={handleAddItem}
             className="inline-flex items-center gap-2 px-4 py-2 bg-primary text-white rounded-lg font-medium text-sm hover:opacity-90 disabled:opacity-50 disabled:cursor-not-allowed"
           >
-            <Plus className="w-4 h-4" />
+            <Plus className="size-4" />
             Add Item
           </button>
         </div>
@@ -155,14 +153,14 @@ export function PortfolioForm({ portfolio, onChange, isSaving, saveSuccess }: Po
 
       {saveSuccess && (
         <div className="flex items-center gap-2 text-success text-sm mt-4">
-          <CheckCircle2 className="w-4 h-4" />
+          <CheckCircle2 className="size-4" />
           Portfolio saved successfully!
         </div>
       )}
 
       {isSaving && (
         <div className="flex items-center gap-2 text-default-500 text-sm mt-4">
-          <Loader2 className="w-4 h-4 animate-spin" />
+          <Loader2 className="size-4 animate-spin" />
           Saving portfolio...
         </div>
       )}

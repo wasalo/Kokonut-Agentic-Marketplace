@@ -38,16 +38,16 @@ function ProposalCard({ proposal }: { proposal: Proposal }) {
         <p className="text-default-500 text-sm mb-4 line-clamp-2">{proposal.description}</p>
         <div className="flex items-center gap-4 text-sm text-default-400">
           <span className="flex items-center gap-1">
-            <Clock className="w-3 h-3" />
+            <Clock className="size-3" />
             {new Date(Number(proposal.decisionDeadline) * 1000).toLocaleDateString()}
           </span>
           <span className="flex items-center gap-1">
-            <DollarSign className="w-3 h-3" />
+            <DollarSign className="size-3" />
             {formatReward(proposal.reward)}
           </span>
           {proposal.evaluatorCount !== undefined && (
             <span className="flex items-center gap-1">
-              <Users className="w-3 h-3" />
+              <Users className="size-3" />
               {proposal.evaluatorCount}
             </span>
           )}
@@ -238,7 +238,7 @@ export default function ReviewContent() {
             <Search className="absolute left-3 top-1/2 -translate-y-1/2 h-4 w-4 text-default-400" />
             <input
               type="text"
-              placeholder="Search proposals..."
+              placeholder="Search proposals…"
               className="w-full pl-10 pr-4 py-2 border border-divider rounded-lg bg-content2 focus:outline-none focus:ring-2 focus:ring-success text-foreground"
               value={searchQuery}
               onChange={e => setSearchQuery(e.target.value)}
@@ -247,7 +247,7 @@ export default function ReviewContent() {
               <Loader2 className="absolute right-3 top-1/2 -translate-y-1/2 h-4 w-4 animate-spin text-default-400" />
             )}
           </div>
-          <button
+          <button type="button"
             onClick={() => setShowFilters(!showFilters)}
             className={`flex items-center gap-2 px-4 py-2 border border-divider rounded-lg hover:bg-content2 transition-colors ${showFilters ? 'bg-content2' : ''}`}
           >
@@ -309,7 +309,7 @@ export default function ReviewContent() {
 
       {isProposalsLoading ? (
         <div className="flex items-center justify-center py-16">
-          <Loader2 className="w-8 h-8 animate-spin text-primary" />
+          <Loader2 className="size-8 animate-spin text-primary" />
         </div>
       ) : sortedProposals.length === 0 ? (
         <EmptyStateProposals />
@@ -319,11 +319,11 @@ export default function ReviewContent() {
           {totalPages > 1 && (
             <div className="flex items-center justify-center gap-4 mt-8">
               <Button variant="ghost" size="sm" isDisabled={page === 0} onPress={() => setPage(p => Math.max(0, p - 1))}>
-                <ChevronLeft className="w-4 h-4 mr-1" /> Previous
+                <ChevronLeft className="size-4 mr-1" /> Previous
               </Button>
               <span className="text-sm text-default-500">Page {page + 1} of {totalPages}</span>
               <Button variant="ghost" size="sm" isDisabled={page >= totalPages - 1} onPress={() => setPage(p => Math.min(totalPages - 1, p + 1))}>
-                Next <ChevronRight className="w-4 h-4 ml-1" />
+                Next <ChevronRight className="size-4 ml-1" />
               </Button>
             </div>
           )}

@@ -1,5 +1,6 @@
 'use client';
 
+import { useEffect } from 'react';
 import dynamic from 'next/dynamic';
 
 const CreateJobContent = dynamic(() => import('./create-job-content'), {
@@ -12,5 +13,9 @@ const CreateJobContent = dynamic(() => import('./create-job-content'), {
 });
 
 export default function CreateJobPage(): JSX.Element {
+  useEffect(() => {
+    document.title = 'Create Job | Kokonut Agent Economy';
+  }, []);
+
   return <CreateJobContent />;
 }

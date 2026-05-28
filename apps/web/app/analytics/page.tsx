@@ -47,7 +47,7 @@ function TimeRangeSelector({
   return (
     <div className="flex items-center gap-1 p-1 bg-content2 rounded-lg">
       {TIME_RANGE_OPTIONS.map(option => (
-        <button
+        <button type="button"
           key={option.value}
           onClick={() => onChange(option.value)}
           className={`px-3 py-1.5 text-sm font-medium rounded-md transition-all ${
@@ -120,14 +120,14 @@ function AnalyticsContent({
           {onTimeRangeChange && (
             <TimeRangeSelector value={timeRange} onChange={onTimeRangeChange} />
           )}
-          <button
+          <button type="button"
             onClick={() => {
               void refetch();
             }}
             disabled={isLoading}
             className="flex items-center gap-2 px-4 py-2 border border-divider rounded-lg hover:bg-content2 transition-colors disabled:opacity-50"
           >
-            <RefreshCw className={`w-4 h-4 ${isLoading ? 'animate-spin' : ''}`} />
+            <RefreshCw className={`size-4 ${isLoading ? 'animate-spin' : ''}`} />
             Refresh
           </button>
         </div>
@@ -140,7 +140,7 @@ function AnalyticsContent({
           </div>
           <h3 className="text-lg font-semibold mb-2">Error Loading Analytics</h3>
           <p className="text-default-500 max-w-md mx-auto mb-4">{error.message}</p>
-          <button
+          <button type="button"
             onClick={() => {
               void refetch();
             }}
@@ -304,7 +304,7 @@ function AnalyticsContent({
                 {['Open', 'Funded', 'Submitted', 'Completed', 'Rejected'].map((status, index) => (
                   <div key={status} className="flex items-center gap-2">
                     <div
-                      className="w-3 h-3 rounded-full"
+                      className="size-3 rounded-full"
                       style={{ backgroundColor: COLORS[index] }}
                     />
                     <span className="text-xs text-default-500">{status}</span>

@@ -2,10 +2,10 @@
 
 import { use, useState, useCallback, useEffect, useMemo } from 'react';
 import { useAccount, useBalance } from 'wagmi';
-import { ArrowLeft, Loader2, CheckCircle, AlertCircle, Copy, AlertTriangle } from 'lucide-react';
+import { Loader2, CheckCircle, AlertCircle } from 'lucide-react';
 import { Card } from '@heroui/react';
 import NextLink from 'next/link';
-import { formatEther, parseEther, keccak256, encodeAbiParameters } from 'viem';
+import { formatEther, parseEther } from 'viem';
 import {
   useBiddingSession,
   useBiddingUserBid,
@@ -21,19 +21,14 @@ import {
   useBiddingWithdrawCreatorStake,
   SessionStatus,
   SessionStatusType,
-  type BidInfo,
 } from '@/lib/hooks/useBiddingSystem';
 import { StatusBadge } from '@/components/StatusBadge';
-
-function bytesToHex(bytes: Uint8Array): `0x${string}` {
-  return `0x${Array.from(bytes, byte => byte.toString(16).padStart(2, '0')).join('')}`;
-}
-
-function generateSalt(): string {
-  const bytes = globalThis.crypto?.getRandomValues?.(new Uint8Array(32))
-    ?? new Uint8Array(32).map(() => Math.floor(Math.random() * 256));
-  return bytesToHex(bytes);
-}
+import { buildBidCommitHash, useBiddingSalt } from '@/lib/hooks/useBiddingSalt';
+import { BiddingSessionHeader } from '@/components/bidding/BiddingSessionHeader';
+import { CommitBidForm } from '@/components/bidding/CommitBidForm';
+import { RevealBidForm } from '@/components/bidding/RevealBidForm';
+import { BiddingWinnerSelection } from '@/components/bidding/BiddingWinnerSelection';
+import { ExtendRevealWindow } from '@/components/bidding/ExtendRevealWindow';
 
 const SESSION_STATUS_BADGE: Record<SessionStatusType, string> = {
   [SessionStatus.Active]: 'active',
@@ -49,6 +44,10 @@ export default function BiddingSessionDetailPage({
 }: {
   params: Promise<{ id: string }>;
 }): JSX.Element {
+  useEffect(() => {
+    document.title = 'Bidding Session | Kokonut Agent Economy';
+  }, []);
+
   const { id } = use(params);
   const sessionId = BigInt(id);
   const { address, isConnected } = useAccount();
@@ -57,93 +56,34 @@ export default function BiddingSessionDetailPage({
   const { bid: userBid } = useBiddingUserBid(sessionId, address);
   const { bids: revealedBids, isLoading: isLoadingRevealedBids } = useBiddingRevealedBids(sessionId);
   const { acceptBid, isPending: isAcceptPending } = useBiddingAcceptBid();
-  const {
-    withdrawStake,
-    isPending: isWithdrawPending,
-  } = useBiddingWithdrawStake();
+  const { withdrawStake, isPending: isWithdrawPending } = useBiddingWithdrawStake();
   const { cancelSession, isPending: isCancelPending } = useBiddingCancelSession();
-  const {
-    extendRevealWindow,
-    isPending: isExtendPending,
-  } = useBiddingExtendRevealWindow();
+  const { extendRevealWindow, isPending: isExtendPending } = useBiddingExtendRevealWindow();
   const { commitBid, isPending: isCommitPending } = useBiddingCommitBid();
   const { revealBid, isPending: isRevealPending } = useBiddingRevealBid();
   const { rejectBid, isPending: isRejectPending } = useBiddingRejectBid();
   const { completeSession, isPending: isCompletePending } = useBiddingCompleteSession();
-  const {
-    withdrawCreatorStake,
-    isPending: isCreatorWithdrawPending,
-  } = useBiddingWithdrawCreatorStake();
+  const { withdrawCreatorStake, isPending: isCreatorWithdrawPending } = useBiddingWithdrawCreatorStake();
 
   const { data: ethBalance } = useBalance({ address });
 
-  const [commitAmount, setCommitAmount] = useState('');
-  const [commitMessage, setCommitMessage] = useState('');
-  const saltStorageKey = `kokonut:bidding:${sessionId.toString()}:salt`;
-  const amountStorageKey = `kokonut:bidding:${sessionId.toString()}:amount`;
-  const messageStorageKey = `kokonut:bidding:${sessionId.toString()}:message`;
-  const [commitSalt, setCommitSalt] = useState(() => {
-    if (typeof window === 'undefined') return generateSalt();
-    return window.localStorage.getItem(saltStorageKey) || generateSalt();
-  });
-  const [revealAmount, setRevealAmount] = useState(() => {
-    if (typeof window === 'undefined') return '';
-    return window.localStorage.getItem(amountStorageKey) || '';
-  });
-  const [revealMessage, setRevealMessage] = useState(() => {
-    if (typeof window === 'undefined') return '';
-    return window.localStorage.getItem(messageStorageKey) || '';
-  });
   const [extendSeconds, setExtendSeconds] = useState('3600');
-  const [saltCopied, setSaltCopied] = useState(false);
   const [selectedBidId, setSelectedBidId] = useState<bigint | null>(null);
-
-  useEffect(() => {
-    window.localStorage.setItem(saltStorageKey, commitSalt);
-  }, [saltStorageKey, commitSalt]);
-
-  useEffect(() => {
-    if (!commitAmount) return;
-    window.localStorage.setItem(amountStorageKey, commitAmount);
-  }, [amountStorageKey, commitAmount]);
-
-  useEffect(() => {
-    window.localStorage.setItem(messageStorageKey, commitMessage);
-  }, [messageStorageKey, commitMessage]);
-
-  useEffect(() => {
-    if (userBid?.revealed) {
-      window.localStorage.removeItem(saltStorageKey);
-      window.localStorage.removeItem(amountStorageKey);
-      window.localStorage.removeItem(messageStorageKey);
-    }
-  }, [userBid?.revealed, saltStorageKey, amountStorageKey, messageStorageKey]);
-
-  useEffect(() => {
-    const handler = (e: BeforeUnloadEvent) => {
-      if (userBid && !userBid.revealed && commitSalt) {
-        e.preventDefault();
-        e.returnValue = '';
-      }
-    };
-    window.addEventListener('beforeunload', handler);
-    return () => window.removeEventListener('beforeunload', handler);
-  }, [userBid, commitSalt]);
-
-  const copySalt = useCallback(() => {
-    if (navigator.clipboard?.writeText) {
-      navigator.clipboard.writeText(commitSalt);
-    } else {
-      const input = document.createElement('input');
-      input.value = commitSalt;
-      document.body.appendChild(input);
-      input.select();
-      document.execCommand('copy');
-      document.body.removeChild(input);
-    }
-    setSaltCopied(true);
-    setTimeout(() => setSaltCopied(false), 2000);
-  }, [commitSalt]);
+  const {
+    commitAmount,
+    commitMessage,
+    commitSalt,
+    revealAmount,
+    revealMessage,
+    saltCopied,
+    setCommitAmount,
+    setCommitMessage,
+    setCommitSalt,
+    setRevealAmount,
+    setRevealMessage,
+    copySalt,
+    persistCommitForReveal,
+  } = useBiddingSalt(sessionId, Boolean(userBid && !userBid.revealed), userBid?.revealed);
 
   const stake = session ? (session.maxBudget * 100n) / 10000n : 0n;
 
@@ -168,34 +108,15 @@ export default function BiddingSessionDetailPage({
   const handleCommitBid = useCallback(() => {
     if (!commitAmount || !commitSalt || !session) return;
 
-    const amount = parseEther(commitAmount);
-    window.localStorage.setItem(amountStorageKey, commitAmount);
-    window.localStorage.setItem(messageStorageKey, commitMessage);
-    setRevealAmount(commitAmount);
-    setRevealMessage(commitMessage);
-    const commitHashValue = keccak256(
-      encodeAbiParameters(
-        [{ type: 'uint256' }, { type: 'string' }, { type: 'bytes32' }],
-        [amount, commitMessage, commitSalt as `0x${string}`]
-      )
-    );
+    persistCommitForReveal();
+    const commitHashValue = buildBidCommitHash(commitAmount, commitMessage, commitSalt as `0x${string}`);
 
     commitBid({
       sessionId,
       commitHash: commitHashValue as `0x${string}`,
       stake,
     });
-  }, [
-    sessionId,
-    commitAmount,
-    commitMessage,
-    commitSalt,
-    stake,
-    session,
-    commitBid,
-    amountStorageKey,
-    messageStorageKey,
-  ]);
+  }, [sessionId, commitAmount, commitMessage, commitSalt, stake, session, commitBid, persistCommitForReveal]);
 
   const handleRevealBid = useCallback(() => {
     if (!revealAmount || !session) return;
@@ -243,7 +164,7 @@ export default function BiddingSessionDetailPage({
   if (isLoading) {
     return (
       <div className="flex items-center justify-center min-h-[60vh]">
-        <Loader2 className="w-8 h-8 animate-spin text-[#009F4D]" />
+        <Loader2 className="size-8 animate-spin text-[#009F4D]" />
       </div>
     );
   }
@@ -252,7 +173,7 @@ export default function BiddingSessionDetailPage({
     return (
       <div className="container mx-auto px-4 py-8 max-w-4xl">
         <Card className="border border-divider p-12 text-center">
-          <AlertCircle className="w-12 h-12 mx-auto text-default-300 mb-4" />
+          <AlertCircle className="size-12 mx-auto text-default-300 mb-4" />
           <h3 className="text-lg font-semibold mb-2">Session not found</h3>
           <p className="text-default-500 mb-4">
             This bidding session does not exist or has been removed.
@@ -265,69 +186,11 @@ export default function BiddingSessionDetailPage({
     );
   }
 
-  const deadlineDate = new Date(Number(session.deadline) * 1000);
   const maxBudgetEth = Number(formatEther(session.maxBudget));
 
   return (
     <div className="container mx-auto px-4 py-8 max-w-4xl">
-      <div className="flex items-center gap-4 mb-8">
-        <NextLink href="/bidding" className="p-2 hover:bg-content2 rounded-lg transition-colors">
-          <ArrowLeft className="w-5 h-5" />
-        </NextLink>
-        <div className="flex-1">
-          <div className="flex items-center gap-3">
-            <h1 className="text-2xl font-bold">Session #{id}</h1>
-            <StatusBadge
-              status={
-                (SESSION_STATUS_BADGE[session.status as SessionStatusType] || 'active') as any
-              }
-              size="md"
-            />
-          </div>
-          <p className="text-default-500">Created by {session.creator}</p>
-        </div>
-      </div>
-
-      <div className="grid grid-cols-1 md:grid-cols-2 gap-6 mb-8">
-        <Card className="border border-divider p-6">
-          <h2 className="text-lg font-semibold mb-4">Session Details</h2>
-          <div className="space-y-3">
-            <div className="flex items-center justify-between">
-              <span className="text-default-500">Max Budget</span>
-              <span className="font-semibold">{maxBudgetEth.toFixed(4)} ETH</span>
-            </div>
-            <div className="flex items-center justify-between">
-              <span className="text-default-500">Stake Required</span>
-              <span className="font-semibold text-[#009F4D]">
-                {Number(formatEther(stake)).toFixed(4)} ETH
-              </span>
-            </div>
-            <div className="flex items-center justify-between">
-              <span className="text-default-500">Evaluator</span>
-              <span className="font-mono text-sm">{session.evaluator}</span>
-            </div>
-          </div>
-        </Card>
-
-        <Card className="border border-divider p-6">
-          <h2 className="text-lg font-semibold mb-4">Timeline</h2>
-          <div className="space-y-3">
-            <div className="flex items-center justify-between">
-              <span className="text-default-500">Bidding Deadline</span>
-              <span className="font-semibold">{deadlineDate.toLocaleString()}</span>
-            </div>
-            <div className="flex items-center justify-between">
-              <span className="text-default-500">Status</span>
-              <StatusBadge
-                status={
-                  (SESSION_STATUS_BADGE[session.status as SessionStatusType] || 'active') as any
-                }
-                size="sm"
-              />
-            </div>
-          </div>
-        </Card>
-      </div>
+      <BiddingSessionHeader sessionId={id} session={session} stake={stake} />
 
       {isConnected && (
         <Card className="border border-divider p-6 mb-8">
@@ -337,9 +200,7 @@ export default function BiddingSessionDetailPage({
               <div className="flex items-center justify-between">
                 <span className="text-default-500">Status</span>
                 <StatusBadge
-                  status={
-                    (SESSION_STATUS_BADGE[session.status as SessionStatusType] || 'active') as any
-                  }
+                  status={(SESSION_STATUS_BADGE[session.status as SessionStatusType] || 'active') as any}
                   size="md"
                 />
               </div>
@@ -359,13 +220,13 @@ export default function BiddingSessionDetailPage({
               </div>
               {userBid.accepted && (
                 <div className="mt-4 p-4 bg-[#009F4D]/10 rounded-lg">
-                  <CheckCircle className="w-5 h-5 text-[#009F4D] mb-2" />
+                  <CheckCircle className="size-5 text-[#009F4D] mb-2" />
                   <p className="font-semibold text-[#009F4D]">You are the winner!</p>
                 </div>
               )}
               {userBid.rejected && (
                 <div className="mt-4 p-4 bg-danger/10 rounded-lg">
-                  <AlertCircle className="w-5 h-5 text-danger mb-2" />
+                  <AlertCircle className="size-5 text-danger mb-2" />
                   <p className="font-semibold text-danger">Your bid was rejected.</p>
                 </div>
               )}
@@ -380,340 +241,104 @@ export default function BiddingSessionDetailPage({
         <h2 className="text-lg font-semibold mb-4">Actions</h2>
 
         {session.status === SessionStatus.Active && !userBid && isConnected && (
-          <div className="space-y-4">
-            <p className="text-default-500">
-              Commit your sealed bid. You will need to reveal it after the deadline.
-            </p>
-            <div className="grid grid-cols-1 md:grid-cols-3 gap-4">
-              <div>
-                <label className="text-sm font-medium mb-1 block">Amount (ETH)</label>
-                <input
-                  type="number"
-                  value={commitAmount}
-                  onChange={e => setCommitAmount(e.target.value)}
-                  max={maxBudgetEth}
-                  step="0.001"
-                  placeholder="0.0"
-                  className="w-full px-4 py-2 bg-content1 border border-divider rounded-lg focus:outline-none focus:border-[#009F4D]"
-                />
-              </div>
-              <div>
-                <label className="text-sm font-medium mb-1 block">Message (optional)</label>
-                <input
-                  type="text"
-                  value={commitMessage}
-                  onChange={e => setCommitMessage(e.target.value)}
-                  placeholder="Why should you win?"
-                  className="w-full px-4 py-2 bg-content1 border border-divider rounded-lg focus:outline-none focus:border-[#009F4D]"
-                />
-              </div>
-              <div>
-                <label className="text-sm font-medium mb-1 block">Salt</label>
-                <div className="flex gap-2">
-                  <input
-                    type="text"
-                    value={commitSalt}
-                    onChange={e => setCommitSalt(e.target.value)}
-                    placeholder="Auto-generated (SAVE THIS FOR REVEAL)"
-                    className="flex-1 px-4 py-2 bg-content1 border border-divider rounded-lg focus:outline-none focus:border-[#009F4D] font-mono text-sm"
-                  />
-                  <button
-                    type="button"
-                    onClick={copySalt}
-                    className="px-3 py-2 bg-content2 border border-divider rounded-lg hover:bg-content3 transition-colors"
-                    title="Copy salt to clipboard"
-                  >
-                    {saltCopied ? <CheckCircle className="w-4 h-4 text-[#009F4D]" /> : <Copy className="w-4 h-4" />}
-                  </button>
-                </div>
-                <p className="text-xs text-warning mt-1 flex items-center gap-1">
-                  <AlertTriangle className="w-3 h-3" />
-                  Saved locally in this browser. Copy it somewhere durable before you leave.
-                </p>
-              </div>
-            </div>
-            <div className="flex items-center justify-between">
-              <p className="text-sm text-default-500">
-                Stake: {Number(formatEther(stake)).toFixed(4)} ETH
-                {ethBalance && ethBalance.value < stake && (
-                  <span className="text-danger ml-2">Insufficient balance</span>
-                )}
-              </p>
-              <button
-                onClick={handleCommitBid}
-                disabled={
-                  !commitAmount ||
-                  !commitSalt ||
-                  parseFloat(commitAmount) > maxBudgetEth ||
-                  (ethBalance ? ethBalance.value < stake : false) ||
-                  isCommitPending
-                }
-                className="px-6 py-2 bg-[#009F4D] text-white font-medium rounded-lg hover:bg-[#008F3D] transition-colors disabled:opacity-50 disabled:cursor-not-allowed"
-              >
-                {isCommitPending ? (
-                  <Loader2 className="w-4 h-4 animate-spin inline" />
-                ) : (
-                  'Commit Bid'
-                )}
-              </button>
-            </div>
-            {commitSalt && (
-              <div className="mt-4 p-3 bg-content2 rounded-lg border border-divider">
-                <div className="flex items-center justify-between mb-1">
-                  <p className="text-xs text-default-500">Your salt:</p>
-                  <button
-                    type="button"
-                    onClick={copySalt}
-                    className="text-xs text-[#009F4D] hover:underline flex items-center gap-1"
-                  >
-                    {saltCopied ? <CheckCircle className="w-3 h-3" /> : <Copy className="w-3 h-3" />}
-                    {saltCopied ? 'Copied!' : 'Copy'}
-                  </button>
-                </div>
-                <p className="text-sm font-mono break-all">{commitSalt}</p>
-              </div>
-            )}
-          </div>
+          <CommitBidForm
+            commitAmount={commitAmount}
+            commitMessage={commitMessage}
+            commitSalt={commitSalt}
+            maxBudgetEth={maxBudgetEth}
+            stake={stake}
+            ethBalance={ethBalance}
+            isCommitPending={isCommitPending}
+            saltCopied={saltCopied}
+            onAmountChange={setCommitAmount}
+            onMessageChange={setCommitMessage}
+            onSaltChange={setCommitSalt}
+            onCommit={handleCommitBid}
+            onCopySalt={copySalt}
+          />
         )}
 
-        {session.status === SessionStatus.BiddingClosed &&
-          userBid &&
-          !userBid.revealed &&
-          isConnected && (
-            <div className="space-y-4">
-              <p className="text-default-500">
-                The bidding deadline has passed. Reveal your bid to be considered.
-              </p>
-              {commitSalt && (
-                <div className="p-3 bg-content2 rounded-lg border border-divider">
-                  <div className="flex items-center justify-between mb-1">
-                    <p className="text-xs text-default-500">Your salt (required for reveal):</p>
-                    <button
-                      type="button"
-                      onClick={copySalt}
-                      className="text-xs text-[#009F4D] hover:underline flex items-center gap-1"
-                    >
-                      {saltCopied ? <CheckCircle className="w-3 h-3" /> : <Copy className="w-3 h-3" />}
-                      {saltCopied ? 'Copied!' : 'Copy'}
-                    </button>
-                  </div>
-                  <p className="text-sm font-mono break-all">{commitSalt}</p>
-                </div>
-              )}
-              <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
-                <div>
-                  <label className="text-sm font-medium mb-1 block">Amount (ETH)</label>
-                  <input
-                    type="number"
-                    value={revealAmount}
-                    onChange={e => setRevealAmount(e.target.value)}
-                    step="0.001"
-                    placeholder="Same as committed amount"
-                    className="w-full px-4 py-2 bg-content1 border border-divider rounded-lg focus:outline-none focus:border-[#009F4D]"
-                  />
-                </div>
-                <div>
-                  <label className="text-sm font-medium mb-1 block">Message</label>
-                  <input
-                    type="text"
-                    value={revealMessage}
-                    onChange={e => setRevealMessage(e.target.value)}
-                    placeholder="Same as committed message"
-                    className="w-full px-4 py-2 bg-content1 border border-divider rounded-lg focus:outline-none focus:border-[#009F4D]"
-                  />
-                </div>
-              </div>
-              <button
-                onClick={handleRevealBid}
-                disabled={!revealAmount || isRevealPending}
-                className="px-6 py-2 bg-[#009F4D] text-white font-medium rounded-lg hover:bg-[#008F3D] transition-colors disabled:opacity-50 disabled:cursor-not-allowed"
-              >
-                {isRevealPending ? (
-                  <Loader2 className="w-4 h-4 animate-spin inline" />
-                ) : (
-                  'Reveal Bid'
-                )}
-              </button>
-            </div>
-          )}
+        {session.status === SessionStatus.BiddingClosed && userBid && !userBid.revealed && isConnected && (
+          <RevealBidForm
+            revealAmount={revealAmount}
+            revealMessage={revealMessage}
+            commitSalt={commitSalt}
+            isRevealPending={isRevealPending}
+            saltCopied={saltCopied}
+            onAmountChange={setRevealAmount}
+            onMessageChange={setRevealMessage}
+            onReveal={handleRevealBid}
+            onCopySalt={copySalt}
+          />
+        )}
 
         {isCreator && session.status === SessionStatus.BiddingClosed && (
-          <div className="space-y-4">
-            <p className="text-default-500">The bidding is closed. Select a winner to proceed.</p>
-            {isLoadingRevealedBids ? (
-              <div className="flex items-center gap-2 text-default-500">
-                <Loader2 className="w-4 h-4 animate-spin" />
-                Loading revealed bids...
-              </div>
-            ) : selectableBids.length === 0 ? (
-              <div className="p-4 rounded-lg border border-warning/30 bg-warning/10">
-                <p className="text-sm text-warning-700 dark:text-warning-200">
-                  No revealed provider bids are available yet.
-                </p>
-              </div>
-            ) : (
-              <div className="space-y-3">
-                {selectableBids.map((bid: BidInfo) => {
-                  const isSelected = selectedBid?.bidId === bid.bidId;
-                  return (
-                    <button
-                      key={bid.bidId.toString()}
-                      type="button"
-                      onClick={() => setSelectedBidId(bid.bidId)}
-                      className={`w-full text-left p-4 rounded-lg border transition-colors ${
-                        isSelected
-                          ? 'border-[#009F4D] bg-[#009F4D]/5'
-                          : 'border-divider hover:bg-content2'
-                      }`}
-                    >
-                      <div className="flex flex-col md:flex-row md:items-center md:justify-between gap-2">
-                        <div>
-                          <p className="font-medium">Bid #{bid.bidId.toString()}</p>
-                          <p className="text-xs text-default-500 font-mono">{bid.bidder}</p>
-                          {bid.message && (
-                            <p className="text-sm text-default-500 mt-1">{bid.message}</p>
-                          )}
-                        </div>
-                        <div className="md:text-right">
-                          <p className="font-semibold text-[#009F4D]">
-                            {Number(formatEther(bid.proposedAmount)).toFixed(4)} ETH
-                          </p>
-                          <p className="text-xs text-default-500">
-                            Stake {Number(formatEther(bid.stake)).toFixed(4)} ETH
-                          </p>
-                        </div>
-                      </div>
-                    </button>
-                  );
-                })}
-              </div>
-            )}
-            <div className="flex flex-wrap gap-4">
-              <button
-                onClick={handleAcceptBid}
-                disabled={!selectedBid || selectedBid.accepted || isAcceptPending}
-                className="px-6 py-2 bg-[#009F4D] text-white font-medium rounded-lg hover:bg-[#008F3D] transition-colors disabled:opacity-50 disabled:cursor-not-allowed"
-              >
-                {isAcceptPending ? (
-                  <Loader2 className="w-4 h-4 animate-spin inline" />
-                ) : selectedBid?.accepted ? (
-                  'Accepted'
-                ) : (
-                  'Accept Winning Bid'
-                )}
-              </button>
-              <button
-                onClick={handleRejectBid}
-                disabled={!selectedBid || selectedBid.rejected || isRejectPending}
-                className="px-6 py-2 bg-warning text-white font-medium rounded-lg hover:opacity-80 transition-colors disabled:opacity-50 disabled:cursor-not-allowed"
-              >
-                {isRejectPending ? (
-                  <Loader2 className="w-4 h-4 animate-spin inline" />
-                ) : selectedBid?.rejected ? (
-                  'Rejected'
-                ) : (
-                  'Reject Bid'
-                )}
-              </button>
-              <button
-                onClick={handleCancelSession}
-                disabled={isCancelPending}
-                className="px-6 py-2 bg-danger text-white font-medium rounded-lg hover:opacity-80 transition-colors disabled:opacity-50 disabled:cursor-not-allowed"
-              >
-                {isCancelPending ? (
-                  <Loader2 className="w-4 h-4 animate-spin inline" />
-                ) : (
-                  'Cancel Session'
-                )}
-              </button>
-            </div>
-          </div>
+          <BiddingWinnerSelection
+            selectableBids={selectableBids}
+            selectedBid={selectedBid}
+            isLoadingRevealedBids={isLoadingRevealedBids}
+            isAcceptPending={isAcceptPending}
+            isRejectPending={isRejectPending}
+            isCancelPending={isCancelPending}
+            onSelectBid={setSelectedBidId}
+            onAcceptBid={handleAcceptBid}
+            onRejectBid={handleRejectBid}
+            onCancelSession={handleCancelSession}
+          />
         )}
 
         {!isWinner && userBid && userBid.stake > 0n && !userBid.stakeWithdrawn && (
           <button
+            type="button"
             onClick={handleWithdrawStake}
             disabled={isWithdrawPending}
             className="px-6 py-2 bg-[#009F4D] text-white font-medium rounded-lg hover:bg-[#008F3D] transition-colors disabled:opacity-50 disabled:cursor-not-allowed"
           >
-            {isWithdrawPending ? (
-              <Loader2 className="w-4 h-4 animate-spin inline" />
-            ) : (
-              'Withdraw Stake'
-            )}
+            {isWithdrawPending ? <Loader2 className="size-4 animate-spin inline" /> : 'Withdraw Stake'}
           </button>
         )}
 
         {isWinner && userBid && userBid.stake > 0n && !userBid.stakeWithdrawn && (
           <button
+            type="button"
             onClick={handleWithdrawStake}
             disabled={isWithdrawPending}
             className="px-6 py-2 bg-[#009F4D] text-white font-medium rounded-lg hover:bg-[#008F3D] transition-colors disabled:opacity-50 disabled:cursor-not-allowed"
           >
-            {isWithdrawPending ? (
-              <Loader2 className="w-4 h-4 animate-spin inline" />
-            ) : (
-              'Withdraw Stake'
-            )}
+            {isWithdrawPending ? <Loader2 className="size-4 animate-spin inline" /> : 'Withdraw Stake'}
           </button>
         )}
 
         {isCreator && session.status === SessionStatus.JobCreated && (
           <button
+            type="button"
             onClick={handleCompleteSession}
             disabled={isCompletePending}
             className="px-6 py-2 bg-[#009F4D] text-white font-medium rounded-lg hover:bg-[#008F3D] transition-colors disabled:opacity-50 disabled:cursor-not-allowed"
           >
-            {isCompletePending ? (
-              <Loader2 className="w-4 h-4 animate-spin inline" />
-            ) : (
-              'Complete Session'
-            )}
+            {isCompletePending ? <Loader2 className="size-4 animate-spin inline" /> : 'Complete Session'}
           </button>
         )}
 
         {isCreator && (session.status === SessionStatus.Completed || session.status === SessionStatus.Cancelled) && (
           <button
+            type="button"
             onClick={handleWithdrawCreatorStake}
             disabled={isCreatorWithdrawPending}
             className="px-6 py-2 bg-[#009F4D] text-white font-medium rounded-lg hover:bg-[#008F3D] transition-colors disabled:opacity-50 disabled:cursor-not-allowed"
           >
-            {isCreatorWithdrawPending ? (
-              <Loader2 className="w-4 h-4 animate-spin inline" />
-            ) : (
-              'Withdraw Creator Stake'
-            )}
+            {isCreatorWithdrawPending ? <Loader2 className="size-4 animate-spin inline" /> : 'Withdraw Creator Stake'}
           </button>
         )}
 
-        {isCreator &&
-          (session.status === SessionStatus.Active ||
-            session.status === SessionStatus.BiddingClosed) && (
-            <div className="mt-6 pt-6 border-t border-divider">
-              <p className="text-sm text-default-500 mb-4">Extend reveal window if needed:</p>
-              <div className="flex items-center gap-4">
-                <input
-                  type="number"
-                  value={extendSeconds}
-                  onChange={e => setExtendSeconds(e.target.value)}
-                  placeholder="3600"
-                  className="w-32 px-4 py-2 bg-content1 border border-divider rounded-lg focus:outline-none focus:border-[#009F4D]"
-                />
-                <span className="text-default-500">seconds</span>
-                <button
-                  onClick={handleExtendWindow}
-                  disabled={isExtendPending || !extendSeconds}
-                  className="px-6 py-2 bg-content2 border border-divider font-medium rounded-lg hover:bg-content3 transition-colors disabled:opacity-50 disabled:cursor-not-allowed"
-                >
-                  {isExtendPending ? (
-                    <Loader2 className="w-4 h-4 animate-spin inline" />
-                  ) : (
-                    'Extend Window'
-                  )}
-                </button>
-              </div>
-            </div>
-          )}
+        {isCreator && (session.status === SessionStatus.Active || session.status === SessionStatus.BiddingClosed) && (
+          <ExtendRevealWindow
+            extendSeconds={extendSeconds}
+            isExtendPending={isExtendPending}
+            onSecondsChange={setExtendSeconds}
+            onExtend={handleExtendWindow}
+          />
+        )}
       </Card>
     </div>
   );

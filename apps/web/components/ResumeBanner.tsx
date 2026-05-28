@@ -32,7 +32,7 @@ export function ResumeBanner() {
           className="bg-amber-500/10 border border-amber-500/20 rounded-lg px-4 py-3 flex items-center justify-between"
         >
           <div className="flex items-center gap-3">
-            <AlertCircle className="w-5 h-5 text-amber-400" />
+            <AlertCircle className="size-5 text-amber-400" />
             <div>
               <p className="text-sm font-medium text-amber-200">
                 {tx.nextStep?.description || 'Resume pending action'}
@@ -41,7 +41,7 @@ export function ResumeBanner() {
             </div>
           </div>
           <div className="flex items-center gap-2">
-            <button
+            <button type="button"
               onClick={() => {
                 registry.updateTransaction(tx.id, { resumedAt: Date.now() });
                 // TODO: Navigate to appropriate page or trigger next step
@@ -50,11 +50,11 @@ export function ResumeBanner() {
             >
               Resume
             </button>
-            <button
+            <button type="button"
               onClick={() => setDismissed((prev) => [...prev, tx.id])}
               className="p-1.5 text-default-400 hover:text-foreground transition-colors"
             >
-              <X className="w-4 h-4" />
+              <X className="size-4" />
             </button>
           </div>
         </div>

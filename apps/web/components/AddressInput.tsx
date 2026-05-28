@@ -23,7 +23,7 @@ export function AddressInput({
   value,
   onChange,
   onBlur,
-  placeholder = '0x...',
+  placeholder = '0x…',
   label,
   error: externalError,
   disabled = false,
@@ -104,24 +104,24 @@ export function AddressInput({
         {showValidation && mounted && value && (
           <div className="absolute right-3 top-1/2 -translate-y-1/2">
             {isEnsLoading ? (
-              <Loader2 className="w-4 h-4 animate-spin text-default-400" />
+              <Loader2 className="size-4 animate-spin text-default-400" />
             ) : isValid ? (
-              <Check className="w-4 h-4 text-success" />
+              <Check className="size-4 text-success" />
             ) : (
-              <AlertCircle className="w-4 h-4 text-danger" />
+              <AlertCircle className="size-4 text-danger" />
             )}
           </div>
         )}
       </div>
       {showError && (
         <p className="text-xs text-danger flex items-center gap-1">
-          <AlertCircle className="w-3 h-3" />
+          <AlertCircle className="size-3" />
           {externalError || internalError}
         </p>
       )}
       {resolveEns && value.endsWith('.eth') && ensAddress && (
         <p className="text-xs text-success flex items-center gap-1">
-          <Check className="w-3 h-3" />
+          <Check className="size-3" />
           Resolved: {formatAddress(ensAddress)}
         </p>
       )}

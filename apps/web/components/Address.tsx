@@ -27,17 +27,16 @@ function CopyButton({ text, className = '' }: { text: string; variant?: string; 
   };
 
   return (
-    <button
-      type="button"
+    <button type="button"
       onClick={handleCopy}
       className={`inline-flex items-center justify-center rounded transition-colors ${className}`}
       aria-label={copied ? 'Address copied' : 'Copy address'}
       title={copied ? 'Copied!' : 'Copy address'}
     >
       {copied ? (
-        <Check className="w-3 h-3 text-success" />
+        <Check className="size-3 text-success" />
       ) : (
-        <Copy className="w-3 h-3 text-default-400 hover:text-default-600" />
+        <Copy className="size-3 text-default-400 hover:text-default-600" />
       )}
     </button>
   );
@@ -140,7 +139,7 @@ export function Address({
           className="p-0.5 hover:bg-content2 rounded transition-colors inline-flex cursor-pointer"
           title="View on Etherscan"
         >
-          <ExternalLink className="w-3 h-3 text-default-400 hover:text-default-600" />
+          <ExternalLink className="size-3 text-default-400 hover:text-default-600" />
         </span>
       )}
     </span>

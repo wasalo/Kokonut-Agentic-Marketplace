@@ -1,6 +1,6 @@
 'use client';
 
-import { useState, useCallback } from 'react';
+import { useState, useCallback, useEffect } from 'react';
 import { useAccount } from 'wagmi';
 import { useRouter } from 'next/navigation';
 import { ArrowLeft } from 'lucide-react';
@@ -14,6 +14,10 @@ import { TransactionError } from '@/components/TransactionError';
 import { showToast } from '@/lib/toast';
 
 export default function CreateProposalPage() {
+  useEffect(() => {
+    document.title = 'Create Proposal | Kokonut Agent Economy';
+  }, []);
+
   const router = useRouter();
   const { isConnected } = useAccount();
   const [formData, setFormData] = useState({
@@ -137,7 +141,7 @@ export default function CreateProposalPage() {
                 </label>
                 <textarea
                   id="description"
-                  placeholder="Describe your proposal and what you need evaluated..."
+                  placeholder="Describe your proposal and what you need evaluatedâ¦"
                   rows={4}
                   value={formData.description}
                   onChange={e => updateFormField('description', e.target.value)}
@@ -153,7 +157,7 @@ export default function CreateProposalPage() {
                 <input
                   id="criteriaURI"
                   type="text"
-                  placeholder="ipfs://..."
+                  placeholder="ipfs://â¦"
                   value={formData.criteriaURI}
                   onChange={e => updateFormField('criteriaURI', e.target.value)}
                   className="w-full px-3 py-2 bg-content2 border border-divider rounded-lg text-foreground placeholder:text-default-400 focus:outline-none focus:ring-2 focus:ring-[#009F4D] focus:border-transparent disabled:opacity-50"
@@ -183,7 +187,7 @@ export default function CreateProposalPage() {
                   </p>
                   {formData.reward && ethPriceInUsd && ethPriceInUsd > 0 && (
                     <p className="text-xs text-default-400">
-                      ≈ ${(parseFloat(formData.reward) * ethPriceInUsd).toFixed(2)} USD
+                      â ${(parseFloat(formData.reward) * ethPriceInUsd).toFixed(2)} USD
                     </p>
                   )}
                 </div>
@@ -214,7 +218,7 @@ export default function CreateProposalPage() {
                       name="evaluatorVisibility"
                       checked={formData.isPublicEvaluators}
                       onChange={() => togglePublicEvaluators(true)}
-                      className="w-4 h-4 text-success"
+                      className="size-4 text-success"
                     />
                     <div>
                       <span className="text-sm font-medium">Public</span>
@@ -229,7 +233,7 @@ export default function CreateProposalPage() {
                       name="evaluatorVisibility"
                       checked={!formData.isPublicEvaluators}
                       onChange={() => togglePublicEvaluators(false)}
-                      className="w-4 h-4 text-success"
+                      className="size-4 text-success"
                     />
                     <div>
                       <span className="text-sm font-medium">Private</span>
@@ -244,15 +248,13 @@ export default function CreateProposalPage() {
               <TransactionError error={error} />
 
               <div className="flex gap-4">
-                <button
-                  type="submit"
+                <button type="submit"
                   disabled={!isConnected || isPending || isConfirming}
                   className="flex-1 inline-flex items-center justify-center gap-2 px-6 py-3 border-2 border-[#009F4D] text-[#009F4D] font-semibold rounded-lg hover:bg-[#009F4D]/5 transition-colors disabled:opacity-50 disabled:cursor-not-allowed"
                 >
-                  {isPending || isConfirming ? 'Creating...' : 'Create Proposal'}
+                  {isPending || isConfirming ? 'Creating…' : 'Create Proposal'}
                 </button>
-                <button
-                  type="button"
+                <button type="button"
                   onClick={() => router.back()}
                   className="inline-flex items-center justify-center gap-2 px-6 py-3 border border-divider text-foreground font-medium rounded-lg hover:bg-content2 transition-colors"
                 >

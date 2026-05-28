@@ -1,5 +1,6 @@
 'use client';
 
+import { useEffect } from 'react';
 export const dynamic = 'force-dynamic';
 
 import { useAccount, useChainId } from 'wagmi';
@@ -154,10 +155,10 @@ function QuickActions() {
               className={DS.cards.clickable}
             >
               <div className="flex items-start justify-between mb-2">
-                <div className="w-10 h-10 rounded-lg flex items-center justify-center bg-primary/10">
-                  <Icon className="w-5 h-5 text-primary" />
+                <div className="size-100 rounded-lg flex items-center justify-center bg-primary/10">
+                  <Icon className="size-5 text-primary" />
                 </div>
-                <ArrowRight className="w-4 h-4 text-default-400 group-hover:text-primary transition-colors" />
+                <ArrowRight className="size-4 text-default-400 group-hover:text-primary transition-colors" />
               </div>
               <p className="font-medium text-foreground">{action.label}</p>
               <p className="text-xs text-default-500 mt-0.5">{action.description}</p>
@@ -227,7 +228,7 @@ function PriorityActions({ user }: { user: `0x${string}` }) {
                 <p className="font-medium text-sm">{item.title}</p>
                 <p className="text-xs text-default-500 mt-1">{item.detail}</p>
               </div>
-              <ArrowRight className="w-4 h-4 text-default-400" />
+              <ArrowRight className="size-4 text-default-400" />
             </div>
           </NextLink>
         ))}
@@ -255,7 +256,7 @@ function PlatformActivityWidget() {
           className="text-sm text-primary hover:underline flex items-center gap-1"
         >
           View All
-          <ArrowRight className="w-3 h-3" />
+          <ArrowRight className="size-3" />
         </NextLink>
       }
     >
@@ -267,7 +268,7 @@ function PlatformActivityWidget() {
         </div>
       ) : activities.length === 0 ? (
         <div className="text-center py-8 text-default-500">
-          <Activity className="w-8 h-8 mx-auto mb-2 text-default-400" />
+          <Activity className="size-8 mx-auto mb-2 text-default-400" />
           <p className="text-sm">No recent activity</p>
         </div>
       ) : (
@@ -286,7 +287,7 @@ function PlatformActivityWidget() {
                 href={linkPath}
                 className="flex items-center gap-3 p-3 border border-divider rounded-lg hover:bg-content2/50 transition-colors"
               >
-                <div className={`w-2 h-2 rounded-full flex-shrink-0 ${badge.color}`} />
+                <div className={`size-2 rounded-full flex-shrink-0 ${badge.color}`} />
                 <div className="flex-1 min-w-0">
                   <p className="text-sm font-medium truncate">{activity.action}</p>
                   <p className="text-xs text-default-500 truncate">
@@ -306,6 +307,10 @@ function PlatformActivityWidget() {
 }
 
 export default function DashboardPage(): JSX.Element {
+  useEffect(() => {
+    document.title = 'Dashboard | Kokonut Agent Economy';
+  }, []);
+
   const { address: user, isConnected } = useAccount();
   const chainId = useChainId();
 

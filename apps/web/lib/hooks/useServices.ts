@@ -66,24 +66,6 @@ function mapServiceData(id: bigint, data: unknown): Service | null {
   return null;
 }
 
-export function useActiveServiceCount() {
-  const { data, isLoading, error, refetch } = useReadContract({
-    address: SERVICE_REGISTRY_ADDRESS,
-    abi: SERVICE_REGISTRY_ABI,
-    functionName: 'getActiveServiceCount',
-    query: {
-      staleTime: 60000,
-    },
-  });
-
-  return {
-    count: data ? Number(data) : 0,
-    isLoading,
-    error: error as Error | null,
-    refetch,
-  };
-}
-
 export function useTotalServiceCount() {
   const { data, isLoading, error, refetch } = useReadContract({
     address: SERVICE_REGISTRY_ADDRESS,
@@ -206,57 +188,6 @@ export function useProviderServices(providerAddress: `0x${string}` | undefined) 
   return {
     services,
     isLoading: isLoading || countLoading,
-    error: error as Error | null,
-    refetch,
-  };
-}
-
-export function useAgentServices(agentId: number | bigint | undefined) {
-  const id = agentId !== undefined
-    ? (typeof agentId === 'bigint' ? agentId : BigInt(agentId))
-    : undefined;
-
-  const { data: serviceIds, isLoading: idsLoading } = useReadContract({
-    address: SERVICE_REGISTRY_ADDRESS,
-    abi: SERVICE_REGISTRY_ABI,
-    functionName: 'getServicesByAgent',
-    args: id !== undefined ? [id] : undefined,
-    query: {
-      enabled: id !== undefined,
-    },
-  });
-
-  const ids = (serviceIds as bigint[] | undefined) || [];
-
-  const queries = ids.map(sid => ({
-    address: SERVICE_REGISTRY_ADDRESS,
-    abi: SERVICE_REGISTRY_ABI,
-    functionName: 'getService' as const,
-    args: [sid],
-  }));
-
-  const { data: results, isLoading, error, refetch } = useReadContracts({
-    contracts: queries,
-    query: {
-      enabled: queries.length > 0,
-      staleTime: 60000,
-    },
-  });
-
-  const services: Service[] = [];
-  if (results) {
-    for (let i = 0; i < results.length; i++) {
-      const result = results[i];
-      if (result.status === 'success' && result.result) {
-        const service = mapServiceData(ids[i], result.result);
-        if (service) services.push(service);
-      }
-    }
-  }
-
-  return {
-    services,
-    isLoading: isLoading || idsLoading,
     error: error as Error | null,
     refetch,
   };

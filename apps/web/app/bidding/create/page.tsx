@@ -14,6 +14,10 @@ import { showToast } from '@/lib/toast';
 const MIN_DEADLINE = 5 * 60; // 5 minutes in seconds
 const MAX_DEADLINE = 365 * 24 * 60 * 60; // 1 year in seconds
 export default function CreateBiddingSessionPage(): JSX.Element {
+  useEffect(() => {
+    document.title = 'Create Bidding Session | Kokonut Agent Economy';
+  }, []);
+
   const router = useRouter();
   const { address, isConnected } = useAccount();
 
@@ -115,7 +119,7 @@ export default function CreateBiddingSessionPage(): JSX.Element {
     return (
       <div className="container mx-auto px-4 py-8 max-w-2xl">
         <Card className="border border-divider p-12 text-center">
-          <AlertCircle className="w-12 h-12 mx-auto text-default-300 mb-4" />
+          <AlertCircle className="size-122 mx-auto text-default-300 mb-4" />
           <h3 className="text-lg font-semibold mb-2">Wallet Not Connected</h3>
           <p className="text-default-500 mb-4">
             Please connect your wallet to create a bidding session.
@@ -133,7 +137,7 @@ export default function CreateBiddingSessionPage(): JSX.Element {
       {/* Header */}
       <div className="flex items-center gap-4 mb-8">
         <NextLink href="/bidding" className="p-2 hover:bg-content2 rounded-lg transition-colors">
-          <ArrowLeft className="w-5 h-5" />
+          <ArrowLeft className="size-5" />
         </NextLink>
         <div>
           <h1 className="text-2xl font-bold">Create Bidding Session</h1>
@@ -153,7 +157,7 @@ export default function CreateBiddingSessionPage(): JSX.Element {
               type="text"
               value={evaluator}
               onChange={e => setEvaluator(e.target.value)}
-              placeholder="0x..."
+              placeholder="0x…"
               className={`w-full px-4 py-2 bg-content1 border rounded-lg focus:outline-none focus:ring-2 focus:ring-[#009F4D]/50 ${
                 errors.evaluator ? 'border-danger' : 'border-divider'
               }`}
@@ -170,7 +174,7 @@ export default function CreateBiddingSessionPage(): JSX.Element {
               Maximum Budget (ETH) <span className="text-danger">*</span>
             </label>
             <div className="relative">
-              <DollarSign className="absolute left-3 top-1/2 -translate-y-1/2 w-4 h-4 text-default-400" />
+              <DollarSign className="absolute left-3 top-1/2 -translate-y-1/2 size-4 text-default-400" />
               <input
                 type="text"
                 inputMode="decimal"
@@ -193,7 +197,7 @@ export default function CreateBiddingSessionPage(): JSX.Element {
           {/* Stake Info */}
           <div className="p-4 bg-[#009F4D]/10 rounded-lg">
             <div className="flex items-center gap-2 mb-2">
-              <DollarSign className="w-4 h-4 text-[#009F4D]" />
+              <DollarSign className="size-4 text-[#009F4D]" />
               <span className="text-sm font-medium text-[#009F4D]">Required Stake</span>
             </div>
             <p className="text-2xl font-bold">
@@ -216,7 +220,7 @@ export default function CreateBiddingSessionPage(): JSX.Element {
               Deadline (minutes from now) <span className="text-danger">*</span>
             </label>
             <div className="relative">
-              <Clock className="absolute left-3 top-1/2 -translate-y-1/2 w-4 h-4 text-default-400" />
+              <Clock className="absolute left-3 top-1/2 -translate-y-1/2 size-4 text-default-400" />
               <input
                 type="number"
                 value={deadline}
@@ -262,7 +266,7 @@ export default function CreateBiddingSessionPage(): JSX.Element {
             <textarea
               value={metadata}
               onChange={e => setMetadata(e.target.value)}
-              placeholder="Describe your project or requirements..."
+              placeholder="Describe your project or requirements…"
               rows={4}
               className="w-full px-4 py-2 bg-content1 border border-divider rounded-lg focus:outline-none focus:ring-2 focus:ring-[#009F4D]/50 resize-none"
             />
@@ -275,7 +279,7 @@ export default function CreateBiddingSessionPage(): JSX.Element {
           {writeError && (
             <div className="p-4 bg-danger/10 border border-danger/30 rounded-lg">
               <div className="flex items-center gap-2">
-                <AlertCircle className="w-4 h-4 text-danger" />
+                <AlertCircle className="size-4 text-danger" />
                 <span className="text-sm font-medium text-danger">Transaction Failed</span>
               </div>
               <p className="text-sm text-danger/80 mt-1">
@@ -289,8 +293,7 @@ export default function CreateBiddingSessionPage(): JSX.Element {
             <NextLink href="/bidding" className="text-default-500 hover:text-default-700">
               Cancel
             </NextLink>
-            <button
-              type="submit"
+            <button type="submit"
               disabled={
                 !isConnected ||
                 isPending ||
@@ -303,7 +306,7 @@ export default function CreateBiddingSessionPage(): JSX.Element {
               className="inline-flex items-center justify-center gap-2 px-5 py-2.5 bg-gradient-to-r from-[#009F4D] to-[#00c853] text-white rounded-lg font-medium hover:opacity-90 transition-opacity disabled:opacity-50"
             >
               {isPending || isConfirming ? (
-                <Loader2 className="w-5 h-5 animate-spin inline" />
+                <Loader2 className="size-5 animate-spin inline" />
               ) : isConfirmed ? (
                 'Session Created!'
               ) : (

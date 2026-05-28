@@ -50,7 +50,7 @@ export function useAddKokonutTag(): UseAddKokonutTagReturn {
 
       try {
         // Step 1: Fetch current tokenURI
-        addLog('contract', 'Fetching current tokenURI...');
+        addLog('contract', 'Fetching current tokenURI…');
 
         const uri = await publicClient.readContract({
           address: ERC8004_ADDRESS,
@@ -59,7 +59,7 @@ export function useAddKokonutTag(): UseAddKokonutTagReturn {
           args: [BigInt(agentId)],
         });
 
-        addLog('contract', 'Current URI fetched', { uri: uri.slice(0, 100) + '...' });
+        addLog('contract', 'Current URI fetched', { uri: uri.slice(0, 100) + '…' });
 
         // Step 2: Decode current metadata
         const currentMetadata = decodeAgentMetadata(uri);
@@ -90,12 +90,12 @@ export function useAddKokonutTag(): UseAddKokonutTagReturn {
         const newURI = generateAgentMetadata(newMetadata);
 
         addLog('contract', 'New metadata generated', {
-          uri: newURI.slice(0, 100) + '...',
+          uri: newURI.slice(0, 100) + '…',
           source: newMetadata.source,
         });
 
         // Step 6: Call setAgentURI
-        addLog('contract', 'Calling setAgentURI...');
+        addLog('contract', 'Calling setAgentURI…');
 
         writeContract({
           chainId: SEPOLIA_CHAIN_ID,

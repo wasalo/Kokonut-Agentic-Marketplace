@@ -27,7 +27,7 @@ function TierBadge({ rank }: TierBadgeProps) {
     const color = getTierColor(tier);
     return (
       <div
-        className="w-8 h-8 rounded-full flex items-center justify-center font-bold text-sm"
+        className="size-8 rounded-full flex items-center justify-center font-bold text-sm"
         style={{ backgroundColor: `${color}20`, color }}
       >
         {rank}
@@ -36,7 +36,7 @@ function TierBadge({ rank }: TierBadgeProps) {
   }
 
   return (
-    <div className="w-8 h-8 rounded-full flex items-center justify-center bg-content2 text-default-500 text-sm font-medium">
+    <div className="size-8 rounded-full flex items-center justify-center bg-content2 text-default-500 text-sm font-medium">
       {rank}
     </div>
   );
@@ -82,6 +82,9 @@ function LeaderboardRow({ entry, rank }: LeaderboardRowProps) {
   return (
     <div
       onClick={handleRowClick}
+      onKeyDown={(e) => { if (e.key === 'Enter' || e.key === ' ') handleRowClick(); }}
+      role="button"
+      tabIndex={0}
       className="flex items-center gap-4 p-4 hover:bg-content2 transition-colors rounded-lg cursor-pointer"
     >
       <TierBadge rank={rank} />
@@ -104,11 +107,11 @@ function LeaderboardRow({ entry, rank }: LeaderboardRowProps) {
       </div>
       <div className="flex items-center gap-4 text-sm text-default-500 min-w-[120px]">
         <div className="flex items-center gap-1">
-          <Star className="w-3 h-3" />
+          <Star className="size-3" />
           <span>{entry.healthScore.score}</span>
         </div>
         <div className="flex items-center gap-1">
-          <Users className="w-3 h-3" />
+          <Users className="size-3" />
           <span>{entry.servicesCount} svc</span>
         </div>
       </div>
@@ -128,7 +131,7 @@ function TimeFilterTabs() {
   return (
     <div className="flex gap-2">
       {periods.map(p => (
-          <button
+          <button type="button"
             key={p.value}
             onClick={() => {}}
             className={`px-4 py-2 text-sm font-medium rounded-lg transition-colors ${
@@ -170,7 +173,7 @@ function LoadingSkeleton() {
     <div className="space-y-3">
       {[...Array(10)].map((_, i) => (
         <div key={i} className="flex items-center gap-4 p-4 animate-pulse">
-          <div className="w-8 h-8 rounded-full bg-content2" />
+          <div className="size-8 rounded-full bg-content2" />
           <div className="flex-1">
             <div className="h-5 bg-content2 rounded w-32 mb-2" />
             <div className="h-3 bg-content2 rounded w-24" />
@@ -198,14 +201,14 @@ export default function LeaderboardPage() {
       <div className="flex flex-col md:flex-row justify-between items-start md:items-center gap-4 mb-8">
         <div>
           <h1 className="text-3xl font-bold flex items-center gap-3">
-            <Trophy className="w-8 h-8 text-warning" />
+            <Trophy className="size-8 text-warning" />
             Agent Leaderboard
           </h1>
           <p className="text-default-500">Top-performing Kokonut agents ranked by health score</p>
         </div>
         <div className="flex items-center gap-3">
           <Button variant="ghost" size="sm" onPress={() => refetch()} isDisabled={isLoading}>
-            <RefreshCw className={`w-4 h-4 ${isLoading ? 'animate-spin' : ''}`} />
+            <RefreshCw className={`size-4 ${isLoading ? 'animate-spin' : ''}`} />
             Refresh
           </Button>
         </div>
@@ -214,21 +217,21 @@ export default function LeaderboardPage() {
       <div className="flex flex-col lg:flex-row gap-6 mb-8">
         <Card className="border border-divider p-6 flex-1">
           <div className="flex items-center gap-3 mb-2">
-            <Users className="w-5 h-5 text-primary" />
+            <Users className="size-5 text-primary" />
             <span className="text-sm text-default-500">Total Kokonut Agents</span>
           </div>
           <p className="text-3xl font-bold">{entries.length}</p>
         </Card>
         <Card className="border border-divider p-6 flex-1">
           <div className="flex items-center gap-3 mb-2">
-            <Trophy className="w-5 h-5 text-warning" />
+            <Trophy className="size-5 text-warning" />
             <span className="text-sm text-default-500">On Leaderboard</span>
           </div>
           <p className="text-3xl font-bold">{entries.length}</p>
         </Card>
         <Card className="border border-divider p-6 flex-1">
           <div className="flex items-center gap-3 mb-2">
-            <Star className="w-5 h-5 text-success" />
+            <Star className="size-5 text-success" />
             <span className="text-sm text-default-500">Avg. Health Score</span>
           </div>
           <p className="text-3xl font-bold">
@@ -284,25 +287,25 @@ export default function LeaderboardPage() {
         <div className="mt-6 flex justify-center">
           <div className="flex items-center gap-6 text-sm">
             <div className="flex items-center gap-2">
-              <div className="w-4 h-4 rounded-full bg-[#FFD700] flex items-center justify-center text-xs font-bold text-black">
+              <div className="size-4 rounded-full bg-[#FFD700] flex items-center justify-center text-xs font-bold text-black">
                 1
               </div>
               <span className="text-default-500">Gold (80+)</span>
             </div>
             <div className="flex items-center gap-2">
-              <div className="w-4 h-4 rounded-full bg-[#C0C0C0] flex items-center justify-center text-xs font-bold text-black">
+              <div className="size-4 rounded-full bg-[#C0C0C0] flex items-center justify-center text-xs font-bold text-black">
                 2
               </div>
               <span className="text-default-500">Silver (60-79)</span>
             </div>
             <div className="flex items-center gap-2">
-              <div className="w-4 h-4 rounded-full bg-[#CD7F32] flex items-center justify-center text-xs font-bold text-white">
+              <div className="size-4 rounded-full bg-[#CD7F32] flex items-center justify-center text-xs font-bold text-white">
                 3
               </div>
               <span className="text-default-500">Bronze (40-59)</span>
             </div>
             <div className="flex items-center gap-2">
-              <div className="w-4 h-4 rounded-full bg-[#9CA3AF] flex items-center justify-center text-xs font-bold text-white">
+              <div className="size-4 rounded-full bg-[#9CA3AF] flex items-center justify-center text-xs font-bold text-white">
                 4
               </div>
               <span className="text-default-500">Standard (&lt;40)</span>

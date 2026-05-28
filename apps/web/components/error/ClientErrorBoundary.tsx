@@ -29,9 +29,9 @@ export class ClientErrorBoundary extends Component<Props, State> {
     if (this.state.hasError) {
       return (
         <div className="min-h-screen flex flex-col items-center justify-center p-8 text-center bg-background text-foreground">
-          <div className="w-16 h-16 rounded-full bg-danger-500/20 flex items-center justify-center mb-4">
+          <div className="size-166 rounded-full bg-danger-500/20 flex items-center justify-center mb-4">
             <svg
-              className="w-8 h-8 text-danger"
+              className="size-8 text-danger"
               fill="none"
               viewBox="0 0 24 24"
               stroke="currentColor"
@@ -49,7 +49,7 @@ export class ClientErrorBoundary extends Component<Props, State> {
             {this.state.error?.message ||
               'An unexpected error occurred while loading the application.'}
           </p>
-          <button
+          <button type="button"
             onClick={() => window.location.reload()}
             className="px-5 py-2.5 bg-primary text-primary-foreground rounded-lg font-medium hover:opacity-90 transition-opacity"
           >

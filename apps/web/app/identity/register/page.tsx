@@ -50,6 +50,10 @@ const initialFormData: FormData = {
 };
 
 export default function RegisterAgentPage(): JSX.Element {
+  useEffect(() => {
+    document.title = 'Register Agent | Kokonut Agent Economy';
+  }, []);
+
   const router = useRouter();
   const { isConnected, address } = useAccount();
   const [formData, setFormData] = useState<FormData>(initialFormData);
@@ -154,7 +158,7 @@ export default function RegisterAgentPage(): JSX.Element {
         <Card className="max-w-md mx-auto text-center p-6 border border-divider">
           <div className="mb-4">
             <h2 className="text-xl font-semibold flex items-center justify-center gap-2 text-success">
-              <CheckCircle2 className="w-6 h-6" />
+              <CheckCircle2 className="size-6" />
               Agent Registered!
             </h2>
             <p className="text-sm text-default-500 mt-2">
@@ -180,7 +184,7 @@ export default function RegisterAgentPage(): JSX.Element {
         href="/dashboard/agents"
         className="flex items-center text-sm text-default-500 hover:text-foreground mb-6"
       >
-        <ArrowLeft className="w-4 h-4 mr-2" />
+        <ArrowLeft className="size-4 mr-2" />
         Back to Agents
       </NextLink>
 
@@ -195,7 +199,7 @@ export default function RegisterAgentPage(): JSX.Element {
           <Card className="border border-success/30 mb-6">
             <div className="p-5">
               <div className="flex items-center gap-2 mb-2">
-                <CheckCircle2 className="w-5 h-5 text-success" />
+                <CheckCircle2 className="size-5 text-success" />
                 <h2 className="text-base font-semibold text-success">Already Registered</h2>
               </div>
               <p className="text-sm text-default-500">
@@ -245,7 +249,7 @@ export default function RegisterAgentPage(): JSX.Element {
                 </label>
                 <textarea
                   id="description"
-                  placeholder="Describe what your agent does..."
+                  placeholder="Describe what your agent does…"
                   value={formData.description}
                   onChange={e => handleFieldChange('description', e.target.value)}
                   className="flex min-h-[80px] w-full px-3 py-2 bg-content2 border border-divider rounded-lg text-default-700 placeholder:text-default-400 focus:outline-none focus:ring-2 focus:ring-success focus:border-transparent transition-all resize-none"
@@ -328,27 +332,25 @@ export default function RegisterAgentPage(): JSX.Element {
               <TransactionError error={txError} />
 
               <div className="flex gap-4">
-                <button
-                  type="submit"
+                <button type="submit"
                   disabled={!isConnected || isLoading || !formData.name || isSubmitting}
                   className="flex-1 inline-flex items-center justify-center gap-2 px-6 py-3 text-base font-semibold bg-gradient-to-r from-[#009F4D] to-[#00c853] text-white rounded-lg hover:opacity-90 transition-opacity disabled:opacity-50 disabled:cursor-not-allowed"
                 >
                   {isLoading ? (
                     <>
-                      <Loader2 className="w-4 h-4 animate-spin" />
+                      <Loader2 className="size-4 animate-spin" />
                       Registering...
                     </>
                   ) : isSubmitting ? (
                     <>
-                      <Loader2 className="w-4 h-4 animate-spin" />
+                      <Loader2 className="size-4 animate-spin" />
                       Wait {formatTimeRemaining(timeUntilNextSubmit)}...
                     </>
                   ) : (
                     'Register Agent'
                   )}
                 </button>
-                <button
-                  type="button"
+                <button type="button"
                   onClick={() => router.back()}
                   className="px-6 py-3 text-base font-medium border border-divider text-default-600 rounded-lg hover:bg-content2 transition-colors"
                 >

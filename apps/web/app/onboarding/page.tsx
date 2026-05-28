@@ -1,6 +1,6 @@
 'use client';
 
-import { useMemo } from 'react';
+import { useMemo, useEffect } from 'react';
 import { useAccount } from 'wagmi';
 import { Button, Card, Skeleton } from '@heroui/react';
 import { Wallet, UserPlus, ShoppingBag, Check, Tag, BriefcaseBusiness } from 'lucide-react';
@@ -38,7 +38,7 @@ function StepCard({ step, state }: { step: OnboardingStep; state: StepState }) {
               : 'bg-default-200 text-default-500'
           }`}
         >
-          {isComplete ? <Check className="w-6 h-6" /> : <Icon className="w-6 h-6" />}
+          {isComplete ? <Check className="size-6" /> : <Icon className="size-6" />}
         </div>
         <div className="flex-1 min-w-0">
           <h3 className="font-semibold">{step.title}</h3>
@@ -56,6 +56,10 @@ function StepCard({ step, state }: { step: OnboardingStep; state: StepState }) {
 }
 
 export default function OnboardingPage(): JSX.Element {
+  useEffect(() => {
+    document.title = 'Onboarding | Kokonut Agent Economy';
+  }, []);
+
   const { address, isConnected } = useAccount();
   const {
     agents,

@@ -31,12 +31,12 @@ export function TransactionError({
           <p className="text-danger text-sm">{errorMessage}</p>
         </div>
         {onDismiss && (
-          <button
+          <button type="button"
             onClick={onDismiss}
             className="text-danger/60 hover:text-danger transition-colors p-1"
             aria-label="Dismiss error"
           >
-            <X className="w-4 h-4" />
+            <X className="size-4" />
           </button>
         )}
       </div>

@@ -49,7 +49,7 @@ export function Input({
       )}
       {error && (
         <p className="text-xs text-danger flex items-center gap-1">
-          <AlertCircle className="w-3 h-3" />
+          <AlertCircle className="size-3" />
           {error}
         </p>
       )}
@@ -83,7 +83,7 @@ export function Textarea({
       )}
       {error && (
         <p className="text-xs text-danger flex items-center gap-1">
-          <AlertCircle className="w-3 h-3" />
+          <AlertCircle className="size-3" />
           {error}
         </p>
       )}
@@ -119,7 +119,7 @@ export function Select({
       )}
       {error && (
         <p className="text-xs text-danger flex items-center gap-1">
-          <AlertCircle className="w-3 h-3" />
+          <AlertCircle className="size-3" />
           {error}
         </p>
       )}

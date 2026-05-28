@@ -26,7 +26,7 @@ interface ButtonProps extends ButtonHTMLAttributes<HTMLButtonElement> {
  * <Button variant="primary" onClick={handleSubmit}>Create Job</Button>
  * <Button variant="ghost" icon={<ArrowLeft />}>Back</Button>
  * <Button variant="icon" aria-label="Edit"><Edit3 /></Button>
- * <Button variant="primary" isLoading fullWidth>Submitting...</Button>
+ * <Button variant="primary" isLoading fullWidth>Submitting…</Button>
  */
 export function Button({
   variant = 'primary',
@@ -54,13 +54,13 @@ export function Button({
     .join(' ');
 
   return (
-    <button
+    <button type="button"
       className={combinedClass}
       disabled={disabled || isLoading}
       {...props}
     >
       {isLoading && (
-        <Loader2 className="w-4 h-4 animate-spin" />
+        <Loader2 className="size-4 animate-spin" />
       )}
       {!isLoading && icon}
       {children}

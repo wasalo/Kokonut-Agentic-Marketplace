@@ -1,6 +1,6 @@
 import { useReadContract, useReadContracts } from 'wagmi';
 import { AGENTIC_COMMERCE_ABI, BIDDING_SYSTEM_ABI } from '@/lib/contracts/abis';
-import { getContractAddress, debugLog } from '@/lib/contracts/config';
+import { getContractAddress } from '@/lib/contracts/config';
 import type { Job, JobStatusType, JobTypeType, Bid } from '@/lib/types/contracts';
 import { JobStatus, JobType } from '@/lib/types/contracts';
 
@@ -49,22 +49,6 @@ function mapJobData(data: unknown): Job | undefined {
     hook: (isArray ? arr[10] : jobStruct!.hook) as `0x${string}`,
     deliverable: (isArray ? arr[11] : jobStruct!.deliverable) as `0x${string}`,
   };
-}
-
-export function useJobCount() {
-  debugLog('contracts', 'useJobCount: Fetching jobCounter from', AGENTIC_COMMERCE_ADDRESS);
-
-  const { data, isLoading, error, refetch } = useReadContract({
-    address: AGENTIC_COMMERCE_ADDRESS,
-    abi: AGENTIC_COMMERCE_ABI,
-    functionName: 'jobCounter',
-    query: { retry: 2, staleTime: 30 * 1000 },
-  });
-
-  if (error) debugLog('errors', 'useJobCount: Error fetching jobCounter', error);
-  if (data) debugLog('contracts', 'useJobCount: Retrieved jobCounter', Number(data));
-
-  return { count: data ? Number(data) : 0, isLoading, error, refetch };
 }
 
 export function useJob(jobId: number | bigint | undefined) {
@@ -148,53 +132,12 @@ export function useUserJobs(
   return { jobs: filteredJobs, isLoading, error, refetch };
 }
 
-export function useActiveJobCount() {
-  const { jobs, isLoading: isJobsLoading } = useJobs(0, 100);
-  const activeJobs = jobs.filter(
-    job =>
-      job.status === JobStatus.Open ||
-      job.status === JobStatus.Funded ||
-      job.status === JobStatus.Submitted
-  );
-  return { count: activeJobs.length, isLoading: isJobsLoading };
-}
-
-export function useJobConstants() {
-  const { data: revealWindow, isLoading: isRevealLoading } = useReadContract({
-    address: BIDDING_SYSTEM_ADDRESS,
-    abi: BIDDING_SYSTEM_ABI,
-    functionName: 'revealWindow',
-    query: { staleTime: 60 * 60 * 1000 },
-  });
-
-  const { data: minEthPayment, isLoading: isMinEthLoading } = useReadContract({
-    address: AGENTIC_COMMERCE_ADDRESS,
-    abi: AGENTIC_COMMERCE_ABI,
-    functionName: 'MIN_ETH_PAYMENT',
-    query: { staleTime: 60 * 60 * 1000 },
-  });
-
-  return {
-    revealWindow: typeof revealWindow === 'bigint' ? Number(revealWindow) : 3600,
-    minEthPayment: minEthPayment ?? BigInt(5000000000000000),
-    isLoading: isRevealLoading || isMinEthLoading,
-  };
-}
-
 export function useEvaluatorFeeEnabled(_jobId: bigint | undefined) {
   return { isEvaluatorFeeEnabled: false, isLoading: false, error: null, refetch: () => {} };
 }
 
-export function useTotalStakesHeld(_address: `0x${string}` | undefined) {
-  return { totalStakes: BigInt(0), isLoading: false, error: null, refetch: () => {} };
-}
-
 export function useJobBidCount(_jobId: bigint | undefined) {
   return { count: 0, isLoading: false, error: null, refetch: () => {} };
-}
-
-export function useJobBid(_jobId: bigint | undefined, _index: number) {
-  return { bid: undefined as Bid | undefined, isLoading: false, error: null, refetch: () => {} };
 }
 
 export function useUserBid(jobId: number | bigint | undefined, user: `0x${string}` | undefined) {

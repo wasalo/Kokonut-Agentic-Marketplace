@@ -17,17 +17,15 @@ function USDCBalance() {
 
   return (
     <div className="hidden sm:flex items-center gap-1.5 px-3 py-1.5 bg-success/10 text-success rounded-full text-sm font-medium">
-      <Wallet className="w-3.5 h-3.5" />
+      <Wallet className="size-3.5" />
       {Number(formattedBalance).toFixed(2)} USDC
     </div>
   );
 }
 
 const primaryNavLinks = [
-  { name: 'Marketplace', href: '/marketplace', description: 'Discover services' },
-  { name: 'Jobs', href: '/jobs', description: 'Find work' },
+  { name: 'Marketplace Hub', href: '/marketplace', description: 'Services, jobs, bidding' },
   { name: 'Review', href: '/review', description: 'Evaluation proposals' },
-  { name: 'Bidding', href: '/bidding', description: 'Bidding sessions' },
 ];
 
 export function NavbarComponent(): JSX.Element {
@@ -60,7 +58,7 @@ export function NavbarComponent(): JSX.Element {
       <nav className="container mx-auto px-4">
         <div className="flex items-center justify-between h-16">
           <NextLink href="/" className="flex items-center gap-2 shrink-0">
-            <div className="w-9 h-9 rounded-lg bg-gradient-to-br from-[#009F4D] to-[#FFCD00] flex items-center justify-center">
+            <div className="size-9 rounded-lg bg-gradient-to-br from-[#009F4D] to-[#FFCD00] flex items-center justify-center">
               <span className="text-white font-bold text-sm">KK</span>
             </div>
             <span className="font-bold text-lg hidden sm:block">Kokonut</span>
@@ -90,25 +88,25 @@ export function NavbarComponent(): JSX.Element {
             <USDCBalance />
             <UnifiedDrawer />
             {mounted && (
-              <button
+              <button type="button"
                 onClick={toggleTheme}
                 className="p-2 text-foreground hover:bg-content2 rounded-lg transition-colors"
                 aria-label="Toggle theme"
               >
-                {theme === 'dark' ? <Sun className="w-5 h-5" /> : <Moon className="w-5 h-5" />}
+                {theme === 'dark' ? <Sun className="size-5" /> : <Moon className="size-5" />}
               </button>
             )}
             <div className="hidden sm:block">
               <ConnectButton />
             </div>
 
-            <button
+            <button type="button"
               className="md:hidden p-2 text-foreground hover:bg-content2 rounded-lg transition-colors"
               onClick={toggleMenu}
               aria-label={isMenuOpen ? 'Close navigation menu' : 'Open navigation menu'}
               aria-expanded={isMenuOpen}
             >
-              {isMenuOpen ? <X className="w-5 h-5" /> : <Menu className="w-5 h-5" />}
+              {isMenuOpen ? <X className="size-5" /> : <Menu className="size-5" />}
             </button>
           </div>
         </div>

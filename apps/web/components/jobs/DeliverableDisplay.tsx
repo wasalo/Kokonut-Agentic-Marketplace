@@ -14,7 +14,7 @@ export function DeliverableDisplay({ job }: DeliverableDisplayProps) {
   return (
     <Card className="border border-divider p-4">
       <div className="flex items-center gap-2">
-        <FileText className="w-4 h-4 text-default-400" />
+        <FileText className="size-4 text-default-400" />
         <span className="text-sm text-default-500">Deliverable:</span>
         <code className="text-xs bg-content2 px-2 py-1 rounded font-mono truncate">
           {job.deliverable}

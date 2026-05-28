@@ -40,7 +40,7 @@ export function PortfolioCard({ item }: PortfolioCardProps) {
           className="inline-flex items-center gap-1 text-xs text-primary hover:underline mt-3"
         >
           View Project
-          <ExternalLink className="w-3 h-3" />
+          <ExternalLink className="size-3" />
         </a>
       )}
     </Card>

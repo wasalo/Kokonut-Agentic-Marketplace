@@ -8,8 +8,6 @@ import type {
   EfpFollowing,
   EfpFollowState,
   EfpListInfo,
-  EfpUserEns,
-  EfpSimpleProfile,
   EfpRecommended,
   EfpApiResponse,
 } from './types';
@@ -122,20 +120,6 @@ export async function getFollowState(from: string, to: string): Promise<EfpFollo
   return data?.data ?? { is_following: false, is_blocked: false, is_muted: false, is_followed_back: false };
 }
 
-export async function getBatchFollowState(
-  from: string,
-  targets: string[]
-): Promise<Record<string, EfpFollowState>> {
-  const data = await fetchEfp<EfpApiResponse<Record<string, EfpFollowState>>>(
-    `/users/${from}/batch-follow-state`,
-    {
-      method: 'POST',
-      body: JSON.stringify({ addresses: targets }),
-    }
-  );
-  return data?.data ?? {};
-}
-
 export async function getCommonFollowers(
   addressA: string,
   addressB: string,
@@ -183,65 +167,4 @@ export async function getPrimaryList(address: string): Promise<string | null> {
 export async function getUserLists(address: string): Promise<EfpListInfo[]> {
   const data = await fetchEfp<EfpApiResponse<EfpListInfo[]>>(`/users/${address}/lists`);
   return data?.data ?? [];
-}
-
-export async function getUserEns(address: string): Promise<EfpUserEns> {
-  const data = await fetchEfp<EfpApiResponse<EfpUserEns>>(`/users/${address}/ens`);
-  return data?.data ?? { ens_name: null, ens_avatar: null };
-}
-
-export async function getSimpleProfile(address: string): Promise<EfpSimpleProfile> {
-  const data = await fetchEfp<EfpApiResponse<EfpSimpleProfile>>(
-    `/users/${address}/simple-profile`
-  );
-  return data?.data ?? { address: '', ens_name: null, ens_avatar: null, follower_count: '0', following_count: '0' };
-}
-
-export async function getLatestFollowers(
-  address: string,
-  limit = 5
-): Promise<EfpFollower[]> {
-  const data = await fetchEfp<EfpApiResponse<{ followers: EfpFollower[] }>>(
-    `/users/${address}/latest-followers`,
-    {
-      params: { limit },
-    }
-  );
-  return data?.data?.followers ?? [];
-}
-
-export async function searchFollowers(
-  address: string,
-  query: string,
-  opts: PaginationOpts = {}
-): Promise<EfpFollower[]> {
-  const data = await fetchEfp<EfpApiResponse<{ followers: EfpFollower[] }>>(
-    `/users/${address}/search-followers`,
-    {
-      params: {
-        q: query,
-        limit: opts.limit ?? 10,
-        offset: opts.offset ?? 0,
-      },
-    }
-  );
-  return data?.data?.followers ?? [];
-}
-
-export async function searchFollowing(
-  address: string,
-  query: string,
-  opts: PaginationOpts = {}
-): Promise<EfpFollowing[]> {
-  const data = await fetchEfp<EfpApiResponse<{ following: EfpFollowing[] }>>(
-    `/users/${address}/search-following`,
-    {
-      params: {
-        q: query,
-        limit: opts.limit ?? 10,
-        offset: opts.offset ?? 0,
-      },
-    }
-  );
-  return data?.data?.following ?? [];
 }

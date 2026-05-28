@@ -1,5 +1,6 @@
 'use client';
 
+import { useEffect } from 'react';
 import { useAccount } from 'wagmi';
 import { Card, Skeleton, Badge } from '@heroui/react';
 import { Wallet, Plus, ArrowLeft, ExternalLink, Settings, Package, Star } from 'lucide-react';
@@ -37,7 +38,7 @@ function AgentCard({
   return (
     <Card className="border border-divider p-4 hover:border-[#009F4D]/30 hover:shadow-sm transition-all">
       <div className="flex items-center gap-3 mb-3">
-        <div className="w-10 h-10 rounded-full bg-gradient-to-br from-[#009F4D] to-[#FFCD00] flex items-center justify-center text-white font-semibold">
+        <div className="size-100 rounded-full bg-gradient-to-br from-[#009F4D] to-[#FFCD00] flex items-center justify-center text-white font-semibold">
           #{agent.id}
         </div>
         <div className="flex-1 min-w-0">
@@ -59,14 +60,14 @@ function AgentCard({
       <div className="grid grid-cols-2 gap-2 mb-3 p-2 bg-content2 rounded-lg">
         <div className="text-center">
           <div className="flex items-center justify-center gap-1 text-default-400">
-            <Package className="w-3.5 h-3.5" />
+            <Package className="size-3.5" />
           </div>
           <p className="text-sm font-semibold">{isLoadingServices ? '-' : services.length}</p>
           <p className="text-xs text-default-400">Services</p>
         </div>
         <div className="text-center">
           <div className="flex items-center justify-center gap-1 text-default-400">
-            <Star className="w-3.5 h-3.5" />
+            <Star className="size-3.5" />
           </div>
           <p className="text-sm font-semibold">
             {normalizedRating ? normalizedRating.toFixed(1) : '-'}
@@ -98,14 +99,14 @@ function AgentCard({
           href={`/identity/${agent.id}`}
           className="flex items-center gap-1.5 text-sm text-default-500 hover:text-primary transition-colors"
         >
-          <ExternalLink className="w-4 h-4" />
+          <ExternalLink className="size-4" />
           Profile
         </NextLink>
         <NextLink
           href={`/identity/settings?agentId=${agent.id}`}
           className="flex items-center gap-1.5 px-3 py-1.5 text-sm bg-primary text-white rounded-lg hover:opacity-90 transition-opacity"
         >
-          <Settings className="w-4 h-4" />
+          <Settings className="size-4" />
           Manage
         </NextLink>
       </div>
@@ -117,7 +118,7 @@ function AgentCardSkeleton() {
   return (
     <Card className="border border-divider p-4">
       <div className="flex items-center gap-3 mb-3">
-        <Skeleton className="w-10 h-10 rounded-full" />
+        <Skeleton className="size-100 rounded-full" />
         <div className="flex-1">
           <Skeleton className="h-5 w-32 mb-1" />
           <Skeleton className="h-4 w-16" />
@@ -134,6 +135,10 @@ function AgentCardSkeleton() {
 }
 
 export default function DashboardAgentsPage() {
+  useEffect(() => {
+    document.title = 'Manage Agents | Kokonut Agent Economy';
+  }, []);
+
   const { isConnected, address } = useAccount();
   const { agents, isLoading, error, refetch } = useWalletAgentsFromSubgraph(address);
 
@@ -148,7 +153,7 @@ export default function DashboardAgentsPage() {
           href="/dashboard"
           className="inline-flex items-center gap-2 text-sm text-default-500 hover:text-foreground transition-colors mb-4"
         >
-          <ArrowLeft className="w-4 h-4" />
+          <ArrowLeft className="size-4" />
           Back to Dashboard
         </NextLink>
         <div className="flex items-start justify-between">
@@ -156,7 +161,7 @@ export default function DashboardAgentsPage() {
             <h1 className="text-3xl font-bold text-foreground">Your Agents</h1>
             <p className="text-default-500 mt-1">
               {isLoading
-                ? 'Loading...'
+                ? 'Loading…'
                 : `${agents.length} agent${agents.length !== 1 ? 's' : ''} registered`}
             </p>
           </div>
@@ -164,7 +169,7 @@ export default function DashboardAgentsPage() {
             href="/identity/register"
             className="inline-flex items-center gap-2 px-5 py-2.5 bg-gradient-to-r from-[#009F4D] to-[#00c853] text-white rounded-lg font-medium hover:opacity-90 transition-opacity"
           >
-            <Plus className="w-4 h-4" />
+            <Plus className="size-4" />
             Register New Agent
           </NextLink>
         </div>
@@ -176,7 +181,7 @@ export default function DashboardAgentsPage() {
             <div className="flex-1">
               <p className="text-danger font-medium">Error loading agents</p>
               <p className="text-danger-600 text-sm mt-1">{error.message}</p>
-              <button
+              <button type="button"
                  onClick={() => refetch()}
                 className="mt-3 px-4 py-2 bg-danger text-white rounded-lg text-sm font-medium hover:bg-danger-600 transition-colors"
               >
@@ -208,7 +213,7 @@ export default function DashboardAgentsPage() {
             href="/identity/register"
             className="inline-flex items-center gap-2 px-5 py-2.5 bg-gradient-to-r from-[#009F4D] to-[#00c853] text-white rounded-lg font-medium hover:opacity-90 transition-opacity"
           >
-            <Plus className="w-4 h-4" />
+            <Plus className="size-4" />
             Register First Agent
           </NextLink>
         </div>

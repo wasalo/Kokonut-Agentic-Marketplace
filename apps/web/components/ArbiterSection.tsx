@@ -47,7 +47,7 @@ export function ArbiterSection(): JSX.Element {
     return (
       <DashboardCard title="Arbiter Status" icon={<Gavel />}>
         <div className="flex justify-center py-4">
-          <Loader2 className="w-6 h-6 animate-spin text-default-400" />
+          <Loader2 className="size-6 animate-spin text-default-400" />
         </div>
       </DashboardCard>
     );
@@ -77,7 +77,7 @@ export function ArbiterSection(): JSX.Element {
             isLoading={isButtonDisabled}
             onClick={handleRegister}
           >
-            {isRegisterPending ? 'Registering...' : `Register as Arbiter (0.01 ${TOKEN_SYMBOL})`}
+            {isRegisterPending ? 'Registering…' : `Register as Arbiter (0.01 ${TOKEN_SYMBOL})`}
           </Button>
         )
       }
@@ -89,14 +89,14 @@ export function ArbiterSection(): JSX.Element {
       {isArbiter ? (
         <div className="space-y-2 text-sm">
           <div className="flex items-center gap-2">
-            <Shield className="w-4 h-4 text-success" />
+            <Shield className="size-4 text-success" />
             <span className="font-medium text-success">You are a registered arbiter</span>
           </div>
           <p className="text-default-500 text-xs">
-            Stake: {isStakeLoading ? 'Loading...' : `${formatUnits(stake || BigInt(0), TOKEN_DECIMALS)} ${TOKEN_SYMBOL}`}
+            Stake: {isStakeLoading ? 'Loading…' : `${formatUnits(stake || BigInt(0), TOKEN_DECIMALS)} ${TOKEN_SYMBOL}`}
           </p>
           <p className="text-default-500 text-xs">
-            Total arbiters: {isCountLoading ? 'Loading...' : arbiterCount}
+            Total arbiters: {isCountLoading ? 'Loading…' : arbiterCount}
           </p>
         </div>
       ) : (

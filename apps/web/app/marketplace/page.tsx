@@ -1,6 +1,6 @@
 'use client';
 
-import { useEffect } from 'react';
+import { Suspense, useEffect } from 'react';
 import dynamic from 'next/dynamic';
 
 const MarketplaceInner = dynamic(() => import('./marketplace-inner'), {
@@ -14,5 +14,9 @@ const MarketplaceInner = dynamic(() => import('./marketplace-inner'), {
 
 export default function MarketplacePage(): JSX.Element {
   useEffect(() => { document.title = 'Marketplace | Kokonut'; }, []);
-  return <MarketplaceInner />;
+  return (
+    <Suspense fallback={<div>Loading...</div>}>
+      <MarketplaceInner />
+    </Suspense>
+  );
 }

@@ -31,7 +31,7 @@ export interface Proposal {
   evaluatorCount?: number;
 }
 
-export interface ReviewStats {
+interface ReviewStats {
   totalProposals: number;
   activeProposals: number;
   completedProposals: number;
@@ -58,36 +58,6 @@ export const ProposalStatus = {
   Decided: 2,
   Cancelled: 3,
 } as const;
-
-export function getProposalStatusLabel(status: number): string {
-  switch (status) {
-    case ProposalStatus.Open:
-      return 'Open';
-    case ProposalStatus.UnderReview:
-      return 'Under Review';
-    case ProposalStatus.Decided:
-      return 'Decided';
-    case ProposalStatus.Cancelled:
-      return 'Cancelled';
-    default:
-      return 'Unknown';
-  }
-}
-
-export function getProposalStatusColor(status: number): string {
-  switch (status) {
-    case ProposalStatus.Open:
-      return 'success';
-    case ProposalStatus.UnderReview:
-      return 'warning';
-    case ProposalStatus.Decided:
-      return 'primary';
-    case ProposalStatus.Cancelled:
-      return 'danger';
-    default:
-      return 'default';
-  }
-}
 
 function mapProposalData(id: bigint, data: unknown): Proposal | null {
   if (!data) {
@@ -151,7 +121,7 @@ function mapProposalData(id: bigint, data: unknown): Proposal | null {
   return null;
 }
 
-export function useProposalCount() {
+function useProposalCount() {
   const config = getQueryConfig('stats');
 
   const { data, isLoading, error, refetch } = useReadContract({
@@ -167,27 +137,6 @@ export function useProposalCount() {
 
   return {
     count: data ? Number(data) : 0,
-    isLoading,
-    error,
-    refetch,
-  };
-}
-
-export function useEvaluatorCount(proposalId: bigint | undefined) {
-  const { data, isLoading, error, refetch } = useReadContract({
-    address: AGENT_REVIEW_ADDRESS,
-    abi: AGENT_REVIEW_ABI,
-    functionName: 'getProposalEvaluators',
-    args: proposalId ? [proposalId] : undefined,
-    query: {
-      enabled: !!proposalId,
-      retry: 2,
-      staleTime: 30000,
-    },
-  });
-
-  return {
-    count: data ? (data as `0x${string}`[]).length : 0,
     isLoading,
     error,
     refetch,
@@ -654,25 +603,6 @@ export function useCancelProposal() {
   };
 }
 
-export function useSlashEvaluator() {
-  const { writeContract, data, isPending, error, reset } = useWriteContract();
-
-  return {
-    slashEvaluator: (evaluator: `0x${string}`, proposalId: bigint, slashBP: bigint, reason: string) =>
-      writeContract({
-        chainId: SEPOLIA_CHAIN_ID,
-        address: AGENT_REVIEW_ADDRESS,
-        abi: AGENT_REVIEW_ABI,
-        functionName: 'slashEvaluator',
-        args: [evaluator, proposalId, slashBP, reason],
-      }),
-    hash: data,
-    isPending,
-    error,
-    reset,
-  };
-}
-
 // ============ Phase 14/15 Missing Hooks ============
 
 /**
@@ -718,28 +648,6 @@ export function useCalculateMedianScore(proposalId: bigint | undefined) {
 
   return {
     medianScore: data ?? BigInt(0),
-    isLoading,
-    error,
-    refetch,
-  };
-}
-
-/**
- * Get the slash treasury address.
- */
-export function useSlashTreasury() {
-  const { data, isLoading, error, refetch } = useReadContract({
-    address: AGENT_REVIEW_ADDRESS,
-    abi: AGENT_REVIEW_ABI_WITH_NEW,
-    functionName: 'slashTreasury' as 'slashTreasury',
-    query: {
-      retry: 2,
-      staleTime: 60 * 60 * 1000, // Rarely changes
-    },
-  });
-
-  return {
-    treasury: data ?? '0x0000000000000000000000000000000000000000',
     isLoading,
     error,
     refetch,

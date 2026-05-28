@@ -72,7 +72,7 @@ function LinkSection({ title, links }: { title: string; links: typeof discoverLi
               href={link.href}
               className="text-default-500 text-sm hover:text-primary transition-colors flex items-center gap-2"
             >
-              <link.icon className="w-3.5 h-3.5 opacity-70" />
+              <link.icon className="size-3.5 opacity-70" />
               {link.name}
             </NextLink>
           </li>
@@ -90,7 +90,7 @@ export function Footer(): JSX.Element {
           {/* Brand */}
           <div className="col-span-2">
             <NextLink href="/" className="flex items-center gap-2 mb-4">
-              <div className="w-10 h-10 rounded-xl bg-gradient-to-br from-[#009F4D] to-[#FFCD00] flex items-center justify-center">
+              <div className="size-100 rounded-xl bg-gradient-to-br from-[#009F4D] to-[#FFCD00] flex items-center justify-center">
                 <span className="text-white font-bold">KK</span>
               </div>
               <span className="font-bold text-xl">Kokonut</span>
@@ -109,7 +109,7 @@ export function Footer(): JSX.Element {
                   className="text-default-500 hover:text-primary transition-colors"
                   title={social.name}
                 >
-                  <social.icon className="w-5 h-5" />
+                  <social.icon className="size-5" />
                 </a>
               ))}
             </div>

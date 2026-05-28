@@ -28,7 +28,7 @@ interface DashboardCardProps {
  * @example
  * <DashboardCard
  *   title="Arbiter Status"
- *   icon={<Gavel className="w-5 h-5" />}
+ *   icon={<Gavel className="size-5" />}
  *   variant="glass"
  * >
  *   ...

@@ -50,15 +50,15 @@ function CopyButton({ text }: { text: string }) {
   }, [text]);
 
   return (
-    <button
+    <button type="button"
       onClick={handleCopy}
       className="p-1 hover:bg-content2 rounded transition-colors"
       title="Copy to clipboard"
     >
       {copied ? (
-        <Check className="w-4 h-4 text-success" />
+        <Check className="size-4 text-success" />
       ) : (
-        <Copy className="w-4 h-4 text-default-400" />
+        <Copy className="size-4 text-default-400" />
       )}
     </button>
   );
@@ -82,15 +82,15 @@ function ToolSelector({
       <h4 className="text-sm font-medium text-default-500">Available Tools</h4>
       {categories.map(category => (
         <div key={category} className="border border-divider rounded-lg overflow-hidden">
-          <button
+          <button type="button"
             onClick={() => setExpandedCategory(expandedCategory === category ? null : category)}
             className="w-full px-3 py-2 bg-content2 flex items-center justify-between text-sm font-medium hover:bg-content3 transition-colors"
           >
             {category}
             {expandedCategory === category ? (
-              <ChevronDown className="w-4 h-4" />
+              <ChevronDown className="size-4" />
             ) : (
-              <ChevronRight className="w-4 h-4" />
+              <ChevronRight className="size-4" />
             )}
           </button>
           {expandedCategory === category && (
@@ -98,7 +98,7 @@ function ToolSelector({
               {tools
                 .filter(t => t.category === category)
                 .map(tool => (
-                  <button
+                  <button type="button"
                     key={tool.name}
                     onClick={() => onSelectTool(tool)}
                     className={`w-full px-3 py-2 text-left text-sm hover:bg-content2 transition-colors ${
@@ -194,7 +194,7 @@ function ResponseViewer({ response, isLoading }: { response: string | null; isLo
         <pre className="p-3 bg-content2 border border-divider rounded-lg text-xs font-mono overflow-x-auto min-h-[200px] max-h-[400px] overflow-y-auto">
           {isLoading ? (
             <div className="flex items-center gap-2 text-default-500">
-              <Loader2 className="w-4 h-4 animate-spin" />
+              <Loader2 className="size-4 animate-spin" />
               Simulating MCP call...
             </div>
           ) : response ? (
@@ -314,15 +314,15 @@ export function MCPDemoPanel() {
           )}
 
           {selectedTool && (
-            <button
+            <button type="button"
               onClick={handleRunDemo}
               disabled={isLoading}
               className="w-full flex items-center justify-center gap-2 px-4 py-3 bg-primary text-white rounded-lg font-medium hover:opacity-90 disabled:opacity-50 transition-opacity"
             >
               {isLoading ? (
-                <Loader2 className="w-4 h-4 animate-spin" />
+                <Loader2 className="size-4 animate-spin" />
               ) : (
-                <Play className="w-4 h-4" />
+                <Play className="size-4" />
               )}
               Run Demo
             </button>

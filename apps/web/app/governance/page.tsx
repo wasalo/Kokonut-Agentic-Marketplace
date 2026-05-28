@@ -1,6 +1,6 @@
 'use client';
 
-import { useState, useCallback } from 'react';
+import { useState, useCallback, useEffect } from 'react';
 import { useAccount, useWaitForTransactionReceipt } from 'wagmi';
 import { Card } from '@heroui/react';
 import { Shield, Loader2, CheckCircle2, AlertTriangle } from 'lucide-react';
@@ -18,6 +18,10 @@ import {
 } from '@/lib/hooks/useSlashManager';
 
 export default function GovernancePage() {
+  useEffect(() => {
+    document.title = 'Governance | Kokonut Agent Economy';
+  }, []);
+
   const { isConnected, address } = useAccount();
   const [txStep, setTxStep] = useState<string | null>(null);
 
@@ -99,7 +103,7 @@ export default function GovernancePage() {
       <div className="max-w-2xl mx-auto">
         <div className="mb-8">
           <h1 className="text-3xl font-bold flex items-center gap-2">
-            <Shield className="w-8 h-8 text-primary" />
+            <Shield className="size-8 text-primary" />
             Governance
           </h1>
           <p className="text-default-500 mt-1">
@@ -114,7 +118,7 @@ export default function GovernancePage() {
             <div className="flex items-center gap-3">
               {isUserSigner ? (
                 <>
-                  <CheckCircle2 className="w-5 h-5 text-success" />
+                  <CheckCircle2 className="size-5 text-success" />
                   <div>
                     <p className="text-sm font-medium">You are a signer</p>
                     <p className="text-xs text-default-400">You can confirm proposals</p>
@@ -122,7 +126,7 @@ export default function GovernancePage() {
                 </>
               ) : (
                 <>
-                  <AlertTriangle className="w-5 h-5 text-warning" />
+                  <AlertTriangle className="size-5 text-warning" />
                   <div>
                     <p className="text-sm font-medium">Not a signer</p>
                     <p className="text-xs text-default-400">View-only access to governance</p>
@@ -137,15 +141,16 @@ export default function GovernancePage() {
         {isOwner && (
           <Card className="border border-danger/30 p-6 mb-6">
             <h2 className="text-base font-semibold mb-4 text-danger flex items-center gap-2">
-              <AlertTriangle className="w-4 h-4" />
+              <AlertTriangle className="size-4" />
               Create Slash Proposal
             </h2>
             <form onSubmit={handleCreateProposal} className="space-y-4">
               <div>
-                <label className="text-sm font-medium">Evaluator Address</label>
+                <label htmlFor="evaluator-addr" className="text-sm font-medium">Evaluator Address</label>
                 <input
+                  id="evaluator-addr"
                   type="text"
-                  placeholder="0x..."
+                  placeholder="0xâ¦"
                   value={evaluator}
                   onChange={e => setEvaluator(e.target.value)}
                   required
@@ -154,8 +159,9 @@ export default function GovernancePage() {
               </div>
               <div className="grid grid-cols-1 md:grid-cols-2 gap-3 md:gap-4">
                 <div>
-                  <label className="text-sm font-medium">Target Proposal ID</label>
+                  <label htmlFor="target-proposal-id" className="text-sm font-medium">Target Proposal ID</label>
                   <input
+                    id="target-proposal-id"
                     type="number"
                     placeholder="0"
                     value={targetProposalId}
@@ -165,8 +171,9 @@ export default function GovernancePage() {
                   />
                 </div>
                 <div>
-                  <label className="text-sm font-medium">Slash Amount (ETH)</label>
+                  <label htmlFor="slash-amount" className="text-sm font-medium">Slash Amount (ETH)</label>
                   <input
+                    id="slash-amount"
                     type="number"
                     step="0.01"
                     max={maxAmountInEth || 100}
@@ -180,7 +187,7 @@ export default function GovernancePage() {
               <div>
                 <label className="text-sm font-medium">Reason</label>
                 <textarea
-                  placeholder="Why this evaluator should be slashed..."
+                  placeholder="Why this evaluator should be slashedâ¦"
                   value={slashReason}
                   onChange={e => setSlashReason(e.target.value)}
                   rows={2}
@@ -193,12 +200,11 @@ export default function GovernancePage() {
                   {createError.message}
                 </div>
               )}
-              <button
-                type="submit"
+              <button type="submit"
                 disabled={isCreatePending || anyPending}
                 className="w-full px-6 py-3 bg-danger text-white rounded-lg font-medium hover:opacity-90 disabled:opacity-50"
               >
-                {isCreatePending ? 'Creating...' : 'Create Slash Proposal'}
+                {isCreatePending ? 'Creating…' : 'Create Slash Proposal'}
               </button>
             </form>
           </Card>
@@ -208,7 +214,7 @@ export default function GovernancePage() {
         {isUserSigner && (
           <Card className="border border-primary/30 p-6 mb-6">
             <h2 className="text-base font-semibold mb-4 text-primary flex items-center gap-2">
-              <CheckCircle2 className="w-4 h-4" />
+              <CheckCircle2 className="size-4" />
               Confirm Proposal
             </h2>
             <div className="space-y-4">
@@ -216,18 +222,18 @@ export default function GovernancePage() {
                 <label className="text-sm font-medium">Proposal ID</label>
                 <input
                   type="text"
-                  placeholder="0x..."
+                  placeholder="0xâ¦"
                   value={confirmProposalId}
                   onChange={e => setConfirmProposalId(e.target.value)}
                   className="w-full mt-1 px-3 py-2 bg-content2 border border-divider rounded-lg focus:outline-none focus:ring-2 focus:ring-primary"
                 />
               </div>
-              <button
+              <button type="button"
                 onClick={handleConfirmProposal}
                 disabled={!confirmProposalId || isConfirmPending || anyPending}
                 className="w-full px-6 py-3 bg-primary text-white rounded-lg font-medium hover:opacity-90 disabled:opacity-50"
               >
-                {isConfirmPending ? 'Confirming...' : 'Confirm Proposal'}
+                {isConfirmPending ? 'Confirming…' : 'Confirm Proposal'}
               </button>
             </div>
           </Card>
@@ -236,7 +242,7 @@ export default function GovernancePage() {
         {/* Execute Proposal (anyone after timelock) */}
         <Card className="border border-success/30 p-6 mb-6">
           <h2 className="text-base font-semibold mb-4 text-success flex items-center gap-2">
-            <Shield className="w-4 h-4" />
+            <Shield className="size-4" />
             Execute Proposal
           </h2>
           <div className="space-y-4">
@@ -244,18 +250,18 @@ export default function GovernancePage() {
               <label className="text-sm font-medium">Proposal ID</label>
               <input
                 type="text"
-                placeholder="0x..."
+                placeholder="0xâ¦"
                 value={executeProposalId}
                 onChange={e => setExecuteProposalId(e.target.value)}
                 className="w-full mt-1 px-3 py-2 bg-content2 border border-divider rounded-lg focus:outline-none focus:ring-2 focus:ring-success"
               />
             </div>
-            <button
+            <button type="button"
               onClick={handleExecuteProposal}
               disabled={!executeProposalId || isExecutePending || anyPending}
               className="w-full px-6 py-3 bg-success text-white rounded-lg font-medium hover:opacity-90 disabled:opacity-50"
             >
-              {isExecutePending ? 'Executing...' : 'Execute Proposal'}
+              {isExecutePending ? 'Executing…' : 'Execute Proposal'}
             </button>
           </div>
         </Card>
@@ -264,8 +270,8 @@ export default function GovernancePage() {
         {txStep && (
           <Card className="border border-primary/20 p-4 mb-6">
             <div className="flex items-center gap-3">
-              <Loader2 className="w-5 h-5 animate-spin text-primary" />
-              <p className="text-sm font-medium text-primary">{txStep}...</p>
+              <Loader2 className="size-5 animate-spin text-primary" />
+              <p className="text-sm font-medium text-primary">{txStep}â¦</p>
             </div>
           </Card>
         )}

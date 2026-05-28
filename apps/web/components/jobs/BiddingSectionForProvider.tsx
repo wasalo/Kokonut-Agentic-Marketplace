@@ -54,19 +54,19 @@ export function BiddingSectionForProvider({ job, address, refetch }: BiddingSect
 
       {canWithdrawStake && (
         <>
-          <button
+          <button type="button"
             onClick={handleWithdrawClick}
             disabled={isWithdrawPending}
             className="w-full flex items-center gap-3 p-4 border border-warning/30 rounded-lg hover:bg-warning/5 transition-colors disabled:opacity-50"
           >
-            <RefreshCw className="w-5 h-5 text-warning" />
+            <RefreshCw className="size-5 text-warning" />
             <div className="text-left">
               <p className="font-medium">Withdraw Stake</p>
               <p className="text-xs text-default-500">
                 Reclaim your staked funds (bid was not accepted)
               </p>
             </div>
-            {isWithdrawPending && <Loader2 className="w-5 h-5 animate-spin text-warning ml-auto" />}
+            {isWithdrawPending && <Loader2 className="size-5 animate-spin text-warning ml-auto" />}
           </button>
           <ConfirmModal
             isOpen={showWithdrawModal}
@@ -95,7 +95,7 @@ export function BiddingSectionForProvider({ job, address, refetch }: BiddingSect
       ) : (
         <Card className="border border-success/30 p-6">
           <div className="flex items-center gap-2 text-success">
-            <CheckCircle2 className="w-5 h-5" />
+            <CheckCircle2 className="size-5" />
             <p className="font-medium">Your bid was accepted!</p>
           </div>
           <p className="text-sm text-default-500 mt-2">

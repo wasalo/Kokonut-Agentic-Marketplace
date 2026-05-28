@@ -76,7 +76,7 @@ export function useWalletAgentsWithDetails(
       );
 
       // Step 2: Query Registered events to find agent IDs owned by this address
-      debugLog('hooks', 'useWalletAgentsWithDetails: Querying Registered events...');
+      debugLog('hooks', 'useWalletAgentsWithDetails: Querying Registered events…');
 
       const logs = await publicClient.getLogs({
         address: ERC8004_ADDRESS,

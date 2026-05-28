@@ -25,7 +25,7 @@ export interface ApiKeyConfig {
   x402Chain?: string;
 }
 
-export const API_KEY_TIERS: Record<ApiKeyTier, ApiKeyConfig> = {
+const API_KEY_TIERS: Record<ApiKeyTier, ApiKeyConfig> = {
   anonymous: {
     tier: 'anonymous',
     maxRequests: 30,
@@ -73,27 +73,6 @@ const VALID_API_KEYS = new Map<string, ApiKeyTier>();
 
 const keyUsageStore = new Map<string, { count: number; resetTime: number }>();
 
-export function generateApiKey(tier: ApiKeyTier): string {
-  const prefix = tier === 'enterprise' || tier === 'anonymous' 
-    ? API_KEY_PREFIXES.live 
-    : API_KEY_PREFIXES.live;
-  const randomPart = crypto.randomUUID().replace(/-/g, '') + 
-                   crypto.randomUUID().replace(/-/g, '');
-  const key = `${prefix}${randomPart}`;
-  VALID_API_KEYS.set(key, tier);
-  return key;
-}
-
-export function isValidApiKey(key: string): boolean {
-  if (!key) return false;
-  
-  if (key.startsWith(API_KEY_PREFIXES.live) || key.startsWith(API_KEY_PREFIXES.test)) {
-    return true;
-  }
-  
-  return VALID_API_KEYS.has(key);
-}
-
 export function getTierFromApiKey(key: string | undefined): ApiKeyTier {
   if (!key) return 'anonymous';
   
@@ -107,7 +86,7 @@ export function getTierFromApiKey(key: string | undefined): ApiKeyTier {
   return 'anonymous';
 }
 
-export function getTierConfig(tier: ApiKeyTier): ApiKeyConfig {
+function getTierConfig(tier: ApiKeyTier): ApiKeyConfig {
   return API_KEY_TIERS[tier] ?? API_KEY_TIERS.anonymous;
 }
 
@@ -185,15 +164,3 @@ function cleanupExpiredUsage(): void {
 }
 
 setInterval(cleanupExpiredUsage, 60000);
-
-export function revokeApiKey(key: string): boolean {
-  return VALID_API_KEYS.delete(key);
-}
-
-export function registerApiKey(key: string, tier: ApiKeyTier): boolean {
-  if (!key.startsWith(API_KEY_PREFIXES.live) && !key.startsWith(API_KEY_PREFIXES.test)) {
-    return false;
-  }
-  VALID_API_KEYS.set(key, tier);
-  return true;
-}

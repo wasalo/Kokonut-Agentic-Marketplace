@@ -20,7 +20,7 @@ import { useJobEvents } from '@/lib/hooks/useJobEvents';
 import { useJobBookmarks, useBookmarkCounts } from '@/lib/hooks/useBookmarks';
 import { useService } from '@/lib/hooks/useServices';
 import { GridSkeleton } from '@/components/Skeletons';
-import { useState, useCallback, useEffect, memo } from 'react';
+import { useState, useCallback, useEffect, memo, Suspense } from 'react';
 import { StatusBadge, getJobStatusBadgeType } from '@/components/StatusBadge';
 import { useDebounce } from '@/lib/hooks/useDebounce';
 import { EmptyStateJobs } from '@/components/ui/empty-state';
@@ -62,18 +62,18 @@ const JobCard = memo(function JobCard({ job }: { job: any }) {
           )}
           <div className="flex items-center gap-4 mt-2 text-xs text-default-400">
             <span className="flex items-center gap-1">
-              <DollarSign className="w-3 h-3" />
+              <DollarSign className="size-3" />
               {formattedBudget}
             </span>
             <span className="flex items-center gap-1">
-              <Clock className="w-3 h-3" />
+              <Clock className="size-3" />
               {new Date(Number(job.expiredAt) * 1000).toLocaleDateString()}
             </span>
           </div>
         </NextLink>
 
         <div className="flex flex-col items-end gap-2">
-          <button
+          <button type="button"
             onClick={handleBookmark}
             className={`p-2 rounded-lg transition-colors ${
               bookmarked
@@ -82,7 +82,7 @@ const JobCard = memo(function JobCard({ job }: { job: any }) {
             }`}
             title={bookmarked ? 'Remove bookmark' : 'Bookmark this job'}
           >
-            <Bookmark className={`w-5 h-5 ${bookmarked ? 'fill-current' : ''}`} />
+            <Bookmark className={`size-5 ${bookmarked ? 'fill-current' : ''}`} />
           </button>
           {bookmarkCount > 0 && <span className="text-xs text-default-400">{bookmarkCount}</span>}
         </div>
@@ -93,8 +93,7 @@ const JobCard = memo(function JobCard({ job }: { job: any }) {
 
 const ITEMS_PER_PAGE = 10;
 
-export default function JobsPage(): JSX.Element {
-  useEffect(() => { document.title = 'Jobs | Kokonut'; }, []);
+function JobsContent() {
   const { address, isConnected } = useAccount();
   const searchParams = useSearchParams();
   const router = useRouter();
@@ -206,7 +205,7 @@ export default function JobsPage(): JSX.Element {
           href="/jobs/create"
           className="inline-flex items-center gap-2 px-5 py-2.5 bg-gradient-to-r from-[#009F4D] to-[#00c853] text-white rounded-lg font-medium hover:opacity-90 transition-opacity"
         >
-          <Plus className="w-4 h-4" />
+          <Plus className="size-4" />
           Post Job Request
         </NextLink>
       </div>
@@ -216,25 +215,25 @@ export default function JobsPage(): JSX.Element {
         <Card className="border border-divider p-4">
           <div className="text-sm text-default-500">Open Jobs</div>
           <div className="text-2xl font-bold">
-            {isStatsLoading ? '...' : subgraphStats.openJobs}
+            {isStatsLoading ? '…' : subgraphStats.openJobs}
           </div>
         </Card>
         <Card className="border border-divider p-4">
           <div className="text-sm text-default-500">In Progress</div>
           <div className="text-2xl font-bold">
-            {isStatsLoading ? '...' : subgraphStats.inProgressJobs}
+            {isStatsLoading ? '…' : subgraphStats.inProgressJobs}
           </div>
         </Card>
         <Card className="border border-divider p-4">
           <div className="text-sm text-default-500">Completed</div>
           <div className="text-2xl font-bold">
-            {isStatsLoading ? '...' : subgraphStats.completedJobs}
+            {isStatsLoading ? '…' : subgraphStats.completedJobs}
           </div>
         </Card>
         <Card className="border border-divider p-4">
           <div className="text-sm text-default-500">Total Jobs</div>
           <div className="text-2xl font-bold">
-            {isStatsLoading ? '...' : subgraphStats.totalJobs}
+            {isStatsLoading ? '…' : subgraphStats.totalJobs}
           </div>
         </Card>
       </div>
@@ -246,7 +245,7 @@ export default function JobsPage(): JSX.Element {
             <Search className="absolute left-3 top-1/2 -translate-y-1/2 h-4 w-4 text-default-400" />
             <input
               type="text"
-              placeholder="Search jobs..."
+              placeholder="Search jobsâ¦"
               className="w-full pl-10 pr-10 py-2 border border-divider rounded-lg bg-content2 focus:outline-none focus:ring-2 focus:ring-success text-foreground"
               value={searchQuery}
               onChange={e => setSearchQuery(e.target.value)}
@@ -255,7 +254,7 @@ export default function JobsPage(): JSX.Element {
               <span className="absolute right-3 top-1/2 -translate-y-1/2 h-4 w-4 animate-spin rounded-full border-2 border-default-400 border-t-transparent" />
             )}
           </div>
-          <button
+          <button type="button"
             onClick={() => setShowFilters(!showFilters)}
             className={`flex items-center gap-2 px-4 py-2 border border-divider rounded-lg hover:bg-content2 transition-colors ${showFilters ? 'bg-content2' : ''}`}
           >
@@ -390,5 +389,15 @@ export default function JobsPage(): JSX.Element {
         </>
       )}
     </div>
+  );
+}
+
+export default function JobsPage(): JSX.Element {
+  useEffect(() => { document.title = 'Jobs | Kokonut'; }, []);
+
+  return (
+    <Suspense fallback={<div>Loading...</div>}>
+      <JobsContent />
+    </Suspense>
   );
 }

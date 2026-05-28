@@ -59,12 +59,12 @@ function BondStatusBadge({ serviceId, isActive }: { serviceId: bigint; isActive:
   if (isActive) {
     return hasBond ? (
       <span className="inline-flex items-center gap-1 text-xs text-success">
-        <Shield className="w-3 h-3" />
+        <Shield className="size-3" />
         Bonded
       </span>
     ) : (
       <span className="inline-flex items-center gap-1 text-xs text-warning">
-        <AlertCircle className="w-3 h-3" />
+        <AlertCircle className="size-3" />
         Unbonded
       </span>
     );
@@ -74,7 +74,7 @@ function BondStatusBadge({ serviceId, isActive }: { serviceId: bigint; isActive:
   if (!hasBond) {
     return (
       <span className="inline-flex items-center gap-1 text-xs text-default-400">
-        <AlertCircle className="w-3 h-3" />
+        <AlertCircle className="size-3" />
         No bond
       </span>
     );
@@ -89,7 +89,7 @@ function BondStatusBadge({ serviceId, isActive }: { serviceId: bigint; isActive:
     const hours = Math.floor((remaining % (24 * 60 * 60 * 1000)) / (60 * 60 * 1000));
     return (
       <span className="inline-flex items-center gap-1 text-xs text-warning">
-        <Clock className="w-3 h-3" />
+        <Clock className="size-3" />
         Withdraw in {days}d {hours}h
       </span>
     );
@@ -97,7 +97,7 @@ function BondStatusBadge({ serviceId, isActive }: { serviceId: bigint; isActive:
 
   return (
     <span className="inline-flex items-center gap-1 text-xs text-success">
-      <Wallet className="w-3 h-3" />
+      <Wallet className="size-3" />
       Bond withdrawable
     </span>
   );
@@ -130,7 +130,7 @@ function ServiceCardActions({
 
   const handleActivate = async () => {
     try {
-      const toastId = showToast.loading('Activating service...');
+      const toastId = showToast.loading('Activating service…');
       await activateService(service.id);
       showToast.dismiss(toastId);
       showToast.success('Service activated', 'Your service is now visible in the marketplace.');
@@ -143,7 +143,7 @@ function ServiceCardActions({
 
   const handleDeactivate = async () => {
     try {
-      const toastId = showToast.loading('Deactivating service...');
+      const toastId = showToast.loading('Deactivating service…');
       await deactivateService(service.id);
       showToast.dismiss(toastId);
       showToast.success('Service deactivated', 'Your service is now hidden from the marketplace.');
@@ -156,7 +156,7 @@ function ServiceCardActions({
 
   const handleWithdrawBond = async () => {
     try {
-      const toastId = showToast.loading('Withdrawing bond...');
+      const toastId = showToast.loading('Withdrawing bond…');
       await withdrawServiceBond(service.id);
       showToast.dismiss(toastId);
       showToast.success('Bond withdrawn', '0.01 ETH has been returned to your wallet.');
@@ -175,12 +175,12 @@ function ServiceCardActions({
 
   return (
     <div className="relative" ref={dropdownRef}>
-      <button
+      <button type="button"
         onClick={() => setIsOpen(!isOpen)}
         className="p-2 text-default-400 hover:text-foreground hover:bg-content2 rounded-lg transition-colors"
         title="Actions"
       >
-        <MoreVertical className="w-4 h-4" />
+        <MoreVertical className="size-4" />
       </button>
 
       {isOpen && (
@@ -190,40 +190,40 @@ function ServiceCardActions({
             className="flex items-center gap-2 px-3 py-2 text-sm text-foreground hover:bg-content2 transition-colors"
             onClick={() => setIsOpen(false)}
           >
-            <Edit3 className="w-4 h-4" />
+            <Edit3 className="size-4" />
             View / Edit
           </NextLink>
 
           {service.isActive && (
-            <button
+            <button type="button"
               onClick={handleDeactivate}
               disabled={isDeactivatePending}
               className="w-full flex items-center gap-2 px-3 py-2 text-sm text-danger hover:bg-danger/5 transition-colors disabled:opacity-50"
             >
-              <PowerOff className="w-4 h-4" />
-              {isDeactivatePending ? 'Deactivating...' : 'Deactivate'}
+              <PowerOff className="size-4" />
+              {isDeactivatePending ? 'Deactivating…' : 'Deactivate'}
             </button>
           )}
 
           {!service.isActive && (
             <>
-              <button
+              <button type="button"
                 onClick={handleActivate}
                 disabled={isActivatePending}
                 className="w-full flex items-center gap-2 px-3 py-2 text-sm text-success hover:bg-success/5 transition-colors disabled:opacity-50"
               >
-                <Power className="w-4 h-4" />
-                {isActivatePending ? 'Activating...' : 'Activate'}
+                <Power className="size-4" />
+                {isActivatePending ? 'Activating…' : 'Activate'}
               </button>
 
               {canWithdrawBond && (
-                <button
+                <button type="button"
                   onClick={handleWithdrawBond}
                   disabled={isWithdrawPending}
                   className="w-full flex items-center gap-2 px-3 py-2 text-sm text-primary hover:bg-primary/5 transition-colors disabled:opacity-50"
                 >
-                  <Wallet className="w-4 h-4" />
-                  {isWithdrawPending ? 'Withdrawing...' : 'Withdraw Bond (0.01 ETH)'}
+                  <Wallet className="size-4" />
+                  {isWithdrawPending ? 'Withdrawing…' : 'Withdraw Bond (0.01 ETH)'}
                 </button>
               )}
             </>
@@ -255,7 +255,7 @@ function ServiceCard({ service, onRefetch }: { service: Service; onRefetch: () =
           )}
           <div className="flex items-center gap-4 mt-3">
             <div className="flex items-center gap-1 text-sm">
-              <DollarSign className="w-4 h-4 text-success" />
+              <DollarSign className="size-4 text-success" />
               <span className="font-medium">{formattedPrice}</span>
             </div>
             <span className="text-xs text-default-400">Agent #{service.agentId.toString()}</span>
@@ -291,6 +291,10 @@ function ServiceCardSkeleton() {
 }
 
 export default function DashboardServicesPage() {
+  useEffect(() => {
+    document.title = 'Manage Services | Kokonut Agent Economy';
+  }, []);
+
   const { isConnected, address } = useAccount();
   const { services, isLoading, error, refetch } = useProviderServices(address);
 
@@ -308,7 +312,7 @@ export default function DashboardServicesPage() {
           href="/dashboard"
           className="inline-flex items-center gap-2 text-sm text-default-500 hover:text-foreground transition-colors mb-4"
         >
-          <ArrowLeft className="w-4 h-4" />
+          <ArrowLeft className="size-4" />
           Back to Dashboard
         </NextLink>
         <div className="flex items-start justify-between">
@@ -316,24 +320,24 @@ export default function DashboardServicesPage() {
             <h1 className="text-3xl font-bold text-foreground">Your Services</h1>
             <p className="text-default-500 mt-1">
               {isLoading
-                ? 'Loading...'
+                ? 'Loading…'
                 : `${services.length} service${services.length !== 1 ? 's' : ''} listed`}
             </p>
           </div>
           <div className="flex gap-2">
-            <button
+            <button type="button"
               onClick={() => refetch()}
               disabled={isLoading}
               className="inline-flex items-center gap-2 px-4 py-2.5 border border-divider rounded-lg font-medium hover:bg-content2 transition-colors disabled:opacity-50"
             >
-              <RefreshCw className={`w-4 h-4 ${isLoading ? 'animate-spin' : ''}`} />
+              <RefreshCw className={`size-4 ${isLoading ? 'animate-spin' : ''}`} />
               Refresh
             </button>
             <NextLink
               href="/marketplace/create"
               className="inline-flex items-center gap-2 px-5 py-2.5 bg-gradient-to-r from-[#009F4D] to-[#00c853] text-white rounded-lg font-medium hover:opacity-90 transition-opacity"
             >
-              <Plus className="w-4 h-4" />
+              <Plus className="size-4" />
               New Service
             </NextLink>
           </div>
@@ -346,7 +350,7 @@ export default function DashboardServicesPage() {
             <div className="flex-1">
               <p className="text-danger font-medium">Error loading services</p>
               <p className="text-danger-600 text-sm mt-1">{error.message}</p>
-              <button
+              <button type="button"
                 onClick={() => refetch()}
                 className="mt-3 px-4 py-2 bg-danger text-white rounded-lg text-sm font-medium hover:bg-danger-600 transition-colors"
               >
@@ -368,7 +372,7 @@ export default function DashboardServicesPage() {
           {activeServices.length > 0 && (
             <div className="mb-6">
               <h2 className="text-lg font-semibold mb-3 flex items-center gap-2">
-                <CheckCircle2 className="w-5 h-5 text-success" />
+                <CheckCircle2 className="size-5 text-success" />
                 Active Services ({activeServices.length})
               </h2>
               <div className="space-y-3">
@@ -382,7 +386,7 @@ export default function DashboardServicesPage() {
           {inactiveServices.length > 0 && (
             <div className="mb-6">
               <h2 className="text-lg font-semibold mb-3 flex items-center gap-2 text-default-500">
-                <PowerOff className="w-5 h-5" />
+                <PowerOff className="size-5" />
                 Inactive Services ({inactiveServices.length})
               </h2>
               <div className="space-y-3">
@@ -404,7 +408,7 @@ export default function DashboardServicesPage() {
                 href="/marketplace/create"
                 className="inline-flex items-center gap-2 px-5 py-2.5 bg-gradient-to-r from-[#009F4D] to-[#00c853] text-white rounded-lg font-medium hover:opacity-90 transition-opacity"
               >
-                <Plus className="w-4 h-4" />
+                <Plus className="size-4" />
                 Create First Service
               </NextLink>
             </div>

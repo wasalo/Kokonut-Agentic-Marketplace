@@ -1,6 +1,6 @@
 'use client';
 
-import { useState, useMemo } from 'react';
+import { useState, useMemo, useEffect } from 'react';
 import NextLink from 'next/link';
 import {
   Globe,
@@ -27,7 +27,7 @@ function NetworkCard({ chain, stats, isLoading }: NetworkCardProps) {
         <div className="flex items-start justify-between mb-4">
           <div className="flex items-center gap-3">
             <div
-              className="w-10 h-10 rounded-full flex items-center justify-center font-bold text-white"
+              className="size-100 rounded-full flex items-center justify-center font-bold text-white"
               style={{ backgroundColor: chain.color }}
             >
               {chain.shortName.slice(0, 2)}
@@ -45,7 +45,7 @@ function NetworkCard({ chain, stats, isLoading }: NetworkCardProps) {
         <div className="grid grid-cols-1 sm:grid-cols-2 gap-3 md:gap-4 mb-4">
           <div>
             <div className="flex items-center gap-1 text-xs text-default-400 mb-1">
-              <Users className="w-3 h-3" />
+              <Users className="size-3" />
               <span>Agents</span>
             </div>
             {isLoading ? (
@@ -56,7 +56,7 @@ function NetworkCard({ chain, stats, isLoading }: NetworkCardProps) {
           </div>
           <div>
             <div className="flex items-center gap-1 text-xs text-default-400 mb-1">
-              <MessageSquare className="w-3 h-3" />
+              <MessageSquare className="size-3" />
               <span>Feedbacks</span>
             </div>
             {isLoading ? (
@@ -69,7 +69,7 @@ function NetworkCard({ chain, stats, isLoading }: NetworkCardProps) {
 
         {chain.explorerUrl && (
           <div className="flex items-center gap-2 text-xs text-default-400">
-            <ExternalLink className="w-3 h-3" />
+            <ExternalLink className="size-3" />
             <span className="truncate">{chain.explorerUrl.replace('https://', '')}</span>
           </div>
         )}
@@ -99,7 +99,7 @@ function LoadingSkeleton() {
         <Card key={i} className="border border-divider p-6 animate-pulse">
           <div className="flex items-start justify-between mb-4">
             <div className="flex items-center gap-3">
-              <div className="w-10 h-10 rounded-full bg-content2" />
+              <div className="size-100 rounded-full bg-content2" />
               <div>
                 <div className="h-5 bg-content2 rounded w-24 mb-2" />
                 <div className="h-3 bg-content2 rounded w-12" />
@@ -123,6 +123,10 @@ function LoadingSkeleton() {
 }
 
 export default function NetworksPage() {
+  useEffect(() => {
+    document.title = 'Networks | Kokonut Agent Economy';
+  }, []);
+
   const [searchQuery, setSearchQuery] = useState('');
   const { stats, isLoading, refetch } = useNetworkStats();
 
@@ -150,13 +154,13 @@ export default function NetworksPage() {
       <div className="flex flex-col md:flex-row justify-between items-start md:items-center gap-4 mb-8">
         <div>
           <h1 className="text-3xl font-bold flex items-center gap-3">
-            <Globe className="w-8 h-8 text-primary" />
+            <Globe className="size-8 text-primary" />
             Networks
           </h1>
           <p className="text-default-500">ERC-8004 compatible blockchain networks</p>
         </div>
         <Button variant="ghost" size="sm" onPress={() => refetch()} isDisabled={isLoading}>
-          <RefreshCw className={`w-4 h-4 ${isLoading ? 'animate-spin' : ''}`} />
+          <RefreshCw className={`size-4 ${isLoading ? 'animate-spin' : ''}`} />
           Refresh
         </Button>
       </div>
@@ -164,7 +168,7 @@ export default function NetworksPage() {
       <div className="flex flex-col lg:flex-row gap-6 mb-8">
         <Card className="border border-divider p-6 flex-1">
           <div className="flex items-center gap-3 mb-2">
-            <Globe className="w-5 h-5 text-primary" />
+            <Globe className="size-5 text-primary" />
             <span className="text-sm text-default-500">Networks</span>
           </div>
           <p className="text-3xl font-bold">{PRODUCTION_CHAINS.length}</p>
@@ -174,14 +178,14 @@ export default function NetworksPage() {
         </Card>
         <Card className="border border-divider p-6 flex-1">
           <div className="flex items-center gap-3 mb-2">
-            <Users className="w-5 h-5 text-success" />
+            <Users className="size-5 text-success" />
             <span className="text-sm text-default-500">Total Agents</span>
           </div>
           <p className="text-3xl font-bold">{totalAgents.toLocaleString()}</p>
         </Card>
         <Card className="border border-divider p-6 flex-1">
           <div className="flex items-center gap-3 mb-2">
-            <MessageSquare className="w-5 h-5 text-warning" />
+            <MessageSquare className="size-5 text-warning" />
             <span className="text-sm text-default-500">Total Feedbacks</span>
           </div>
           <p className="text-3xl font-bold">{totalFeedbacks.toLocaleString()}</p>
@@ -194,7 +198,7 @@ export default function NetworksPage() {
             <Search className="absolute left-3 top-1/2 -translate-y-1/2 h-4 w-4 text-default-400" />
             <input
               type="text"
-              placeholder="Search networks..."
+              placeholder="Search networks…"
               className="w-full pl-10 pr-4 py-2 border border-divider rounded-lg bg-content2 focus:outline-none focus:ring-2 focus:ring-success text-foreground"
               value={searchQuery}
               onChange={e => setSearchQuery(e.target.value)}

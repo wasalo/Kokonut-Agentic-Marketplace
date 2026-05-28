@@ -85,8 +85,8 @@ function LiveStats() {
           key={item.label}
           className="text-center bg-content border border-divider rounded-xl p-6"
         >
-          <div className="w-12 h-12 mx-auto mb-3 rounded-xl bg-gradient-to-br from-primary to-emerald-400 flex items-center justify-center">
-            <item.icon className="w-6 h-6 text-white" />
+          <div className="size-122 mx-auto mb-3 rounded-xl bg-gradient-to-br from-primary to-emerald-400 flex items-center justify-center">
+            <item.icon className="size-6 text-white" />
           </div>
           {isLoading ? (
             <div className="h-8 w-16 bg-content3 rounded animate-pulse mx-auto" />
@@ -209,8 +209,8 @@ function WhatIsHappening() {
                 }
                 className="flex items-center gap-4 p-4 bg-content border border-divider rounded-xl hover:border-success/30 hover:shadow-sm transition-all group"
               >
-                <div className="w-10 h-10 rounded-xl bg-gradient-to-br from-primary to-emerald-400 flex items-center justify-center shrink-0">
-                  <Icon className="w-5 h-5 text-white" />
+                <div className="size-100 rounded-xl bg-gradient-to-br from-primary to-emerald-400 flex items-center justify-center shrink-0">
+                  <Icon className="size-5 text-white" />
                 </div>
                 <div className="flex-1 min-w-0">
                   <p className="text-sm font-medium text-foreground group-hover:text-primary transition-colors">
@@ -221,7 +221,7 @@ function WhatIsHappening() {
                   </p>
                 </div>
                 <div className="flex items-center gap-2 shrink-0">
-                  <Clock className="w-3 h-3 text-default-400" />
+                  <Clock className="size-3 text-default-400" />
                   <span className="text-xs text-default-500">{timeAgo(activity.timestamp)}</span>
                 </div>
               </NextLink>
@@ -235,7 +235,7 @@ function WhatIsHappening() {
             className="inline-flex items-center gap-2 text-sm text-primary hover:underline"
           >
             View all activity
-            <ArrowRight className="w-3 h-3" />
+            <ArrowRight className="size-3" />
           </NextLink>
         </div>
       </div>
@@ -250,8 +250,8 @@ export default function HomePage(): JSX.Element {
       {/* Hero Section */}
       <section className="relative min-h-[90vh] flex items-center overflow-hidden">
         <div className="absolute inset-0 bg-gradient-to-br from-[#009F4D]/5 via-background to-secondary/5" />
-        <div className="absolute top-20 left-10 w-72 h-72 bg-primary/10 rounded-full blur-3xl" />
-        <div className="absolute bottom-20 right-10 w-96 h-96 bg-secondary/10 rounded-full blur-3xl" />
+        <div className="absolute top-20 left-10 size-72 bg-primary/10 rounded-full blur-3xl" />
+        <div className="absolute bottom-20 right-10 size-96 bg-secondary/10 rounded-full blur-3xl" />
 
         <div className="container mx-auto px-4 relative">
           <div className="max-w-4xl mx-auto text-center">
@@ -287,14 +287,14 @@ export default function HomePage(): JSX.Element {
                 className="inline-flex items-center justify-center gap-2 px-8 py-4 text-lg font-semibold bg-gradient-to-r from-primary to-emerald-400 text-white rounded-xl hover:opacity-90 transition-opacity"
               >
                 Register Agent
-                <ArrowRight className="w-4 h-4" />
+                <ArrowRight className="size-4" />
               </NextLink>
               <NextLink
                 href="/marketplace"
                 className="inline-flex items-center justify-center gap-2 px-8 py-4 text-lg font-semibold border-2 border-primary text-primary rounded-xl hover:bg-primary/5 transition-colors"
               >
                 Explore Marketplace
-                <ArrowRight className="w-4 h-4" />
+                <ArrowRight className="size-4" />
               </NextLink>
             </div>
 
@@ -353,10 +353,10 @@ export default function HomePage(): JSX.Element {
               <div key={feature.title} className={DS.cards.padded + ' cursor-default'}>
                 <div className="p-6">
                   <div
-                    className="w-12 h-12 rounded-xl flex items-center justify-center mb-4"
+                    className="size-122 rounded-xl flex items-center justify-center mb-4"
                     style={{ backgroundColor: `${feature.color}20` }}
                   >
-                    <feature.icon className="w-6 h-6" style={{ color: feature.color }} />
+                    <feature.icon className="size-6" style={{ color: feature.color }} />
                   </div>
                   <h3 className="text-lg font-semibold mb-2">{feature.title}</h3>
                   <p className="text-default-600 text-sm mb-4">{feature.description}</p>
@@ -394,7 +394,7 @@ export default function HomePage(): JSX.Element {
                   <div className="hidden md:block absolute top-8 left-full w-full h-0.5 bg-gradient-to-r from-[#009F4D]/50 to-transparent" />
                 )}
                 <div className="text-center">
-                  <div className="w-16 h-16 rounded-2xl bg-gradient-to-br from-primary to-emerald-400 text-white font-bold text-xl flex items-center justify-center mx-auto mb-4">
+                  <div className="size-166 rounded-2xl bg-gradient-to-br from-primary to-emerald-400 text-white font-bold text-xl flex items-center justify-center mx-auto mb-4">
                     {step.number}
                   </div>
                   <h3 className="text-lg font-semibold mb-2">{step.title}</h3>
@@ -424,7 +424,7 @@ export default function HomePage(): JSX.Element {
                   className="inline-flex items-center justify-center gap-2 px-8 py-4 text-lg font-semibold bg-white text-primary rounded-xl hover:opacity-90 transition-opacity"
                 >
                   Get Started Free
-                  <ArrowRight className="w-4 h-4" />
+                  <ArrowRight className="size-4" />
                 </NextLink>
                 <a
                   href="https://github.com/wasalo/Kokonut-Agentic-Marketplace"

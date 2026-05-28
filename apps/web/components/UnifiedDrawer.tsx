@@ -33,12 +33,12 @@ export function UnifiedDrawer() {
 
   return (
     <>
-      <button
+      <button type="button"
         onClick={() => setIsOpen(true)}
         className="relative p-2 text-default-600 hover:text-foreground hover:bg-content2 rounded-lg transition-colors"
         aria-label={`Activity ${totalBadge > 0 ? `(${totalBadge})` : ''}`}
       >
-        <Bell className="w-5 h-5" />
+        <Bell className="size-5" />
         {totalBadge > 0 && (
           <span className="absolute -top-0.5 -right-0.5 min-w-[18px] h-[18px] px-1 bg-danger text-white text-[10px] font-medium rounded-full flex items-center justify-center">
             {totalBadge > 99 ? '99+' : totalBadge}
@@ -58,7 +58,7 @@ export function UnifiedDrawer() {
             {/* Header */}
             <div className="flex items-center justify-between p-4 border-b border-divider">
               <div className="flex gap-4">
-                <button
+                <button type="button"
                   onClick={() => setActiveTab('activity')}
                   className={`flex items-center gap-2 text-sm font-medium pb-2 border-b-2 transition-colors ${
                     activeTab === 'activity'
@@ -66,7 +66,7 @@ export function UnifiedDrawer() {
                       : 'border-transparent text-default-500 hover:text-foreground'
                   }`}
                 >
-                  <Activity className="w-4 h-4" />
+                  <Activity className="size-4" />
                   Activity
                   {pendingCount > 0 && (
                     <span className="bg-warning text-white text-[10px] px-1.5 py-0.5 rounded-full">
@@ -74,7 +74,7 @@ export function UnifiedDrawer() {
                     </span>
                   )}
                 </button>
-                <button
+                <button type="button"
                   onClick={() => setActiveTab('notifications')}
                   className={`flex items-center gap-2 text-sm font-medium pb-2 border-b-2 transition-colors ${
                     activeTab === 'notifications'
@@ -82,7 +82,7 @@ export function UnifiedDrawer() {
                       : 'border-transparent text-default-500 hover:text-foreground'
                   }`}
                 >
-                  <Bell className="w-4 h-4" />
+                  <Bell className="size-4" />
                   Notifications
                   {unreadCount > 0 && (
                     <span className="bg-danger text-white text-[10px] px-1.5 py-0.5 rounded-full">
@@ -91,11 +91,11 @@ export function UnifiedDrawer() {
                   )}
                 </button>
               </div>
-              <button
+              <button type="button"
                 onClick={() => setIsOpen(false)}
                 className="p-1 text-default-400 hover:text-foreground transition-colors"
               >
-                <X className="w-5 h-5" />
+                <X className="size-5" />
               </button>
             </div>
 
@@ -129,7 +129,7 @@ function ActivityTab() {
       {pending.length > 0 && (
         <div className="space-y-2">
           <h3 className="text-sm font-semibold text-amber-400 flex items-center gap-2">
-            <Clock className="w-4 h-4" />
+            <Clock className="size-4" />
             Pending
           </h3>
           {pending.map((tx) => (
@@ -150,7 +150,7 @@ function ActivityTab() {
 
       {recent.length === 0 && (
         <div className="text-center py-8">
-          <Activity className="w-8 h-8 text-default-300 mx-auto mb-2" />
+          <Activity className="size-8 text-default-300 mx-auto mb-2" />
           <p className="text-sm text-default-500">No activity yet</p>
         </div>
       )}
@@ -178,14 +178,14 @@ function TransactionItem({ tx }: { tx: TransactionRecord }) {
             rel="noopener noreferrer"
             className="text-default-400 hover:text-primary transition-colors"
           >
-            <ExternalLink className="w-3 h-3" />
+            <ExternalLink className="size-3" />
           </a>
         )}
       </div>
 
       {tx.status === 'confirming' && (
         <div className="flex items-center gap-2 text-xs text-default-500">
-          <div className="w-24 h-1 bg-default-200 rounded-full overflow-hidden">
+          <div className="size-24 bg-default-200 rounded-full overflow-hidden">
             <div
               className="h-full bg-amber-400 transition-all"
               style={{ width: `${Math.min((confirmations / 3) * 100, 100)}%` }}
@@ -197,7 +197,7 @@ function TransactionItem({ tx }: { tx: TransactionRecord }) {
 
       {tx.status === 'confirmed' && (
         <div className="flex items-center gap-2 text-xs text-green-400">
-          <CheckCircle className="w-3 h-3" />
+          <CheckCircle className="size-3" />
           <span>
             {confirmations >= 6
               ? 'Deep finality (6+ blocks)'
@@ -214,14 +214,14 @@ function TransactionItem({ tx }: { tx: TransactionRecord }) {
 function TransactionStatusIcon({ status }: { status: TransactionRecord['status'] }) {
   switch (status) {
     case 'confirmed':
-      return <CheckCircle className="w-4 h-4 text-green-400" />;
+      return <CheckCircle className="size-4 text-green-400" />;
     case 'failed':
-      return <XCircle className="w-4 h-4 text-red-400" />;
+      return <XCircle className="size-4 text-red-400" />;
     case 'pending':
     case 'confirming':
-      return <Clock className="w-4 h-4 text-amber-400 animate-pulse" />;
+      return <Clock className="size-4 text-amber-400 animate-pulse" />;
     default:
-      return <Clock className="w-4 h-4 text-default-400" />;
+      return <Clock className="size-4 text-default-400" />;
   }
 }
 
@@ -281,11 +281,11 @@ function NotificationsTab({
     <div className="space-y-4">
       {unreadCount > 0 && (
         <div className="flex justify-end">
-          <button
+          <button type="button"
             onClick={markAllAsRead}
             className="text-xs text-primary hover:text-primary/80 flex items-center gap-1"
           >
-            <Check className="w-3 h-3" />
+            <Check className="size-3" />
             Mark all read
           </button>
         </div>
@@ -293,7 +293,7 @@ function NotificationsTab({
 
       {recentNotifications.length === 0 ? (
         <div className="text-center py-8">
-          <BellOff className="w-8 h-8 text-default-300 mx-auto mb-2" />
+          <BellOff className="size-8 text-default-300 mx-auto mb-2" />
           <p className="text-sm text-default-500">No notifications yet</p>
         </div>
       ) : (
@@ -301,7 +301,7 @@ function NotificationsTab({
           {recentNotifications.map((notification) => {
             const Icon = getTypeIcon(notification.type);
             return (
-              <button
+              <button type="button"
                 key={notification.id}
                 onClick={() => {
                   if (notification.link) {
@@ -315,15 +315,15 @@ function NotificationsTab({
               >
                 <div className="flex gap-3">
                   <div className="flex-shrink-0">
-                    <div className="w-8 h-8 rounded-full bg-content2 flex items-center justify-center">
-                      <Icon className="w-4 h-4 text-default-600" />
+                    <div className="size-8 rounded-full bg-content2 flex items-center justify-center">
+                      <Icon className="size-4 text-default-600" />
                     </div>
                   </div>
                   <div className="flex-1 min-w-0">
                     <div className="flex items-start justify-between gap-2">
                       <p className="text-sm font-medium truncate">{notification.title}</p>
                       {!notification.read && (
-                        <span className="w-2 h-2 rounded-full bg-primary flex-shrink-0 mt-1.5" />
+                        <span className="size-2 rounded-full bg-primary flex-shrink-0 mt-1.5" />
                       )}
                     </div>
                     <p className="text-xs text-default-500 line-clamp-2 mt-0.5">
@@ -341,7 +341,7 @@ function NotificationsTab({
       )}
 
       {notifications.length > 10 && (
-        <button
+        <button type="button"
           onClick={() => {
             onClose();
             router.push('/notifications');
@@ -349,7 +349,7 @@ function NotificationsTab({
           className="w-full py-2 text-sm text-primary hover:text-primary/80 transition-colors flex items-center justify-center gap-1"
         >
           View all notifications
-          <ArrowRight className="w-4 h-4" />
+          <ArrowRight className="size-4" />
         </button>
       )}
     </div>

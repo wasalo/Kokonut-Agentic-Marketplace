@@ -1,35 +1,9 @@
 import { useWriteContract } from 'wagmi';
-import { AGENTIC_COMMERCE_ABI, MILESTONE_ESCROW_ABI, BIDDING_SYSTEM_ABI } from '@/lib/contracts/abis';
+import { AGENTIC_COMMERCE_ABI, BIDDING_SYSTEM_ABI } from '@/lib/contracts/abis';
 import { getContractAddress } from '@/lib/contracts/config';
 
 const AGENTIC_COMMERCE_ADDRESS = getContractAddress('AGENTIC_COMMERCE');
 const SEPOLIA_CHAIN_ID = 11155111;
-
-export function useCreateJob() {
-  const { writeContract, data, isPending, error, reset } = useWriteContract();
-  return {
-    createJob: (
-      provider: `0x${string}`,
-      evaluator: `0x${string}`,
-      expiredAt: bigint,
-      description: string,
-      hook: `0x${string}` = '0x0000000000000000000000000000000000000000',
-      evaluatorFee: boolean = false,
-      clientReview: boolean = true
-    ) =>
-      writeContract({
-        chainId: SEPOLIA_CHAIN_ID,
-        address: AGENTIC_COMMERCE_ADDRESS,
-        abi: AGENTIC_COMMERCE_ABI,
-        functionName: 'createJobV7',
-        args: [provider, evaluator, expiredAt, description, hook, evaluatorFee, clientReview],
-      }),
-    hash: data,
-    isPending,
-    error,
-    reset,
-  };
-}
 
 export function useFundJob() {
   const { writeContract, data, isPending, error, reset } = useWriteContract();
@@ -175,25 +149,6 @@ export function useSetPaymentToken() {
   };
 }
 
-export function useFundJobWithETH() {
-  const { writeContract, data, isPending, error, reset } = useWriteContract();
-  return {
-    fundJob: (jobId: bigint, value: bigint, expectedBudget?: bigint) =>
-      writeContract({
-        chainId: SEPOLIA_CHAIN_ID,
-        address: AGENTIC_COMMERCE_ADDRESS,
-        abi: AGENTIC_COMMERCE_ABI,
-        functionName: 'fund',
-        args: [jobId, expectedBudget ?? BigInt(0)],
-        value,
-      }),
-    hash: data,
-    isPending,
-    error,
-    reset,
-  };
-}
-
 export function useCompleteAfterTimeout() {
   const { writeContract, data, isPending, error, reset } = useWriteContract();
   return {
@@ -262,32 +217,6 @@ export function useCreateJobV8() {
   };
 }
 
-export function useCreateJobV7() {
-  const { writeContract, data, isPending, error, reset } = useWriteContract();
-  return {
-    createJobV7: (
-      provider: `0x${string}`,
-      evaluator: `0x${string}`,
-      expiredAt: bigint,
-      description: string,
-      hook: `0x${string}`,
-      evaluatorFee: boolean,
-      clientReview: boolean
-    ) =>
-      writeContract({
-        chainId: SEPOLIA_CHAIN_ID,
-        address: AGENTIC_COMMERCE_ADDRESS,
-        abi: AGENTIC_COMMERCE_ABI,
-        functionName: 'createJobV7',
-        args: [provider, evaluator, expiredAt, description, hook, evaluatorFee, clientReview],
-      }),
-    hash: data,
-    isPending,
-    error,
-    reset,
-  };
-}
-
 export function useRegisterAsEvaluator() {
   const { writeContract, data, isPending, error, reset } = useWriteContract();
   return {
@@ -315,30 +244,6 @@ export function useUnregisterAsEvaluator() {
         address: AGENTIC_COMMERCE_ADDRESS,
         abi: AGENTIC_COMMERCE_ABI,
         functionName: 'unregisterAsEvaluator',
-      }),
-    hash: data,
-    isPending,
-    error,
-    reset,
-  };
-}
-
-export function useEnableJobMilestones() {
-  const { writeContract, data, isPending, error, reset } = useWriteContract();
-  return {
-    enableJobMilestones: (
-      jobId: bigint,
-      client: `0x${string}`,
-      provider: `0x${string}`,
-      paymentToken: `0x${string}`,
-      totalBudget: bigint
-    ) =>
-      writeContract({
-        chainId: SEPOLIA_CHAIN_ID,
-        address: getContractAddress('MILESTONE_ESCROW'),
-        abi: MILESTONE_ESCROW_ABI,
-        functionName: 'enableMilestones',
-        args: [jobId, client, provider, paymentToken, totalBudget],
       }),
     hash: data,
     isPending,

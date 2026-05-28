@@ -1,6 +1,6 @@
 'use client';
 
-import { use, Suspense } from 'react';
+import { use, Suspense, useEffect } from 'react';
 import { useState } from 'react';
 import Link from 'next/link';
 import { Card, Badge, Skeleton } from '@heroui/react';
@@ -55,7 +55,7 @@ function AgentHeader({
     <div className="bg-gradient-to-br from-content2 to-content3 border border-divider rounded-xl md:rounded-2xl p-4 md:p-6 mb-4 md:mb-6">
       <div className="flex flex-col md:flex-row gap-3 md:gap-6">
         <div className="flex-shrink-0 self-center md:self-auto">
-          <div className="w-16 h-16 md:w-24 md:h-24 rounded-xl md:rounded-2xl bg-gradient-to-br from-primary to-primary/60 flex items-center justify-center text-white text-xl md:text-3xl font-bold">
+          <div className="size-166 md:w-24 md:h-24 rounded-xl md:rounded-2xl bg-gradient-to-br from-primary to-primary/60 flex items-center justify-center text-white text-xl md:text-3xl font-bold">
             {metadata?.name ? metadata.name.charAt(0).toUpperCase() : `#${agentId}`}
           </div>
         </div>
@@ -91,22 +91,22 @@ function AgentHeader({
             <div className="flex flex-wrap gap-1.5 md:gap-2 mb-3 md:mb-4">
               {metadata?.endpoints?.mcp && (
                 <Badge className="text-xs flex items-center gap-1">
-                  <Code className="w-3 h-3" /> MCP
+                  <Code className="size-3" /> MCP
                 </Badge>
               )}
               {metadata?.endpoints?.a2a && (
                 <Badge className="text-xs flex items-center gap-1">
-                  <Plug className="w-3 h-3" /> A2A
+                  <Plug className="size-3" /> A2A
                 </Badge>
               )}
               {metadata?.channels?.email && (
                 <Badge className="text-xs flex items-center gap-1">
-                  <Mail className="w-3 h-3" /> Email
+                  <Mail className="size-3" /> Email
                 </Badge>
               )}
               {metadata?.channels?.webhook && (
                 <Badge className="text-xs flex items-center gap-1">
-                  <Webhook className="w-3 h-3" /> Webhook
+                  <Webhook className="size-3" /> Webhook
                 </Badge>
               )}
             </div>
@@ -116,7 +116,7 @@ function AgentHeader({
           <div className="flex flex-wrap items-center gap-2 md:gap-3 mb-3 md:mb-4">
             <div className="flex items-center gap-3 text-xs md:text-sm text-default-500">
               <span className="flex items-center gap-1">
-                <Users className="w-3.5 h-3.5" />
+                <Users className="size-3.5" />
                 <strong className="text-foreground">{followersCount}</strong> followers
               </span>
               <span className="flex items-center gap-1">
@@ -200,7 +200,7 @@ function StatsGrid({
           <div className="p-2 md:p-4">
             <div className="flex items-center gap-2 md:gap-3">
               <div className="p-1.5 md:p-2 rounded-lg bg-content3">
-                <stat.icon className="w-3.5 md:w-5 h-3.5 md:h-5" />
+                <stat.icon className="size-3.5 md:size-5" />
               </div>
               <div>
                 <p className="text-[10px] md:text-xs text-default-500">{stat.label}</p>
@@ -257,7 +257,7 @@ function OverviewTab({
         <Card className="bg-content2 border-divider">
           <div className="p-3 md:p-5">
             <h3 className="font-semibold mb-3 md:mb-4 flex items-center gap-2 text-sm md:text-base">
-              <Star className="w-4 h-4 text-yellow-500" />
+              <Star className="size-4 text-yellow-500" />
               Reputation
             </h3>
             <div className="space-y-0">
@@ -271,7 +271,7 @@ function OverviewTab({
         <Card className="bg-content2 border-divider">
           <div className="p-3 md:p-5">
             <h3 className="font-semibold mb-3 md:mb-4 flex items-center gap-2 text-sm md:text-base">
-              <Activity className="w-4 h-4 text-blue-500" />
+              <Activity className="size-4 text-blue-500" />
               Activity
             </h3>
             <div className="space-y-0">
@@ -302,7 +302,7 @@ function ServicesTab({ services, isLoading }: { services: any[]; isLoading: bool
     return (
       <Card className="bg-content2 border-divider">
         <div className="p-6 md:p-8 text-center">
-          <Package className="w-10 h-10 md:w-12 md:h-12 text-default-400 mx-auto mb-3 md:mb-4" />
+          <Package className="size-100 md:w-12 md:h-12 text-default-400 mx-auto mb-3 md:mb-4" />
           <p className="text-default-500 text-sm md:text-base">No services listed yet</p>
         </div>
       </Card>
@@ -340,7 +340,7 @@ function JobsTab({ jobs, type }: { jobs: any[]; type: 'provider' | 'client' }) {
     return (
       <div>
         <h3 className="font-semibold mb-3 flex items-center gap-2 text-sm md:text-base">
-          <Icon className="w-4 h-4 text-blue-500" />
+          <Icon className="size-4 text-blue-500" />
           {title} (0)
         </h3>
         <p className="text-default-500 text-xs md:text-sm">No jobs</p>
@@ -351,7 +351,7 @@ function JobsTab({ jobs, type }: { jobs: any[]; type: 'provider' | 'client' }) {
   return (
     <div>
       <h3 className="font-semibold mb-3 flex items-center gap-2 text-sm md:text-base">
-        <Icon className="w-4 h-4 text-blue-500" />
+        <Icon className="size-4 text-blue-500" />
         {title} ({jobs.length})
       </h3>
       <div className="grid gap-2 md:gap-3">
@@ -362,7 +362,7 @@ function JobsTab({ jobs, type }: { jobs: any[]; type: 'provider' | 'client' }) {
                 <div className="flex justify-between items-center gap-2">
                   <div className="min-w-0 flex-1">
                     <p className="font-medium text-sm md:text-base">Job #{Number(job.id)}</p>
-                    <p className="text-xs text-default-500 truncate">{String(job.description).slice(0, 50)}...</p>
+                    <p className="text-xs text-default-500 truncate">{String(job.description).slice(0, 50)}…</p>
                   </div>
                   <Badge className="text-xs shrink-0">{String(job.status) || 'Open'}</Badge>
                 </div>
@@ -382,7 +382,7 @@ function AllJobsTab({ providerJobs, clientJobs }: { providerJobs: any[]; clientJ
     return (
       <Card className="bg-content2 border-divider">
         <div className="p-6 md:p-8 text-center">
-          <Briefcase className="w-10 h-10 md:w-12 md:h-12 text-default-400 mx-auto mb-3 md:mb-4" />
+          <Briefcase className="size-100 md:w-12 md:h-12 text-default-400 mx-auto mb-3 md:mb-4" />
           <p className="text-default-500 text-sm md:text-base">No jobs yet</p>
         </div>
       </Card>
@@ -406,7 +406,7 @@ function PortfolioTab({ metadata }: { metadata: any }) {
     return (
       <Card className="bg-content2 border-divider">
         <div className="p-6 md:p-8 text-center">
-          <Package className="w-10 h-10 md:w-12 md:h-12 text-default-400 mx-auto mb-3 md:mb-4" />
+          <Package className="size-100 md:w-12 md:h-12 text-default-400 mx-auto mb-3 md:mb-4" />
           <p className="text-default-500 text-sm md:text-base">No portfolio items yet</p>
           <p className="text-default-400 text-xs md:text-sm mt-2">
             Add portfolio items in settings to showcase your work
@@ -424,8 +424,8 @@ function NetworkTab({ owner }: { owner: `0x${string}` | undefined }) {
     return (
       <Card className="bg-content2 border-divider">
         <div className="p-6 md:p-8 text-center">
-          <Users className="w-10 h-10 md:w-12 md:h-12 text-default-400 mx-auto mb-3 md:mb-4" />
-          <p className="text-default-500 text-sm md:text-base">Loading network data...</p>
+          <Users className="size-100 md:w-12 md:h-12 text-default-400 mx-auto mb-3 md:mb-4" />
+          <p className="text-default-500 text-sm md:text-base">Loading network data…</p>
         </div>
       </Card>
     );
@@ -454,7 +454,7 @@ function ConnectionsTab({ metadata, owner, connectedAddress }: { metadata: any; 
     return (
       <Card className="bg-content2 border-divider">
         <div className="p-6 md:p-8 text-center">
-          <Plug className="w-10 h-10 md:w-12 md:h-12 text-default-400 mx-auto mb-3 md:mb-4" />
+          <Plug className="size-100 md:w-12 md:h-12 text-default-400 mx-auto mb-3 md:mb-4" />
           <p className="text-default-500 text-sm md:text-base">No connections configured</p>
           <p className="text-default-400 text-xs md:text-sm mt-2">
             Add endpoints to your agent metadata to enable MCP, A2A, email, or webhooks
@@ -481,7 +481,7 @@ function ConnectionsTab({ metadata, owner, connectedAddress }: { metadata: any; 
         <Card className="bg-content2 border-divider">
           <div className="p-3 md:p-5">
             <h3 className="font-semibold mb-3 md:mb-4 flex items-center gap-2 text-sm md:text-base">
-              <Code className="w-4 h-4 text-blue-500" />
+              <Code className="size-4 text-blue-500" />
               API Endpoints
             </h3>
             <div className="space-y-2 md:space-y-3">
@@ -494,7 +494,7 @@ function ConnectionsTab({ metadata, owner, connectedAddress }: { metadata: any; 
                     rel="noopener noreferrer"
                     className="text-primary flex items-center gap-1 text-xs md:text-sm truncate max-w-[180px] md:max-w-none"
                   >
-                    {endpoints.https.slice(0, 30)}... <ExternalLink className="w-3 h-3" />
+                    {endpoints.https.slice(0, 30)}... <ExternalLink className="size-3" />
                   </a>
                 </div>
               )}
@@ -507,7 +507,7 @@ function ConnectionsTab({ metadata, owner, connectedAddress }: { metadata: any; 
                     rel="noopener noreferrer"
                     className="text-primary flex items-center gap-1 text-xs md:text-sm truncate max-w-[180px] md:max-w-none"
                   >
-                    {endpoints.mcp.slice(0, 40)}... <ExternalLink className="w-3 h-3" />
+                    {endpoints.mcp.slice(0, 40)}... <ExternalLink className="size-3" />
                   </a>
                 </div>
               )}
@@ -520,7 +520,7 @@ function ConnectionsTab({ metadata, owner, connectedAddress }: { metadata: any; 
                     rel="noopener noreferrer"
                     className="text-primary flex items-center gap-1 text-xs md:text-sm truncate max-w-[180px] md:max-w-none"
                   >
-                    {endpoints.a2a.slice(0, 30)}... <ExternalLink className="w-3 h-3" />
+                    {endpoints.a2a.slice(0, 30)}... <ExternalLink className="size-3" />
                   </a>
                 </div>
               )}
@@ -534,7 +534,7 @@ function ConnectionsTab({ metadata, owner, connectedAddress }: { metadata: any; 
         <Card className="bg-content2 border-divider">
           <div className="p-3 md:p-5">
             <h3 className="font-semibold mb-3 md:mb-4 flex items-center gap-2 text-sm md:text-base">
-              <MessageSquare className="w-4 h-4 text-purple-500" />
+              <MessageSquare className="size-4 text-purple-500" />
               Communication Channels
             </h3>
             <div className="space-y-2 md:space-y-3">
@@ -553,7 +553,7 @@ function ConnectionsTab({ metadata, owner, connectedAddress }: { metadata: any; 
                     rel="noopener noreferrer"
                     className="text-primary flex items-center gap-1 text-xs md:text-sm truncate max-w-[180px] md:max-w-none"
                   >
-                    {channels.webhook.slice(0, 30)}... <ExternalLink className="w-3 h-3" />
+                    {channels.webhook.slice(0, 30)}... <ExternalLink className="size-3" />
                   </a>
                 </div>
               )}
@@ -567,7 +567,7 @@ function ConnectionsTab({ metadata, owner, connectedAddress }: { metadata: any; 
         <Card className="bg-content2 border-divider">
           <div className="p-3 md:p-5">
             <h3 className="font-semibold mb-3 md:mb-4 flex items-center gap-2 text-sm md:text-base">
-              <Plug className="w-4 h-4 text-green-500" />
+              <Plug className="size-4 text-green-500" />
               Supported Protocols
             </h3>
             <div className="flex flex-wrap gap-1.5 md:gap-2">
@@ -597,7 +597,7 @@ function SkillsTab({ skillIds, isLoading }: { skillIds: bigint[] | undefined; is
     return (
       <Card className="bg-content2 border-divider">
         <div className="p-6 md:p-8 text-center">
-          <Code className="w-10 h-10 md:w-12 md:h-12 text-default-400 mx-auto mb-3 md:mb-4" />
+          <Code className="size-100 md:w-12 md:h-12 text-default-400 mx-auto mb-3 md:mb-4" />
           <p className="text-default-500 text-sm md:text-base">No skills registered yet</p>
         </div>
       </Card>
@@ -624,6 +624,10 @@ function SkillsTab({ skillIds, isLoading }: { skillIds: bigint[] | undefined; is
 }
 
 export default function AgentDetailPage({ params }: AgentDetailPageProps) {
+  useEffect(() => {
+    document.title = 'Agent Profile | Kokonut Agent Economy';
+  }, []);
+
   const { id } = use(params);
   const agentId = BigInt(id);
   const agentAddress = `0x${id}` as `0x${string}`;
@@ -658,7 +662,7 @@ export default function AgentDetailPage({ params }: AgentDetailPageProps) {
       
       <div className="flex flex-col sm:flex-row items-center justify-center rounded-md bg-muted p-1 gap-1 mb-4 md:mb-6 overflow-x-auto">
         {tabs.map(tab => (
-          <button
+          <button type="button"
             key={tab.id}
             onClick={() => setActiveTab(tab.id)}
             className={`inline-flex items-center justify-center whitespace-nowrap rounded-sm px-3 py-1.5 text-sm font-medium ring-offset-background transition-all focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring focus-visible:ring-offset-2 disabled:pointer-events-none disabled:opacity-50 ${

@@ -1,5 +1,6 @@
 'use client';
 
+import { useEffect } from 'react';
 import { Code2, ExternalLink } from 'lucide-react';
 import { Card } from '@heroui/react';
 import { CONTRACT_ADDRESSES } from '@/lib/contracts/config';
@@ -71,11 +72,15 @@ const erc8004Registries = [
 ];
 
 export default function ContractsPage() {
+  useEffect(() => {
+    document.title = 'Contracts | Kokonut Agent Economy';
+  }, []);
+
   return (
     <div className="container mx-auto px-4 py-12 max-w-4xl">
       <div className="flex items-center gap-3 mb-8">
-        <div className="w-12 h-12 rounded-xl bg-primary/10 flex items-center justify-center">
-          <Code2 className="w-6 h-6 text-primary" />
+        <div className="size-122 rounded-xl bg-primary/10 flex items-center justify-center">
+          <Code2 className="size-6 text-primary" />
         </div>
         <div>
           <h1 className="text-3xl font-bold">Smart Contracts</h1>
@@ -103,7 +108,7 @@ export default function ContractsPage() {
                     rel="noopener noreferrer"
                     className="text-default-500 hover:text-primary transition-colors"
                   >
-                    <ExternalLink className="w-5 h-5" />
+                    <ExternalLink className="size-5" />
                   </a>
                 </div>
               </div>
@@ -138,7 +143,7 @@ export default function ContractsPage() {
             rel="noopener noreferrer"
             className="inline-flex items-center gap-2 px-4 py-2 bg-content2 rounded-lg hover:bg-content3 transition-colors"
           >
-            <Code2 className="w-4 h-4" />
+            <Code2 className="size-4" />
             Source Code
           </a>
           <a
@@ -147,7 +152,7 @@ export default function ContractsPage() {
             rel="noopener noreferrer"
             className="inline-flex items-center gap-2 px-4 py-2 bg-content2 rounded-lg hover:bg-content3 transition-colors"
           >
-            <ExternalLink className="w-4 h-4" />
+            <ExternalLink className="size-4" />
             ERC-8004 Standard
           </a>
           <a
@@ -156,7 +161,7 @@ export default function ContractsPage() {
             rel="noopener noreferrer"
             className="inline-flex items-center gap-2 px-4 py-2 bg-content2 rounded-lg hover:bg-content3 transition-colors"
           >
-            <ExternalLink className="w-4 h-4" />
+            <ExternalLink className="size-4" />
             ERC-8183 Standard
           </a>
         </div>

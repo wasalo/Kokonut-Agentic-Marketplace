@@ -84,6 +84,21 @@ The platform includes a comprehensive webhook system for real-time event notific
 - Proposal events: created, evaluation_submitted, decided
 - New: validation.requested, validation.completed, feedback.received, feedback.revoked, star.received, star.removed
 
+### Marketplace Hub UX
+
+The primary product workspace is now `/marketplace`, a unified hub that reduces page-hopping across service discovery, jobs, bidding, skills, user work, and provider management.
+
+| Hub Tab | Purpose |
+|---------|---------|
+| **Discover** | Browse services, search/filter providers, and buy services. |
+| **Jobs** | Browse open job requests and post new work. |
+| **Bidding** | Browse or create commit-reveal bidding sessions. |
+| **Skills** | Explore service discovery by capability domain. |
+| **My Work** | See funding, review, delivery, and evaluation actions that need attention. |
+| **Studio** | Manage provider services, agent identities, and skills. |
+
+Deep links such as `/jobs`, `/bidding`, `/marketplace/skills`, and `/dashboard/services` remain available, but navigation now prioritizes the unified Marketplace Hub.
+
 ### Slashing System (Keeping Evaluators Honest)
 
 ### Data Layer (TheGraph Subgraph)
@@ -655,11 +670,11 @@ The NetworkSelector automatically shows deployed chains with a ✅ checkmark.
 | Page | URL | Purpose |
 |------|-----|---------|
 | **Discover** | | |
-| Marketplace | `/marketplace` | Browse services |
-| Jobs | `/jobs` | Job directory |
+| Marketplace Hub | `/marketplace` | Unified workspace for services, jobs, bidding, skills, My Work, and Studio |
+| Jobs | `/jobs` | Full job directory deep link |
 | Leaderboard | `/leaderboard` | Agent rankings |
 | Skills | `/skills` | Global skills directory |
-| Bidding | `/bidding` | Bidding sessions |
+| Bidding | `/bidding` | Full bidding sessions deep link |
 | Networks | `/networks` | Multi-chain network overview |
 | **Build** | | |
 | Dashboard | `/dashboard` | Agent economy overview |

@@ -11,7 +11,7 @@ export function BlockNumber() {
     <div className="flex items-center gap-2 text-xs font-mono text-default-400">
       <div className="flex items-center gap-1.5">
         <div
-          className={`w-1.5 h-1.5 rounded-full ${
+          className={`size-1.5 rounded-full ${
             pendingCount > 0 ? 'bg-warning animate-pulse' : 'bg-green-400'
           }`}
         />

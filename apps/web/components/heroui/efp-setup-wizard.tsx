@@ -92,7 +92,7 @@ export function EfpSetupWizard({ onComplete, onCancel }: EfpSetupWizardProps) {
   if (!address) {
     return (
       <Card className="bg-content2 border-divider p-8 text-center">
-        <Wallet className="w-12 h-12 text-default-400 mx-auto mb-4" />
+        <Wallet className="size-122 text-default-400 mx-auto mb-4" />
         <p className="text-default-500">Connect your wallet to set up EFP</p>
       </Card>
     );
@@ -101,8 +101,8 @@ export function EfpSetupWizard({ onComplete, onCancel }: EfpSetupWizardProps) {
   if (isCheckingList) {
     return (
       <Card className="bg-content2 border-divider p-8 text-center">
-        <Loader className="w-8 h-8 animate-spin text-primary mx-auto mb-4" />
-        <p className="text-default-500">Checking your EFP setup...</p>
+        <Loader className="size-8 animate-spin text-primary mx-auto mb-4" />
+        <p className="text-default-500">Checking your EFP setupâ¦</p>
       </Card>
     );
   }
@@ -117,13 +117,13 @@ export function EfpSetupWizard({ onComplete, onCancel }: EfpSetupWizardProps) {
           <div key={step.id} className="flex items-center gap-2 shrink-0">
             <div className="flex items-center gap-2">
               {isStepDone(i) ? (
-                <CheckCircle className="w-5 h-5 text-success" />
+                <CheckCircle className="size-5 text-success" />
               ) : isStepActive(i) ? (
-                <div className="w-5 h-5 rounded-full bg-primary flex items-center justify-center">
-                  <div className="w-2 h-2 rounded-full bg-white" />
+                <div className="size-5 rounded-full bg-primary flex items-center justify-center">
+                  <div className="size-2 rounded-full bg-white" />
                 </div>
               ) : (
-                <Circle className="w-5 h-5 text-default-300" />
+                <Circle className="size-5 text-default-300" />
               )}
               <span
                 className={`text-xs font-medium ${
@@ -134,7 +134,7 @@ export function EfpSetupWizard({ onComplete, onCancel }: EfpSetupWizardProps) {
               </span>
             </div>
             {i < STEPS.length - 1 && (
-              <ArrowRight className="w-4 h-4 text-default-300" />
+              <ArrowRight className="size-4 text-default-300" />
             )}
           </div>
         ))}
@@ -152,42 +152,42 @@ export function EfpSetupWizard({ onComplete, onCancel }: EfpSetupWizardProps) {
               </p>
               <ul className="space-y-2">
                 <li className="flex items-start gap-2 text-sm">
-                  <CheckCircle className="w-4 h-4 text-success shrink-0 mt-0.5" />
+                  <CheckCircle className="size-4 text-success shrink-0 mt-0.5" />
                   <span>Follow agents and see their on-chain activity</span>
                 </li>
                 <li className="flex items-start gap-2 text-sm">
-                  <CheckCircle className="w-4 h-4 text-success shrink-0 mt-0.5" />
+                  <CheckCircle className="size-4 text-success shrink-0 mt-0.5" />
                   <span>Build your agent network and discover new talent</span>
                 </li>
                 <li className="flex items-start gap-2 text-sm">
-                  <CheckCircle className="w-4 h-4 text-success shrink-0 mt-0.5" />
+                  <CheckCircle className="size-4 text-success shrink-0 mt-0.5" />
                   <span>Show your followers count on your agent profile</span>
                 </li>
               </ul>
               {hasList && (
                 <div className="flex items-center gap-2 p-3 bg-success-50 text-success-700 rounded-lg text-sm">
-                  <CheckCircle className="w-4 h-4 shrink-0" />
+                  <CheckCircle className="size-4 shrink-0" />
                   You already have an EFP List! {hasPrimaryList ? 'It is set as primary.' : 'Set it as primary below.'}
                 </div>
               )}
               <div className="flex gap-3 pt-2">
                 {!hasList && (
-                  <button className={`${btnBase} bg-primary text-white hover:bg-primary/90`} onClick={() => setCurrentStep(1)}>
+                  <button type="button" className={`${btnBase} bg-primary text-white hover:bg-primary/90`} onClick={() => setCurrentStep(1)}>
                     Get Started
                   </button>
                 )}
                 {hasList && !hasPrimaryList && (
-                  <button className={`${btnBase} bg-primary text-white hover:bg-primary/90`} onClick={() => setCurrentStep(2)}>
+                  <button type="button" className={`${btnBase} bg-primary text-white hover:bg-primary/90`} onClick={() => setCurrentStep(2)}>
                     Set Primary List
                   </button>
                 )}
                 {hasList && hasPrimaryList && (
-                  <button className={`${btnBase} bg-success text-white hover:bg-success/90`} onClick={onComplete}>
-                    You&apos;re All Set — Continue
+                  <button type="button" className={`${btnBase} bg-success text-white hover:bg-success/90`} onClick={onComplete}>
+                    You&apos;re All Set â Continue
                   </button>
                 )}
                 {onCancel && (
-                  <button className={`${btnBase} bg-default-100 text-default-700 hover:bg-default-200`} onClick={onCancel}>
+                  <button type="button" className={`${btnBase} bg-default-100 text-default-700 hover:bg-default-200`} onClick={onCancel}>
                     Cancel
                   </button>
                 )}
@@ -198,7 +198,7 @@ export function EfpSetupWizard({ onComplete, onCancel }: EfpSetupWizardProps) {
           {currentStep === 1 && (
             <div className="space-y-4">
               <h2 className="text-xl font-bold flex items-center gap-2">
-                <List className="w-5 h-5 text-primary" />
+                <List className="size-5 text-primary" />
                 Mint Your EFP List
               </h2>
               <p className="text-default-500 text-sm">
@@ -207,7 +207,7 @@ export function EfpSetupWizard({ onComplete, onCancel }: EfpSetupWizardProps) {
               </p>
 
               <div className="p-3 bg-warning-50 text-warning-700 rounded-lg text-sm flex items-start gap-2">
-                <AlertTriangle className="w-4 h-4 shrink-0 mt-0.5" />
+                <AlertTriangle className="size-4 shrink-0 mt-0.5" />
                 <span>
                   This transaction requires Ethereum mainnet. Your wallet will be prompted to switch
                   chains if needed.
@@ -216,21 +216,21 @@ export function EfpSetupWizard({ onComplete, onCancel }: EfpSetupWizardProps) {
 
               {mintError && (
                 <div className="p-3 bg-danger-50 text-danger-700 rounded-lg text-sm flex items-start gap-2">
-                  <AlertTriangle className="w-4 h-4 shrink-0 mt-0.5" />
+                  <AlertTriangle className="size-4 shrink-0 mt-0.5" />
                   <span>Error: {mintError.message}</span>
                 </div>
               )}
 
               <div className="flex gap-3 pt-2">
-                <button
+                <button type="button"
                   className={`${btnBase} bg-primary text-white hover:bg-primary/90`}
                   onClick={handleMint}
                   disabled={isMinting || isMintConfirming || isMintConfirmed}
                 >
-                  {(isMinting || isMintConfirming) && <Loader className="w-4 h-4 animate-spin" />}
-                  {isMintConfirming ? 'Confirming...' : isMinting ? 'Minting...' : isMintConfirmed ? 'Minted!' : 'Mint EFP List'}
+                  {(isMinting || isMintConfirming) && <Loader className="size-4 animate-spin" />}
+                  {isMintConfirming ? 'Confirming…' : isMinting ? 'Minting…' : isMintConfirmed ? 'Minted!' : 'Mint EFP List'}
                 </button>
-                <button className={`${btnBase} bg-default-100 text-default-700 hover:bg-default-200`} onClick={() => setCurrentStep(0)}>
+                <button type="button" className={`${btnBase} bg-default-100 text-default-700 hover:bg-default-200`} onClick={() => setCurrentStep(0)}>
                   Back
                 </button>
               </div>
@@ -242,7 +242,7 @@ export function EfpSetupWizard({ onComplete, onCancel }: EfpSetupWizardProps) {
                   rel="noopener noreferrer"
                   className="inline-flex items-center gap-1 text-xs text-primary"
                 >
-                  View on Etherscan <ExternalLink className="w-3 h-3" />
+                  View on Etherscan <ExternalLink className="size-3" />
                 </a>
               )}
             </div>
@@ -251,7 +251,7 @@ export function EfpSetupWizard({ onComplete, onCancel }: EfpSetupWizardProps) {
           {currentStep === 2 && (
             <div className="space-y-4">
               <h2 className="text-xl font-bold flex items-center gap-2">
-                <Star className="w-5 h-5 text-warning" />
+                <Star className="size-5 text-warning" />
                 Set as Primary List
               </h2>
               <p className="text-default-500 text-sm">
@@ -261,21 +261,21 @@ export function EfpSetupWizard({ onComplete, onCancel }: EfpSetupWizardProps) {
 
               {primaryError && (
                 <div className="p-3 bg-danger-50 text-danger-700 rounded-lg text-sm flex items-start gap-2">
-                  <AlertTriangle className="w-4 h-4 shrink-0 mt-0.5" />
+                  <AlertTriangle className="size-4 shrink-0 mt-0.5" />
                   <span>Error: {primaryError.message}</span>
                 </div>
               )}
 
               <div className="flex gap-3 pt-2">
-                <button
+                <button type="button"
                   className={`${btnBase} bg-warning text-white hover:bg-warning/90`}
                   onClick={handleSetPrimary}
                   disabled={isSettingPrimary || isPrimaryConfirming || isPrimaryConfirmed}
                 >
-                  {(isSettingPrimary || isPrimaryConfirming) && <Loader className="w-4 h-4 animate-spin" />}
-                  {isPrimaryConfirming ? 'Confirming...' : isSettingPrimary ? 'Setting...' : isPrimaryConfirmed ? 'Set!' : 'Set as Primary'}
+                  {(isSettingPrimary || isPrimaryConfirming) && <Loader className="size-4 animate-spin" />}
+                  {isPrimaryConfirming ? 'Confirming…' : isSettingPrimary ? 'Setting…' : isPrimaryConfirmed ? 'Set!' : 'Set as Primary'}
                 </button>
-                <button className={`${btnBase} bg-default-100 text-default-700 hover:bg-default-200`} onClick={() => setCurrentStep(1)}>
+                <button type="button" className={`${btnBase} bg-default-100 text-default-700 hover:bg-default-200`} onClick={() => setCurrentStep(1)}>
                   Back
                 </button>
               </div>
@@ -287,7 +287,7 @@ export function EfpSetupWizard({ onComplete, onCancel }: EfpSetupWizardProps) {
                   rel="noopener noreferrer"
                   className="inline-flex items-center gap-1 text-xs text-primary"
                 >
-                  View on Etherscan <ExternalLink className="w-3 h-3" />
+                  View on Etherscan <ExternalLink className="size-3" />
                 </a>
               )}
             </div>
@@ -295,14 +295,14 @@ export function EfpSetupWizard({ onComplete, onCancel }: EfpSetupWizardProps) {
 
           {currentStep === 3 && (
             <div className="space-y-4 text-center">
-              <CheckCircle className="w-16 h-16 text-success mx-auto" />
+              <CheckCircle className="size-166 text-success mx-auto" />
               <h2 className="text-xl font-bold">EFP Setup Complete!</h2>
               <p className="text-default-500 text-sm">
                 Your EFP List is ready. You can now follow agents, build your network, and show your
                 social presence on the marketplace.
               </p>
               <div className="flex justify-center gap-3 pt-2">
-                <button className={`${btnBase} bg-success text-white hover:bg-success/90`} onClick={onComplete}>
+                <button type="button" className={`${btnBase} bg-success text-white hover:bg-success/90`} onClick={onComplete}>
                   Start Following Agents
                 </button>
               </div>

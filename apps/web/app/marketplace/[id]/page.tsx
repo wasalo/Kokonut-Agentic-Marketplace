@@ -1,6 +1,6 @@
 'use client';
 
-import { use, useState } from 'react';
+import { use, useState, useEffect } from 'react';
 import { useAccount } from 'wagmi';
 import NextLink from 'next/link';
 import { FollowButton } from '@/components/FollowButton';
@@ -52,6 +52,10 @@ export default function ServiceDetailPage({
 }: {
   params: Promise<{ id: string }>;
 }): JSX.Element {
+  useEffect(() => {
+    document.title = 'Service Details | Kokonut Agent Economy';
+  }, []);
+
   const { id } = use(params);
   const serviceId = BigInt(id);
   const { address } = useAccount();
@@ -173,7 +177,7 @@ export default function ServiceDetailPage({
                   rel="noopener noreferrer"
                   className="inline-flex items-center gap-1 text-sm text-primary hover:underline"
                 >
-                  <ExternalLink className="w-3 h-3" />
+                  <ExternalLink className="size-3" />
                   View Service Documentation
                 </a>
               )}
@@ -183,7 +187,7 @@ export default function ServiceDetailPage({
                 <div className="mt-4 p-3 bg-content2/50 rounded-lg border border-divider">
                   <div className="flex items-center justify-between">
                     <div className="flex items-center gap-2">
-                      <Shield className="w-4 h-4 text-success" />
+                      <Shield className="size-4 text-success" />
                       <span className="text-sm font-medium">Service Bond</span>
                     </div>
                     <span className="text-sm">
@@ -208,11 +212,11 @@ export default function ServiceDetailPage({
 
               <div className="flex items-center gap-4 mt-4 pt-4 border-t border-divider text-xs text-default-400">
                 <span className="flex items-center gap-1">
-                  <Clock className="w-3 h-3" />
+                  <Clock className="size-3" />
                   Created {new Date(Number(service.createdAt) * 1000).toLocaleDateString()}
                 </span>
                 <span className="flex items-center gap-1">
-                  <Tag className="w-3 h-3" />
+                  <Tag className="size-3" />
                   {tokenSymbol}
                 </span>
               </div>
@@ -222,7 +226,7 @@ export default function ServiceDetailPage({
                 <div className="flex flex-wrap gap-3 mt-4 pt-4 border-t border-divider">
                   {service.isActive && (
                     <>
-                      <button
+                      <button type="button"
                         onClick={() => {
                           setEditForm({
                             name: service.name,
@@ -233,20 +237,20 @@ export default function ServiceDetailPage({
                         }}
                         className="flex items-center gap-2 px-4 py-2 text-sm text-primary border border-primary/30 rounded-lg hover:bg-primary/5"
                       >
-                        <Edit className="w-4 h-4" />
+                        <Edit className="size-4" />
                         Edit Service
                       </button>
-                      <button
+                      <button type="button"
                         onClick={() => setShowPaymentModal(true)}
                         className="flex items-center gap-2 px-4 py-2 text-sm text-default-foreground border border-divider rounded-lg hover:bg-content2"
                       >
-                        <Wallet className="w-4 h-4" />
+                        <Wallet className="size-4" />
                         Payment Address
                       </button>
-                      <button
+                      <button type="button"
                         onClick={async () => {
                           try {
-                            const toastId = showToast.loading('Deactivating service...');
+                            const toastId = showToast.loading('Deactivating service…');
                             await deactivateService(serviceId);
                             showToast.dismiss(toastId);
                             showToast.success(
@@ -264,9 +268,9 @@ export default function ServiceDetailPage({
                         className="flex items-center gap-2 px-4 py-2 text-sm text-danger border border-danger/30 rounded-lg hover:bg-danger/5 disabled:opacity-50"
                       >
                         {isDeactivatePending ? (
-                          <Loader2 className="w-4 h-4 animate-spin" />
+                          <Loader2 className="size-4 animate-spin" />
                         ) : (
-                          <Power className="w-4 h-4" />
+                          <Power className="size-4" />
                         )}
                         Deactivate
                       </button>
@@ -274,10 +278,10 @@ export default function ServiceDetailPage({
                   )}
                   {!service.isActive && (
                     <>
-                      <button
+                      <button type="button"
                         onClick={async () => {
                           try {
-                            const toastId = showToast.loading('Activating service...');
+                            const toastId = showToast.loading('Activating service…');
                             await activateService(serviceId);
                             showToast.dismiss(toastId);
                             showToast.success(
@@ -295,17 +299,17 @@ export default function ServiceDetailPage({
                         className="flex items-center gap-2 px-4 py-2 text-sm text-success border border-success/30 rounded-lg hover:bg-success/5 disabled:opacity-50"
                       >
                         {isActivatePending ? (
-                          <Loader2 className="w-4 h-4 animate-spin" />
+                          <Loader2 className="size-4 animate-spin" />
                         ) : (
-                          <Power className="w-4 h-4" />
+                          <Power className="size-4" />
                         )}
                         Activate Service
                       </button>
                       {canWithdrawBond && (
-                        <button
+                        <button type="button"
                           onClick={async () => {
                             try {
-                              const toastId = showToast.loading('Withdrawing bond...');
+                              const toastId = showToast.loading('Withdrawing bond…');
                               await withdrawServiceBond(serviceId);
                               showToast.dismiss(toastId);
                               showToast.success('Bond withdrawn', '0.01 ETH returned to your wallet.');
@@ -318,9 +322,9 @@ export default function ServiceDetailPage({
                           className="flex items-center gap-2 px-4 py-2 text-sm text-primary border border-primary/30 rounded-lg hover:bg-primary/5 disabled:opacity-50"
                         >
                           {isWithdrawPending ? (
-                            <Loader2 className="w-4 h-4 animate-spin" />
+                            <Loader2 className="size-4 animate-spin" />
                           ) : (
-                            <Wallet className="w-4 h-4" />
+                            <Wallet className="size-4" />
                           )}
                           Withdraw Bond
                         </button>
@@ -379,22 +383,20 @@ export default function ServiceDetailPage({
                 />
               </div>
               <div className="flex gap-3 pt-2">
-                <button
-                  type="submit"
+                <button type="submit"
                   disabled={isUpdatePending}
                   className="flex-1 px-4 py-2 bg-primary text-white rounded-lg font-medium hover:opacity-90 disabled:opacity-50"
                 >
                   {isUpdatePending ? (
                     <span className="flex items-center justify-center gap-2">
-                      <Loader2 className="w-4 h-4 animate-spin" />
+                      <Loader2 className="size-4 animate-spin" />
                       Saving...
                     </span>
                   ) : (
                     'Save Changes'
                   )}
                 </button>
-                <button
-                  type="button"
+                <button type="button"
                   onClick={() => setIsEditing(false)}
                   className="px-4 py-2 border border-divider rounded-lg hover:bg-content2"
                 >
@@ -408,13 +410,13 @@ export default function ServiceDetailPage({
         {/* Provider Info */}
         <Card className="border border-divider p-6">
           <h2 className="text-base font-semibold mb-4 flex items-center gap-2">
-            <User className="w-4 h-4 text-primary" />
+            <User className="size-4 text-primary" />
             Provider
           </h2>
 
           <div className="flex items-start gap-4">
-            <div className="w-12 h-12 rounded-full bg-gradient-to-br from-primary to-primary/60 flex items-center justify-center text-white font-bold shrink-0">
-              <Shield className="w-6 h-6" />
+            <div className="size-122 rounded-full bg-gradient-to-br from-primary to-primary/60 flex items-center justify-center text-white font-bold shrink-0">
+              <Shield className="size-6" />
             </div>
 
             <div className="flex-1 min-w-0">
@@ -448,7 +450,7 @@ export default function ServiceDetailPage({
               {reputation.feedbackCount > 0 ? (
                 <div>
                   <p className="text-lg font-semibold flex items-center gap-1">
-                    <Star className="w-3.5 h-3.5 fill-yellow-500 text-yellow-500" />
+                    <Star className="size-3.5 fill-yellow-500 text-yellow-500" />
                     {reputation.normalizedRating.toFixed(1)}
                   </p>
                   <p className="text-xs text-default-400">{reputation.feedbackCount} reviews</p>
@@ -469,7 +471,7 @@ export default function ServiceDetailPage({
               href={`/identity/${service.agentId}`}
               className="text-sm text-primary hover:underline inline-flex items-center gap-1"
             >
-              <ExternalLink className="w-3 h-3" />
+              <ExternalLink className="size-3" />
               View Agent Profile
             </NextLink>
             <FollowButton
@@ -494,7 +496,7 @@ export default function ServiceDetailPage({
                 href={`/jobs/create?serviceId=${service.id}&provider=${service.provider}`}
                 className="inline-flex items-center gap-2 px-6 py-3 bg-gradient-to-r from-[#009F4D] to-[#00c853] text-white rounded-lg font-medium hover:opacity-90 transition-opacity whitespace-nowrap"
               >
-                <ShieldCheck className="w-4 h-4" />
+                <ShieldCheck className="size-4" />
                 Purchase Service
               </NextLink>
             </div>
@@ -505,7 +507,7 @@ export default function ServiceDetailPage({
         {agentProfile.services.length > 1 && (
           <Card className="border border-divider p-6">
             <h2 className="text-base font-semibold mb-4 flex items-center gap-2">
-              <ShoppingBag className="w-4 h-4 text-success" />
+              <ShoppingBag className="size-4 text-success" />
               More from {agentProfile.name || 'this provider'}
             </h2>
             <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-3">
@@ -537,11 +539,11 @@ export default function ServiceDetailPage({
             <div className="bg-content1 border border-divider rounded-xl p-6 w-full max-w-md shadow-xl">
               <div className="flex items-center justify-between mb-4">
                 <h3 className="text-lg font-semibold">Set Payment Address</h3>
-                <button
+                <button type="button"
                   onClick={() => setShowPaymentModal(false)}
                   className="p-1 hover:bg-content2 rounded-lg transition-colors"
                 >
-                  <X className="w-5 h-5" />
+                  <X className="size-5" />
                 </button>
               </div>
               <p className="text-sm text-default-500 mb-4">
@@ -561,7 +563,7 @@ export default function ServiceDetailPage({
                 </p>
               </div>
               <div className="flex gap-3">
-                <button
+                <button type="button"
                   onClick={async () => {
                     try {
                       const addr = paymentAddressInput.trim() as `0x${string}`;
@@ -569,7 +571,7 @@ export default function ServiceDetailPage({
                         showToast.error('Invalid address', 'Please enter a valid Ethereum address');
                         return;
                       }
-                      const toastId = showToast.loading('Updating payment address...');
+                      const toastId = showToast.loading('Updating payment address…');
                       await setPaymentAddress({ serviceId, paymentAddress: addr });
                       showToast.dismiss(toastId);
                       showToast.success('Payment address updated');
@@ -585,14 +587,14 @@ export default function ServiceDetailPage({
                 >
                   {isSetPaymentPending ? (
                     <span className="flex items-center justify-center gap-2">
-                      <Loader2 className="w-4 h-4 animate-spin" />
+                      <Loader2 className="size-4 animate-spin" />
                       Saving...
                     </span>
                   ) : (
                     'Save Address'
                   )}
                 </button>
-                <button
+                <button type="button"
                   onClick={() => {
                     setShowPaymentModal(false);
                     setPaymentAddressInput('');

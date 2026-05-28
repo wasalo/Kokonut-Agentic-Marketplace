@@ -28,7 +28,7 @@ export function FollowButton({ lookupAddress, connectedAddress }: FollowButtonPr
 
   useEffect(() => {
     if (error) {
-      showToast.error('Follow action failed', error.message.length > 100 ? error.message.slice(0, 100) + '...' : error.message);
+      showToast.error('Follow action failed', error.message.length > 100 ? error.message.slice(0, 100) + '…' : error.message);
     }
   }, [error]);
 
@@ -52,7 +52,7 @@ export function FollowButton({ lookupAddress, connectedAddress }: FollowButtonPr
   if (isStateLoading) {
     return (
       <Button variant="ghost" size="sm" disabled>
-        <Loader2 className="w-3.5 h-3.5 animate-spin" />
+        <Loader2 className="size-3.5 animate-spin" />
       </Button>
     );
   }
@@ -65,7 +65,7 @@ export function FollowButton({ lookupAddress, connectedAddress }: FollowButtonPr
       size="sm"
       onClick={handleFollow}
       isLoading={isPending || isConfirming}
-      icon={isFollowing ? <UserMinus className="w-3.5 h-3.5" /> : <UserPlus className="w-3.5 h-3.5" />}
+      icon={isFollowing ? <UserMinus className="size-3.5" /> : <UserPlus className="size-3.5" />}
     >
       {isPending || isConfirming ? '' : (isFollowing ? 'Unfollow' : 'Follow')}
     </Button>

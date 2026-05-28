@@ -1,28 +1,33 @@
 'use client';
 
-import { usePathname } from 'next/navigation';
+import { usePathname, useSearchParams } from 'next/navigation';
 import NextLink from 'next/link';
 import { Search, Briefcase, Activity, User } from 'lucide-react';
 import { useAccount } from 'wagmi';
 import { useTransactionRegistry } from '@/lib/stores/transactionRegistry';
 
 const navItems = [
-  { href: '/marketplace', label: 'Discover', icon: Search },
-  { href: '/jobs', label: 'Jobs', icon: Briefcase },
+  { href: '/marketplace', label: 'Market', icon: Search, tab: 'discover' },
+  { href: '/marketplace?tab=my-work', label: 'Work', icon: Briefcase, tab: 'my-work' },
   { href: '/activity', label: 'Activity', icon: Activity },
   { href: '/dashboard/agents', label: 'Profile', icon: User },
 ];
 
 export function BottomNav() {
   const pathname = usePathname();
+  const searchParams = useSearchParams();
   const { isConnected } = useAccount();
   const pendingCount = useTransactionRegistry().getPending().length;
+  const marketplaceTab = searchParams.get('tab') || 'discover';
 
   return (
     <nav className="fixed bottom-0 left-0 right-0 z-50 bg-background/90 backdrop-blur-xl border-t border-divider md:hidden">
       <div className="flex justify-around items-center h-16 max-w-lg mx-auto">
         {navItems.map((item) => {
-          const isActive = pathname === item.href || pathname?.startsWith(item.href + '/');
+          const itemPath = item.href.split('?')[0];
+          const isActive = item.tab
+            ? pathname === itemPath && marketplaceTab === item.tab
+            : pathname === item.href || pathname?.startsWith(item.href + '/');
           const Icon = item.icon;
 
           // Don't show profile tab if not connected
@@ -42,7 +47,7 @@ export function BottomNav() {
               }`}
             >
               <div className="relative">
-                <Icon className="w-5 h-5" />
+                <Icon className="size-5" />
                 {item.label === 'Activity' && pendingCount > 0 && (
                   <span className="absolute -top-1.5 -right-2 min-w-[16px] h-4 px-1 bg-warning text-white text-[10px] font-bold rounded-full flex items-center justify-center">
                     {pendingCount > 99 ? '99+' : pendingCount}

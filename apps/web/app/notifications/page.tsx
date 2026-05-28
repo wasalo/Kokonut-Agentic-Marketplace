@@ -82,8 +82,8 @@ function NotificationItem({
       onClick={handleClick}
     >
       <div className="flex-shrink-0 mt-0.5">
-        <div className="w-10 h-10 rounded-full bg-default-100 flex items-center justify-center">
-          <Icon className="w-5 h-5 text-default-600" />
+        <div className="size-100 rounded-full bg-default-100 flex items-center justify-center">
+          <Icon className="size-5 text-default-600" />
         </div>
       </div>
 
@@ -94,7 +94,7 @@ function NotificationItem({
             <p className="text-xs text-default-500 mt-0.5 line-clamp-2">{notification.message}</p>
           </div>
           {!notification.read && (
-            <span className="w-2.5 h-2.5 rounded-full bg-primary flex-shrink-0 mt-1.5" />
+            <span className="size-2.5 rounded-full bg-primary flex-shrink-0 mt-1.5" />
           )}
         </div>
         <p className="text-xs text-default-400 mt-2">{formatTimestamp(notification.timestamp)}</p>
@@ -102,7 +102,7 @@ function NotificationItem({
 
       <div className="flex-shrink-0 flex items-center gap-1">
         {!notification.read && (
-          <button
+          <button type="button"
             onClick={e => {
               e.stopPropagation();
               onMarkRead();
@@ -110,10 +110,10 @@ function NotificationItem({
             className="p-2 text-default-400 hover:text-primary hover:bg-default-100 rounded-lg transition-colors"
             title="Mark as read"
           >
-            <Check className="w-4 h-4" />
+            <Check className="size-4" />
           </button>
         )}
-        <button
+        <button type="button"
           onClick={e => {
             e.stopPropagation();
             onRemove();
@@ -121,7 +121,7 @@ function NotificationItem({
           className="p-2 text-default-400 hover:text-danger hover:bg-danger/10 rounded-lg transition-colors"
           title="Remove"
         >
-          <Trash2 className="w-4 h-4" />
+          <Trash2 className="size-4" />
         </button>
       </div>
     </div>
@@ -131,7 +131,7 @@ function NotificationItem({
 function NotificationSkeleton() {
   return (
     <div className="flex items-start gap-4 p-4 animate-pulse">
-      <div className="w-10 h-10 rounded-full bg-default-200" />
+      <div className="size-100 rounded-full bg-default-200" />
       <div className="flex-1 space-y-2">
         <div className="h-4 bg-default-200 rounded w-3/4" />
         <div className="h-3 bg-default-200 rounded w-1/2" />
@@ -142,6 +142,10 @@ function NotificationSkeleton() {
 }
 
 export default function NotificationsPage() {
+  useEffect(() => {
+    document.title = 'Notifications | Kokonut Agent Economy';
+  }, []);
+
   const { notifications, unreadCount, markAsRead, markAllAsRead, removeNotification, clearAll } =
     useNotifications();
 
@@ -183,21 +187,21 @@ export default function NotificationsPage() {
         </div>
         <div className="flex items-center gap-2">
           {unreadCount > 0 && (
-            <button
+            <button type="button"
               onClick={markAllAsRead}
               className="flex items-center gap-2 px-4 py-2 text-sm text-primary hover:bg-primary/10 rounded-lg transition-colors"
             >
-              <CheckCheck className="w-4 h-4" />
+              <CheckCheck className="size-4" />
               Mark all read
             </button>
           )}
           {notifications.length > 0 && (
-            <button
+            <button type="button"
               onClick={handleClearAll}
               disabled={isClearing}
               className="flex items-center gap-2 px-4 py-2 text-sm text-danger hover:bg-danger/10 rounded-lg transition-colors disabled:opacity-50"
             >
-              <Trash2 className="w-4 h-4" />
+              <Trash2 className="size-4" />
               Clear all
             </button>
           )}
@@ -206,9 +210,9 @@ export default function NotificationsPage() {
 
       <Card className="mb-6">
         <div className="flex items-center gap-2 p-2 border-b border-divider overflow-x-auto">
-          <Filter className="w-4 h-4 text-default-400 ml-2 flex-shrink-0" />
+          <Filter className="size-4 text-default-400 ml-2 flex-shrink-0" />
           {FILTER_OPTIONS.map(option => (
-            <button
+            <button type="button"
               key={option.key}
               onClick={() => setActiveFilter(option.key)}
               className={`px-4 py-2 text-sm rounded-lg transition-colors whitespace-nowrap ${
@@ -231,12 +235,12 @@ export default function NotificationsPage() {
             </div>
           ) : isClearing ? (
             <div className="flex flex-col items-center justify-center py-20 animate-pulse">
-               <Loader2 className="w-8 h-8 animate-spin text-default-300 mb-4" />
-               <p className="text-default-500">Clearing notifications...</p>
+               <Loader2 className="size-8 animate-spin text-default-300 mb-4" />
+               <p className="text-default-500">Clearing notifications…</p>
             </div>
           ) : filteredNotifications.length === 0 ? (
             <div className="p-12 text-center">
-              <BellOff className="w-12 h-12 text-default-300 mx-auto mb-4" />
+              <BellOff className="size-122 text-default-300 mx-auto mb-4" />
               <h3 className="text-lg font-medium text-default-600 mb-2">
                 {activeFilter === 'all'
                   ? 'No notifications yet'

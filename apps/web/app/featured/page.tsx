@@ -8,7 +8,7 @@ export default function FeaturedAgentsPage() {
   const { featuredAgents, isLoadingFeaturedAgents } = useAdminRegistry();
   
   if (isLoadingFeaturedAgents) {
-    return <div>Loading featured agents...</div>;
+    return <div>Loading featured agents…</div>;
   }
   
   if (!featuredAgents || featuredAgents.length === 0) {
@@ -31,7 +31,7 @@ function AgentCard({ agentId }: { agentId: number }) {
   const { score, isLoading, decayFactor, daysElapsed } = useAgentReputation(`0x${agentId.toString(16)}`, 1000);
   
   if (isLoading) {
-    return <div className="border rounded-lg p-6 bg-white shadow-sm">Loading...</div>;
+    return <div className="border rounded-lg p-6 bg-white shadow-sm">Loading…</div>;
   }
   
   return (

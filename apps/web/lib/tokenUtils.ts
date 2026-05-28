@@ -10,7 +10,7 @@ export interface Token {
   decimals: number;
 }
 
-export const NATIVE_TOKEN_ADDRESS = ZERO_ADDRESS;
+const NATIVE_TOKEN_ADDRESS = ZERO_ADDRESS;
 
 export const USDC_TOKEN: Token = {
   symbol: 'USDC',
@@ -32,11 +32,11 @@ export const SUPPORTED_PAYMENT_TOKENS: Token[] = [USDC_TOKEN, ETH_TOKEN];
 // until native-token service pricing is supported on-chain.
 export const SERVICE_LISTING_PAYMENT_TOKENS: Token[] = [USDC_TOKEN];
 
-export function isNativeToken(address: string | undefined | null): boolean {
+function isNativeToken(address: string | undefined | null): boolean {
   return !!address && address.toLowerCase() === NATIVE_TOKEN_ADDRESS.toLowerCase();
 }
 
-export function normalizeTokenAddress(address: string | undefined | null): `0x${string}` {
+function normalizeTokenAddress(address: string | undefined | null): `0x${string}` {
   if (!address || address === '0x') return USDC_TOKEN.address;
   return address as `0x${string}`;
 }
@@ -47,13 +47,6 @@ export function getTokenByAddress(address: string | undefined | null): Token {
     SUPPORTED_PAYMENT_TOKENS.find(token => token.address.toLowerCase() === normalized) ??
     (isNativeToken(normalized) ? ETH_TOKEN : USDC_TOKEN)
   );
-}
-
-export function getTokenLabel(addressOrToken: string | Token | undefined | null): string {
-  const token = typeof addressOrToken === 'string' || !addressOrToken
-    ? getTokenByAddress(addressOrToken)
-    : addressOrToken;
-  return token.symbol;
 }
 
 export function parseAmount(amount: string, tokenOrDecimals: Token | number): bigint {

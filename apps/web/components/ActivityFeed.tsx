@@ -24,7 +24,7 @@ export function ActivityFeed({ limit = 10, showViewAll = true }: ActivityFeedPro
   if (!address) {
     return (
       <div className="text-center py-8">
-        <Activity className="w-8 h-8 text-default-300 mx-auto mb-2" />
+        <Activity className="size-8 text-default-300 mx-auto mb-2" />
         <p className="text-sm text-default-500">Connect wallet to see your activity</p>
       </div>
     );
@@ -33,7 +33,7 @@ export function ActivityFeed({ limit = 10, showViewAll = true }: ActivityFeedPro
   if (activities.length === 0) {
     return (
       <div className="text-center py-8">
-        <Activity className="w-8 h-8 text-default-300 mx-auto mb-2" />
+        <Activity className="size-8 text-default-300 mx-auto mb-2" />
         <p className="text-sm text-default-500">No on-chain activity yet</p>
         <p className="text-xs text-default-400 mt-1">
           Your transactions will appear here
@@ -48,9 +48,9 @@ export function ActivityFeed({ limit = 10, showViewAll = true }: ActivityFeedPro
         <ActivityItem key={tx.id} tx={tx} />
       ))}
       {showViewAll && activities.length >= limit && (
-        <button className="w-full py-2 text-sm text-primary hover:text-primary/80 transition-colors flex items-center justify-center gap-1">
+        <button type="button" className="w-full py-2 text-sm text-primary hover:text-primary/80 transition-colors flex items-center justify-center gap-1">
           View all activity
-          <ArrowRight className="w-4 h-4" />
+          <ArrowRight className="size-4" />
         </button>
       )}
     </div>
@@ -92,7 +92,7 @@ function ActivityItem({ tx }: { tx: ReturnType<typeof useTransactionRegistry.get
           rel="noopener noreferrer"
           className="p-2 text-default-400 hover:text-primary transition-colors"
         >
-          <ExternalLink className="w-3 h-3" />
+          <ExternalLink className="size-3" />
         </a>
       )}
     </div>
@@ -108,8 +108,8 @@ function ActivityIcon({ status }: { status: string }) {
         : 'bg-warning/20 text-warning';
 
   return (
-    <div className={`w-8 h-8 rounded-full flex items-center justify-center ${colorClass}`}>
-      <Activity className="w-4 h-4" />
+    <div className={`size-8 rounded-full flex items-center justify-center ${colorClass}`}>
+      <Activity className="size-4" />
     </div>
   );
 }

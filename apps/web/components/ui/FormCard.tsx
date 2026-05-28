@@ -34,7 +34,7 @@ interface FormCardProps {
  *     </ButtonGroup>
  *   }
  * >
- *   <FormSection title="Basic Info">...</FormSection>
+ *   <FormSection title="Basic Info">…</FormSection>
  * </FormCard>
  */
 export function FormCard({

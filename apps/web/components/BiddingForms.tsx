@@ -115,7 +115,7 @@ export function CommitBidForm({ job, onSuccess }: CommitBidFormProps) {
   return (
     <Card className="border border-divider p-6">
       <div className="flex items-center gap-2 mb-4">
-        <Lock className="w-5 h-5 text-primary" />
+        <Lock className="size-5 text-primary" />
         <h3 className="font-semibold">Commit Your Bid</h3>
       </div>
 
@@ -137,7 +137,7 @@ export function CommitBidForm({ job, onSuccess }: CommitBidFormProps) {
 
         <div className="p-3 bg-warning-50 border border-warning-200 rounded-lg">
           <div className="flex items-center gap-2">
-            <AlertTriangle className="w-4 h-4 text-warning" />
+            <AlertTriangle className="size-4 text-warning" />
             <p className="text-sm font-medium text-warning">
               Stake Required: {stakeFormatted}
             </p>
@@ -169,7 +169,7 @@ export function CommitBidForm({ job, onSuccess }: CommitBidFormProps) {
           <textarea
             value={bidMessage}
             onChange={e => setBidMessage(e.target.value)}
-            placeholder="Introduce yourself and explain why you're the best fit..."
+            placeholder="Introduce yourself and explain why you're the best fitâ¦"
             rows={3}
             className="w-full px-3 py-2 bg-content2 border border-divider rounded-lg resize-none"
           />
@@ -178,7 +178,7 @@ export function CommitBidForm({ job, onSuccess }: CommitBidFormProps) {
         <div className="space-y-2">
           <label className="text-sm font-medium">Commit Hash (auto-generated)</label>
           <div className="p-3 bg-content2 rounded-lg break-all">
-            <code className="text-xs text-default-500">{commitHash.slice(0, 20)}...</code>
+            <code className="text-xs text-default-500">{commitHash.slice(0, 20)}â¦</code>
           </div>
           <p className="text-xs text-default-500">
             This hash hides your bid amount until the reveal phase
@@ -191,24 +191,24 @@ export function CommitBidForm({ job, onSuccess }: CommitBidFormProps) {
           </div>
         )}
 
-        <button
+        <button type="button"
           onClick={handleSubmit}
           disabled={!isConnected || isLoading || !bidAmount || isSubmitting}
           className="w-full inline-flex items-center justify-center gap-2 px-6 py-3 bg-gradient-to-r from-[#009F4D] to-[#00c853] text-white rounded-lg font-medium hover:opacity-90 transition-opacity disabled:opacity-50 disabled:cursor-not-allowed"
         >
           {isLoading ? (
             <>
-              <Loader2 className="w-4 h-4 animate-spin" />
-              {isConfirming ? 'Confirming...' : 'Committing...'}
+              <Loader2 className="size-4 animate-spin" />
+              {isConfirming ? 'Confirming…' : 'Committing…'}
             </>
           ) : isSubmitting ? (
             <>
-              <Loader2 className="w-4 h-4 animate-spin" />
+              <Loader2 className="size-4 animate-spin" />
               Wait {formatTimeRemaining(timeUntilNextSubmit)}...
             </>
           ) : (
               <>
-                <Lock className="w-4 h-4" />
+                <Lock className="size-4" />
                 Commit Bid (Stake {stakeFormatted})
               </>
           )}
@@ -258,7 +258,7 @@ export function RevealBidForm({ job, onSuccess }: RevealBidFormProps) {
   return (
     <Card className="border border-divider p-6">
       <div className="flex items-center gap-2 mb-4">
-        <Eye className="w-5 h-5 text-success" />
+        <Eye className="size-5 text-success" />
         <h3 className="font-semibold">Reveal Your Bid</h3>
       </div>
 
@@ -279,7 +279,7 @@ export function RevealBidForm({ job, onSuccess }: RevealBidFormProps) {
 
           <div className="p-3 bg-content2 rounded-lg">
             <p className="text-xs text-default-500">Committed Amount</p>
-            <p className="text-xs font-mono">{userBid.commitHash.slice(0, 20)}...</p>
+            <p className="text-xs font-mono">{userBid.commitHash.slice(0, 20)}â¦</p>
           </div>
 
           <div className="space-y-2">
@@ -300,7 +300,7 @@ export function RevealBidForm({ job, onSuccess }: RevealBidFormProps) {
               type="text"
               value={salt}
               onChange={e => setSalt(e.target.value)}
-              placeholder="0x..."
+              placeholder="0xâ¦"
               className="w-full px-3 py-2 bg-content2 border border-divider rounded-lg font-mono text-sm"
             />
           </div>
@@ -310,7 +310,7 @@ export function RevealBidForm({ job, onSuccess }: RevealBidFormProps) {
             <textarea
               value={bidMessage}
               onChange={e => setBidMessage(e.target.value)}
-              placeholder="Your pitch message..."
+              placeholder="Your pitch messageâ¦"
               rows={2}
               className="w-full px-3 py-2 bg-content2 border border-divider rounded-lg resize-none"
             />
@@ -322,19 +322,19 @@ export function RevealBidForm({ job, onSuccess }: RevealBidFormProps) {
             </div>
           )}
 
-          <button
+          <button type="button"
             onClick={handleReveal}
             disabled={!isConnected || isLoading || !bidAmount || !salt}
             className="w-full inline-flex items-center justify-center gap-2 px-6 py-3 bg-gradient-to-r from-[#009F4D] to-[#00c853] text-white rounded-lg font-medium hover:opacity-90 transition-opacity disabled:opacity-50 disabled:cursor-not-allowed"
           >
             {isLoading ? (
               <>
-                <Loader2 className="w-4 h-4 animate-spin" />
-                {isConfirming ? 'Confirming...' : 'Revealing...'}
+                <Loader2 className="size-4 animate-spin" />
+                {isConfirming ? 'Confirming…' : 'Revealing…'}
               </>
             ) : (
               <>
-                <Eye className="w-4 h-4" />
+                <Eye className="size-4" />
                 Reveal Bid
               </>
             )}
@@ -377,7 +377,7 @@ export function AcceptBidForm({ job, bids, onSuccess }: AcceptBidFormProps) {
   return (
     <Card className="border border-divider p-6">
       <div className="flex items-center gap-2 mb-4">
-        <Trophy className="w-5 h-5 text-warning" />
+        <Trophy className="size-5 text-warning" />
         <h3 className="font-semibold">Accept a Bid</h3>
       </div>
 
@@ -410,7 +410,7 @@ export function AcceptBidForm({ job, bids, onSuccess }: AcceptBidFormProps) {
                       {Number(bid.proposedAmount) / 1e18} ETH
                     </p>
                     <p className="text-xs text-default-400 mt-0.5">
-                      ≈ {formatUsdValue(bid.proposedAmount, ETH_TOKEN)} USD
+                      â {formatUsdValue(bid.proposedAmount, ETH_TOKEN)} USD
                     </p>
                     <p className="text-xs text-default-500 mt-1">
                       Bidder: <Address address={bid.bidder as `0x${string}`} truncate />
@@ -419,7 +419,7 @@ export function AcceptBidForm({ job, bids, onSuccess }: AcceptBidFormProps) {
                   </div>
                   <div className="text-right">
                     {selectedBidId === bid.bidId && (
-                      <CheckCircle2 className="w-5 h-5 text-success" />
+                      <CheckCircle2 className="size-5 text-success" />
                     )}
                   </div>
                 </div>
@@ -433,19 +433,19 @@ export function AcceptBidForm({ job, bids, onSuccess }: AcceptBidFormProps) {
             </div>
           )}
 
-          <button
+          <button type="button"
             onClick={handleAccept}
             disabled={!isConnected || address !== job.client || isLoading || selectedBidId === null}
             className="w-full inline-flex items-center justify-center gap-2 px-6 py-3 bg-gradient-to-r from-[#009F4D] to-[#00c853] text-white rounded-lg font-medium hover:opacity-90 transition-opacity disabled:opacity-50 disabled:cursor-not-allowed"
           >
             {isLoading ? (
               <>
-                <Loader2 className="w-4 h-4 animate-spin" />
-                {isConfirming ? 'Confirming...' : 'Accepting...'}
+                <Loader2 className="size-4 animate-spin" />
+                {isConfirming ? 'Confirming…' : 'Accepting…'}
               </>
             ) : (
               <>
-                <Trophy className="w-4 h-4" />
+                <Trophy className="size-4" />
                 Accept Bid & Fund Job
               </>
             )}

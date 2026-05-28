@@ -2,7 +2,6 @@
 
 import React, { useState } from 'react';
 import { useAccount, useBalance } from 'wagmi';
-import { formatUnits } from 'viem';
 import { ChevronDown, DollarSign, CircleDot } from 'lucide-react';
 import {
   ETH_TOKEN,
@@ -19,7 +18,7 @@ function getTokenIcon(symbol: Token['symbol']): React.ComponentType<{ className?
   return symbol === 'ETH' ? CircleDot : DollarSign;
 }
 
-export interface PaymentTokenSelectorProps {
+interface PaymentTokenSelectorProps {
   selectedToken: Token;
   onSelectToken: (token: Token) => void;
   disabled?: boolean;
@@ -51,8 +50,7 @@ export function PaymentTokenSelector({
 
   return (
     <div className={`relative ${className}`}>
-      <button
-        type="button"
+      <button type="button"
         onClick={() => !disabled && setIsOpen(!isOpen)}
         disabled={disabled}
         className={`w-full flex items-center justify-between gap-2 px-3 py-2 border rounded-lg bg-content2 text-foreground focus:outline-none focus:ring-2 focus:ring-success transition-colors ${
@@ -60,13 +58,13 @@ export function PaymentTokenSelector({
         } ${isOpen ? 'border-success ring-2 ring-success/20' : 'border-divider'}`}
       >
         <div className="flex items-center gap-2">
-          <div className="w-6 h-6 rounded-full bg-success/10 flex items-center justify-center">
-            <Icon className="w-3.5 h-3.5 text-success" />
+          <div className="size-6 rounded-full bg-success/10 flex items-center justify-center">
+            <Icon className="size-3.5 text-success" />
           </div>
           <span className="font-medium">{selectedTokenObj.symbol}</span>
         </div>
         <ChevronDown
-          className={`w-4 h-4 text-default-400 transition-transform ${isOpen ? 'rotate-180' : ''}`}
+          className={`size-4 text-default-400 transition-transform ${isOpen ? 'rotate-180' : ''}`}
         />
       </button>
 
@@ -79,24 +77,23 @@ export function PaymentTokenSelector({
               const isSelected = token.address === selectedToken.address;
 
               return (
-                <button
+                <button type="button"
                   key={token.address}
-                  type="button"
                   onClick={() => handleSelect(token)}
                   className={`w-full flex items-center justify-between gap-2 px-3 py-2.5 hover:bg-content3 transition-colors ${
                     isSelected ? 'bg-success/5' : ''
                   }`}
                 >
                   <div className="flex items-center gap-2">
-                    <div className="w-6 h-6 rounded-full bg-success/10 flex items-center justify-center">
-                      <TokenIcon className="w-3.5 h-3.5 text-success" />
+                    <div className="size-6 rounded-full bg-success/10 flex items-center justify-center">
+                      <TokenIcon className="size-3.5 text-success" />
                     </div>
                     <div className="text-left">
                       <span className="font-medium text-sm">{token.symbol}</span>
                       <p className="text-xs text-default-400">{token.name}</p>
                     </div>
                   </div>
-                  {isSelected && <div className="w-2 h-2 rounded-full bg-success" />}
+                  {isSelected && <div className="size-2 rounded-full bg-success" />}
                 </button>
               );
             })}
@@ -113,32 +110,10 @@ export function PaymentTokenBadge({ token }: { token: Token }): JSX.Element {
 
   return (
     <span className="inline-flex items-center gap-1.5 px-2 py-0.5 rounded-full bg-success/10 text-success text-xs font-medium">
-      <Icon className="w-3 h-3" />
+      <Icon className="size-3" />
       {tokenObj.symbol}
     </span>
   );
-}
-
-export function useTokenBalance(token: Token | undefined, address: `0x${string}` | undefined) {
-  const isETH = token?.symbol === 'ETH';
-
-  const { data: ethBalance, isLoading: isEthLoading } = useBalance({
-    address: isETH ? address : undefined,
-  });
-
-  // Format ETH balance manually since 'formatted' property may not be in type
-  const formattedEthBalance = ethBalance
-    ? formatUnits(ethBalance.value, ethBalance.decimals)
-    : undefined;
-
-  // For USDC and other ERC20 tokens, we'd need to use useReadContract
-  // For now, return formatted ETH balance
-  return {
-    balance: isETH ? ethBalance?.value : undefined,
-    formattedBalance: isETH ? formattedEthBalance : undefined,
-    symbol: isETH ? 'ETH' : token?.symbol,
-    isLoading: isEthLoading,
-  };
 }
 
 export default PaymentTokenSelector;

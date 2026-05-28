@@ -59,11 +59,11 @@ function ActivityItem({ activity }: { activity: ActivityItemData }) {
   return (
     <div className="flex items-start gap-4 p-4 hover:bg-content2/50 transition-colors rounded-lg">
       <div
-        className="w-10 h-10 rounded-full flex items-center justify-center flex-shrink-0"
+        className="size-100 rounded-full flex items-center justify-center flex-shrink-0"
         style={{ backgroundColor: `${color}20` }}
       >
         <span style={{ color }}>
-          <Icon className="w-5 h-5" />
+          <Icon className="size-5" />
         </span>
       </div>
 
@@ -95,7 +95,7 @@ function ActivityItem({ activity }: { activity: ActivityItemData }) {
         href={getLink()}
         className="flex-shrink-0 p-2 hover:bg-content2 rounded-lg transition-colors"
       >
-        <ExternalLink className="w-4 h-4 text-default-400" />
+        <ExternalLink className="size-4 text-default-400" />
       </NextLink>
     </div>
   );
@@ -104,7 +104,7 @@ function ActivityItem({ activity }: { activity: ActivityItemData }) {
 function ActivitySkeleton() {
   return (
     <div className="flex items-start gap-4 p-4 animate-pulse">
-      <div className="w-10 h-10 rounded-full bg-content3 flex-shrink-0" />
+      <div className="size-100 rounded-full bg-content3 flex-shrink-0" />
       <div className="flex-1 space-y-2">
         <div className="h-4 bg-content3 rounded w-1/3" />
         <div className="h-3 bg-content3 rounded w-2/3" />
@@ -158,14 +158,14 @@ export default function ActivityPage(): JSX.Element {
             Platform-wide activity from jobs, services, and proposals
           </p>
         </div>
-        <button
+        <button type="button"
           onClick={() => {
             void refetch();
           }}
           disabled={isLoading}
           className="flex items-center gap-2 px-4 py-2 border border-divider rounded-lg hover:bg-content2 transition-colors disabled:opacity-50"
         >
-          <Activity className="w-4 h-4" />
+          <Activity className="size-4" />
           Refresh
         </button>
       </div>
@@ -173,9 +173,9 @@ export default function ActivityPage(): JSX.Element {
       {/* Filters */}
       <Card className="border border-divider p-2 mb-6">
         <div className="flex items-center gap-2 flex-wrap">
-          <Filter className="w-4 h-4 text-default-400 ml-2" />
+          <Filter className="size-4 text-default-400 ml-2" />
           {FILTERS.map(f => (
-            <button
+            <button type="button"
               key={f.type}
               onClick={() => { setFilter(f.type); setFollowingOnly(false); }}
               className={`px-4 py-2 rounded-lg text-sm font-medium transition-colors ${
@@ -186,13 +186,13 @@ export default function ActivityPage(): JSX.Element {
             </button>
           ))}
           {isConnected && (
-            <button
+            <button type="button"
               onClick={() => setFollowingOnly(!followingOnly)}
               className={`px-4 py-2 rounded-lg text-sm font-medium transition-colors flex items-center gap-1 ${
                 followingOnly ? 'bg-primary text-white' : 'hover:bg-content2 text-default-600'
               }`}
             >
-              <Users className="w-4 h-4" />
+              <Users className="size-4" />
               Following
             </button>
           )}
@@ -214,7 +214,7 @@ export default function ActivityPage(): JSX.Element {
             </div>
             <h3 className="text-lg font-semibold mb-2">Error Loading Activity</h3>
             <p className="text-default-500 max-w-md mx-auto mb-4">{error.message}</p>
-            <button
+            <button type="button"
               onClick={() => {
                 void refetch();
               }}

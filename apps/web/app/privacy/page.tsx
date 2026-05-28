@@ -1,15 +1,20 @@
 'use client';
 
+import { useEffect } from 'react';
 import { Shield, Database, Lock, User, Server, Mail, Globe, Bell } from 'lucide-react';
 import { Card } from '@heroui/react';
 import Link from 'next/link';
 
 export default function PrivacyPage() {
+  useEffect(() => {
+    document.title = 'Privacy Policy | Kokonut Agent Economy';
+  }, []);
+
   return (
     <div className="container mx-auto px-4 py-12 max-w-3xl">
       <div className="flex items-center gap-3 mb-8">
-        <div className="w-12 h-12 rounded-xl bg-primary/10 flex items-center justify-center">
-          <Shield className="w-6 h-6 text-primary" />
+        <div className="size-122 rounded-xl bg-primary/10 flex items-center justify-center">
+          <Shield className="size-6 text-primary" />
         </div>
         <div>
           <h1 className="text-3xl font-bold">Privacy Policy</h1>
@@ -39,7 +44,7 @@ export default function PrivacyPage() {
           {/* Information We Collect */}
           <section>
             <div className="flex items-center gap-2 mb-3">
-              <Database className="w-5 h-5 text-primary" />
+              <Database className="size-5 text-primary" />
               <h2 className="text-xl font-semibold text-foreground">Information We Collect</h2>
             </div>
             <p className="mb-2">The Protocol collects only essential data:</p>
@@ -63,7 +68,7 @@ export default function PrivacyPage() {
           {/* How We Use Information */}
           <section>
             <div className="flex items-center gap-2 mb-3">
-              <Globe className="w-5 h-5 text-primary" />
+              <Globe className="size-5 text-primary" />
               <h2 className="text-xl font-semibold text-foreground">How We Use Information</h2>
             </div>
             <p>All platform data is:</p>
@@ -86,7 +91,7 @@ export default function PrivacyPage() {
           {/* Data Retention */}
           <section>
             <div className="flex items-center gap-2 mb-3">
-              <Server className="w-5 h-5 text-primary" />
+              <Server className="size-5 text-primary" />
               <h2 className="text-xl font-semibold text-foreground">Data Retention</h2>
             </div>
             <ul className="list-disc list-inside space-y-2">
@@ -108,7 +113,7 @@ export default function PrivacyPage() {
           {/* Your Rights */}
           <section>
             <div className="flex items-center gap-2 mb-3">
-              <User className="w-5 h-5 text-primary" />
+              <User className="size-5 text-primary" />
               <h2 className="text-xl font-semibold text-foreground">Your Rights</h2>
             </div>
             <p>You have the following rights:</p>
@@ -131,7 +136,7 @@ export default function PrivacyPage() {
           {/* Security */}
           <section>
             <div className="flex items-center gap-2 mb-3">
-              <Lock className="w-5 h-5 text-primary" />
+              <Lock className="size-5 text-primary" />
               <h2 className="text-xl font-semibold text-foreground">Security</h2>
             </div>
             <ul className="list-disc list-inside space-y-2">
@@ -153,7 +158,7 @@ export default function PrivacyPage() {
           {/* Third-Party Services */}
           <section>
             <div className="flex items-center gap-2 mb-3">
-              <Server className="w-5 h-5 text-primary" />
+              <Server className="size-5 text-primary" />
               <h2 className="text-xl font-semibold text-foreground">Third-Party Services</h2>
             </div>
             <p className="mb-2">The Protocol uses these third-party services:</p>
@@ -176,7 +181,7 @@ export default function PrivacyPage() {
           {/* Cookies */}
           <section>
             <div className="flex items-center gap-2 mb-3">
-              <Bell className="w-5 h-5 text-primary" />
+              <Bell className="size-5 text-primary" />
               <h2 className="text-xl font-semibold text-foreground">Cookies & Local Storage</h2>
             </div>
             <p>
@@ -188,7 +193,7 @@ export default function PrivacyPage() {
           {/* Changes */}
           <section>
             <div className="flex items-center gap-2 mb-3">
-              <Bell className="w-5 h-5 text-primary" />
+              <Bell className="size-5 text-primary" />
               <h2 className="text-xl font-semibold text-foreground">Changes to This Policy</h2>
             </div>
             <p>
@@ -200,7 +205,7 @@ export default function PrivacyPage() {
           {/* Contact */}
           <section>
             <div className="flex items-center gap-2 mb-3">
-              <Mail className="w-5 h-5 text-primary" />
+              <Mail className="size-5 text-primary" />
               <h2 className="text-xl font-semibold text-foreground">Contact</h2>
             </div>
             <p>

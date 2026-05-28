@@ -9,24 +9,6 @@ const SEPOLIA_CAIP = chainIdToCAIP(11155111);
 
 // Common address constants
 export const ZERO_ADDRESS = '0x0000000000000000000000000000000000000000' as const;
-export const MAX_UINT256 = '0xffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffff' as const;
-
-// Runtime validation functions
-export function isValidContractAddress(address: string | undefined): address is string {
-  if (!address) return false;
-  return /^0x[a-fA-F0-9]{40}$/.test(address);
-}
-
-export function validateContractAddress(address: string, name: string): void {
-  if (!isValidContractAddress(address)) {
-    console.warn(`[Config] Invalid contract address for ${name}: ${address}`);
-  }
-}
-
-export function validateAllContractAddresses(): void {
-  const addresses = getContractAddress('ERC8004_REGISTRY');
-  validateContractAddress(addresses, 'ERC8004_REGISTRY');
-}
 
 // Contracts deployed on Sepolia (currently only chain with deployments)
 const sepoliaContracts = {
@@ -116,7 +98,7 @@ export interface ChainContracts {
 }
 
 // CAIP-keyed contract map for multi-chain support
-export const CONTRACTS_BY_CHAIN: Record<string, ChainContracts | undefined> = {
+const CONTRACTS_BY_CHAIN: Record<string, ChainContracts | undefined> = {
   [SEPOLIA_CAIP]: sepoliaContracts as ChainContracts,
   // Future chains - ready for deployment
   'eip155:1': emptyChainContracts as ChainContracts,
@@ -146,20 +128,6 @@ export const CONTRACTS_BY_CHAIN: Record<string, ChainContracts | undefined> = {
 export function getContractsByCAIP(caip: string): ChainContracts | undefined {
   return CONTRACTS_BY_CHAIN[caip];
 }
-
-export function getContractsByChainId(chainId: number): ChainContracts | undefined {
-  return CONTRACTS_BY_CHAIN[chainIdToCAIP(chainId)];
-}
-
-// Check if a chain has deployments
-export function isChainDeployed(chainId: number): boolean {
-  const caip = chainIdToCAIP(chainId);
-  const contracts = CONTRACTS_BY_CHAIN[caip];
-  return contracts?.agenticCommerce !== undefined;
-}
-
-// Get default CAIP (Sepolia)
-export const DEFAULT_CAIP = SEPOLIA_CAIP;
 
 // Legacy CONTRACT_ADDRESSES (backward compatibility)
 export const CONTRACT_ADDRESSES = {
@@ -208,7 +176,7 @@ export const CHAINLINK_PRICE_FEEDS = {
 } as const;
 
 // Env var names for contract addresses - centralized reference
-export const CONTRACT_ENV_VARS = {
+const CONTRACT_ENV_VARS = {
   ERC8004_REGISTRY: 'NEXT_PUBLIC_8004_REGISTRY_ADDRESS',
   ERC8004_REPUTATION: 'NEXT_PUBLIC_8004_REPUTATION_ADDRESS',
   SKILL_REGISTRY: 'NEXT_PUBLIC_SKILL_REGISTRY_ADDRESS',
@@ -263,21 +231,8 @@ export function getContractAddress(
   return (keyOrEnvVar || fallbackOrKey) as `0x${string}`;
 }
 
-// Legacy helper for backward compatibility
-export function getContractAddressFromEnv(
-  envVar: string | undefined,
-  fallbackAddress: string
-): `0x${string}` {
-  return (envVar || fallbackAddress) as `0x${string}`;
-}
-
 // Re-export debug utilities from lib/debug.ts for backward compatibility
 export { debugLog, debugError, isDebugEnabled, enableDebug, disableDebug } from '@/lib/debug';
 
 // Default starting block for event queries on Sepolia (deployed contracts)
 export const DEFAULT_FROM_BLOCK = BigInt(9989393);
-
-// Explorer URLs
-export const EXPLORER_URLS = {
-  sepolia: 'https://sepolia.etherscan.io',
-} as const;

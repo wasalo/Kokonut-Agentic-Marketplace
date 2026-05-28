@@ -1,6 +1,6 @@
 'use client';
 
-import { LucideIcon, Briefcase, ShoppingBag, Scale, Shield, Users, FolderOpen } from 'lucide-react';
+import { LucideIcon, Briefcase, ShoppingBag, Scale } from 'lucide-react';
 import Link from 'next/link';
 import { Button } from './Button';
 
@@ -16,7 +16,7 @@ interface EmptyStateProps {
   className?: string;
 }
 
-export function EmptyState({
+function EmptyState({
   icon: Icon,
   title,
   description,
@@ -77,33 +77,4 @@ export const EmptyStateProposals = (props?: Partial<EmptyStateProps>) => (
   />
 );
 
-export const EmptyStateAgents = (props?: Partial<EmptyStateProps>) => (
-  <EmptyState
-    icon={Shield}
-    title="No Kokonut-Registered Agents"
-    description="Register your first AI agent to join the Kokonut marketplace."
-    action={{ label: 'Register Agent', href: '/identity/register', ...props?.action }}
-    {...props}
-  />
-);
 
-export const EmptyStateBidders = (props?: Partial<EmptyStateProps>) => (
-  <EmptyState
-    icon={Users}
-    title="No Bidders Yet"
-    description="Open jobs will attract bids from providers."
-    {...props}
-  />
-);
-
-export const EmptyStateSkills = (props?: Partial<EmptyStateProps>) => (
-  <EmptyState
-    icon={FolderOpen}
-    title="No Skills Found"
-    description="Register skills to make your agent discoverable."
-    {...props}
-  />
-);
-
-// Export icons for reuse
-export { Briefcase, ShoppingBag, Scale, Shield, Users, FolderOpen };

@@ -22,7 +22,7 @@ import {
   SessionStatus,
   SessionStatusType,
 } from '@/lib/hooks/useBiddingSystem';
-import { useState, useCallback, useMemo } from 'react';
+import { useState, useCallback, useMemo, Suspense, useEffect } from 'react';
 import { StatusBadge } from '@/components/StatusBadge';
 
 const ITEMS_PER_PAGE = 10;
@@ -56,11 +56,11 @@ function SessionCard({ session, isConnected }: { session: any; isConnected: bool
           <p className="text-sm text-default-500 mt-0.5 truncate">Evaluator: {session.evaluator}</p>
           <div className="flex items-center gap-4 mt-2 text-xs text-default-400">
             <span className="flex items-center gap-1">
-              <DollarSign className="w-3 h-3" />
+              <DollarSign className="size-3" />
               Max: {maxBudgetEth.toFixed(4)} ETH
             </span>
             <span className="flex items-center gap-1">
-              <Clock className="w-3 h-3" />
+              <Clock className="size-3" />
               Deadline: {deadlineDate.toLocaleDateString()}
             </span>
             {session.serviceId > 0 && (
@@ -92,7 +92,7 @@ function SessionCard({ session, isConnected }: { session: any; isConnected: bool
   );
 }
 
-export default function BiddingPage(): JSX.Element {
+function BiddingContent() {
   const [page, setPage] = useState(0);
   const { isConnected } = useAccount();
   const router = useRouter();
@@ -178,7 +178,7 @@ export default function BiddingPage(): JSX.Element {
       <div className="flex items-center justify-between mb-8">
         <div className="flex items-center gap-3">
           <div className="p-3 bg-gradient-to-br from-[#009F4D] to-[#00c853] rounded-xl">
-            <Gavel className="w-8 h-8 text-white" />
+            <Gavel className="size-8 text-white" />
           </div>
           <div>
             <h1 className="text-3xl font-bold">Bidding Sessions</h1>
@@ -188,7 +188,7 @@ export default function BiddingPage(): JSX.Element {
         {isConnected && (
           <NextLink href="/bidding/create">
             <Button className="bg-[#009F4D] text-white font-medium">
-              <Plus className="w-4 h-4 mr-1" />
+              <Plus className="size-4 mr-1" />
               Create Session
             </Button>
           </NextLink>
@@ -200,11 +200,11 @@ export default function BiddingPage(): JSX.Element {
         <Card className="border border-divider p-4">
           <div className="flex items-center gap-3">
             <div className="p-2 bg-[#009F4D]/10 rounded-lg">
-              <Gavel className="w-5 h-5 text-[#009F4D]" />
+              <Gavel className="size-5 text-[#009F4D]" />
             </div>
             <div>
               <p className="text-2xl font-bold">
-                {isLoading ? <Loader2 className="w-6 h-6 animate-spin" /> : totalCount}
+                {isLoading ? <Loader2 className="size-6 animate-spin" /> : totalCount}
               </p>
               <p className="text-sm text-default-500">Total Sessions</p>
             </div>
@@ -213,12 +213,12 @@ export default function BiddingPage(): JSX.Element {
         <Card className="border border-divider p-4">
           <div className="flex items-center gap-3">
             <div className="p-2 bg-success/10 rounded-lg">
-              <Clock className="w-5 h-5 text-success" />
+              <Clock className="size-5 text-success" />
             </div>
             <div>
               <p className="text-2xl font-bold">
                 {isLoading ? (
-                  <Loader2 className="w-6 h-6 animate-spin" />
+                  <Loader2 className="size-6 animate-spin" />
                 ) : (
                   filteredSessions.filter(s => s.status === SessionStatus.Active).length
                 )}
@@ -230,12 +230,12 @@ export default function BiddingPage(): JSX.Element {
         <Card className="border border-divider p-4">
           <div className="flex items-center gap-3">
             <div className="p-2 bg-primary/10 rounded-lg">
-              <Users className="w-5 h-5 text-primary" />
+              <Users className="size-5 text-primary" />
             </div>
             <div>
               <p className="text-2xl font-bold">
                 {isLoading ? (
-                  <Loader2 className="w-6 h-6 animate-spin" />
+                  <Loader2 className="size-6 animate-spin" />
                 ) : (
                   filteredSessions.filter(s => s.status === SessionStatus.WinnerSelected).length
                 )}
@@ -252,10 +252,10 @@ export default function BiddingPage(): JSX.Element {
           <div className="flex items-center gap-4 flex-1">
             {/* Search */}
             <div className="relative flex-1 max-w-md">
-              <Search className="absolute left-3 top-1/2 -translate-y-1/2 w-4 h-4 text-default-400" />
+              <Search className="absolute left-3 top-1/2 -translate-y-1/2 size-4 text-default-400" />
               <input
                 type="text"
-                placeholder="Search sessions..."
+                placeholder="Search sessions…"
                 value={searchQuery}
                 onChange={e => {
                   setSearchQuery(e.target.value);
@@ -272,7 +272,7 @@ export default function BiddingPage(): JSX.Element {
               onPress={() => setShowFilters(!showFilters)}
               className={showFilters ? 'bg-[#009F4D]/20' : ''}
             >
-              <SlidersHorizontal className="w-4 h-4 mr-1" />
+              <SlidersHorizontal className="size-4 mr-1" />
               Filters
             </Button>
           </div>
@@ -327,7 +327,7 @@ export default function BiddingPage(): JSX.Element {
       {/* Sessions List */}
       {isLoading ? (
         <div className="flex items-center justify-center py-12">
-          <Loader2 className="w-8 h-8 animate-spin text-[#009F4D]" />
+          <Loader2 className="size-8 animate-spin text-[#009F4D]" />
         </div>
       ) : filteredSessions.length > 0 ? (
         <div className="space-y-4">
@@ -337,7 +337,7 @@ export default function BiddingPage(): JSX.Element {
         </div>
       ) : (
         <Card className="border border-divider p-12 text-center">
-          <Gavel className="w-12 h-12 mx-auto text-default-300 mb-4" />
+          <Gavel className="size-122 mx-auto text-default-300 mb-4" />
           <h3 className="text-lg font-semibold mb-2">No bidding sessions found</h3>
           <p className="text-default-500 mb-4">
             {searchQuery || statusFilter !== 'all'
@@ -347,7 +347,7 @@ export default function BiddingPage(): JSX.Element {
           {isConnected && !searchQuery && statusFilter === 'all' && (
             <NextLink href="/bidding/create">
               <Button className="bg-[#009F4D] text-white">
-                <Plus className="w-4 h-4 mr-1" />
+                <Plus className="size-4 mr-1" />
                 Create Session
               </Button>
             </NextLink>
@@ -359,7 +359,7 @@ export default function BiddingPage(): JSX.Element {
       {totalPages > 1 && (
         <div className="flex items-center justify-center gap-4 mt-8">
           <Button variant="ghost" size="sm" isDisabled={page === 0} onPress={handlePrevPage}>
-            <ChevronLeft className="w-4 h-4 mr-1" />
+            <ChevronLeft className="size-4 mr-1" />
             Previous
           </Button>
           <span className="text-sm text-default-500">
@@ -372,10 +372,22 @@ export default function BiddingPage(): JSX.Element {
             onPress={handleNextPage}
           >
             Next
-            <ChevronRight className="w-4 h-4 ml-1" />
+            <ChevronRight className="size-4 ml-1" />
           </Button>
         </div>
       )}
     </div>
+  );
+}
+
+export default function BiddingPage(): JSX.Element {
+  useEffect(() => {
+    document.title = 'Bidding | Kokonut Agent Economy';
+  }, []);
+
+  return (
+    <Suspense fallback={<div>Loading...</div>}>
+      <BiddingContent />
+    </Suspense>
   );
 }

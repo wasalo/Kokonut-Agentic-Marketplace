@@ -48,7 +48,7 @@ export interface ValidationRules {
  * });
  * ```
  */
-export function useValidation<T extends Record<string, unknown>>(rules: ValidationRules) {
+function useValidation<T extends Record<string, unknown>>(rules: ValidationRules) {
   const [fieldErrors, setFieldErrors] = useState<Record<string, string | null>>({});
   const [touched, setTouched] = useState<Record<string, boolean>>({});
 
@@ -259,35 +259,6 @@ export function validateAddress(addr: string | undefined | null): string | null 
 }
 
 /**
- * Validate amount (bigint or string)
- */
-export function validateAmount(
-  value: string | bigint | undefined | null,
-  min?: bigint,
-  max?: bigint
-): string | null {
-  if (value === undefined || value === null || value === '') {
-    return 'Amount is required';
-  }
-
-  let bigValue: bigint;
-  try {
-    bigValue = typeof value === 'bigint' ? value : BigInt(value);
-  } catch {
-    return 'Must be a valid number';
-  }
-
-  if (min !== undefined && bigValue < min) {
-    return `Must be at least ${min.toString()}`;
-  }
-  if (max !== undefined && bigValue > max) {
-    return `Must be at most ${max.toString()}`;
-  }
-
-  return null;
-}
-
-/**
  * Validate deadline (must be in the future)
  */
 export function validateDeadline(
@@ -340,22 +311,6 @@ export function validateStringLength(
   }
 
   return null;
-}
-
-/**
- * Validate URL
- */
-export function validateURL(url: string | undefined | null): string | null {
-  if (!url || url === '') {
-    return 'URL is required';
-  }
-
-  try {
-    new URL(url);
-    return null;
-  } catch {
-    return 'Must be a valid URL (e.g., https://example.com)';
-  }
 }
 
 /**

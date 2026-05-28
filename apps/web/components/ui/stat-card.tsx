@@ -70,7 +70,7 @@ export const StatCard = memo(function StatCard({
     <Card className={`border border-divider ${paddingMap[padding]}`}>
       {Icon && !isLoading && (
         <div className="absolute top-4 right-4 p-2 bg-success/10 rounded-lg">
-          <Icon className="w-5 h-5 text-success" />
+          <Icon className="size-5 text-success" />
         </div>
       )}
       {content}

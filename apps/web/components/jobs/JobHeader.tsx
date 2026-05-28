@@ -44,7 +44,7 @@ export function JobHeader({ job, service, isClient, isProvider, isEvaluator }: J
           <p className="text-sm text-default-500 mt-1">{job.description}</p>
         </div>
         <div className="flex items-center gap-2">
-          <button
+          <button type="button"
             onClick={() => {
               if (navigator.clipboard?.writeText) {
                 navigator.clipboard.writeText(window.location.href);
@@ -60,7 +60,7 @@ export function JobHeader({ job, service, isClient, isProvider, isEvaluator }: J
             className="p-2 text-default-400 hover:text-foreground transition-colors rounded-lg hover:bg-content2"
             title="Copy job link"
           >
-            <Link className="w-4 h-4" />
+            <Link className="size-4" />
           </button>
           <StatusBadge status={getJobStatusBadgeType(job.status)} size="md" />
         </div>
@@ -98,7 +98,7 @@ export function JobHeader({ job, service, isClient, isProvider, isEvaluator }: J
         <div>
           <p className="text-xs text-default-400 uppercase tracking-wide">Deadline</p>
           <p className="text-sm flex items-center gap-1">
-            <Clock className="w-3 h-3" />
+            <Clock className="size-3" />
             {deadlineDate.toLocaleDateString()} {deadlineDate.toLocaleTimeString()}
           </p>
           {isExpired && <p className="text-xs text-danger mt-0.5">Expired</p>}

@@ -38,17 +38,17 @@ export function Pagination({
     } else {
       if (currentPage < 3) {
         for (let i = 0; i < 4; i++) pages.push(i);
-        pages.push('...');
+        pages.push('…');
         pages.push(totalPages - 1);
       } else if (currentPage > totalPages - 4) {
         pages.push(0);
-        pages.push('...');
+        pages.push('…');
         for (let i = totalPages - 4; i < totalPages; i++) pages.push(i);
       } else {
         pages.push(0);
-        pages.push('...');
+        pages.push('…');
         for (let i = currentPage - 1; i <= currentPage + 1; i++) pages.push(i);
-        pages.push('...');
+        pages.push('…');
         pages.push(totalPages - 1);
       }
     }
@@ -90,7 +90,7 @@ export function Pagination({
           isDisabled={!hasPrevPage}
           aria-label="First page"
         >
-          <ChevronsLeft className="w-4 h-4" />
+          <ChevronsLeft className="size-4" />
         </Button>
 
         {/* Previous */}
@@ -102,7 +102,7 @@ export function Pagination({
           isDisabled={!hasPrevPage}
           aria-label="Previous page"
         >
-          <ChevronLeft className="w-4 h-4" />
+          <ChevronLeft className="size-4" />
         </Button>
 
         {/* Page Numbers */}
@@ -134,7 +134,7 @@ export function Pagination({
           isDisabled={!hasNextPage}
           aria-label="Next page"
         >
-          <ChevronRight className="w-4 h-4" />
+          <ChevronRight className="size-4" />
         </Button>
 
         {/* Last */}
@@ -146,7 +146,7 @@ export function Pagination({
           isDisabled={!hasNextPage}
           aria-label="Last page"
         >
-          <ChevronsRight className="w-4 h-4" />
+          <ChevronsRight className="size-4" />
         </Button>
       </div>
     </div>

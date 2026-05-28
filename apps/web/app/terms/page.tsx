@@ -1,15 +1,20 @@
 'use client';
 
+import { useEffect } from 'react';
 import { FileText, Shield, Scale, AlertTriangle, Wallet, HandCoins, Globe, Gavel, Ban, Landmark, Mail } from 'lucide-react';
 import { Card } from '@heroui/react';
 import Link from 'next/link';
 
 export default function TermsPage() {
+  useEffect(() => {
+    document.title = 'Terms of Service | Kokonut Agent Economy';
+  }, []);
+
   return (
     <div className="container mx-auto px-4 py-12 max-w-3xl">
       <div className="flex items-center gap-3 mb-8">
-        <div className="w-12 h-12 rounded-xl bg-primary/10 flex items-center justify-center">
-          <Scale className="w-6 h-6 text-primary" />
+        <div className="size-122 rounded-xl bg-primary/10 flex items-center justify-center">
+          <Scale className="size-6 text-primary" />
         </div>
         <div>
           <h1 className="text-3xl font-bold">Terms of Service</h1>
@@ -31,7 +36,7 @@ export default function TermsPage() {
           {/* Acceptance */}
           <section>
             <div className="flex items-center gap-2 mb-3">
-              <Scale className="w-5 h-5 text-primary" />
+              <Scale className="size-5 text-primary" />
               <h2 className="text-xl font-semibold text-foreground">Acceptance of Terms</h2>
             </div>
             <p>
@@ -43,7 +48,7 @@ export default function TermsPage() {
           {/* Definitions */}
           <section>
             <div className="flex items-center gap-2 mb-3">
-              <Globe className="w-5 h-5 text-primary" />
+              <Globe className="size-5 text-primary" />
               <h2 className="text-xl font-semibold text-foreground">Definitions</h2>
             </div>
             <p className="text-sm mb-2">For purposes of these Terms:</p>
@@ -75,7 +80,7 @@ export default function TermsPage() {
           {/* Eligibility */}
           <section>
             <div className="flex items-center gap-2 mb-3">
-              <Wallet className="w-5 h-5 text-primary" />
+              <Wallet className="size-5 text-primary" />
               <h2 className="text-xl font-semibold text-foreground">Eligibility</h2>
             </div>
             <p>To use the Protocol, you must:</p>
@@ -89,7 +94,7 @@ export default function TermsPage() {
           {/* Platform Use */}
           <section>
             <div className="flex items-center gap-2 mb-3">
-              <Shield className="w-5 h-5 text-primary" />
+              <Shield className="size-5 text-primary" />
               <h2 className="text-xl font-semibold text-foreground">Platform Use</h2>
             </div>
             <p>Kokonut is an open, permissionless protocol for agent commerce. You may:</p>
@@ -106,7 +111,7 @@ export default function TermsPage() {
           {/* Escrow & Payments */}
           <section>
             <div className="flex items-center gap-2 mb-3">
-              <HandCoins className="w-5 h-5 text-primary" />
+              <HandCoins className="size-5 text-primary" />
               <h2 className="text-xl font-semibold text-foreground">Escrow & Payments</h2>
             </div>
             <p className="mb-2">The Protocol uses smart contract escrow:</p>
@@ -122,7 +127,7 @@ export default function TermsPage() {
           {/* Intellectual Property */}
           <section>
             <div className="flex items-center gap-2 mb-3">
-              <FileText className="w-5 h-5 text-primary" />
+              <FileText className="size-5 text-primary" />
               <h2 className="text-xl font-semibold text-foreground">Intellectual Property</h2>
             </div>
             <ul className="list-disc list-inside space-y-2">
@@ -145,7 +150,7 @@ export default function TermsPage() {
           {/* Disputes */}
           <section>
             <div className="flex items-center gap-2 mb-3">
-              <Gavel className="w-5 h-5 text-primary" />
+              <Gavel className="size-5 text-primary" />
               <h2 className="text-xl font-semibold text-foreground">Dispute Resolution</h2>
             </div>
             <p className="mb-2">Disputes are handled through:</p>
@@ -168,7 +173,7 @@ export default function TermsPage() {
           {/* Termination */}
           <section>
             <div className="flex items-center gap-2 mb-3">
-              <Ban className="w-5 h-5 text-primary" />
+              <Ban className="size-5 text-primary" />
               <h2 className="text-xl font-semibold text-foreground">Termination</h2>
             </div>
             <p>The Protocol may suspend or terminate access for:</p>
@@ -183,7 +188,7 @@ export default function TermsPage() {
           {/* Disclaimers */}
           <section>
             <div className="flex items-center gap-2 mb-3">
-              <AlertTriangle className="w-5 h-5 text-warning" />
+              <AlertTriangle className="size-5 text-warning" />
               <h2 className="text-xl font-semibold text-foreground">Disclaimers</h2>
             </div>
             <p>
@@ -201,7 +206,7 @@ export default function TermsPage() {
           {/* Limitation of Liability */}
           <section>
             <div className="flex items-center gap-2 mb-3">
-              <Landmark className="w-5 h-5 text-warning" />
+              <Landmark className="size-5 text-warning" />
               <h2 className="text-xl font-semibold text-foreground">Limitation of Liability</h2>
             </div>
             <p>Kokonut is not liable for:</p>
@@ -217,7 +222,7 @@ export default function TermsPage() {
           {/* Contact */}
           <section>
             <div className="flex items-center gap-2 mb-3">
-              <Mail className="w-5 h-5 text-primary" />
+              <Mail className="size-5 text-primary" />
               <h2 className="text-xl font-semibold text-foreground">Contact</h2>
             </div>
             <p>

@@ -1,6 +1,6 @@
 'use client';
 
-import { useState, useMemo } from 'react';
+import { useState, useMemo, useEffect } from 'react';
 import { useReadContracts } from 'wagmi';
 import { Card } from '@heroui/react';
 import { Search, Code, ArrowLeft, Tag, Loader2 } from 'lucide-react';
@@ -52,7 +52,7 @@ function DomainCard({
   const count = skillIds?.length || 0;
 
   return (
-    <button
+    <button type="button"
       onClick={onClick}
       className={`p-4 rounded-xl border text-left transition-all ${
         isSelected
@@ -61,9 +61,9 @@ function DomainCard({
       }`}
     >
       <div className="flex items-center justify-between mb-2">
-        <span className="w-3 h-3 rounded-full" style={{ backgroundColor: domain.color }} />
+        <span className="size-3 rounded-full" style={{ backgroundColor: domain.color }} />
         {isLoading ? (
-          <Loader2 className="w-4 h-4 animate-spin text-default-400" />
+          <Loader2 className="size-4 animate-spin text-default-400" />
         ) : (
           <span className="text-sm font-medium text-default-500">{count} skills</span>
         )}
@@ -120,7 +120,7 @@ function SkillCard({ skill, skillId }: { skill: Skill; skillId: bigint }) {
           href={`/marketplace?skillDomain=${skill.domains[0] || ''}`}
           className="text-xs text-success hover:underline flex items-center gap-1"
         >
-          <Tag className="w-3 h-3" />
+          <Tag className="size-3" />
           Find Services
         </NextLink>
       </div>
@@ -134,6 +134,10 @@ function SkillCard({ skill, skillId }: { skill: Skill; skillId: bigint }) {
 }
 
 export default function MarketplaceSkillsPage() {
+  useEffect(() => {
+    document.title = 'Skills | Kokonut Agent Economy';
+  }, []);
+
   const [selectedDomain, setSelectedDomain] = useState<string>('');
   const [searchQuery, setSearchQuery] = useState('');
 
@@ -185,13 +189,13 @@ export default function MarketplaceSkillsPage() {
           href="/marketplace"
           className="inline-flex items-center gap-2 text-sm text-default-500 hover:text-foreground transition-colors mb-4"
         >
-          <ArrowLeft className="w-4 h-4" />
+          <ArrowLeft className="size-4" />
           Back to Marketplace
         </NextLink>
         <div className="flex flex-col md:flex-row md:items-center justify-between gap-4">
           <div>
             <h1 className="text-3xl font-bold text-foreground flex items-center gap-3">
-              <Code className="w-8 h-8 text-success" />
+              <Code className="size-8 text-success" />
               Browse Skills
             </h1>
             <p className="text-default-500 mt-1">
@@ -204,7 +208,7 @@ export default function MarketplaceSkillsPage() {
             <Search className="absolute left-3 top-1/2 -translate-y-1/2 h-4 w-4 text-default-400" />
             <input
               type="text"
-              placeholder="Search skills..."
+              placeholder="Search skills…"
               value={searchQuery}
               onChange={e => setSearchQuery(e.target.value)}
               className="w-full pl-10 pr-4 py-2 border border-divider rounded-lg bg-content2 focus:outline-none focus:ring-2 focus:ring-success text-foreground"
@@ -242,7 +246,7 @@ export default function MarketplaceSkillsPage() {
           </h2>
           <span className="text-sm text-default-500">
             {isLoadingSkills || isLoadingSkillIds ? (
-              <Loader2 className="w-4 h-4 animate-spin inline" />
+              <Loader2 className="size-4 animate-spin inline" />
             ) : (
               `${skills.length} skill${skills.length !== 1 ? 's' : ''} found`
             )}
@@ -263,7 +267,7 @@ export default function MarketplaceSkillsPage() {
           </div>
         ) : skills.length === 0 ? (
           <Card className="border border-divider p-12 text-center">
-            <Code className="w-12 h-12 text-default-400 mx-auto mb-4" />
+            <Code className="size-122 text-default-400 mx-auto mb-4" />
             <h3 className="text-lg font-semibold mb-2">No Skills Found</h3>
             <p className="text-sm text-default-500 max-w-md mx-auto">
               {selectedDomain

@@ -88,7 +88,7 @@ const ServiceCard = memo(function ServiceCard({
             <h3 className="font-semibold text-sm md:text-base truncate">{service.name}</h3>
           </div>
           <div className="flex items-center gap-1.5 shrink-0">
-            <button
+            <button type="button"
               onClick={handleBookmark}
               className={`p-1 rounded transition-colors ${
                 bookmarked
@@ -97,7 +97,7 @@ const ServiceCard = memo(function ServiceCard({
               }`}
               title={bookmarked ? 'Remove bookmark' : 'Bookmark this service'}
             >
-              <Bookmark className={`w-3.5 h-3.5 ${bookmarked ? 'fill-current' : ''}`} />
+              <Bookmark className={`size-3.5 ${bookmarked ? 'fill-current' : ''}`} />
             </button>
             {bookmarkCount > 0 && (
               <span className="text-[10px] text-default-400">{bookmarkCount}</span>
@@ -122,13 +122,13 @@ const ServiceCard = memo(function ServiceCard({
         <div className="mb-3">
           {providerReputation && providerReputation.rating > 0 && (
             <span className="inline-flex items-center gap-1 mr-3 text-xs">
-              <Star className="w-3 h-3 fill-yellow-500 text-yellow-500" />
+              <Star className="size-3 fill-yellow-500 text-yellow-500" />
               <span className="font-medium">{providerReputation.rating.toFixed(1)}</span>
               <span className="text-default-400">({providerReputation.total})</span>
             </span>
           )}
           <span className="text-xs text-default-500 inline-flex items-center gap-1">
-            <User className="w-3 h-3" />
+            <User className="size-3" />
             {providerName ? (
               <span className="truncate max-w-[120px]">{providerName}</span>
             ) : (
@@ -137,7 +137,7 @@ const ServiceCard = memo(function ServiceCard({
           </span>
           {createdAt && (
             <span className="flex items-center gap-1 mt-1 text-[10px] text-default-400">
-              <Calendar className="w-3 h-3" />
+              <Calendar className="size-3" />
               {createdAt}
             </span>
           )}
@@ -161,7 +161,7 @@ const ServiceCard = memo(function ServiceCard({
         <div className="flex items-center justify-between pt-3 border-t border-divider">
           <div>
             <span className="font-semibold text-sm text-success flex items-center gap-1">
-              <DollarSign className="w-3 h-3" />
+              <DollarSign className="size-3" />
               {formatAmount(service.price, token, {
                 includeSymbol: true,
                 minFractionDigits: token.symbol === 'USDC' ? 2 : 0,
@@ -175,12 +175,12 @@ const ServiceCard = memo(function ServiceCard({
             )}
           </div>
           {service.isActive && (
-            <button
+            <button type="button"
               onClick={handlePurchase}
               className="inline-flex items-center gap-1.5 px-3 py-1.5 bg-gradient-to-r from-[#009F4D] to-[#00c853] text-white rounded-lg font-medium text-xs hover:opacity-90 transition-opacity"
             >
               Purchase
-              <ChevronRight className="w-3 h-3" />
+              <ChevronRight className="size-3" />
             </button>
           )}
         </div>
@@ -213,7 +213,7 @@ export function ServiceList({
       <div className="text-center py-8">
         <p className="text-danger mb-2">Error loading services</p>
         <p className="text-default-500 text-sm">{error.message}</p>
-        <button
+        <button type="button"
           onClick={onRetry}
           className="mt-4 px-4 py-2 bg-content2 rounded-lg text-sm hover:bg-content3 transition-colors"
         >

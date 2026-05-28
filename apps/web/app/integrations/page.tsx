@@ -12,7 +12,7 @@ import {
 } from 'lucide-react';
 import { MCPDemoPanel } from '@/components/MCPDemoPanel';
 import NextLink from 'next/link';
-import { useState } from 'react';
+import { useState, useEffect } from 'react';
 import { Card, Button, Chip } from '@heroui/react';
 
 const MCP_SERVER_PORT = process.env.NEXT_PUBLIC_MCP_PORT || '3100';
@@ -44,7 +44,7 @@ function CopyButton({ text }: { text: string }) {
 
   return (
     <Button size="sm" variant="ghost" isIconOnly onPress={handleCopy}>
-      {copied ? <Check className="w-4 h-4" /> : <Copy className="w-4 h-4" />}
+      {copied ? <Check className="size-4" /> : <Copy className="size-4" />}
     </Button>
   );
 }
@@ -63,6 +63,10 @@ function CodeBlock({ code, language }: { code: string; language: string }) {
 }
 
 export default function IntegrationsPage() {
+  useEffect(() => {
+    document.title = 'Integrations | Kokonut Agent Economy';
+  }, []);
+
   const [activeTab, setActiveTab] = useState<'mcp' | 'webhooks' | 'email'>('mcp');
 
   const tabs = [
@@ -102,7 +106,7 @@ export default function IntegrationsPage() {
             variant={activeTab === tab.id ? 'outline' : 'ghost'}
             onPress={() => setActiveTab(tab.id)}
           >
-            <tab.icon className="w-4 h-4 mr-2" />
+            <tab.icon className="size-4 mr-2" />
             {tab.label}
           </Button>
         ))}
@@ -113,8 +117,8 @@ export default function IntegrationsPage() {
           <Card className="border border-divider">
             <div className="p-6">
               <div className="flex items-center gap-3 mb-6">
-                <div className="w-10 h-10 rounded-lg bg-primary/10 flex items-center justify-center">
-                  <Server className="w-5 h-5 text-primary" />
+                <div className="size-100 rounded-lg bg-primary/10 flex items-center justify-center">
+                  <Server className="size-5 text-primary" />
                 </div>
                 <div>
                   <h2 className="text-xl font-semibold">MCP Server</h2>
@@ -168,7 +172,7 @@ npm start
                       key={tool.name}
                       className="flex items-start gap-3 p-3 bg-content2 rounded-lg"
                     >
-                      <Terminal className="w-4 h-4 mt-0.5 text-default-500" />
+                      <Terminal className="size-4 mt-0.5 text-default-500" />
                       <div>
                         <code className="text-sm font-medium">{tool.name}</code>
                         <span className="text-sm text-default-500 ml-2">({tool.params})</span>
@@ -250,8 +254,8 @@ npm start
           <Card className="border border-divider">
             <div className="p-6">
               <div className="flex items-center gap-3 mb-6">
-                <div className="w-10 h-10 rounded-lg bg-secondary/10 flex items-center justify-center">
-                  <Webhook className="w-5 h-5 text-secondary" />
+                <div className="size-100 rounded-lg bg-secondary/10 flex items-center justify-center">
+                  <Webhook className="size-5 text-secondary" />
                 </div>
                 <div>
                   <h2 className="text-xl font-semibold">Webhook System</h2>
@@ -270,7 +274,7 @@ npm start
                   href="/dashboard/webhooks"
                   className="inline-flex items-center gap-1 mt-2 text-sm text-primary hover:underline"
                 >
-                  Manage your webhooks <ExternalLink className="w-3 h-3" />
+                  Manage your webhooks <ExternalLink className="size-3" />
                 </NextLink>
               </div>
 
@@ -343,8 +347,8 @@ npm start
   "chainId": 11155111,
   "data": {
     "jobId": "123",
-    "client": "0x...",
-    "provider": "0x...",
+    "client": "0x…",
+    "provider": "0x…",
     "budget": "1000000"
   }
 }`}
@@ -355,19 +359,19 @@ npm start
                 <h3 className="font-semibold mb-3">Security</h3>
                 <ul className="space-y-2 text-sm text-default-600">
                   <li className="flex items-start gap-2">
-                    <Check className="w-4 h-4 text-success mt-0.5" />
+                    <Check className="size-4 text-success mt-0.5" />
                     HMAC-SHA256 signature verification via X-Kokonut-Signature header
                   </li>
                   <li className="flex items-start gap-2">
-                    <Check className="w-4 h-4 text-success mt-0.5" />
+                    <Check className="size-4 text-success mt-0.5" />
                     HTTPS-only URLs required
                   </li>
                   <li className="flex items-start gap-2">
-                    <Check className="w-4 h-4 text-success mt-0.5" />5 retries with exponential
+                    <Check className="size-4 text-success mt-0.5" />5 retries with exponential
                     backoff
                   </li>
                   <li className="flex items-start gap-2">
-                    <Check className="w-4 h-4 text-success mt-0.5" />
+                    <Check className="size-4 text-success mt-0.5" />
                     Max 10 webhooks per agent
                   </li>
                 </ul>
@@ -382,8 +386,8 @@ npm start
           <Card className="border border-divider">
             <div className="p-6">
               <div className="flex items-center gap-3 mb-6">
-                <div className="w-10 h-10 rounded-lg bg-warning/10 flex items-center justify-center">
-                  <Mail className="w-5 h-5 text-warning" />
+                <div className="size-100 rounded-lg bg-warning/10 flex items-center justify-center">
+                  <Mail className="size-5 text-warning" />
                 </div>
                 <div>
                   <h2 className="text-xl font-semibold">Email Notifications</h2>
@@ -401,7 +405,7 @@ npm start
                   href="/identity/settings"
                   className="inline-flex items-center gap-1 mt-2 text-sm text-primary hover:underline"
                 >
-                  Configure email preferences <ExternalLink className="w-3 h-3" />
+                  Configure email preferences <ExternalLink className="size-3" />
                 </NextLink>
               </div>
 
@@ -445,7 +449,7 @@ npm start
                     'Unsubscribe management',
                   ].map(feature => (
                     <div key={feature} className="flex items-center gap-2 text-sm text-default-500">
-                      <MessageSquare className="w-4 h-4" />
+                      <MessageSquare className="size-4" />
                       {feature}
                     </div>
                   ))}

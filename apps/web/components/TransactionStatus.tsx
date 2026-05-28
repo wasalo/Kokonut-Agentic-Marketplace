@@ -23,7 +23,7 @@ export function TransactionStatus({ txId, txHash, description }: TransactionStat
           <Spinner size="sm" />
           <div>
             <p className="font-medium">{description}</p>
-            <p className="text-sm text-default-500">Awaiting signature...</p>
+            <p className="text-sm text-default-500">Awaiting signature…</p>
           </div>
         </div>
       </Card>
@@ -34,10 +34,10 @@ export function TransactionStatus({ txId, txHash, description }: TransactionStat
     return (
       <Card className="p-4 bg-amber-500/10 border-amber-500/20">
         <div className="flex items-center gap-3">
-          <Clock className="w-5 h-5 text-amber-400 animate-pulse" />
+          <Clock className="size-5 text-amber-400 animate-pulse" />
           <div>
             <p className="font-medium">{description}</p>
-            <p className="text-sm text-default-500">Pending in mempool...</p>
+            <p className="text-sm text-default-500">Pending in mempool…</p>
           </div>
         </div>
       </Card>
@@ -48,7 +48,7 @@ export function TransactionStatus({ txId, txHash, description }: TransactionStat
     return (
       <Card className="p-4 bg-red-500/10 border-red-500/20">
         <div className="flex items-center gap-3">
-          <XCircle className="w-5 h-5 text-red-400" />
+          <XCircle className="size-5 text-red-400" />
           <div>
             <p className="font-medium">Transaction failed</p>
             <p className="text-sm text-red-400/70">{description}</p>
@@ -61,7 +61,7 @@ export function TransactionStatus({ txId, txHash, description }: TransactionStat
   return (
     <Card className="p-4 bg-green-500/10 border-green-500/20">
       <div className="flex items-center gap-3">
-        <CheckCircle className="w-5 h-5 text-green-400" />
+        <CheckCircle className="size-5 text-green-400" />
         <div className="flex-1">
           <p className="font-medium">{description}</p>
           <div className="flex items-center gap-2 mt-1">
@@ -78,7 +78,7 @@ export function TransactionStatus({ txId, txHash, description }: TransactionStat
               rel="noopener noreferrer"
               className="text-xs text-primary flex items-center gap-1 hover:underline"
             >
-              View on Etherscan <ExternalLink className="w-3 h-3" />
+              View on Etherscan <ExternalLink className="size-3" />
             </a>
           </div>
         </div>

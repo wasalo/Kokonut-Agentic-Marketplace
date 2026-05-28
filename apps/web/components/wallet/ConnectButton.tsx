@@ -35,7 +35,7 @@ export function ConnectButton() {
   // Prevent hydration mismatch by only rendering on client
   if (!mounted) {
     return (
-      <button
+      <button type="button"
         disabled
         className="px-4 py-2 text-sm font-medium text-default-500 bg-content2 rounded-lg opacity-50 cursor-not-allowed"
       >
@@ -47,7 +47,7 @@ export function ConnectButton() {
   // Error state
   if (hasError) {
     return (
-      <button
+      <button type="button"
         disabled
         className="px-4 py-2 text-sm font-medium text-danger bg-danger/10 rounded-lg opacity-50 cursor-not-allowed"
         title="Wallet connection failed. Please refresh the page."
@@ -74,7 +74,7 @@ export function ConnectButtonCompact() {
 
   if (!mounted) {
     return (
-      <button
+      <button type="button"
         disabled
         className="px-3 py-1.5 text-sm font-medium text-default-500 bg-content2 rounded-lg opacity-50 cursor-not-allowed"
       >

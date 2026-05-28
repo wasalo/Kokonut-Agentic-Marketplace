@@ -18,8 +18,6 @@ export interface ChainConfig {
   isProduction?: boolean;
 }
 
-export const LAUNCH_CHAIN_IDS = [1, 42220, 100, 42161, 137, 56, 4326, 11155111] as const;
-
 export const SUPPORTED_CHAINS: ChainConfig[] = [
   {
     id: 11155111,
@@ -266,24 +264,4 @@ export const PRODUCTION_CHAINS = SUPPORTED_CHAINS.filter(
 
 export function getChainById(chainId: number): ChainConfig | undefined {
   return SUPPORTED_CHAINS.find((c) => c.id === chainId);
-}
-
-export function getChainByCAIP(caip: string): ChainConfig | undefined {
-  return SUPPORTED_CHAINS.find((c) => c.caip === caip);
-}
-
-export function getChainColor(chainId: number): string {
-  return getChainById(chainId)?.color || '#627EEA';
-}
-
-export function getDefaultChain(): ChainConfig {
-  return SUPPORTED_CHAINS.find((c) => c.isDefault) || SUPPORTED_CHAINS[0];
-}
-
-export function isTestnet(chainId: number): boolean {
-  return getChainById(chainId)?.isTestnet ?? false;
-}
-
-export function getNetworkSlug(chainId: number): string {
-  return getChainById(chainId)?.shortName?.toLowerCase() || String(chainId);
 }

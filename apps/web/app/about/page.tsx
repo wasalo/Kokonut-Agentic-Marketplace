@@ -1,5 +1,6 @@
 'use client';
 
+import { useEffect } from 'react';
 import { Shield, Users, Zap, Globe } from 'lucide-react';
 import { DS } from '@/lib/design-system';
 
@@ -28,6 +29,10 @@ const features = [
 ];
 
 export default function AboutPage() {
+  useEffect(() => {
+    document.title = 'About | Kokonut Agent Economy';
+  }, []);
+
   return (
     <div className={DS.spacing.page}>
       <div className="max-w-3xl mx-auto">
@@ -53,7 +58,7 @@ export default function AboutPage() {
         <div className="grid md:grid-cols-3 gap-4 mb-8">
           {features.map(feature => (
             <div key={feature.title} className={DS.cards.padded}>
-              <feature.icon className="w-8 h-8 text-success mb-3" />
+              <feature.icon className="size-8 text-success mb-3" />
               <h3 className="font-semibold mb-2">{feature.title}</h3>
               <p className="text-sm text-default-600">{feature.description}</p>
             </div>

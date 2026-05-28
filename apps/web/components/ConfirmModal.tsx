@@ -30,11 +30,11 @@ export function ConfirmModal({
   const getIcon = () => {
     switch (variant) {
       case 'danger':
-        return <AlertCircle className="w-6 h-6 text-danger" />;
+        return <AlertCircle className="size-6 text-danger" />;
       case 'warning':
-        return <AlertTriangle className="w-6 h-6 text-warning" />;
+        return <AlertTriangle className="size-6 text-warning" />;
       default:
-        return <Info className="w-6 h-6 text-primary" />;
+        return <Info className="size-6 text-primary" />;
     }
   };
 
@@ -54,11 +54,11 @@ export function ConfirmModal({
     <div className="fixed inset-0 z-50 flex items-center justify-center">
       <div className="absolute inset-0 bg-background/80 backdrop-blur-sm" onClick={onCancel} />
       <div className="relative bg-background border border-divider rounded-xl shadow-xl max-w-md w-full mx-4 p-6">
-        <button
+        <button type="button"
           onClick={onCancel}
           className="absolute top-4 right-4 p-1 text-default-400 hover:text-foreground transition-colors"
         >
-          <X className="w-5 h-5" />
+          <X className="size-5" />
         </button>
 
         <div className="flex items-start gap-4 mb-4">
@@ -71,17 +71,17 @@ export function ConfirmModal({
         <p className="text-default-600 mb-6">{message}</p>
 
         <div className="flex gap-3 justify-end">
-          <button
+          <button type="button"
             onClick={onCancel}
             disabled={isPending}
             className="px-4 py-2 rounded-lg border border-divider hover:bg-content2 transition-colors disabled:opacity-50"
           >
             {cancelText}
           </button>
-          <button onClick={onConfirm} disabled={isPending} className={getConfirmButtonClass()}>
+          <button type="button" onClick={onConfirm} disabled={isPending} className={getConfirmButtonClass()}>
             {isPending ? (
               <span className="flex items-center gap-2">
-                <Loader2 className="w-4 h-4 animate-spin" />
+                <Loader2 className="size-4 animate-spin" />
                 Processing...
               </span>
             ) : (

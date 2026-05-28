@@ -1,24 +1,6 @@
 import { parseAbi } from "viem";
  
-export const AGENT_IDENTITY_REGISTRY_ABI = parseAbi([
-  'function register() external returns (uint256 agentId)',
-  'function register(string agentURI) external returns (uint256 agentId)',
-  'function registerWithMetadata(string agentURI, (string metadataKey, bytes metadataValue)[] metadata) external returns (uint256 agentId)',
-  'function getAgent(uint256 agentId) external view returns (address owner, string agentURI, address agentWallet, bool isActive)',
-  'function isAgent(address agentAddress) external view returns (bool)',
-  'function getCurrentAgentId() external view returns (uint256)',
-  'function resolveAgent(uint256 agentId) external view returns (uint256 agentId, string agentURI)',
-  'function setAgentURI(uint256 agentId, string newURI) external',
-  'function getMetadata(uint256 agentId, string metadataKey) external view returns (bytes)',
-  'function setMetadata(uint256 agentId, string metadataKey, bytes metadataValue) external',
-  'function getAgentWallet(uint256 agentId) external view returns (address)',
-  'function setAgentWallet(uint256 agentId, address newWallet, uint256 deadline, bytes signature) external',
-  'function unsetAgentWallet(uint256 agentId) external',
-  'function balanceOf(address owner) external view returns (uint256)',
-  'function ownerOf(uint256 tokenId) external view returns (address)',
-]);
- 
- 
+
 export const SERVICE_REGISTRY_ABI = parseAbi([
   'function createService(uint256 agentId, string name, string description, string metadataURI, uint256 price, address paymentToken) external payable returns (uint256 serviceId)',
   'function createService(uint256 agentId, string name, string description, string metadataURI, uint256 price, address paymentToken, address paymentAddress) external payable returns (uint256 serviceId)',
@@ -206,15 +188,6 @@ export const AGENT_SKILL_REGISTRY_ABI = parseAbi([
 ]);
 
 
-// ERC-8004 Reputation Registry ABI
-export const ERC8004_REPUTATION_ABI = parseAbi([
-  'function getAgentReputation(address agent) external view returns (int256 average, uint256 total, uint256 providers)',
-  'function getFeedbackCount(address agent) external view returns (uint256)',
-  'function getFeedbackDetails(uint256 feedbackId) external view returns ((address agent, uint256 taskId, int256 rating, string metadataURI, uint256 timestamp))',
-  'function submitFeedback(address agent, uint256 taskId, int256 rating, string metadataURI) external returns (uint256)',
-]);
-
-
 // Price Oracle ABI
 export const PRICE_ORACLE_ABI = parseAbi([
   'function getUsdPriceOfToken(address token) external view returns (int256)',
@@ -381,27 +354,6 @@ export const MILESTONE_ESCROW_ABI = parseAbi([
   'function upgradeTo(address newImplementation) external',
 ]);
 
-// MilestoneEscrow Events
-export const MILESTONE_ESCROW_EVENTS = parseAbi([
-  'event MilestoneEnabled(uint256 indexed jobId)',
-  'event MilestoneFunded(uint256 indexed jobId, address indexed funder, address token, uint256 amount)',
-  'event MilestoneAdded(uint256 indexed jobId, uint256 indexed milestoneIndex, string description, uint256 amount)',
-  'event MilestoneCompleted(uint256 indexed jobId, uint256 indexed milestoneIndex, bytes32 proofHash)',
-  'event MilestoneReleased(uint256 indexed jobId, uint256 indexed milestoneIndex, uint256 amount)',
-  'event MilestoneNotReleased(uint256 indexed jobId, uint256 indexed milestoneIndex, string reason)',
-  'event ArbiterRegistered(address indexed arbiter, address token, uint256 stake)',
-  'event ArbiterUnregistered(address indexed arbiter, address token, uint256 refundedStake)',
-  'event DisputeFlagged(uint256 indexed jobId, address indexed flagger, address token, uint256 fee)',
-  'event EvidenceSubmitted(uint256 indexed jobId, address indexed submitter, bytes32 evidenceHash)',
-  'event DisputeResolved(uint256 indexed jobId, bool releasedToProvider, address indexed arbiter, address token, uint256 arbiterFee)',
-  'event ArbiterSlashed(address indexed arbiter, uint256 slashedAmount, string reason)',
-  'event ArbiterAssigned(uint256 indexed jobId, address indexed arbiter)',
-  'event AgenticCommerceSet(address indexed oldAddress, address indexed newAddress)',
-  'event ArbiterFeeUpdated(address indexed token, uint256 newFee)',
-  'event ArbiterStakeUpdated(address indexed token, uint256 newStake)',
-  'event TokenSupportUpdated(address indexed token, bool supported)',
-]);
-
 // AdminRegistry - Bad Actor Blacklist
 // =============================================================================
 
@@ -437,14 +389,4 @@ export const ADMIN_REGISTRY_BLACKLIST_ABI = parseAbi([
   'function owner() external view returns (address)',
 
   'error NotSlashManager()',
-]);
-
-// AdminRegistry Events
-export const ADMIN_REGISTRY_EVENTS = parseAbi([
-  'event AgentBlacklisted(uint256 indexed agentId, address indexed by, string reason, uint256 activationAt)',
-  'event AgentUnblacklisted(uint256 indexed agentId, address indexed by)',
-  'event WalletBlacklisted(address indexed wallet, address indexed by, string reason, uint256 activationAt)',
-  'event WalletUnblacklisted(address indexed wallet, address indexed by)',
-  'event FeaturedAgentUpdated(uint256 indexed agentId, bool isFeatured)',
-  'event HalfLifeDaysUpdated(uint256 halfLifeDays)',
 ]);

@@ -66,7 +66,7 @@ export const AgentCard = memo(function AgentCard({
                 alt={name}
                 width={48}
                 height={48}
-                className="w-12 h-12 rounded-full object-cover bg-content2"
+                className="size-122 rounded-full object-cover bg-content2"
                 unoptimized
                 onError={e => {
                   e.currentTarget.style.display = 'none';
@@ -76,10 +76,10 @@ export const AgentCard = memo(function AgentCard({
               />
             ) : null}
             <div
-              className={`w-12 h-12 rounded-full bg-gradient-to-br from-[#009F4D] to-[#FFCD00] flex items-center justify-center text-white font-bold ${agentURI ? 'hidden' : ''}`}
+              className={`size-122 rounded-full bg-gradient-to-br from-[#009F4D] to-[#FFCD00] flex items-center justify-center text-white font-bold ${agentURI ? 'hidden' : ''}`}
               style={agentURI ? { display: 'flex' } : { display: 'none' }}
             >
-              <Shield className="w-6 h-6" />
+              <Shield className="size-6" />
             </div>
           </div>
           <div className="flex-1 min-w-0">
@@ -101,7 +101,7 @@ export const AgentCard = memo(function AgentCard({
                   />
                   {followsYou && (
                     <span className="inline-flex items-center gap-0.5 text-[10px] px-1.5 py-0.5 bg-primary/10 text-primary rounded-full">
-                      <UserCheck className="w-2.5 h-2.5" />
+                      <UserCheck className="size-2.5" />
                       Follows you
                     </span>
                   )}
@@ -110,7 +110,7 @@ export const AgentCard = memo(function AgentCard({
               <div className="flex items-center gap-2 shrink-0">
                 {rating > 0 && (
                   <div className="flex items-center gap-1 px-2 py-1 bg-warning-100 text-warning-700 rounded-full text-xs font-medium">
-                    <Star className="w-3 h-3 fill-current" />
+                    <Star className="size-3 fill-current" />
                     {rating.toFixed(1)}
                   </div>
                 )}
@@ -148,12 +148,12 @@ export const AgentCard = memo(function AgentCard({
           <div className="flex items-center justify-between">
             <span className="inline-flex items-center gap-1 text-sm text-success">
               View Details
-              <ExternalLink className="w-4 h-4" />
+              <ExternalLink className="size-4" />
             </span>
             <div className="flex items-center gap-3 text-tiny text-default-400">
               {followersCount !== undefined && (
                 <span className="flex items-center gap-1">
-                  <Users className="w-3 h-3" />
+                  <Users className="size-3" />
                   {followersCount}
                 </span>
               )}

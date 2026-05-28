@@ -97,7 +97,7 @@ export function EmailPreferencesForm({ onSuccess }: EmailPreferencesFormProps) {
     return (
       <Card className="border border-divider p-6">
         <div className="text-center text-default-500">
-          <Mail className="w-8 h-8 mx-auto mb-2 opacity-50" />
+          <Mail className="size-8 mx-auto mb-2 opacity-50" />
           <p>Connect your wallet to manage email preferences</p>
         </div>
       </Card>
@@ -107,14 +107,14 @@ export function EmailPreferencesForm({ onSuccess }: EmailPreferencesFormProps) {
   return (
     <Card className="border border-divider p-6">
       <h2 className="text-lg font-semibold mb-4 flex items-center gap-2">
-        <Mail className="w-5 h-5 text-primary" />
+        <Mail className="size-5 text-primary" />
         Email Preferences
       </h2>
 
       <form onSubmit={handleSave} className="space-y-6">
         <div className="flex items-center justify-between p-3 bg-content2 rounded-lg">
           <div className="flex items-center gap-3">
-            <Bell className="w-5 h-5 text-default-500" />
+            <Bell className="size-5 text-default-500" />
             <div>
               <p className="font-medium">Enable Email Notifications</p>
               <p className="text-xs text-default-500">Receive updates via email</p>
@@ -125,6 +125,7 @@ export function EmailPreferencesForm({ onSuccess }: EmailPreferencesFormProps) {
               type="checkbox"
               checked={enabled}
               onChange={e => setEnabled(e.target.checked)}
+              aria-label="Enable email notifications"
               className="sr-only peer"
             />
             <div className="w-11 h-6 bg-default-200 rounded-full peer peer-checked:bg-primary transition-colors after:content-[''] after:absolute after:top-[2px] after:left-[2px] after:bg-white after:rounded-full after:h-5 after:w-5 after:transition-all peer-checked:after:translate-x-full" />
@@ -134,8 +135,9 @@ export function EmailPreferencesForm({ onSuccess }: EmailPreferencesFormProps) {
         {enabled && (
           <>
             <div>
-              <label className="text-sm font-medium mb-2 block">Email Address</label>
+              <label htmlFor="email-address" className="text-sm font-medium mb-2 block">Email Address</label>
               <input
+                id="email-address"
                 type="email"
                 placeholder="you@example.com"
                 value={email}
@@ -145,15 +147,14 @@ export function EmailPreferencesForm({ onSuccess }: EmailPreferencesFormProps) {
             </div>
 
             <div>
-              <label className="text-sm font-medium mb-2 flex items-center gap-2">
-                <Clock className="w-4 h-4" />
+              <label htmlFor="notification-frequency" className="text-sm font-medium mb-2 flex items-center gap-2">
+                <Clock className="size-4" />
                 Notification Frequency
               </label>
-              <div className="grid grid-cols-3 gap-2">
+              <div id="notification-frequency" className="grid grid-cols-3 gap-2">
                 {(['instant', 'daily', 'weekly'] as const).map(freq => (
-                  <button
+                  <button type="button"
                     key={freq}
-                    type="button"
                     onClick={() => setFrequency(freq)}
                     className={`px-3 py-2 rounded-lg text-sm font-medium transition-colors ${
                       frequency === freq
@@ -168,8 +169,8 @@ export function EmailPreferencesForm({ onSuccess }: EmailPreferencesFormProps) {
             </div>
 
             <div>
-              <label className="text-sm font-medium mb-3">Notification Types</label>
-              <div className="space-y-2">
+              <span className="text-sm font-medium mb-3 block">Notification Types</span>
+              <div className="space-y-2" role="group" aria-label="Notification types">
                 {Object.entries(types).map(([key, value]) => (
                   <div
                     key={key}
@@ -181,6 +182,7 @@ export function EmailPreferencesForm({ onSuccess }: EmailPreferencesFormProps) {
                         type="checkbox"
                         checked={value}
                         onChange={() => handleToggleType(key as keyof typeof types)}
+                        aria-label={`Toggle ${key.replace('_', ' ')} notifications`}
                         className="sr-only peer"
                       />
                       <div className="w-9 h-5 bg-default-200 rounded-full peer peer-checked:bg-primary transition-colors after:content-[''] after:absolute after:top-[2px] after:left-[2px] after:bg-white after:rounded-full after:h-4 after:w-4 after:transition-all peer-checked:after:translate-x-full" />
@@ -194,26 +196,25 @@ export function EmailPreferencesForm({ onSuccess }: EmailPreferencesFormProps) {
 
         {error && (
           <div className="flex items-center gap-2 p-3 bg-danger/10 text-danger rounded-lg text-sm">
-            <AlertCircle className="w-4 h-4 flex-shrink-0" />
+            <AlertCircle className="size-4 flex-shrink-0" />
             {error}
           </div>
         )}
 
         {saveSuccess && (
           <div className="flex items-center gap-2 p-3 bg-success/10 text-success rounded-lg text-sm">
-            <CheckCircle2 className="w-4 h-4 flex-shrink-0" />
+            <CheckCircle2 className="size-4 flex-shrink-0" />
             Preferences saved successfully!
           </div>
         )}
 
-        <button
-          type="submit"
+        <button type="submit"
           disabled={isSaving}
           className="w-full flex items-center justify-center gap-2 px-4 py-2 bg-primary text-white rounded-lg font-medium hover:opacity-90 disabled:opacity-50"
         >
           {isSaving ? (
             <>
-              <Loader2 className="w-4 h-4 animate-spin" />
+              <Loader2 className="size-4 animate-spin" />
               Saving...
             </>
           ) : (

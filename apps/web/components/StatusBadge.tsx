@@ -1,3 +1,4 @@
+// fast-refresh-safe
 'use client';
 
 import React, { memo } from 'react';
@@ -188,17 +189,17 @@ const sizeConfig = {
   sm: {
     padding: 'px-2 py-0.5',
     text: 'text-xs',
-    icon: 'w-3 h-3',
+    icon: 'size-3',
   },
   md: {
     padding: 'px-2.5 py-1',
     text: 'text-sm',
-    icon: 'w-4 h-4',
+    icon: 'size-4',
   },
   lg: {
     padding: 'px-3 py-1.5',
     text: 'text-base',
-    icon: 'w-5 h-5',
+    icon: 'size-5',
   },
 };
 

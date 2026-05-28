@@ -7,7 +7,7 @@ export default function Loading(): JSX.Element {
           <div className="h-8 w-8 rounded-full bg-primary animate-bounce" />
         </div>
       </div>
-      <p className="mt-6 text-muted-foreground">Loading...</p>
+      <p className="mt-6 text-muted-foreground">Loading…</p>
     </div>
   );
 }

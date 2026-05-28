@@ -32,7 +32,7 @@ export function EvaluatorSection(): JSX.Element {
     return (
       <DashboardCard title="Evaluator Status" icon={<ShieldCheck />}>
         <div className="flex justify-center py-4">
-          <Loader2 className="w-6 h-6 animate-spin text-default-400" />
+          <Loader2 className="size-6 animate-spin text-default-400" />
         </div>
       </DashboardCard>
     );
@@ -60,7 +60,7 @@ export function EvaluatorSection(): JSX.Element {
             isLoading={isRegisterPending}
             onClick={registerAsEvaluator}
           >
-            {isRegisterPending ? 'Registering...' : 'Register as Evaluator (0.01 ETH)'}
+            {isRegisterPending ? 'Registering…' : 'Register as Evaluator (0.01 ETH)'}
           </Button>
         )
       }
@@ -72,11 +72,11 @@ export function EvaluatorSection(): JSX.Element {
       {isEvaluator ? (
         <div className="space-y-2 text-sm">
           <div className="flex items-center gap-2">
-            <ShieldCheck className="w-4 h-4 text-success" />
+            <ShieldCheck className="size-4 text-success" />
             <span className="font-medium text-success">You are a registered evaluator</span>
           </div>
           <p className="text-default-500 text-xs">
-            Total evaluators: {isPoolLoading ? 'Loading...' : poolSize}
+            Total evaluators: {isPoolLoading ? 'Loading…' : poolSize}
           </p>
         </div>
       ) : (
