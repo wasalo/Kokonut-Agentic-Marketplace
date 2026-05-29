@@ -56,7 +56,7 @@ test.describe('User Flows', () => {
   test('navigate to skills page', async ({ page }) => {
     await page.goto('/marketplace/skills', { waitUntil: 'domcontentloaded' });
 
-    await expect(page.getByRole('heading', { name: /Browse Skills/i })).toBeVisible();
+    await expect(page.getByRole('heading', { name: /Skill Explorer/i })).toBeVisible();
   });
 });
 

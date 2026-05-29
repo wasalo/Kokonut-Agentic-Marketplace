@@ -17,7 +17,6 @@ import dynamicImport from 'next/dynamic';
 import { useUserJobs } from '@/lib/hooks/useJobs';
 import { JobStatus } from '@/lib/types/contracts';
 import { DS } from '@/lib/design-system';
-import { StatusBadge, getJobStatusBadgeType } from '@/components/StatusBadge';
 import { ActivityFeed } from '@/components/ActivityFeed';
 import { DashboardCard } from '@/components/ui/DashboardCard';
 

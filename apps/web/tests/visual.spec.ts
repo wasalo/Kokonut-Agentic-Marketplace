@@ -23,7 +23,7 @@ test.describe('Visual Regression', () => {
     await page.goto(`${BASE_URL}/jobs`);
     await page.waitForLoadState('domcontentloaded');
 
-    await expect(page.getByRole('heading', { name: /Jobs/i })).toBeVisible({ timeout: 15000 });
+    await expect(page.getByRole('heading', { name: /Work Marketplace/i })).toBeVisible({ timeout: 15000 });
   });
 
   test('dashboard page renders correctly', async ({ page }) => {

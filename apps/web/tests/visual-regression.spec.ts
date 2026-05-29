@@ -22,7 +22,7 @@ test.describe('Visual Regression Tests', () => {
 
   test('jobs page loads', async ({ page }) => {
     await page.goto('/jobs', { waitUntil: 'domcontentloaded' });
-    await expect(page.getByRole('heading', { name: /Jobs Directory/i })).toBeVisible({ timeout: 15000 });
+    await expect(page.getByRole('heading', { name: /Work Marketplace/i })).toBeVisible({ timeout: 15000 });
 
     await page.screenshot({ path: 'tests/snapshots/jobs.png', fullPage: true });
   });
@@ -81,7 +81,7 @@ test.describe('Component Visual Tests', () => {
 
   test('job card component', async ({ page }) => {
     await page.goto('/jobs', { waitUntil: 'domcontentloaded' });
-    await expect(page.getByRole('heading', { name: /Jobs Directory/i })).toBeVisible({ timeout: 15000 });
+    await expect(page.getByRole('heading', { name: /Work Marketplace/i })).toBeVisible({ timeout: 15000 });
 
     const jobCard = page.locator('[class*="card"]').first();
     if (await jobCard.isVisible()) {
