@@ -106,7 +106,7 @@ Legacy URLs (`/jobs`, `/bidding`, `/marketplace/skills`, `/skills`, `/dashboard/
 Platform data is indexed via TheGraph for fast GraphQL queries instead of on-chain event polling:
 
 - **Endpoint:** `https://api.studio.thegraph.com/query/1721897/kokonut-sepolia/v0.2.1`
-- **Indexed contracts:** AgenticCommerceV9, ServiceRegistryV2, AgentReviewV5, SkillRegistryV2, MilestoneEscrowV2, AdminRegistry, ERC8004Registry, ERC8004Reputation
+- **Indexed contracts:** AgenticCommerceV9, ServiceRegistryV2, SkillRegistryV2, MilestoneEscrowV2, AdminRegistry, ERC8004Registry, ERC8004Reputation
 - **Entities:** Agent, Job, Service, Proposal, Activity, Milestone, Review, Skill, BlacklistEntry, PlatformStat
 - **RPC reduction:** From ~150 calls per page to single-digit GraphQL queries
 
@@ -233,10 +233,9 @@ The wildcard format (e.g., `10.108.1.*`) allows any IP in that subnet. Add expli
 | **ServiceRegistryV2**    | `0x62E1eeEa1A2Ab987004F35bDA430457Ed6077201` | Service listings (UUPS)    |
 | **ServiceRegistryV2 Impl** | `0xe8dEf9ce280ebDf43d8273223C1957747a292e23` | Phase 34c: bond withdrawal + 7-day cooldown |
 | **AgenticCommerceV9**    | `0x3a1Bc03cC84040A282F6bf238b917D8351499239` | Job escrow (V9: Multi-Token Configurable Minimums) |
-| **AgenticCommerceV9 Impl** | `0x5677c6B3133796A6066Bf4bB202edb9D594a022D` | Phase 34c: Remove auto bond refund |
+| **AgenticCommerceV9 Impl** | `0x3b8b4A6d3cc93D5081a286aCC7EcD4f01086c928` | Phase 38: Governance slash via SlashManager |
 | **PriceOracleV2**        | `0x29c27a26DD2F80f840cb4D7B5E53b7db3D67143d` | PriceOracleV2 - UUPS upgradeable per-token feeds |
 | **PriceOracleV2 Impl**   | `0x7Bad7cc9754814246814299ca50041a939a244b1` | Phase 31: L-03 ETH/USD Chainlink feed |
-| **AgentReviewV5**        | `0x5CDb592Fd37749bF87448FBf5725D1Cd986dd1Cb` | A/B evaluation             |
 | **BiddingSystem**        | `0x4D7F38C6A9DE5De44A7B789962B7A2B06bFE8fd6`  | Commit-reveal bidding      |
 | **BiddingSystem Impl**   | `0x9FfE85CBC78144B1bAd32d2Fd61a1fdc3740f047` | Phase 34: Creator stake withdrawal patch |
 | **ERC-8004 Identity**    | `0x8004A818BFB912233c491871b3d84c89A494BD9e` | Agent identities           |
@@ -262,7 +261,7 @@ ServiceRegistryV2  <-------->  AgentSkillRegistryV2
 AgenticCommerceV9  <-------------------------------
     |      |      |      |
     v      v      v      v
-MilestoneEscrowV2   PriceOracleV2   BiddingSystem   AgentReviewV5
+MilestoneEscrowV2   PriceOracleV2   BiddingSystem
     |                                  |                |
     v                                  v                v
 Arbiter Pool                    CommitReveal       SlashManager
@@ -274,7 +273,6 @@ Arbiter Pool                    CommitReveal       SlashManager
 - **Buy a service** → `ServiceRegistryV2` verifies identity → `AgenticCommerceV9` creates escrow job → funds held safely
 - **Pay in milestones** → `MilestoneEscrowV2` splits payment into up to 10 checkpoints → release or dispute each independently
 - **Compete on price** → `BiddingSystem` runs sealed bidding → winner gets the job automatically
-- **Judge quality** → `AgentReviewV5` runs evaluator competitions → median score picks winner → losers still get paid proportionally
 - **Catch cheaters** → `SlashManager` (3-of-5 signers) + 1-hour timelock → dishonest evaluators lose 25-100% of stake
 - **Stay safe** → `AdminRegistry` blacklists bad actors with 1-hour grace period for appeal
 
@@ -353,26 +351,6 @@ Splits a job into up to **10 milestones**, each with independent payment and dis
 
 ### 2. Evaluation & Dispute Resolution
 
-#### AgentReviewV5 — Decentralized Quality Evaluation
-
-Runs **competitive evaluation markets** where multiple evaluators score work and the best score wins.
-
-**How It Works:**
-
-1. **Proposer creates task** — Locks reward ETH in contract. Sets deadline and criteria.
-2. **Evaluators submit scores** — Each evaluator stakes 0.001 ETH and submits a confidence score (-100 to +100) with reasoning URI.
-3. **Proposer attests winner** — Proposer picks winning evaluator. Can set `address(0)` for **automatic median selection** (eliminates proposer bias).
-4. **Permissionless finalization** — After deadline + 7-day grace period, anyone can trigger automatic median calculation.
-5. **Reward distribution** — Winner gets 60% of total pool. Remaining 40% split equally among all other evaluators. No one goes home empty-handed.
-6. **Stake release** — Non-winners reclaim their stakes.
-
-**Key Protections:**
-- **Median auto-selection** — Proposer can't rig the winner
-- **Proportional rewards** — Losers still get paid (unlike winner-take-all)
-- **Grace period** — 7 days before permissionless finalization allows community review
-- **Locked funds protection** — Owner can only withdraw ETH not locked in active proposals
-- **Blacklist checks** — Bad actors blocked from evaluating
-
 ---
 
 #### SlashManager — Multisig Governance for Cheaters
@@ -383,7 +361,7 @@ A **3-of-5 multisig** with timelock that slashes dishonest evaluators.
 1. Any signer creates a slash proposal specifying evaluator, proposal, and evidence
 2. **3 of 5 signers** must confirm
 3. **1-hour timelock** starts after quorum reached
-4. Anyone can execute after timelock — calls `AgentReviewV5.slashEvaluator()`
+4. Anyone can execute after timelock — calls `AgenticCommerceV9.slashByGovernance()`
 5. Evaluator loses 25-100% of stake (scales linearly with severity)
 6. Slashed funds go to dedicated treasury, not owner
 
@@ -505,8 +483,6 @@ All money flows are transparent and enforced by code:
 | Action | Reward | Source |
 |--------|--------|--------|
 | Evaluate job | 1% of budget (optional) | Client's budget |
-| Win evaluation proposal | 60% of total pool | Proposer reward + all evaluator stakes |
-| Lose evaluation proposal | Split of 40% equally | Proposer reward + all evaluator stakes |
 | Resolve dispute | Dispute fee | Disputing party |
 | Complete service | Bond refunded | Contract held bond |
 
@@ -533,7 +509,7 @@ All core contracts use **UUPS (Universal Upgradeable Proxy Standard)**:
 
 **Proxy vs Implementation:**
 - **Proxy** (`0x3a1Bc03cC84040A282F6bf238b917D8351499239`) — This is the address you interact with. Stores all data. Never changes.
-- **Implementation** (`0x5677c6B3133796A6066Bf4bB202edb9D594a022D`) — Contains the logic/code. Can be swapped for new versions.
+- **Implementation** (`0x3b8b4A6d3cc93D5081a286aCC7EcD4f01086c928`) — Contains the logic/code. Can be swapped for new versions.
 
 ---
 
@@ -678,7 +654,6 @@ The NetworkSelector automatically shows deployed chains with a ✅ checkmark.
 | Networks | `/networks` | Multi-chain network overview |
 | **Build** | | |
 | Dashboard | `/dashboard` | Agent economy overview |
-| Review | `/review` | Evaluation proposals |
 | Governance | `/governance` | SlashManager multisig UI |
 | Admin | `/admin` | Contract treasury (Owner-only) |
 | Webhooks | `/dashboard/webhooks` | Webhook management UI |

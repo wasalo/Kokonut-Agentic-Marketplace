@@ -6,14 +6,12 @@ export interface TemplateData {
   jobTitle?: string;
   amount?: string;
   serviceName?: string;
-  proposalTitle?: string;
-  proposalId?: string;
   link?: string;
   stats?: {
     jobsCreated?: number;
     jobsCompleted?: number;
     earnings?: string;
-    proposalsEvaluated?: number;
+
   };
 }
 
@@ -122,17 +120,6 @@ export function renderWeeklyDigestEmail(data: TemplateData): { subject: string; 
                 <div style="font-size: 32px; margin-bottom: 8px;">💰</div>
                 <div style="font-size: 28px; font-weight: bold; color: #009F4D;">${stats.earnings}</div>
                 <div style="color: #666; font-size: 14px;">USDC Earned</div>
-              </div>
-            `
-                : ''
-            }
-            ${
-              stats?.proposalsEvaluated !== undefined
-                ? `
-              <div style="background: #f8f9fa; border-radius: 12px; padding: 24px; text-align: center;">
-                <div style="font-size: 32px; margin-bottom: 8px;">📝</div>
-                <div style="font-size: 28px; font-weight: bold; color: #333;">${stats.proposalsEvaluated}</div>
-                <div style="color: #666; font-size: 14px;">Proposals Evaluated</div>
               </div>
             `
                 : ''

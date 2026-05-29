@@ -106,6 +106,8 @@ contract AgenticCommerceV9 is
     error InvalidJob();
     error WrongStatus();
     error Unauthorized();
+    error OnlySlashManager();
+    error SlashManagerNotSet();
     error ZeroAddress();
     error ExpiryTooShort();
     error ExpiryTooLong();
@@ -1145,6 +1147,49 @@ contract AgenticCommerceV9 is
     }
 
     /**
+     * @dev Set the SlashManager contract address for governance-based slashing.
+     * @param _slashManager Address of the SlashManager contract.
+     */
+    function setSlashManager(address _slashManager) external onlyOwner {
+        if (_slashManager == address(0)) revert ZeroAddress();
+        address old = slashManager;
+        slashManager = _slashManager;
+        emit SlashManagerSet(old, _slashManager);
+    }
+
+    /**
+     * @dev Governance-based evaluator slashing, callable only by SlashManager multisig.
+     * Performs the same action as slashEvaluatorStake but gated by SlashManager instead of owner.
+     * @param evaluator Address of the evaluator to slash.
+     * @param reason Reason for slashing.
+     */
+    function slashByGovernance(address evaluator, string calldata reason) external nonReentrant {
+        if (msg.sender != slashManager) revert OnlySlashManager();
+        if (!isRegisteredEvaluator[evaluator]) revert EvaluatorNotRegistered();
+
+        uint256 stake = evaluatorStakes[evaluator];
+        if (stake == 0) revert InsufficientEvaluatorStake();
+
+        for (uint256 i = 0; i < evaluatorPool.length; i++) {
+            if (evaluatorPool[i] == evaluator) {
+                evaluatorPool[i] = evaluatorPool[evaluatorPool.length - 1];
+                evaluatorPool.pop();
+                break;
+            }
+        }
+
+        isRegisteredEvaluator[evaluator] = false;
+        evaluatorStakes[evaluator] = 0;
+
+        if (platformTreasury != address(0)) {
+            (bool success, ) = payable(platformTreasury).call{value: stake}("");
+            if (!success) revert StakeTransferFailed();
+        }
+
+        emit EvaluatorSlashed(evaluator, stake, reason);
+    }
+
+    /**
      * @dev Permissionless cleanup of stale evaluators (blacklisted or unregistered).
      * Anyone can call to remove stale entries and keep the pool healthy.
      * @param maxIterations Maximum number of iterations to prevent OOG (0 = no limit).
@@ -1423,6 +1468,7 @@ contract AgenticCommerceV9 is
     event EvaluatorSlashedForInactivity(uint256 indexed jobId, address indexed evaluator, uint256 slashAmount);
     event BlacklistCheckFailed(address indexed adminRegistry);
     event HookFailed(uint256 indexed jobId, bytes4 indexed selector);
+    event SlashManagerSet(address indexed oldManager, address indexed newManager);
 
     // C-01: Toggle — when true, blacklist check failures revert instead of failing open
 
@@ -1432,7 +1478,10 @@ contract AgenticCommerceV9 is
     address public serviceRegistry;
     uint256 public minEvaluatorStake; // Configurable per chain; appended for upgrade safety
     mapping(address => bool) public authorizedJobCreators;
-    
+
+    // Phase 38: Governance slashing via SlashManager multisig
+    address public slashManager;
+
     /// @dev Storage gap for upgrade safety
-    uint256[46] private __gap;
+    uint256[45] private __gap;
 }

@@ -6,7 +6,7 @@ import "@openzeppelin/contracts-upgradeable/proxy/utils/UUPSUpgradeable.sol";
 import "@openzeppelin/contracts-upgradeable/utils/ContextUpgradeable.sol";
 import "@openzeppelin/contracts-upgradeable/utils/PausableUpgradeable.sol";
 import "@openzeppelin/contracts/utils/ReentrancyGuard.sol";
-import {AdminRegistry} from "./AdminRegistry.sol";
+import {AdminRegistry} from "../shared/AdminRegistry.sol";
 
 /**
  * @title IAgentReviewV5

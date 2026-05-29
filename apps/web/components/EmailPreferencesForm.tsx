@@ -23,7 +23,6 @@ export function EmailPreferencesForm({ onSuccess }: EmailPreferencesFormProps) {
   const [types, setTypes] = useState({
     payment: true,
     job: true,
-    proposal: true,
     weekly_digest: true,
     marketing: false,
   });

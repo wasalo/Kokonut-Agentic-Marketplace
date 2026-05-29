@@ -25,7 +25,6 @@ function USDCBalance() {
 
 const primaryNavLinks = [
   { name: 'Marketplace Hub', href: '/marketplace', description: 'Services, jobs, bidding' },
-  { name: 'Review', href: '/review', description: 'Evaluation proposals' },
 ];
 
 export function NavbarComponent(): JSX.Element {

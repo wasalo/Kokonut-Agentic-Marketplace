@@ -7,7 +7,6 @@ import {
   validateAgentRegistration,
   validateServiceParams,
   validateJobParams,
-  validateProposalParams,
   validateFeedbackParams,
   mapContractError,
   safeContractCall,
@@ -106,26 +105,6 @@ describe('SDK Validation', () => {
       const result = validateJobParams({
         provider: '0x1234567890123456789012345678901234567890',
         description: '',
-      });
-      expect(result.success).toBe(false);
-    });
-  });
-
-  describe('validateProposalParams', () => {
-    it('should accept valid params', () => {
-      const result = validateProposalParams({
-        title: 'Test Proposal',
-        description: 'A test proposal',
-        reward: 100000000000000000n,
-        deadline: BigInt(Math.floor(Date.now() / 1000) + 86400),
-      });
-      expect(result.success).toBe(true);
-    });
-
-    it('should reject missing title', () => {
-      const result = validateProposalParams({
-        description: 'Desc',
-        reward: 100000000000000000n,
       });
       expect(result.success).toBe(false);
     });

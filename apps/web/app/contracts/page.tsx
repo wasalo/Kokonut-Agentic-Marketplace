@@ -27,12 +27,6 @@ const contracts = [
     abi: 'AgenticCommerce.sol',
   },
   {
-    name: 'AgentReviewV5',
-    address: CONTRACT_ADDRESSES.sepolia.agentReview,
-    description: 'A/B evaluation with staking',
-    abi: 'AgentReviewV5.sol',
-  },
-  {
     name: 'PriceOracle',
     address: CONTRACT_ADDRESSES.sepolia.priceOracle,
     description: 'Price feeds (Chainlink on Sepolia)',

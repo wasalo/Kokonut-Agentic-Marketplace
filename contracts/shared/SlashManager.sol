@@ -5,7 +5,7 @@ import {ReentrancyGuard} from "@openzeppelin/contracts/utils/ReentrancyGuard.sol
 import {Ownable2StepUpgradeable} from "@openzeppelin/contracts-upgradeable/access/Ownable2StepUpgradeable.sol";
 import {UUPSUpgradeable} from "@openzeppelin/contracts-upgradeable/proxy/utils/UUPSUpgradeable.sol";
 import {PausableUpgradeable} from "@openzeppelin/contracts-upgradeable/utils/PausableUpgradeable.sol";
-import {IAgentReviewV5} from "./AgentReviewV5.sol";
+import {IAgenticCommerceV9_Slash} from "../interfaces/IAgenticCommerceV9_Slash.sol";
 
     /**
      * @title SlashManager
@@ -21,10 +21,10 @@ import {IAgentReviewV5} from "./AgentReviewV5.sol";
      * - UUPS Upgradeable for future fixes
      * - Pausable for emergency stops
      * 
-     * M1 Fix: Pass configurable slash basis points to AgentReviewV5
+     * M1 Fix: Pass configurable slash basis points to AgenticCommerce
      */
 contract SlashManager is ReentrancyGuard, Ownable2StepUpgradeable, UUPSUpgradeable, PausableUpgradeable {
-    error SlashManager__AgentReview_not_set();
+    error SlashManager__Commerce_not_set();
     error SlashManager__Already_a_signer();
     error SlashManager__Already_confirmed();
     error SlashManager__Already_executed();
@@ -33,7 +33,7 @@ contract SlashManager is ReentrancyGuard, Ownable2StepUpgradeable, UUPSUpgradeab
     error SlashManager__Duplicate_signer();
     error SlashManager__Empty_reason();
     error SlashManager__Max_signers_reached();
-    error SlashManager__Not_AgentReview();
+    error SlashManager__Not_commerce();
     error SlashManager__Not_a_signer();
     error SlashManager__Not_enough_confirmations();
     error SlashManager__Not_enough_signers();
@@ -92,8 +92,8 @@ contract SlashManager is ReentrancyGuard, Ownable2StepUpgradeable, UUPSUpgradeab
     uint256 public constant MIN_SLASH_BP = 2500;      // 25%
     uint256 public constant FEE_DENOMINATOR = 10000;  // 100%
 
-    // AgentReview contract
-    address public agentReview;
+    // AgenticCommerce contract
+    address public commerce;
 
     // Events
     event SignerAdded(address indexed signer);
@@ -108,7 +108,7 @@ contract SlashManager is ReentrancyGuard, Ownable2StepUpgradeable, UUPSUpgradeab
     event ProposalConfirmed(bytes32 indexed proposalHash, address indexed signer);
     event ProposalExecuted(bytes32 indexed proposalHash, address indexed evaluator, uint256 amount);
     event ProposalCancelled(bytes32 indexed proposalHash, string reason);
-    event AgentReviewSet(address indexed agentReview);
+    event CommerceSet(address indexed commerce);
     // Note: Paused and Unpaused events are inherited from PausableUpgradeable
 
     /// @custom:oz-upgrades-unsafe-allow constructor
@@ -151,13 +151,13 @@ contract SlashManager is ReentrancyGuard, Ownable2StepUpgradeable, UUPSUpgradeab
     }
 
     /**
-     * @dev Set the AgentReview contract address
-     * @param _agentReview AgentReview contract address
+     * @dev Set the AgenticCommerce contract address
+     * @param _commerce AgenticCommerce contract address
      */
-    function setAgentReview(address _agentReview) external onlyOwner {
-        if (!(_agentReview != address(0))) revert SlashManager__Zero_address();
-        agentReview = _agentReview;
-        emit AgentReviewSet(_agentReview);
+    function setCommerce(address _commerce) external onlyOwner {
+        if (!(_commerce != address(0))) revert SlashManager__Zero_address();
+        commerce = _commerce;
+        emit CommerceSet(_commerce);
     }
 
     /**
@@ -178,7 +178,7 @@ contract SlashManager is ReentrancyGuard, Ownable2StepUpgradeable, UUPSUpgradeab
         if (!(amount > 0)) revert SlashManager__Zero_amount();
         if (!(amount <= MAX_SLASH_AMOUNT)) revert SlashManager__Amount_too_high();
         if (!(bytes(reason).length > 0)) revert SlashManager__Empty_reason();
-        if (!(agentReview != address(0))) revert SlashManager__AgentReview_not_set();
+        if (!(commerce != address(0))) revert SlashManager__Commerce_not_set();
 
         // L6 Fix: Use nonce instead of timestamp for uniqueness
         proposalHash = keccak256(abi.encode(
@@ -229,8 +229,8 @@ contract SlashManager is ReentrancyGuard, Ownable2StepUpgradeable, UUPSUpgradeab
     }
 
     /**
-     * @dev Execute a slash (calls AgentReview to perform actual slashing)
-     * M1 Fix: Now passes slashBP to AgentReviewV5 for configurable slash percentage
+     * @dev Execute a slash (calls AgenticCommerce to perform actual slashing)
+     * M1 Fix: Now passes slashBP to AgenticCommerce for configurable slash percentage
      */
     function executeSlash(bytes32 proposalHash) external nonReentrant whenNotPaused {
         SlashProposal storage proposal = proposals[proposalHash];
@@ -241,39 +241,25 @@ contract SlashManager is ReentrancyGuard, Ownable2StepUpgradeable, UUPSUpgradeab
 
         proposal.executed = true;
 
-        // M1 Fix: Calculate slash BP from amount vs max, default to 50%
-        uint256 slashBP = DEFAULT_SLASH_BP;
-        if (proposal.amount > 0 && proposal.amount <= MAX_SLASH_AMOUNT) {
-            // Scale slash BP based on proposal amount (higher amount = higher slash %)
-            slashBP = (proposal.amount * FEE_DENOMINATOR) / MAX_SLASH_AMOUNT;
-            if (slashBP < MIN_SLASH_BP) slashBP = MIN_SLASH_BP;
-        }
-
-        // Call AgentReview to perform the slash with configurable BP
-        IAgentReviewV5(agentReview).slashEvaluator(
+        // Call AgenticCommerce to perform the slash
+        IAgenticCommerceV9_Slash(commerce).slashByGovernance(
             proposal.evaluator,
-            proposal.proposalId,
-            slashBP,
             proposal.reason
         );
 
-        // M2 Fix: Clear the direct lookup
+        // Clear the direct lookup
         activeSlashByEvaluator[proposal.evaluator][proposal.proposalId] = bytes32(0);
 
         emit ProposalExecuted(proposalHash, proposal.evaluator, proposal.amount);
     }
 
     /**
-     * @dev Verify slash (called by AgentReview)
-     * M2 Fix: O(1) lookup instead of O(n) iteration
+     * @dev Check if an evaluator has an active slash proposal
      */
-    function verifySlash(
+    function hasActiveSlash(
         address evaluator,
         uint256 targetProposalId
     ) external view returns (bool) {
-        if (!(msg.sender == agentReview)) revert SlashManager__Not_AgentReview();
-
-        // M2 Fix: Direct lookup
         bytes32 proposalHash = activeSlashByEvaluator[evaluator][targetProposalId];
         
         if (proposalHash != bytes32(0)) {

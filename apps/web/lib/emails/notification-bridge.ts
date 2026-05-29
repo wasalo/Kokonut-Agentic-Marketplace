@@ -5,7 +5,7 @@ import type { EmailTemplateType } from '@/lib/emails/types';
 
 export interface NotificationEmailData {
   address: string;
-  type: 'payment' | 'job' | 'service' | 'proposal' | 'system';
+  type: 'payment' | 'job' | 'service' | 'system';
   title: string;
   message: string;
   link?: string;
@@ -23,9 +23,7 @@ const NOTIFICATION_TO_EMAIL_TEMPLATE: Record<string, EmailTemplateType> = {
   'service.created': 'job_created',
   'service.updated': 'job_created',
   'service.deactivated': 'job_created',
-  'proposal.created': 'proposal_created',
-  'proposal.evaluation_submitted': 'proposal_created',
-  'proposal.decided': 'proposal_created',
+
 };
 
 export async function sendNotificationEmail(data: NotificationEmailData): Promise<boolean> {

@@ -11,7 +11,7 @@ const preferencesSchema = z.object({
     .object({
       payment: z.boolean().optional(),
       job: z.boolean().optional(),
-      proposal: z.boolean().optional(),
+
       weekly_digest: z.boolean().optional(),
       marketing: z.boolean().optional(),
     })
@@ -34,7 +34,7 @@ export async function GET(request: NextRequest) {
         types: {
           payment: true,
           job: true,
-          proposal: true,
+
           weekly_digest: true,
           marketing: false,
         },
@@ -73,7 +73,7 @@ export async function PUT(request: NextRequest) {
       updateData.types = {
         payment: validation.data.types.payment ?? true,
         job: validation.data.types.job ?? true,
-        proposal: validation.data.types.proposal ?? true,
+
         weekly_digest: validation.data.types.weekly_digest ?? true,
         marketing: validation.data.types.marketing ?? false,
       };

@@ -11,9 +11,9 @@ import {
   Globe,
   Lock,
   TrendingUp,
-  Star,
   Activity,
   Clock,
+  Star,
 } from 'lucide-react';
 import { useAnalyticsFromSubgraph } from '@/lib/hooks/useAnalyticsFromSubgraph';
 import { useActivityFromSubgraph } from '@/lib/hooks/useActivityFromSubgraph';
@@ -133,7 +133,6 @@ function WhatIsHappening() {
     if (type.startsWith('AGENT_')) return Users;
     if (type.startsWith('JOB_')) return TrendingUp;
     if (type.startsWith('SERVICE_')) return Shield;
-    if (type.startsWith('PROPOSAL_')) return Star;
     return Activity;
   };
 
@@ -143,7 +142,6 @@ function WhatIsHappening() {
     if (type.startsWith('JOB_FUNDED')) return 'Job funded';
     if (type.startsWith('JOB_COMPLETED')) return 'Job completed';
     if (type.startsWith('SERVICE_CREATED')) return 'Service listed';
-    if (type.startsWith('PROPOSAL_CREATED')) return 'Proposal created';
     if (type.startsWith('PAYMENT_RELEASED')) return 'Payment released';
     return type.replace(/_/g, ' ').toLowerCase();
   };

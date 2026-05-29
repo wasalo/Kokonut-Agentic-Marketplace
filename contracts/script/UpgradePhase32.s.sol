@@ -4,7 +4,7 @@ pragma solidity ^0.8.20;
 import "forge-std/Script.sol";
 import {AgenticCommerceV9} from "../shared/AgenticCommerceV9.sol";
 import {BiddingSystem} from "../shared/BiddingSystem.sol";
-import {AgentReviewV5} from "../shared/AgentReviewV5.sol";
+import {AgentReviewV5} from "../archived/AgentReviewV5.sol";
 import {MilestoneEscrowV2} from "../shared/MilestoneEscrowV2.sol";
 import {MilestoneEscrow} from "../shared/MilestoneEscrow.sol";
 import {AdminRegistry} from "../shared/AdminRegistry.sol";

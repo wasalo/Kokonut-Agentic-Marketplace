@@ -12,7 +12,6 @@ import {
   LEGACY_REPUTATION_ABI,
   SERVICE_REGISTRY_ABI,
   AGENTIC_COMMERCE_ABI,
-  AGENT_REVIEW_ABI,
   USDC_ABI,
   MILESTONE_ESCROW_ABI,
   BIDDING_SYSTEM_ABI,
@@ -39,11 +38,6 @@ import type {
   BidStatus,
   CommitBidParams,
   RevealBidParams,
-  ProposalParams,
-  ProposalStatus,
-  EvaluationParams,
-  Proposal,
-  Evaluation,
   AgentMetadata,
   SDKEventName,
   SDKEventHandler,
@@ -71,7 +65,6 @@ export class KokonutClient {
   public reputation: ReputationModule;
   public services: ServicesModule;
   public commerce: CommerceModule;
-  public review: ReviewModule;
   public skills: SkillsModule;
   public priceOracle: PriceOracleModule;
   public commitReveal: CommitRevealModule;
@@ -121,7 +114,6 @@ export class KokonutClient {
     this.reputation = new ReputationModule(this.wallet, this.publicClient, this.contracts);
     this.services = new ServicesModule(this.wallet, this.publicClient, this.contracts);
     this.commerce = new CommerceModule(this.wallet, this.publicClient, this.contracts);
-    this.review = new ReviewModule(this.wallet, this.publicClient, this.contracts);
     this.skills = new SkillsModule(this.wallet, this.publicClient, this.contracts);
     this.priceOracle = new PriceOracleModule(this.publicClient, this.contracts);
     this.commitReveal = new CommitRevealModule(this.wallet, this.publicClient, this.contracts);
@@ -168,9 +160,6 @@ export class KokonutClient {
     this.commerce.on('JobFunded', data => this.emit('JobFunded', data));
     this.commerce.on('JobSubmitted', data => this.emit('JobSubmitted', data));
     this.commerce.on('PaymentReleased', data => this.emit('PaymentReleased', data));
-    this.review.on('ProposalCreated', data => this.emit('ProposalCreated', data));
-    this.review.on('EvaluationSubmitted', data => this.emit('EvaluationSubmitted', data));
-    this.review.on('DecisionAttested', data => this.emit('DecisionAttested', data));
   }
 
   on(event: SDKEventName, handler: SDKEventHandler): void {
@@ -1247,302 +1236,6 @@ class CommerceModule {
   }
 
   on<K extends 'JobCreated' | 'JobFunded' | 'JobSubmitted' | 'PaymentReleased'>(
-    event: K,
-    handler: SDKEventHandler<SDKEventMap[K]>
-  ): void {
-    // Event watching via watchContractEvent is not fully implemented
-    // Use polling or WebSocket for production event handling
-  }
-}
-
-// ============================================================================
-// Review Module
-// ============================================================================
-
-interface ProposalTuple {
-  id: bigint;
-  proposer: Address;
-  title: string;
-  description: string;
-  criteriaURI: string;
-  reward: bigint;
-  status: ProposalStatus;
-  createdAt: bigint;
-  decisionDeadline: bigint;
-  winningEvaluator: Address;
-}
-
-interface EvaluationTuple {
-  proposalId: bigint;
-  evaluator: Address;
-  confidenceScore: bigint;
-  reasoningURI: string;
-  stakeAmount: bigint;
-  isFinal: boolean;
-  submittedAt: bigint;
-}
-
-class ReviewModule {
-  private wallet: ReturnType<typeof createWalletClient>;
-  private publicClient: ReturnType<typeof createPublicClient>;
-  private contracts: ContractAddresses;
-
-  constructor(
-    wallet: ReturnType<typeof createWalletClient>,
-    publicClient: ReturnType<typeof createPublicClient>,
-    contracts: ContractAddresses
-  ) {
-    this.wallet = wallet;
-    this.publicClient = publicClient;
-    this.contracts = contracts;
-  }
-
-  async createProposal(params: ProposalParams): Promise<TransactionResult> {
-    const hash = await this.wallet.writeContract({
-      address: this.contracts.agentReview as Address,
-      abi: AGENT_REVIEW_ABI,
-      functionName: 'createProposal',
-      args: [
-        params.title,
-        params.description,
-        params.criteriaURI || '',
-        BigInt(params.reward),
-        BigInt(params.decisionDeadline),
-      ],
-    } as any);
-
-
-    return {
-      hash,
-      wait: () => this.publicClient.waitForTransactionReceipt({ hash }),
-    };
-  }
-
-  async submitEvaluation(params: EvaluationParams): Promise<TransactionResult> {
-    const minStake = 1000000000000000n; // 0.001 ETH
-    const hash = await this.wallet.writeContract({
-      address: this.contracts.agentReview as Address,
-      abi: AGENT_REVIEW_ABI,
-      functionName: 'submitEvaluation',
-      args: [BigInt(params.proposalId), BigInt(params.confidenceScore), params.reasoningURI || ''],
-      value: minStake,
-    } as any);
-
-
-    return {
-      hash,
-      wait: () => this.publicClient.waitForTransactionReceipt({ hash }),
-    };
-  }
-
-  async attestDecision(proposalId: number | bigint, winner: Address): Promise<TransactionResult> {
-    const hash = await this.wallet.writeContract({
-      address: this.contracts.agentReview as Address,
-      abi: AGENT_REVIEW_ABI,
-      functionName: 'attestDecision',
-      args: [BigInt(proposalId), winner],
-    } as any);
-
-
-    return {
-      hash,
-      wait: () => this.publicClient.waitForTransactionReceipt({ hash }),
-    };
-  }
-
-  async getProposal(proposalId: number | bigint): Promise<Proposal> {
-    const proposal = (await this.publicClient.readContract({
-      address: this.contracts.agentReview as Address,
-      abi: AGENT_REVIEW_ABI,
-      functionName: 'getProposal',
-      args: [BigInt(proposalId)],
-    } as any)) as ProposalTuple;
-
-    return {
-      id: proposal.id,
-      proposer: proposal.proposer,
-      title: proposal.title,
-      description: proposal.description,
-      criteriaURI: proposal.criteriaURI,
-      reward: proposal.reward,
-      status: proposal.status,
-      createdAt: proposal.createdAt,
-      decisionDeadline: proposal.decisionDeadline,
-      winningEvaluator: proposal.winningEvaluator,
-    };
-  }
-
-  async getEvaluation(proposalId: number | bigint, evaluator: Address): Promise<Evaluation> {
-    const eval_ = (await this.publicClient.readContract({
-      address: this.contracts.agentReview as Address,
-      abi: AGENT_REVIEW_ABI,
-      functionName: 'getEvaluation',
-      args: [BigInt(proposalId), evaluator],
-    } as any)) as EvaluationTuple;
-
-    return {
-      proposalId: eval_.proposalId,
-      evaluator: eval_.evaluator,
-      confidenceScore: eval_.confidenceScore,
-      reasoningURI: eval_.reasoningURI,
-      stakeAmount: eval_.stakeAmount,
-      isFinal: eval_.isFinal,
-      submittedAt: eval_.submittedAt,
-    };
-  }
-
-  async getProposalCount(): Promise<number> {
-    const result = await this.publicClient.readContract({
-      address: this.contracts.agentReview,
-      abi: AGENT_REVIEW_ABI,
-      functionName: 'getProposalCount',
-    } as any);
-    return Number(result as unknown as bigint);
-  }
-
-  async claimReward(proposalId: number | bigint): Promise<TransactionResult> {
-    const hash = await this.wallet.writeContract({
-      address: this.contracts.agentReview,
-      abi: AGENT_REVIEW_ABI,
-      functionName: 'claimReward',
-      args: [proposalId],
-    } as any);
-
-    return {
-      hash,
-      wait: () => this.publicClient.waitForTransactionReceipt({ hash }),
-    };
-  }
-
-  async releaseStake(proposalId: number | bigint): Promise<TransactionResult> {
-    const hash = await this.wallet.writeContract({
-      address: this.contracts.agentReview,
-      abi: AGENT_REVIEW_ABI,
-      functionName: 'releaseStake',
-      args: [proposalId],
-    } as any);
-
-    return {
-      hash,
-      wait: () => this.publicClient.waitForTransactionReceipt({ hash }),
-    };
-  }
-
-  async slashEvaluator(
-    evaluator: Address,
-    proposalId: number | bigint,
-    reason: string
-  ): Promise<TransactionResult> {
-    const hash = await this.wallet.writeContract({
-      address: this.contracts.agentReview,
-      abi: AGENT_REVIEW_ABI,
-      functionName: 'slashEvaluator',
-      args: [evaluator, proposalId, reason],
-    } as any);
-
-    return {
-      hash,
-      wait: () => this.publicClient.waitForTransactionReceipt({ hash }),
-    };
-  }
-
-  async getProposalEvaluators(proposalId: number | bigint): Promise<Address[]> {
-    const result = await this.publicClient.readContract({
-      address: this.contracts.agentReview,
-      abi: AGENT_REVIEW_ABI,
-      functionName: 'getProposalEvaluators',
-      args: [proposalId],
-    } as any);
-    return result as unknown as Address[];
-  }
-
-  async getEvaluatorCount(proposalId: number | bigint): Promise<number> {
-    const result = await this.publicClient.readContract({
-      address: this.contracts.agentReview,
-      abi: AGENT_REVIEW_ABI,
-      functionName: 'getEvaluatorCount',
-      args: [proposalId],
-    } as any);
-    return Number(result as unknown as bigint);
-  }
-
-  async cancelProposal(proposalId: number | bigint): Promise<TransactionResult> {
-    const hash = await this.wallet.writeContract({
-      address: this.contracts.agentReview as Address,
-      abi: AGENT_REVIEW_ABI,
-      functionName: 'cancelProposal',
-      args: [BigInt(proposalId)],
-    } as any);
-
-    return {
-      hash,
-      wait: () => this.publicClient.waitForTransactionReceipt({ hash }),
-    };
-  }
-
-
-  async withdrawETH(to: Address, amount: bigint): Promise<TransactionResult> {
-    const hash = await this.wallet.writeContract({
-      address: this.contracts.agentReview as Address,
-      abi: AGENT_REVIEW_ABI,
-      functionName: 'withdrawETH',
-      args: [to, amount],
-    } as any);
-
-    return {
-      hash,
-      wait: () => this.publicClient.waitForTransactionReceipt({ hash }),
-    };
-  }
-
-  async finalizeDecision(proposalId: bigint): Promise<TransactionResult> {
-    const hash = await this.wallet.writeContract({
-      address: this.contracts.agentReview as Address,
-      abi: AGENT_REVIEW_ABI,
-      functionName: 'finalizeDecision',
-      args: [proposalId],
-    } as any);
-    return { hash, wait: () => this.publicClient.waitForTransactionReceipt({ hash }) };
-  }
-
-  async getTotalLockedETH(): Promise<bigint> {
-    return (await this.publicClient.readContract({
-      address: this.contracts.agentReview as Address,
-      abi: AGENT_REVIEW_ABI,
-      functionName: 'getTotalLockedETH',
-    } as any)) as unknown as bigint;
-  }
-
-  async calculateMedianScore(proposalId: bigint): Promise<bigint> {
-    return (await this.publicClient.readContract({
-      address: this.contracts.agentReview as Address,
-      abi: AGENT_REVIEW_ABI,
-      functionName: 'calculateMedianScore',
-      args: [proposalId],
-    } as any)) as unknown as bigint;
-  }
-
-  async setSlashTreasury(treasury: Address): Promise<TransactionResult> {
-    const hash = await this.wallet.writeContract({
-      address: this.contracts.agentReview as Address,
-      abi: AGENT_REVIEW_ABI,
-      functionName: 'setSlashTreasury',
-      args: [treasury],
-    } as any);
-    return { hash, wait: () => this.publicClient.waitForTransactionReceipt({ hash }) };
-  }
-
-  async setDefaultSlashPercentage(slashBP: bigint): Promise<TransactionResult> {
-    const hash = await this.wallet.writeContract({
-      address: this.contracts.agentReview as Address,
-      abi: AGENT_REVIEW_ABI,
-      functionName: 'setDefaultSlashPercentage',
-      args: [slashBP],
-    } as any);
-    return { hash, wait: () => this.publicClient.waitForTransactionReceipt({ hash }) };
-  }
-
-  on<K extends 'ProposalCreated' | 'EvaluationSubmitted' | 'DecisionAttested'>(
     event: K,
     handler: SDKEventHandler<SDKEventMap[K]>
   ): void {

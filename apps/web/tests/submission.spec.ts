@@ -22,13 +22,6 @@ test.describe('Form View Tests - No Wallet Required', () => {
     await expect(page.locator('textarea[id="description"]')).toBeVisible();
   });
 
-  test('Proposal Creation form loads with all fields', async ({ page }) => {
-    await page.goto('/review/create', { waitUntil: 'domcontentloaded' });
-    await expect(page.locator('h1').filter({ hasText: 'Create Proposal' })).toBeVisible({ timeout: 20000 });
-    await expect(page.locator('input[id="title"]')).toBeVisible();
-    await expect(page.locator('input[id="reward"]')).toBeVisible();
-  });
-
   // Requires wallet connection - skipped in CI
   test.skip('Bidding form loads with all fields', async ({ page }) => {
     await page.goto('/bidding/create');
@@ -77,14 +70,6 @@ test.describe('Form Validation - Real-time', () => {
     await page.locator('input[id="name"]').fill('');
     await page.locator('input[id="name"]').blur();
     await expect(page.locator('text=Service name is required')).toBeVisible();
-  });
-
-  // Requires form submission (wallet) - skipped in CI
-  test.skip('Proposal reward validates below minimum', async ({ page }) => {
-    await page.goto('/review/create');
-    await page.locator('input[id="reward"]').fill('0.005');
-    await page.locator('input[id="reward"]').blur();
-    await expect(page.locator('text=Minimum reward is')).toBeVisible();
   });
 
   // Requires wallet connection - skipped in CI
@@ -147,12 +132,6 @@ test.describe('Error Handling', () => {
     await page.goto('/marketplace/create');
     await page.waitForTimeout(1000);
     const button = page.locator('button[type="submit"]:has-text("Create Service")');
-    await expect(button).toBeDisabled();
-  });
-
-  test.skip('shows disabled button when wallet not connected - review', async ({ page }) => {
-    await page.goto('/review/create');
-    const button = page.locator('button:has-text("Create Proposal")');
     await expect(button).toBeDisabled();
   });
 

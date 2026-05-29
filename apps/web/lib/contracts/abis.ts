@@ -143,40 +143,6 @@ export const AGENTIC_COMMERCE_ABI = parseAbi([
   'function createJobForClient(address client, address provider, uint256 budget, address paymentToken, uint256 serviceId, uint256 expiredAt, string description, address evaluator, address hook, bool evaluatorFee, bool clientReview, bool fundNow, uint256 fundAmount) external payable returns (uint256 jobId)',
 ]);
 
-export const AGENT_REVIEW_ABI = parseAbi([
-  'function createProposal(string title, string description, string criteriaURI, uint256 reward, uint256 decisionDeadline) external payable returns (uint256 proposalId)',
-  'function getProposal(uint256 proposalId) external view returns ((uint256 id, address proposer, string title, string description, string criteriaURI, uint256 reward, uint8 status, uint256 createdAt, uint256 decisionDeadline, address winningEvaluator))',
-  'function submitEvaluation(uint256 proposalId, int256 confidenceScore, string reasoningURI) external payable',
-  'function attestDecision(uint256 proposalId, address winningEvaluator) external',
-  'function getProposalEvaluators(uint256 proposalId) external view returns (address[] memory)',
-  'function getEvaluation(uint256 proposalId, address evaluator) external view returns ((uint256 proposalId, address evaluator, int256 confidenceScore, string reasoningURI, uint256 stakeAmount, bool isFinal, bool rewardClaimed, bool stakeReleased, uint256 submittedAt, uint256 rewardAmount))',
-  'function getProposalCount() external view returns (uint256)',
-  'function claimReward(uint256 proposalId) external',
-  'function releaseStake(uint256 proposalId) external',
-  'function cancelProposal(uint256 proposalId) external',
-  'function slashEvaluator(address evaluator, uint256 proposalId, uint256 slashBP, string reason) external',
-  'function finalizeDecision(uint256 proposalId) external',
-  'function calculateMedianScore(uint256 proposalId) external view returns (int256)',
-  'function slashTreasury() external view returns (address)',
-  'function getTotalLockedETH() external view returns (uint256 totalLocked)',
-  'function setSlashManager(address slashManager_) external',
-  'function setAdminRegistry(address _adminRegistry) external',
-  'function withdrawETH(address payable to, uint256 amount) external',
-  'function adminRegistry() external view returns (address)',
-  // Events
-  'event ProposalCreated(uint256 indexed proposalId, address indexed proposer, string title, uint256 reward)',
-  'event EvaluationSubmitted(uint256 indexed proposalId, address indexed evaluator, int256 confidenceScore, uint256 stakeAmount)',
-  'event DecisionAttested(uint256 indexed proposalId, address indexed attestor, address indexed winningEvaluator)',
-  'event EvaluatorSlashed(address indexed evaluator, uint256 slashAmount, string reason)',
-  'event RewardClaimed(uint256 indexed proposalId, address indexed evaluator, uint256 amount)',
-  'event StakeReleased(uint256 indexed proposalId, address indexed evaluator, uint256 amount)',
-  'event ProposalStatusChanged(uint256 indexed proposalId, uint8 indexed oldStatus, uint8 indexed newStatus, uint256 timestamp)',
-  'event ProposalCancelledByProposer(uint256 indexed proposalId, address indexed proposer, uint256 refundAmount)',
-  'event EvaluationFinalized(uint256 indexed proposalId, address indexed evaluator, bool isWinner)',
-  'event SlashManagerSet(address indexed slashManager)',
-  'event ETHWithdrawn(address indexed to, uint256 amount)',
-]);
-
 export const AGENT_SKILL_REGISTRY_ABI = parseAbi([
   'function registerSkill(uint256 agentId, string name, string version, string description, string endpoint, string[] domains) external returns (uint256 skillId)',
   'function getAgentSkills(uint256 agentId) external view returns (uint256[] memory)',

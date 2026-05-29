@@ -116,25 +116,6 @@ export function validateJobParams(params: unknown): ValidationResult {
   return { success: errors.length === 0, errors };
 }
 
-export function validateProposalParams(params: unknown): ValidationResult {
-  const errors: string[] = [];
-  if (!params || typeof params !== 'object') {
-    return { success: false, errors: ['Params must be an object'] };
-  }
-  const p = params as Record<string, unknown>;
-  const titleErr = validateString(p.title, 'title', 1, 200);
-  if (titleErr) errors.push(titleErr);
-  const descErr = validateString(p.description, 'description', 1, 5000);
-  if (descErr) errors.push(descErr);
-  const rewardErr = validateBigInt(p.reward, 'reward', 0n);
-  if (rewardErr) errors.push(rewardErr);
-  if (p.deadline !== undefined) {
-    const deadlineErr = validateBigInt(p.deadline, 'deadline', BigInt(Math.floor(Date.now() / 1000) + 300));
-    if (deadlineErr) errors.push(deadlineErr);
-  }
-  return { success: errors.length === 0, errors };
-}
-
 export function validateFeedbackParams(params: unknown): ValidationResult {
   const errors: string[] = [];
   if (!params || typeof params !== 'object') {

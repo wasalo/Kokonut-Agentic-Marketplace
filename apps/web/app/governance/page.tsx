@@ -108,7 +108,7 @@ export default function GovernancePage() {
           </h1>
           <p className="text-default-500 mt-1">
             {required?.toString() || '3'}-of-{signers?.length || '5'} multisig governance for
-            evaluator slashing decisions.
+            job evaluator slashing decisions.
           </p>
         </div>
 

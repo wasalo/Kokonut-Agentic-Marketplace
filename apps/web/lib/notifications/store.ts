@@ -28,7 +28,6 @@ const defaultPreferences: NotificationPreferences = {
   types: {
     job: true,
     service: true,
-    proposal: true,
     payment: true,
     system: true,
   },

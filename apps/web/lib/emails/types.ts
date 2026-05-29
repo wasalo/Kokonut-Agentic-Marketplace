@@ -2,7 +2,6 @@ export type EmailTemplateType =
   | 'payment_received'
   | 'job_created'
   | 'job_completed'
-  | 'proposal_created'
   | 'weekly_digest'
   | 'welcome'
   | 'password_reset';
@@ -25,7 +24,6 @@ export interface EmailPreferences {
   types: {
     payment: boolean;
     job: boolean;
-    proposal: boolean;
     weekly_digest: boolean;
     marketing: boolean;
   };
@@ -58,10 +56,6 @@ export const EMAIL_TEMPLATES = {
   job_completed: {
     subject: '✅ Job Completed',
     description: 'Notifies when a job is marked complete',
-  },
-  proposal_created: {
-    subject: '📝 New Proposal',
-    description: 'Notifies when a proposal is created',
   },
   weekly_digest: {
     subject: '📊 Your Weekly Kokonut Digest',

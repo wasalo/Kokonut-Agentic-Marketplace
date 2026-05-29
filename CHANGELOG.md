@@ -5,6 +5,80 @@ All notable changes to the Kokonut Agent Economy Stack are documented in this fi
 The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.0.0/),
 and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0.html).
 
+## [2026-05-28] — Phase 38: Review Feature Removal + SlashManager Refactoring
+
+### 🗑️ Review Feature Removal (Option A)
+
+Removed the entire AgentReviewV5 "A/B proposal evaluation with staked confidence" subsystem. The feature was decoupled from the core marketplace (jobs, services, bidding, milestones) and had weak user demand.
+
+#### Frontend Removal
+
+| Category | Files Removed/Modified | Lines Removed |
+|----------|----------------------|---------------|
+| **Review pages** | Deleted `app/review/` directory (5 files) | ~1,164 |
+| **useProposals hook** | Deleted `lib/hooks/useProposals.ts` | ~655 |
+| **Navigation** | Removed from navbar, footer, search modal | ~5 |
+| **Dashboard** | Removed "Submit Proposal" QuickAction | ~6 |
+| **Notifications/Email/Webhooks** | Removed proposal types from 10 files | ~50 |
+| **Config/ABIs** | Removed AGENT_REVIEW from config, ABIs, wagmi, address manifest | ~40 |
+| **Status/EmptyState** | Removed `getProposalStatusBadgeType`, `EmptyStateProposals` | ~20 |
+| **Activity/Homepage** | Removed proposal activity rendering | ~10 |
+| **E2E tests** | Removed 8 review tests across 4 files | ~80 |
+
+#### SDK Removal
+
+| Change | Detail |
+|--------|--------|
+| **ReviewModule class** | Removed ~270 lines from `sdk/typescript/client.ts` |
+| **Review types** | Removed ProposalStatus, Proposal, Evaluation interfaces from `types.ts` |
+| **Review ABI** | Removed AGENT_REVIEW_ABI from `sdk/typescript/abis.ts` |
+| **Validation** | Removed `validateProposalParams` from `validation.ts` |
+| **Tests** | Removed review test blocks from integration and validation tests |
+
+#### CLI Removal
+
+Removed 8 commands: `create-proposal`, `evaluate`, `attest-decision`, `proposal-status`, `claim-proposal-reward`, `release-proposal-stake`, `cancel-proposal`, `slash-evaluator` (~380 lines).
+
+#### Subgraph Removal
+
+| Change | Detail |
+|--------|--------|
+| **Handler** | Deleted `packages/subgraph/src/agent-review.ts` |
+| **ABI** | Deleted `packages/subgraph/abis/AgentReview.json` |
+| **Data source** | Removed AgentReview from `subgraph.yaml` |
+| **Schema** | Removed Proposal and Evaluation entities, `totalProposals` from PlatformStat |
+| **Helpers** | Removed proposal stats initialization |
+
+#### Contract Archival
+
+- Moved `AgentReviewV5.sol` to `contracts/archived/`
+- Deleted `AgentReviewV5.t.sol` (37+ tests)
+- Removed AgentReview from `Invariants.t.sol`, `TestFixtures.sol`, `SecurityFixes.t.sol`
+- Fixed import paths in 5 historical deploy scripts
+
+### 🔄 SlashManager Refactoring (Option C)
+
+Decoupled SlashManager from AgentReviewV5 and retargeted it to slash AgenticCommerceV9 job evaluators via multisig governance.
+
+| Change | Detail |
+|--------|--------|
+| **New interface** | `IAgenticCommerceV9_Slash` with `slashByGovernance(address, string)` |
+| **AgenticCommerceV9** | Added `slashByGovernance()` (onlySlashManager), `slashManager` state variable, `setSlashManager()` setter, `SlashManagerSet` event |
+| **SlashManager** | Replaced `agentReview` → `commerce`, `setAgentReview` → `setCommerce`, `executeSlash` now calls `slashByGovernance` instead of `slashEvaluator` |
+| **verifySlash → hasActiveSlash** | Removed AgentReview-only gate; now a public view function |
+| **Deploy script** | Created `UpgradeSlashManager_Phase38.s.sol` for UUPS upgrade |
+| **Storage gap** | `__gap` reduced from 46 → 45 to account for new `slashManager` slot |
+
+### ✅ Verification
+
+| Check | Status |
+|-------|--------|
+| **Type-check** | 0 errors |
+| **Lint** | Clean |
+| **Contract tests** | 277/277 passing |
+
+---
+
 ## [2026-05-28] — Phase 37: Dashboard Streamlining + Hub Redirects + Bug Fixes
 
 ### 🐛 Critical Bug Fixes

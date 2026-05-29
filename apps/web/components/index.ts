@@ -3,7 +3,7 @@ export { Button } from './ui/Button';
 export { Input, Textarea, Select } from './ui/Input';
 export { FormCard, FormSection } from './ui/FormCard';
 export { DashboardCard } from './ui/DashboardCard';
-export { EmptyStateJobs, EmptyStateServices, EmptyStateProposals } from './ui/empty-state';
+export { EmptyStateJobs, EmptyStateServices } from './ui/empty-state';
 export { Pagination, usePagination } from './ui/pagination';
 export { StatCard } from './ui/stat-card';
 export { Breadcrumb } from './ui/Breadcrumb';

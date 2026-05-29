@@ -25,12 +25,6 @@ test.describe('User Flows', () => {
     await expect(page.locator('h1').filter({ hasText: 'Marketplace' })).toBeVisible({ timeout: 15000 });
   });
 
-  test('navigate from homepage to review page', async ({ page }) => {
-    await page.goto('/review', { waitUntil: 'domcontentloaded' });
-
-    await expect(page.getByRole('heading', { name: /Review & Evaluation/i })).toBeVisible({ timeout: 15000 });
-  });
-
   test.skip('search functionality on leaderboard page', async ({ page }) => {
     // Leaderboard page does not have a search input
     await page.goto('/leaderboard', { waitUntil: 'domcontentloaded' });

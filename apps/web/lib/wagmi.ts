@@ -138,7 +138,6 @@ export const CONTRACTS = {
     skillRegistry: getContractAddress('SKILL_REGISTRY'),
     serviceRegistry: getContractAddress('SERVICE_REGISTRY'),
     agenticCommerce: getContractAddress('AGENTIC_COMMERCE'),
-    agentReview: getContractAddress('AGENT_REVIEW'),
     priceOracle: getContractAddress('PRICE_ORACLE'),
     commitReveal: getContractAddress('COMMIT_REVEAL'),
     slashManager: getContractAddress('SLASH_MANAGER'),

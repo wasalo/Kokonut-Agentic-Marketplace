@@ -3,7 +3,7 @@
 import { useState, useEffect } from 'react';
 import NextLink from 'next/link';
 import { Card } from '@heroui/react';
-import { Activity, Briefcase, ShoppingBag, Scale, ExternalLink, Filter, Users } from 'lucide-react';
+import { Activity, Briefcase, ShoppingBag, ExternalLink, Filter, Users } from 'lucide-react';
 import { useAccount } from 'wagmi';
 import { useActivityFromSubgraph } from '@/lib/hooks';
 import { StatusBadge } from '@/components/StatusBadge';
@@ -12,14 +12,12 @@ import { Address } from '@/components/Address';
 const ACTIVITY_ICONS: Record<string, React.ComponentType<{ className?: string }>> = {
   job: Briefcase,
   service: ShoppingBag,
-  proposal: Scale,
   all: Activity,
 };
 
 const ACTIVITY_COLORS: Record<string, string> = {
   job: '#009F4D',
   service: '#FFCD00',
-  proposal: '#009F4D',
   all: '#666',
 };
 
@@ -49,8 +47,6 @@ function ActivityItem({ activity }: { activity: ActivityItemData }) {
         return `/jobs/${activity.details.targetId}`;
       case 'service':
         return `/marketplace/${activity.details.targetId}`;
-      case 'proposal':
-        return `/review/${activity.details.targetId}`;
       default:
         return '#';
     }
@@ -118,14 +114,12 @@ const FILTERS: { type: string; label: string }[] = [
   { type: 'all', label: 'All Activity' },
   { type: 'job', label: 'Jobs' },
   { type: 'service', label: 'Services' },
-  { type: 'proposal', label: 'Proposals' },
 ];
 
 const SUBGRAPH_TYPE_MAP: Record<string, string | undefined> = {
   all: undefined,
   job: 'JOB_CREATED',
   service: 'SERVICE_CREATED',
-  proposal: 'PROPOSAL_CREATED',
 };
 
 export default function ActivityPage(): JSX.Element {
@@ -155,7 +149,7 @@ export default function ActivityPage(): JSX.Element {
         <div>
           <h1 className="text-3xl font-bold">Activity Feed</h1>
           <p className="text-default-500">
-            Platform-wide activity from jobs, services, and proposals
+            Platform-wide activity from jobs and services
           </p>
         </div>
         <button type="button"

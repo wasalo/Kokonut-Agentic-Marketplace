@@ -17,7 +17,6 @@ import { formatAmount, getTokenByAddress } from '@/lib/tokenUtils';
 const CONTRACTS = {
   AGENTIC_COMMERCE: getContractAddress('AGENTIC_COMMERCE'),
   SERVICE_REGISTRY: getContractAddress('SERVICE_REGISTRY'),
-  AGENT_REVIEW: getContractAddress('AGENT_REVIEW'),
   MILESTONE_ESCROW: getContractAddress('MILESTONE_ESCROW'),
 } as const;
 
@@ -44,7 +43,7 @@ function setLastProcessedBlock(block: bigint): boolean {
 }
 
 interface NotificationAction {
-  type: 'job' | 'service' | 'proposal' | 'payment' | 'system';
+  type: 'job' | 'service' | 'payment' | 'system';
   action: string;
   title: string;
   message: string;
@@ -136,13 +135,6 @@ const EVENT_HANDLERS: Record<string, EventHandler> = {
         : null,
     webhook: (args) => ({ event: 'service.created', data: { serviceId: String(args.serviceId), provider: args.provider, agentId: String(args.agentId || 0), name: args.name, price: String(args.price) } }),
   },
-  ProposalCreated: {
-    notification: (args, userAddress) =>
-      args.proposer && userAddress && (args.proposer as string).toLowerCase() === userAddress.toLowerCase()
-        ? { type: 'proposal', action: 'proposal.created', title: 'Proposal Created', message: `Your proposal #${args.proposalId} (${(Number(args.reward) / 1e18).toFixed(4)} ETH reward) is now open`, link: `/review/${args.proposalId}`, metadata: { proposalId: String(args.proposalId), reward: String(args.reward) } }
-        : null,
-    webhook: (args) => ({ event: 'proposal.created', data: { proposalId: String(args.proposalId), proposer: args.proposer, reward: String(args.reward) } }),
-  },
 };
 
 const EVENT_ABI_ITEMS = {
@@ -154,7 +146,6 @@ const EVENT_ABI_ITEMS = {
   jobExpired: parseAbiItem('event JobExpired(uint256 indexed jobId)'),
   paymentReleased: parseAbiItem('event PaymentReleased(uint256 indexed jobId, uint256 providerAmount, uint256 platformFee, uint256 evaluatorFee)'),
   serviceCreated: parseAbiItem('event ServiceCreated(uint256 indexed serviceId, address indexed provider, uint256 indexed agentId, string name, uint256 price)'),
-  proposalCreated: parseAbiItem('event ProposalCreated(uint256 indexed proposalId, address indexed proposer, uint256 reward)'),
 } as const;
 
 const CONTRACT_EVENTS: Record<string, readonly unknown[]> = {
@@ -164,7 +155,6 @@ const CONTRACT_EVENTS: Record<string, readonly unknown[]> = {
     EVENT_ABI_ITEMS.paymentReleased,
   ],
   [CONTRACTS.SERVICE_REGISTRY]: [EVENT_ABI_ITEMS.serviceCreated],
-  [CONTRACTS.AGENT_REVIEW]: [EVENT_ABI_ITEMS.proposalCreated],
   [CONTRACTS.MILESTONE_ESCROW]: [],
 };
 

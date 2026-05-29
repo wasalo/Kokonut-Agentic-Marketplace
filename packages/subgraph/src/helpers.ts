@@ -9,7 +9,6 @@ export function updatePlatformStat(field: string, increment: boolean, timestamp:
     stat.totalActiveAgents = 0;
     stat.totalServices = 0;
     stat.totalJobs = 0;
-    stat.totalProposals = 0;
     stat.totalReviews = 0;
     stat.totalSkills = 0;
     stat.totalBlacklistedAgents = 0;
@@ -21,7 +20,6 @@ export function updatePlatformStat(field: string, increment: boolean, timestamp:
   if (field == 'totalActiveAgents') stat.totalActiveAgents += increment ? 1 : -1;
   if (field == 'totalServices') stat.totalServices += increment ? 1 : -1;
   if (field == 'totalJobs') stat.totalJobs += increment ? 1 : -1;
-  if (field == 'totalProposals') stat.totalProposals += increment ? 1 : -1;
   if (field == 'totalReviews') stat.totalReviews += increment ? 1 : -1;
   if (field == 'totalSkills') stat.totalSkills += increment ? 1 : -1;
   if (field == 'totalBlacklistedAgents') stat.totalBlacklistedAgents += increment ? 1 : -1;

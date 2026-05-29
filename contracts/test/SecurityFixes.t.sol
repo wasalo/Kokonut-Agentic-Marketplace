@@ -5,7 +5,6 @@ import {Test, console2} from "forge-std/Test.sol";
 import {CommitReveal} from "../shared/CommitReveal.sol";
 import {SlashManager} from "../shared/SlashManager.sol";
 import {ServiceRegistryV2} from "../shared/ServiceRegistryV2.sol";
-import {AgentReviewV5} from "../shared/AgentReviewV5.sol";
 import {AgenticCommerceV6} from "../shared/AgenticCommerceV6.sol";
 import {ERC1967Proxy} from "@openzeppelin/contracts/proxy/ERC1967/ERC1967Proxy.sol";
 import {TransparentUpgradeableProxy} from "@openzeppelin/contracts/proxy/transparent/TransparentUpgradeableProxy.sol";
@@ -18,10 +17,8 @@ import {TransparentUpgradeableProxy} from "@openzeppelin/contracts/proxy/transpa
  * - M1: ServiceRegistryV2 initializeActiveServiceCount guard
  * - M2: SlashManager O(1) lookup (activeSlashByEvaluator)
  * - M3: AgenticCommerceV6 token allowlist
- * - L1: AgentReviewV5 MAX_REWARD constant
  * - L2: AgenticCommerceV6 custom errors
  * - L3: ServiceRegistryV2 gap variable placement
- * - L4: AgentReviewV5 receive() NatSpec
  * - L5: CommitReveal cleanupExpiredCommitments
  * - L6: SlashManager nonce-based proposal hashing
  * - L7: ServiceRegistryV2 OZ _getImplementation
@@ -56,10 +53,6 @@ contract SecurityFixesTest is Test {
     ServiceRegistryV2 public serviceRegistryV2;
     ServiceRegistryV2 public serviceRegistryV2Impl;
     TransparentUpgradeableProxy public serviceRegistryV2Proxy;
-    
-    AgentReviewV5 public agentReview;
-    AgentReviewV5 public agentReviewImpl;
-    TransparentUpgradeableProxy public agentReviewProxy;
     
     AgenticCommerceV6 public agenticCommerce;
     AgenticCommerceV6 public agenticCommerceImpl;
@@ -106,9 +99,6 @@ contract SecurityFixesTest is Test {
         // Deploy ServiceRegistryV2 with UUPS proxy
         _deployServiceRegistryV2();
         
-        // Deploy AgentReviewV5 with UUPS proxy
-        _deployAgentReviewV5();
-        
         // Deploy AgenticCommerceV6 with UUPS proxy
         _deployAgenticCommerceV6();
     }
@@ -151,17 +141,6 @@ contract SecurityFixesTest is Test {
             initData
         );
         serviceRegistryV2 = ServiceRegistryV2(payable(address(proxy)));
-    }
-    
-    function _deployAgentReviewV5() internal {
-        agentReviewImpl = new AgentReviewV5();
-        bytes memory initData = abi.encodeCall(AgentReviewV5.initialize, (owner));
-        TransparentUpgradeableProxy proxy = new TransparentUpgradeableProxy(
-            address(agentReviewImpl),
-            owner,
-            initData
-        );
-        agentReview = AgentReviewV5(payable(address(proxy)));
     }
     
     function _deployAgenticCommerceV6() internal {
@@ -209,7 +188,7 @@ contract SecurityFixesTest is Test {
     function test_M2_verifySlash_DirectLookupWorks() public {
         // Set agentReview first (required by createProposal)
         vm.prank(owner);
-        slashManager.setAgentReview(address(agentReview));
+        slashManager.setCommerce(makeAddr("dummyCommerce"));
         
         // Create a proposal
         vm.prank(owner);
@@ -228,7 +207,7 @@ contract SecurityFixesTest is Test {
     function test_M2_verifySlash_AfterCancelClearsMapping() public {
         // Set agentReview first (required by createProposal)
         vm.prank(owner);
-        slashManager.setAgentReview(address(agentReview));
+        slashManager.setCommerce(makeAddr("dummyCommerce"));
         
         // Create proposal
         vm.prank(owner);
@@ -296,55 +275,6 @@ contract SecurityFixesTest is Test {
         vm.expectEmit(true, true, true, true);
         emit AgenticCommerceV6.TokenAllowlistUpdated(address(mockToken), true);
         agenticCommerce.setAllowedToken(address(mockToken), true);
-    }
-    
-    // ==========================================
-    // L1: AgentReviewV5 MAX_REWARD constant
-    // ==========================================
-    
-    function test_L1_MAX_REWARD_ConstantExists() public {
-        // MAX_REWARD is a constant, we verify by creating a proposal at max reward
-        vm.prank(client);
-        vm.deal(client, 100 ether);
-        uint256 proposalId = agentReview.createProposal{value: 100 ether}(
-            "Test",
-            "Test",
-            "criteria",
-            100 ether,
-            block.timestamp + 7 days
-        );
-        assertEq(proposalId, 1);
-    }
-    
-    function test_L1_createProposal_RevertsIfRewardExceedsMax() public {
-        uint256 excessiveReward = 101 ether;
-        
-        vm.prank(client);
-        vm.deal(client, 101 ether);
-        vm.expectRevert(abi.encodeWithSelector(AgentReviewV5.AgentReviewV5_Reward_too_high.selector));
-        agentReview.createProposal{value: excessiveReward}(
-            "Test",
-            "Test",
-            "criteria",
-            excessiveReward,
-            block.timestamp + 7 days
-        );
-    }
-    
-    function test_L1_createProposal_SucceedsAtMaxReward() public {
-        uint256 maxReward = 100 ether;
-        
-        vm.prank(client);
-        vm.deal(client, maxReward);
-        uint256 proposalId = agentReview.createProposal{value: maxReward}(
-            "Test",
-            "Test",
-            "criteria",
-            maxReward,
-            block.timestamp + 7 days
-        );
-        
-        assertEq(proposalId, 1);
     }
     
     // ==========================================
@@ -429,21 +359,6 @@ contract SecurityFixesTest is Test {
         
         uint256 activeCount = serviceRegistryV2.getActiveServiceCount();
         assertEq(activeCount, 0);
-    }
-    
-    // ==========================================
-    // L4: AgentReviewV5 receive() NatSpec (informational)
-    // ==========================================
-    
-    function test_L4_receive_CanReceiveETH() public {
-        uint256 balanceBefore = address(agentReview).balance;
-        
-        vm.deal(client, 1 ether);
-        vm.prank(client);
-        (bool success,) = address(agentReview).call{value: 1 ether}("");
-        assertTrue(success);
-        
-        assertEq(address(agentReview).balance, balanceBefore + 1 ether);
     }
     
     // ==========================================
@@ -678,7 +593,7 @@ contract SecurityFixesTest is Test {
     
     function test_L6_createProposal_NonceBasedHashing() public {
         vm.prank(owner);
-        slashManager.setAgentReview(address(agentReview));
+        slashManager.setCommerce(makeAddr("dummyCommerce"));
         
         // First proposal
         vm.prank(owner);
@@ -723,7 +638,7 @@ contract SecurityFixesTest is Test {
     
     function test_M5_SlashManager_SignerCanCreateProposal() public {
         vm.prank(owner);
-        slashManager.setAgentReview(address(agentReview));
+        slashManager.setCommerce(makeAddr("dummyCommerce"));
         
         // Signer 1 creates proposal
         vm.prank(signer1);
@@ -739,7 +654,7 @@ contract SecurityFixesTest is Test {
     
     function test_M5_SlashManager_NonSignerCannotCreateProposal() public {
         vm.prank(owner);
-        slashManager.setAgentReview(address(agentReview));
+        slashManager.setCommerce(makeAddr("dummyCommerce"));
         
         // Non-signer tries to create proposal
         vm.prank(client);
@@ -754,7 +669,7 @@ contract SecurityFixesTest is Test {
     
     function test_M5_SlashManager_OwnerCanCreateProposal() public {
         vm.prank(owner);
-        slashManager.setAgentReview(address(agentReview));
+        slashManager.setCommerce(makeAddr("dummyCommerce"));
         
         // Owner creates proposal
         vm.prank(owner);
@@ -805,33 +720,6 @@ contract SecurityFixesTest is Test {
         vm.prank(client);
         vm.expectRevert(); // OwnableUnauthorizedAccount error
         slashManager.pause();
-    }
-    
-    function test_I1_AgentReview_PauseUnpause() public {
-        // Initially not paused
-        assertFalse(agentReview.paused());
-        
-        // Owner can pause
-        vm.prank(owner);
-        agentReview.pause();
-        assertTrue(agentReview.paused());
-        
-        // Create proposal should fail when paused
-        vm.prank(client);
-        vm.deal(client, 1 ether);
-        vm.expectRevert(); // EnforcedPause() error
-        agentReview.createProposal{value: 1 ether}(
-            "Test",
-            "Test",
-            "criteria",
-            1 ether,
-            block.timestamp + 7 days
-        );
-        
-        // Owner can unpause
-        vm.prank(owner);
-        agentReview.unpause();
-        assertFalse(agentReview.paused());
     }
     
     function test_I1_AgenticCommerce_PauseUnpause() public {
@@ -889,18 +777,6 @@ contract SecurityFixesTest is Test {
         assertTrue(slashManager.isSigner(signer1));
     }
     
-    function test_UUPS_AgentReview_CanUpgrade() public {
-        // Deploy new implementation
-        AgentReviewV5 newImpl = new AgentReviewV5();
-        
-        // Upgrade
-        vm.prank(owner);
-        agentReview.upgradeToAndCall(address(newImpl), "");
-        
-        // Constants should be preserved
-        assertEq(agentReview.MAX_EVALUATORS_PER_PROPOSAL(), 5);
-    }
-    
     function test_UUPS_AgenticCommerce_CanUpgrade() public {
         // Deploy new implementation
         AgenticCommerceV6 newImpl = new AgenticCommerceV6();
@@ -929,11 +805,6 @@ contract SecurityFixesTest is Test {
         signers[1] = signer2;
         signers[2] = signer3;
         slashManager.initialize(owner, signers);
-    }
-    
-    function test_InitGuard_AgentReview_CannotReinitialize() public {
-        vm.expectRevert(); // InvalidInitialization() error
-        agentReview.initialize(owner);
     }
     
     function test_InitGuard_AgenticCommerce_CannotReinitialize() public {

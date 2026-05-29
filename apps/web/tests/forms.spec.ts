@@ -155,30 +155,6 @@ test.describe('Form Validation - Agent Registration', () => {
   });
 });
 
-test.describe('Form Validation - Proposal/Review Creation', () => {
-  test.beforeEach(async ({ page }) => {
-    await page.goto('/review/create', { waitUntil: 'domcontentloaded' });
-    await page.getByRole('heading', { name: /Create Proposal/i }).waitFor({ timeout: 15000 });
-  });
-
-  test('shows disabled state when wallet not connected', async ({ page }) => {
-    const submitButton = page.getByRole('button', { name: /Create Proposal/i });
-    await expect(submitButton).toBeDisabled();
-  });
-
-  test('shows all form fields', async ({ page }) => {
-    await expect(page.locator('input[id="title"]')).toBeVisible();
-    await expect(page.locator('textarea[id="description"]')).toBeVisible();
-    await expect(page.locator('input[id="reward"]')).toBeVisible();
-    await expect(page.locator('input[id="deadline"]')).toBeVisible();
-  });
-
-  test('shows evaluator visibility options', async ({ page }) => {
-    await expect(page.getByText('Public')).toBeVisible();
-    await expect(page.getByText('Private')).toBeVisible();
-  });
-});
-
 test.describe('Form Validation - Bidding Session Creation', () => {
   test.beforeEach(async ({ page }) => {
     await page.goto('/bidding/create', { waitUntil: 'domcontentloaded' });

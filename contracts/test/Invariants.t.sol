@@ -4,7 +4,6 @@ pragma solidity ^0.8.20;
 import "forge-std/Test.sol";
 import "forge-std/StdInvariant.sol";
 import {AgenticCommerceV9, IAgenticCommerceV9} from "../shared/AgenticCommerceV9.sol";
-import {AgentReviewV5} from "../shared/AgentReviewV5.sol";
 import {ServiceRegistryV2} from "../shared/ServiceRegistryV2.sol";
 import {ERC1967Proxy} from "@openzeppelin/contracts/proxy/ERC1967/ERC1967Proxy.sol";
 import {MockERC20, MockPriceOracle} from "./TestFixtures.sol";
@@ -17,7 +16,6 @@ import {MockIdentityRegistry} from "./MockIdentityRegistry.sol";
  */
 contract TestFixtures is Test {
     AgenticCommerceV9 public agenticCommerceV9;
-    AgentReviewV5 public agentReview;
     ServiceRegistryV2 public serviceRegistry;
     ServiceRegistryV2 public serviceRegistryImpl;
     MockERC20 public usdc;
@@ -84,14 +82,6 @@ contract TestFixtures is Test {
             commerceInitData
         );
         agenticCommerceV9 = AgenticCommerceV9(payable(address(commerceProxy)));
-
-        AgentReviewV5 reviewImpl = new AgentReviewV5();
-        bytes memory reviewInitData = abi.encodeCall(AgentReviewV5.initialize, (owner));
-        ERC1967Proxy reviewProxy = new ERC1967Proxy(
-            address(reviewImpl),
-            reviewInitData
-        );
-        agentReview = AgentReviewV5(payable(address(reviewProxy)));
 
         ServiceRegistryV2 registryImpl = new ServiceRegistryV2();
         bytes memory registryInitData = abi.encodeCall(
@@ -315,86 +305,5 @@ contract FuzzAgenticCommerceV9 is TestFixtures {
 
         (, , , , , , , , , IAgenticCommerceV9.JobStatus jobStatus, , ) = agenticCommerceV9.jobs(jobId);
         assertEq(uint256(jobStatus), 3);
-    }
-}
-
-/**
- * @title FuzzAgentReviewV5
- * @dev Fuzzing tests for AgentReviewV5
- */
-contract FuzzAgentReviewV5 is TestFixtures {
-    function setUp() public override {
-        super.setUp();
-    }
-
-    function testFuzz_ScoreBounds(int256 score) public {
-        score = bound(score, -1000, 1000);
-        uint256 proposalId = _createProposal();
-        if (score < -100 || score > 100) {
-            vm.prank(evaluator1);
-            vm.expectRevert(abi.encodeWithSelector(AgentReviewV5.AgentReviewV5_Invalid_score.selector));
-            agentReview.submitEvaluation{value: MIN_STAKE}(proposalId, score, "reasoning");
-        } else {
-            vm.prank(evaluator1);
-            agentReview.submitEvaluation{value: MIN_STAKE}(proposalId, score, "reasoning");
-            AgentReviewV5.Evaluation memory eval = agentReview.getEvaluation(proposalId, evaluator1);
-            assertEq(eval.confidenceScore, score);
-        }
-    }
-
-    function testFuzz_StakeAmounts(uint256 stake) public {
-        stake = bound(stake, 0, 10 ether);
-        uint256 proposalId = _createProposal();
-        if (stake < 0.001 ether) {
-            vm.prank(evaluator1);
-            vm.expectRevert(abi.encodeWithSelector(AgentReviewV5.AgentReviewV5_Stake_too_low.selector));
-            agentReview.submitEvaluation{value: stake}(proposalId, 50, "reasoning");
-        } else {
-            vm.prank(evaluator1);
-            agentReview.submitEvaluation{value: stake}(proposalId, 50, "reasoning");
-            AgentReviewV5.Evaluation memory eval = agentReview.getEvaluation(proposalId, evaluator1);
-            assertEq(eval.stakeAmount, stake);
-        }
-    }
-
-    function testFuzz_ProposalCreation(uint256 reward, uint256 deadlineOffset) public {
-        reward = bound(reward, 0.001 ether, 100 ether);
-        deadlineOffset = bound(deadlineOffset, 25 hours, 365 days);
-        vm.prank(proposer);
-        uint256 proposalId = agentReview.createProposal{value: reward}(
-            "Test",
-            "Description",
-            "criteria",
-            reward,
-            block.timestamp + deadlineOffset
-        );
-        AgentReviewV5.Proposal memory proposal = agentReview.getProposal(proposalId);
-        assertEq(proposal.reward, reward);
-    }
-
-    function testFuzz_ProposalLifecycle(uint256 evaluatorCount, int256[] calldata scores) public {
-        evaluatorCount = bound(evaluatorCount, 1, 5);
-        uint256 proposalId = _createProposal();
-        for (uint i = 0; i < evaluatorCount && i < scores.length; i++) {
-            address evalAddr = makeAddr(string.concat("eval", vm.toString(i)));
-            vm.deal(evalAddr, 1 ether);
-            int256 score = scores[i];
-            if (score >= -100 && score <= 100) {
-                vm.prank(evalAddr);
-                agentReview.submitEvaluation{value: MIN_STAKE}(proposalId, score, "reasoning");
-            }
-        }
-        assertLe(agentReview.getProposalEvaluators(proposalId).length, 5);
-    }
-
-    function _createProposal() internal returns (uint256) {
-        vm.prank(proposer);
-        return agentReview.createProposal{value: 0.1 ether}(
-            "Test",
-            "Description",
-            "criteria",
-            0.1 ether,
-            block.timestamp + 7 days
-        );
     }
 }

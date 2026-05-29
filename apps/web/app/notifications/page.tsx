@@ -8,7 +8,6 @@ import {
   BellOff,
   Briefcase,
   Server,
-  FileText,
   Wallet,
   Check,
   Trash2,
@@ -21,10 +20,9 @@ import { NOTIFICATION_TYPE_LABELS, type NotificationType } from '@/lib/notificat
 import { ConfirmModal } from '@/components/ConfirmModal';
 import { useEffect } from 'react';
 
-const TYPE_ICONS = {
+const TYPE_ICONS: Record<'job' | 'service' | 'payment' | 'system', typeof Briefcase> = {
   job: Briefcase,
   service: Server,
-  proposal: FileText,
   payment: Wallet,
   system: Bell,
 };
@@ -33,7 +31,7 @@ const FILTER_OPTIONS: { key: 'all' | NotificationType; label: string }[] = [
   { key: 'all', label: 'All' },
   { key: 'job', label: 'Jobs' },
   { key: 'service', label: 'Services' },
-  { key: 'proposal', label: 'Proposals' },
+
   { key: 'payment', label: 'Payments' },
   { key: 'system', label: 'System' },
 ];

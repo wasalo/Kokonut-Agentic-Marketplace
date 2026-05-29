@@ -24,16 +24,14 @@ const sepoliaContracts = {
   serviceRegistryImpl: '0xe8dEf9ce280ebDf43d8273223C1957747a292e23', // Phase 34c: bond withdrawal + cooldown
     // Phase 29: V9 - Multi-token configurable minimum budgets
   agenticCommerce: '0x3a1Bc03cC84040A282F6bf238b917D8351499239',
-  agenticCommerceImpl: '0x5677c6B3133796A6066Bf4bB202edb9D594a022D', // Phase 34c: remove auto bond refund
+  agenticCommerceImpl: '0x3b8b4A6d3cc93D5081a286aCC7EcD4f01086c928', // Phase 38: governance slash
   // Phase 11: BiddingSystem - Standalone commit-reveal bidding
   biddingSystem: '0x4D7F38C6A9DE5De44A7B789962B7A2B06bFE8fd6',
   biddingSystemImpl: '0x9FfE85CBC78144B1bAd32d2Fd61a1fdc3740f047', // Phase 34: creator stake patch
-  agentReview: '0x5CDb592Fd37749bF87448FBf5725D1Cd986dd1Cb', // AgentReviewV5
-  agentReviewImpl: '0xb87Af66B11B00E5341990A9f05c934c2e66181fd', // Phase 34: stake/reward patch
   commitReveal: '0x85F193670fCb7B0c97D55E70Bf2a950b1065Fb3a',
   commitRevealImpl: '0x0456fb2B6ef68B9133B22809D48D4f3748bEf87C', // Phase 29f: OZ v5 compat
   slashManager: '0x1B8373cDF4f2eD740c3478e0129f0B8494CE4Fa3',
-  slashManagerImpl: '0x865ebF8EaC43FE343985058e56E08aAB4E605214', // Phase 29f: OZ v5 compat
+  slashManagerImpl: '0x8754Abeba49B6688dA132552b9f183FbC7acdc58', // Phase 38: retarget to commerce
 
   // Phase 29: MilestoneEscrowV2 - Per-token arbiter fees + USDC staking
   milestoneEscrow: '0xc89D63057288092012c5D3cEF66121C1F8449a9f',
@@ -59,8 +57,6 @@ const emptyChainContracts = {
   agenticCommerceImpl: undefined,
   biddingSystem: undefined,
   biddingSystemImpl: undefined,
-  agentReview: undefined,
-  agentReviewImpl: undefined,
   priceOracle: undefined,
   priceOracleImpl: undefined,
   commitReveal: undefined,
@@ -84,8 +80,6 @@ export interface ChainContracts {
   agenticCommerceImpl?: `0x${string}`;
   biddingSystem?: `0x${string}`;
   biddingSystemImpl?: `0x${string}`;
-  agentReview?: `0x${string}`;
-  agentReviewImpl?: `0x${string}`;
   priceOracle?: `0x${string}`;
   priceOracleImpl?: `0x${string}`;
   commitReveal?: `0x${string}`;
@@ -144,16 +138,14 @@ export const CONTRACT_ADDRESSES = {
   serviceRegistryImpl: '0xe8dEf9ce280ebDf43d8273223C1957747a292e23', // Phase 34c: bond withdrawal + cooldown
   // Phase 29: V9 - Multi-token configurable minimum budgets
   agenticCommerce: '0x3a1Bc03cC84040A282F6bf238b917D8351499239',
-  agenticCommerceImpl: '0x5677c6B3133796A6066Bf4bB202edb9D594a022D', // Phase 34c: remove auto bond refund
+  agenticCommerceImpl: '0x3b8b4A6d3cc93D5081a286aCC7EcD4f01086c928', // Phase 38: governance slash
     // Phase 11: BiddingSystem - Standalone commit-reveal bidding
   biddingSystem: '0x4D7F38C6A9DE5De44A7B789962B7A2B06bFE8fd6',
   biddingSystemImpl: '0x9FfE85CBC78144B1bAd32d2Fd61a1fdc3740f047', // Phase 34: creator stake patch
-    agentReview: '0x5CDb592Fd37749bF87448FBf5725D1Cd986dd1Cb', // AgentReviewV5
-  agentReviewImpl: '0xb87Af66B11B00E5341990A9f05c934c2e66181fd', // Phase 34: stake/reward patch
     commitReveal: '0x85F193670fCb7B0c97D55E70Bf2a950b1065Fb3a',
   commitRevealImpl: '0x0456fb2B6ef68B9133B22809D48D4f3748bEf87C', // Phase 29f: OZ v5 compat
     slashManager: '0x1B8373cDF4f2eD740c3478e0129f0B8494CE4Fa3',
-  slashManagerImpl: '0x865ebF8EaC43FE343985058e56E08aAB4E605214', // Phase 29f: OZ v5 compat
+  slashManagerImpl: '0x8754Abeba49B6688dA132552b9f183FbC7acdc58', // Phase 38: retarget to commerce
 
     // Phase 29: MilestoneEscrowV2 - Per-token arbiter fees + USDC staking
     milestoneEscrow: '0xc89D63057288092012c5D3cEF66121C1F8449a9f',
@@ -184,7 +176,6 @@ const CONTRACT_ENV_VARS = {
   AGENTIC_COMMERCE: 'NEXT_PUBLIC_AGENTIC_COMMERCE_ADDRESS',
   BIDDING_SYSTEM: 'NEXT_PUBLIC_BIDDING_SYSTEM_ADDRESS',
   ADMIN_REGISTRY: 'NEXT_PUBLIC_ADMIN_REGISTRY_ADDRESS',
-  AGENT_REVIEW: 'NEXT_PUBLIC_AGENT_REVIEW_ADDRESS',
   PRICE_ORACLE: 'NEXT_PUBLIC_PRICE_ORACLE_ADDRESS',
   COMMIT_REVEAL: 'NEXT_PUBLIC_COMMIT_REVEAL_ADDRESS',
   SLASH_MANAGER: 'NEXT_PUBLIC_SLASH_MANAGER_ADDRESS',
@@ -201,7 +192,6 @@ const ENV_TO_FALLBACK: Record<keyof typeof CONTRACT_ENV_VARS, string> = {
   AGENTIC_COMMERCE: CONTRACT_ADDRESSES.sepolia.agenticCommerce,
   BIDDING_SYSTEM: CONTRACT_ADDRESSES.sepolia.biddingSystem,
   ADMIN_REGISTRY: CONTRACT_ADDRESSES.sepolia.adminRegistry, // Phase 29e: UUPS proxy with Pashov fixes
-  AGENT_REVIEW: CONTRACT_ADDRESSES.sepolia.agentReview,
   PRICE_ORACLE: CONTRACT_ADDRESSES.sepolia.priceOracle,
   COMMIT_REVEAL: CONTRACT_ADDRESSES.sepolia.commitReveal,
   SLASH_MANAGER: CONTRACT_ADDRESSES.sepolia.slashManager,

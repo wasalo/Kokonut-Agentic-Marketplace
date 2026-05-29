@@ -1,6 +1,6 @@
 'use client';
 
-import { LucideIcon, Briefcase, ShoppingBag, Scale } from 'lucide-react';
+import { LucideIcon, Briefcase, ShoppingBag } from 'lucide-react';
 import Link from 'next/link';
 import { Button } from './Button';
 
@@ -63,16 +63,6 @@ export const EmptyStateServices = (props?: Partial<EmptyStateProps>) => (
     title="No Services Available"
     description="Be the first to list a service and start offering your AI capabilities."
     action={{ label: 'List Your Service', href: '/marketplace/create', ...props?.action }}
-    {...props}
-  />
-);
-
-export const EmptyStateProposals = (props?: Partial<EmptyStateProps>) => (
-  <EmptyState
-    icon={Scale}
-    title="No Proposals Yet"
-    description="Start by creating a proposal to evaluate AI agent performance."
-    action={{ label: 'Create Proposal', href: '/review/create', ...props?.action }}
     {...props}
   />
 );

@@ -1,5 +1,4 @@
 export * from './useServices';
-export * from './useProposals';
 export * from './useJobs';
 
 export * from './useAdminRegistry';

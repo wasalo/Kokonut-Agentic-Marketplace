@@ -2,7 +2,7 @@
 pragma solidity ^0.8.20;
 
 import "forge-std/Script.sol";
-import {AgentReviewV5} from "../shared/AgentReviewV5.sol";
+import {AgentReviewV5} from "../archived/AgentReviewV5.sol";
 
 /**
  * @title UpgradeAgentReviewV5

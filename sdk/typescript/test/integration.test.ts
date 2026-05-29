@@ -65,7 +65,6 @@ describe.skip('SDK Integration Tests - Sepolia', () => {
       expect(contracts.skillRegistry).toBeDefined();
       expect(contracts.serviceRegistry).toBeDefined();
       expect(contracts.agenticCommerce).toBeDefined();
-      expect(contracts.agentReview).toBeDefined();
       expect(contracts.priceOracle).toBeDefined();
       expect(contracts.commitReveal).toBeDefined();
       expect(contracts.slashManager).toBeDefined();
@@ -180,21 +179,6 @@ describe.skip('SDK Integration Tests - Sepolia', () => {
         console.log('\n📋 Client job count:', count);
       } catch (error) {
         console.log('\n⚠️  Commerce call failed:', error instanceof Error ? error.message : error);
-      }
-    });
-
-    it('should get proposal count', async () => {
-      if (!client?.review) {
-        console.log('\n⚠️  Review not initialized - skipping');
-        return;
-      }
-
-      try {
-        const count = await client.review.getProposalCount();
-        expect(typeof count).toBe('number');
-        console.log('\n📋 Total proposals:', count);
-      } catch (error) {
-        console.log('\n⚠️  Review call failed:', error instanceof Error ? error.message : error);
       }
     });
   });

@@ -11,7 +11,6 @@ import {
   ArrowRight,
   Briefcase,
   Server,
-  FileText,
   Wallet,
   BellOff,
   Check,
@@ -268,8 +267,6 @@ function NotificationsTab({
         return Briefcase;
       case 'service':
         return Server;
-      case 'proposal':
-        return FileText;
       case 'payment':
         return Wallet;
       default:

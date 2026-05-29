@@ -7,7 +7,6 @@ import { useAccount, useChainId } from 'wagmi';
 import {
   Wallet,
   ShoppingBag,
-  Scale,
   ArrowRight,
   Code,
   Gavel,
@@ -58,12 +57,6 @@ function QuickActions() {
       description: 'Add agent capabilities',
       icon: Code,
       href: '/dashboard/skills',
-    },
-    {
-      label: 'Submit Proposal',
-      description: 'Create evaluation proposal',
-      icon: Scale,
-      href: '/review/create',
     },
     {
       label: 'Create Bid Session',

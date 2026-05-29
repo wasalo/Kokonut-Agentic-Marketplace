@@ -61,7 +61,6 @@ export interface ContractAddresses {
   serviceRegistry: `0x${string}`;
   agenticCommerce: `0x${string}`;
   biddingSystem?: `0x${string}`; // Phase 11: Standalone bidding contract
-  agentReview: `0x${string}`;
   priceOracle: `0x${string}`;
   commitReveal: `0x${string}`;
   slashManager: `0x${string}`;
@@ -261,54 +260,6 @@ export interface RevealBidParams {
 }
 
 // ============================================================================
-// Agent Review (A/B Evaluation)
-// ============================================================================
-
-export enum ProposalStatus {
-  Open = 0,
-  UnderReview = 1,
-  Decided = 2,
-  Cancelled = 3,
-}
-
-export interface Proposal {
-  id: bigint;
-  proposer: `0x${string}`;
-  title: string;
-  description: string;
-  criteriaURI: string;
-  reward: bigint;
-  status: ProposalStatus;
-  createdAt: bigint;
-  decisionDeadline: bigint;
-  winningEvaluator: `0x${string}`;
-}
-
-export interface Evaluation {
-  proposalId: bigint;
-  evaluator: `0x${string}`;
-  confidenceScore: bigint;
-  reasoningURI: string;
-  stakeAmount: bigint;
-  isFinal: boolean;
-  submittedAt: bigint;
-}
-
-export interface ProposalParams {
-  title: string;
-  description: string;
-  criteriaURI?: string;
-  reward: bigint;
-  decisionDeadline: number;
-}
-
-export interface EvaluationParams {
-  proposalId: number | bigint;
-  confidenceScore: number; // -1000 to +1000
-  reasoningURI?: string;
-}
-
-// ============================================================================
 // SDK Events
 // ============================================================================
 
@@ -344,9 +295,6 @@ export interface SDKEventMap {
   JobFunded: { jobId: bigint; client: Address; amount: bigint };
   JobSubmitted: { jobId: bigint; provider: Address; deliverable: string };
   PaymentReleased: { jobId: bigint; providerAmount: bigint };
-  ProposalCreated: { proposalId: bigint; proposer: Address };
-  EvaluationSubmitted: { proposalId: bigint; evaluator: Address; score: bigint };
-  DecisionAttested: { proposalId: bigint; winner: Address };
 }
 
 export type SDKEventName = keyof SDKEventMap;
@@ -458,7 +406,6 @@ export const NETWORKS: Record<NetworkName, NetworkConfig> = {
       agenticCommerce: '0x3a1Bc03cC84040A282F6bf238b917D8351499239',
       // Phase 11: BiddingSystem (Standalone commit-reveal bidding)
       biddingSystem: '0x4D7F38C6A9DE5De44A7B789962B7A2B06bFE8fd6',
-      agentReview: '0x5CDb592Fd37749bF87448FBf5725D1Cd986dd1Cb', // AgentReviewV5
       priceOracle: '0x29c27a26DD2F80f840cb4D7B5E53b7db3D67143d', // PriceOracleV2
       commitReveal: '0x85F193670fCb7B0c97D55E70Bf2a950b1065Fb3a',
       slashManager: '0x1B8373cDF4f2eD740c3478e0129f0B8494CE4Fa3',
@@ -479,7 +426,6 @@ export const NETWORKS: Record<NetworkName, NetworkConfig> = {
       skillRegistry: '0x0000000000000000000000000000000000000000',
       serviceRegistry: '0x0000000000000000000000000000000000000000',
       agenticCommerce: '0x0000000000000000000000000000000000000000',
-      agentReview: '0x0000000000000000000000000000000000000000',
       priceOracle: '0x0000000000000000000000000000000000000000',
       commitReveal: '0x0000000000000000000000000000000000000000',
       slashManager: '0x0000000000000000000000000000000000000000',

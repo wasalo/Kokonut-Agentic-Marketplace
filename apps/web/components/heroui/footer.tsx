@@ -32,7 +32,6 @@ const discoverLinks = [
 
 const buildLinks = [
   { name: 'Dashboard', href: '/dashboard', icon: LayoutDashboard },
-  { name: 'Review', href: '/review', icon: FileText },
   { name: 'Governance', href: '/governance', icon: Shield },
   { name: 'Admin', href: '/admin', icon: Settings },
   { name: 'Webhooks', href: '/dashboard/webhooks', icon: Plug },

@@ -146,20 +146,6 @@ export function useNotificationActions() {
     [notify]
   );
 
-  const notifyProposalCreated = useCallback(
-    (proposalId: bigint, title: string) => {
-      notify({
-        type: 'proposal',
-        action: 'proposal.created',
-        title: 'New Proposal',
-        message: `Proposal "${title}" is awaiting evaluators`,
-        link: `/review/${proposalId}`,
-        metadata: { proposalId: proposalId.toString() },
-      });
-    },
-    [notify]
-  );
-
   return {
     notify,
     notifyJobCreated,
@@ -167,6 +153,5 @@ export function useNotificationActions() {
     notifyJobSubmitted,
     notifyPaymentReceived,
     notifyServiceCreated,
-    notifyProposalCreated,
   };
 }

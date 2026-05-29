@@ -64,29 +64,6 @@ type Job @entity(immutable: false) {
   evaluatorFee: BigInt
 }
 
-type Proposal @entity(immutable: false) {
-  id: ID!
-  proposalId: BigInt!
-  proposer: Bytes!
-  title: String
-  description: String
-  reward: BigInt!
-  status: Int!
-  createdAt: BigInt!
-  decidedAt: BigInt
-  winningEvaluator: Bytes
-  evaluations: [Evaluation!] @derivedFrom(field: "proposal")
-}
-
-type Evaluation @entity(immutable: true) {
-  id: ID!
-  proposal: Proposal!
-  evaluator: Bytes!
-  confidenceScore: Int!
-  reasoningURI: String
-  createdAt: BigInt!
-}
-
 type Skill @entity(immutable: false) {
   id: ID!
   skillId: BigInt!
@@ -150,7 +127,6 @@ type PlatformStat @entity(immutable: false) {
   totalActiveAgents: Int!
   totalServices: Int!
   totalJobs: Int!
-  totalProposals: Int!
   totalReviews: Int!
   totalSkills: Int!
   totalBlacklistedAgents: Int!

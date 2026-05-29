@@ -3,7 +3,6 @@ pragma solidity ^0.8.20;
 
 import "forge-std/Test.sol";
 import {AgenticCommerceV9} from "../shared/AgenticCommerceV9.sol";
-import {AgentReviewV5} from "../shared/AgentReviewV5.sol";
 import {ServiceRegistryV2} from "../shared/ServiceRegistryV2.sol";
 import {ERC1967Proxy} from "@openzeppelin/contracts/proxy/ERC1967/ERC1967Proxy.sol";
 
@@ -15,7 +14,6 @@ import {ERC1967Proxy} from "@openzeppelin/contracts/proxy/ERC1967/ERC1967Proxy.s
 contract TestFixtures is Test {
     // Contract instances
     AgenticCommerceV9 public agenticCommerce;
-    AgentReviewV5 public agentReview;
     ServiceRegistryV2 public serviceRegistry;
     ServiceRegistryV2 public serviceRegistryImpl;
     
@@ -94,15 +92,6 @@ contract TestFixtures is Test {
             commerceInitData
         );
         agenticCommerce = AgenticCommerceV9(payable(address(commerceProxy)));
-        
-        // Deploy AgentReviewV5 with proxy
-        AgentReviewV5 reviewImpl = new AgentReviewV5();
-        bytes memory reviewInitData = abi.encodeCall(AgentReviewV5.initialize, (owner));
-        ERC1967Proxy reviewProxy = new ERC1967Proxy(
-            address(reviewImpl),
-            reviewInitData
-        );
-        agentReview = AgentReviewV5(payable(address(reviewProxy)));
         
         // Deploy ServiceRegistryV2 with proxy
         // Note: Identity registry must be a valid address for initialization
@@ -203,36 +192,6 @@ contract TestFixtures is Test {
         usdc.approve(address(agenticCommerce), amount);
         agenticCommerce.fund{value: 0}(jobId, amount);
         vm.stopPrank();
-    }
-    
-    // Helper: Create a proposal
-    function createTestProposal(
-        address proposalProposer,
-        uint256 reward,
-        uint256 deadlineOffset
-    ) internal returns (uint256 proposalId) {
-        vm.prank(proposalProposer);
-        proposalId = agentReview.createProposal{value: reward}(
-            "Test Proposal",
-            "Test description",
-            "criteria",
-            reward,
-            block.timestamp + deadlineOffset
-        );
-    }
-    
-    // Helper: Submit evaluation
-    function submitTestEvaluation(
-        address evalAddr,
-        uint256 proposalId,
-        int256 score
-    ) internal {
-        vm.prank(evalAddr);
-        agentReview.submitEvaluation{value: MIN_STAKE}(
-            proposalId,
-            score,
-            "reasoning"
-        );
     }
 }
 

@@ -254,21 +254,6 @@ export function getJobStatusBadgeType(status: number): StatusType {
   }
 }
 
-export function getProposalStatusBadgeType(status: number): StatusType {
-  switch (status) {
-    case 0:
-      return 'open';
-    case 1:
-      return 'under-review';
-    case 2:
-      return 'decided';
-    case 3:
-      return 'cancelled';
-    default:
-      return 'info';
-  }
-}
-
 export function getServiceStatusBadgeType(isActive: boolean): StatusType {
   return isActive ? 'active' : 'inactive';
 }

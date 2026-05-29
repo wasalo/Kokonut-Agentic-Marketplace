@@ -25,7 +25,6 @@ const defaultPreferences: Omit<EmailPreferences, 'email'> = {
   types: {
     payment: true,
     job: true,
-    proposal: true,
     weekly_digest: true,
     marketing: false,
   },

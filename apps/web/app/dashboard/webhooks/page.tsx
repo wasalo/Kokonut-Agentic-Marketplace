@@ -21,9 +21,6 @@ const EVENT_OPTIONS: WebhookEventType[] = [
   'service.created',
   'service.updated',
   'service.deactivated',
-  'proposal.created',
-  'proposal.evaluation_submitted',
-  'proposal.decided',
   'payment.received',
   'payment.sent',
 ];

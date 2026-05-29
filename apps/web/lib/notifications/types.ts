@@ -1,4 +1,4 @@
-export type NotificationType = 'job' | 'service' | 'proposal' | 'payment' | 'system';
+export type NotificationType = 'job' | 'service' | 'payment' | 'system';
 
 export type NotificationAction =
   | 'job.created'
@@ -14,10 +14,6 @@ export type NotificationAction =
   | 'service.updated'
   | 'service.deactivated'
   | 'service.activated'
-  | 'proposal.created'
-  | 'proposal.evaluation_submitted'
-  | 'proposal.decided'
-  | 'proposal.status_changed'
   | 'evaluator.slashed'
   | 'payment.received'
   | 'payment.sent'
@@ -60,7 +56,6 @@ export interface NotificationPreferences {
   types: {
     job: boolean;
     service: boolean;
-    proposal: boolean;
     payment: boolean;
     system: boolean;
   };
@@ -69,7 +64,6 @@ export interface NotificationPreferences {
 export const NOTIFICATION_TYPE_LABELS: Record<NotificationType, string> = {
   job: 'Jobs',
   service: 'Services',
-  proposal: 'Proposals',
   payment: 'Payments',
   system: 'System',
 };
@@ -88,10 +82,6 @@ export const NOTIFICATION_ACTION_LABELS: Record<NotificationAction, string> = {
   'service.updated': 'Service Updated',
   'service.deactivated': 'Service Deactivated',
   'service.activated': 'Service Activated',
-  'proposal.created': 'New Proposal',
-  'proposal.evaluation_submitted': 'Evaluation Submitted',
-  'proposal.decided': 'Proposal Decided',
-  'proposal.status_changed': 'Status Changed',
   'evaluator.slashed': 'Evaluator Slashed',
   'payment.received': 'Payment Received',
   'payment.sent': 'Payment Sent',
@@ -118,7 +108,6 @@ export const NOTIFICATION_ACTION_LABELS: Record<NotificationAction, string> = {
 export const NOTIFICATION_ICONS: Record<NotificationType, string> = {
   job: 'briefcase',
   service: 'service',
-  proposal: 'document',
   payment: 'wallet',
   system: 'info',
 };
