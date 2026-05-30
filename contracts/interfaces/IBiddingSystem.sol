@@ -44,6 +44,7 @@ interface IBiddingSystem {
         bool jobCreated;     // Whether job has been created
         SessionStatus status;
         bool useRandomEvaluator; // Phase 39: Use random evaluator pool for job creation
+        address paymentToken; // Phase 40: ERC-20 payment token (address(0) = ETH)
     }
     
     struct Bid {
@@ -177,13 +178,15 @@ interface IBiddingSystem {
      * @param deadline When bidding closes
      * @param metadata IPFS hash or data URI with job details
      * @param serviceId Optional linked service from ServiceRegistry
+     * @param paymentToken ERC-20 token address (address(0) for ETH)
      */
     function createBiddingSession(
         address evaluator,
         uint256 maxBudget,
         uint256 deadline,
         bytes calldata metadata,
-        uint256 serviceId
+        uint256 serviceId,
+        address paymentToken
     ) external payable returns (uint256 sessionId);
     
     /**

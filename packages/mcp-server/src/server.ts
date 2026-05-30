@@ -1,6 +1,6 @@
 import { createServer, IncomingMessage, ServerResponse } from 'http';
 import { parse } from 'url';
-import { publicClient, CONTRACTS, JOB_STATUS } from './client.js';
+import { publicClient, CONTRACTS, JOB_STATUS, BIDDING_SYSTEM_ABI } from './client.js';
 import { createWallet, listWallets, getWallet, signMessage } from '@open-wallet-standard/core';
 
 const PORT = parseInt(process.env.MCP_PORT || '3100', 10);
@@ -245,6 +245,74 @@ async function getAgentReputation(address: string) {
   }
 }
 
+const SESSION_STATUS: Record<number, string> = {
+  0: 'Active',
+  1: 'BiddingClosed',
+  2: 'WinnerSelected',
+  3: 'JobCreated',
+  4: 'Completed',
+  5: 'Cancelled',
+};
+
+async function getBiddingSession(sessionId: string) {
+  try {
+    const session = (await publicClient.readContract({
+      address: CONTRACTS.biddingSystem,
+      abi: BIDDING_SYSTEM_ABI,
+      functionName: 'getSession',
+      args: [BigInt(sessionId)],
+    })) as unknown as {
+      id: bigint; creator: string; evaluator: string; maxBudget: bigint;
+      deadline: bigint; revealWindowEnd: bigint; metadata: string;
+      serviceId: bigint; jobId: bigint; winner: string; winningBidId: bigint;
+      jobCreated: boolean; status: number; useRandomEvaluator: boolean;
+      paymentToken: string;
+    };
+    return {
+      sessionId: Number(session.id),
+      creator: session.creator,
+      evaluator: session.evaluator,
+      maxBudget: formatUnits(session.maxBudget, 18),
+      deadline: new Date(Number(session.deadline) * 1000).toISOString(),
+      revealWindowEnd: new Date(Number(session.revealWindowEnd) * 1000).toISOString(),
+      serviceId: Number(session.serviceId),
+      jobId: Number(session.jobId),
+      winner: session.winner === '0x0000000000000000000000000000000000000000' ? null : session.winner,
+      winningBidId: Number(session.winningBidId),
+      jobCreated: session.jobCreated,
+      status: SESSION_STATUS[session.status] || 'Unknown',
+      useRandomEvaluator: session.useRandomEvaluator,
+      paymentToken: session.paymentToken === '0x0000000000000000000000000000000000000000' ? 'ETH' : session.paymentToken,
+    };
+  } catch {
+    return { error: `Bidding session ${sessionId} not found` };
+  }
+}
+
+async function listBiddingSessions(start: number, count: number) {
+  try {
+    const totalSessions = Number(
+      (await publicClient.readContract({
+        address: CONTRACTS.biddingSystem,
+        abi: BIDDING_SYSTEM_ABI,
+        functionName: 'sessionCounter',
+        args: [],
+      })) as bigint
+    );
+
+    const sessions = [];
+    const from = Math.max(1, totalSessions - start - count + 1);
+    const to = Math.max(1, totalSessions - start);
+    for (let i = from; i <= to; i++) {
+      const session = await getBiddingSession(i.toString());
+      sessions.push(session);
+    }
+    return { sessions, total: totalSessions, range: { from, to } };
+  } catch {
+    return { error: 'Failed to list bidding sessions' };
+  }
+}
+
 const EFP_API_BASE = 'https://api.ethfollow.xyz/api/v1';
 
 async function efpFetch<T>(path: string): Promise<T> {
@@ -341,6 +409,10 @@ async function handleToolCall(toolName: string, args: Record<string, unknown>) {
         Number(args.limit) || 10,
         Number(args.offset) || 0
       );
+    case 'bidding_session_get':
+      return getBiddingSession(args.sessionId as string);
+    case 'bidding_sessions_list':
+      return listBiddingSessions(Number(args.start) || 0, Number(args.count) || 20);
     default:
       throw new Error(`Unknown tool: ${toolName}`);
   }
@@ -475,6 +547,24 @@ const TOOLS = [
         offset: { type: 'string', description: 'Result offset (default: 0)' },
       },
       required: ['address'],
+    },
+  },
+  // BiddingSystem Tools
+  {
+    name: 'bidding_session_get',
+    description: 'Get bidding session details by session ID',
+    inputSchema: {
+      type: 'object',
+      properties: { sessionId: { type: 'string', description: 'Bidding session ID' } },
+      required: ['sessionId'],
+    },
+  },
+  {
+    name: 'bidding_sessions_list',
+    description: 'List recent bidding sessions',
+    inputSchema: {
+      type: 'object',
+      properties: { start: { type: 'string' }, count: { type: 'string' } },
     },
   },
 ];

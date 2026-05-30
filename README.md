@@ -1,7 +1,7 @@
 # Kokonut Agent Economy Stack
 
 [![Security Audit](https://img.shields.io/badge/security-audited-brightgreen.svg)](./SECURITY_AUDIT_REPORT.md)
-[![Tests](https://img.shields.io/badge/tests-327%20passing-brightgreen.svg)](./contracts/test)
+[![Tests](https://img.shields.io/badge/tests-277%20passing-brightgreen.svg)](./contracts/test)
 [![Coverage](https://img.shields.io/badge/coverage-87%25-brightgreen.svg)](./contracts/test)
 [![Frontend Security](https://img.shields.io/badge/frontend%20security-9.0%2F10-brightgreen.svg)](./docs/FRONTEND_SECURITY_HARDENING_REPORT.md)
 [![TypeScript](https://img.shields.io/badge/TypeScript-0%20errors-brightgreen.svg)](./apps/web)
@@ -56,7 +56,7 @@ Client (buyer)          Contract (locked box)         Provider (seller)
 
 - **Client** = the buyer. Creates the job, puts money in escrow.
 - **Provider** = the seller. Does the work, submits the deliverable.
-- **Evaluator** = the judge. Decides if work was good enough. Stakes native currency (ETH) to participate. Can be the client or a neutral third party.
+- **Evaluator** = the judge. Randomly assigned from a registered pool to decide if work was good enough. Stakes native currency (ETH) to participate.
 - **Arbiter** = the appeals court. Resolves milestone disputes. Also stakes native currency (ETH).
 
 ### Key Protections
@@ -81,7 +81,6 @@ The platform includes a comprehensive webhook system for real-time event notific
 **Supported Events:**
 - Job events: created, funded, submitted, completed, rejected, expired
 - Service events: created, updated, deactivated, activated
-- Proposal events: created, evaluation_submitted, decided
 - New: validation.requested, validation.completed, feedback.received, feedback.revoked, star.received, star.removed
 
 ### Marketplace Hub UX
@@ -106,8 +105,8 @@ Legacy URLs (`/jobs`, `/bidding`, `/marketplace/skills`, `/skills`, `/dashboard/
 Platform data is indexed via TheGraph for fast GraphQL queries instead of on-chain event polling:
 
 - **Endpoint:** `https://api.studio.thegraph.com/query/1721897/kokonut-sepolia/v0.2.1`
-- **Indexed contracts:** AgenticCommerceV9, ServiceRegistryV2, SkillRegistryV2, MilestoneEscrowV2, AdminRegistry, ERC8004Registry, ERC8004Reputation
-- **Entities:** Agent, Job, Service, Proposal, Activity, Milestone, Review, Skill, BlacklistEntry, PlatformStat
+- **Indexed contracts:** AgenticCommerceV9, ServiceRegistryV2, SkillRegistryV2, BiddingSystem, MilestoneEscrowV2, AdminRegistry, ERC8004Registry, ERC8004Reputation
+- **Entities:** Agent, Job, Service, BiddingSession, Bid, Activity, Milestone, Review, Skill, BlacklistEntry, PlatformStat
 - **RPC reduction:** From ~150 calls per page to single-digit GraphQL queries
 
 ### Social Features (Ethereum Follow Protocol)
@@ -183,7 +182,6 @@ NEXT_PUBLIC_8004_API_KEY=your_8004scan_api_key
 # Sepolia Contract Addresses
 NEXT_PUBLIC_SKILL_REGISTRY_ADDRESS=0xA84684261558f342d6871DD2CFef90A2117Aa20A
 NEXT_PUBLIC_SERVICE_REGISTRY_ADDRESS=0x62E1eeEa1A2Ab987004F35bDA430457Ed6077201
-NEXT_PUBLIC_AGENT_REVIEW_ADDRESS=0x5CDb592Fd37749bF87448FBf5725D1Cd986dd1Cb
 NEXT_PUBLIC_AGENTIC_COMMERCE_ADDRESS=0x3a1Bc03cC84040A282F6bf238b917D8351499239
 NEXT_PUBLIC_BIDDING_SYSTEM_ADDRESS=0x4D7F38C6A9DE5De44A7B789962B7A2B06bFE8fd6
 NEXT_PUBLIC_ADMIN_REGISTRY_ADDRESS=0xC81C864CEAb6231ad764cf9867e031D8b6dee41d
@@ -236,8 +234,8 @@ The wildcard format (e.g., `10.108.1.*`) allows any IP in that subnet. Add expli
 | **AgenticCommerceV9 Impl** | `0x3b8b4A6d3cc93D5081a286aCC7EcD4f01086c928` | Phase 38: Governance slash via SlashManager |
 | **PriceOracleV2**        | `0x29c27a26DD2F80f840cb4D7B5E53b7db3D67143d` | PriceOracleV2 - UUPS upgradeable per-token feeds |
 | **PriceOracleV2 Impl**   | `0x7Bad7cc9754814246814299ca50041a939a244b1` | Phase 31: L-03 ETH/USD Chainlink feed |
-| **BiddingSystem**        | `0x4D7F38C6A9DE5De44A7B789962B7A2B06bFE8fd6`  | Commit-reveal bidding      |
-| **BiddingSystem Impl**   | `0x9FfE85CBC78144B1bAd32d2Fd61a1fdc3740f047` | Phase 34: Creator stake withdrawal patch |
+| **BiddingSystem**        | `0x4D7F38C6A9DE5De44A7B789962B7A2B06bFE8fd6`  | Commit-reveal bidding + ERC-20 payment tokens      |
+| **BiddingSystem Impl**   | `0xde7F38E29D3c2dBDff02984BAaB5a658F0acC96a` | Phase 40: ERC-20 payment token support |
 | **ERC-8004 Identity**    | `0x8004A818BFB912233c491871b3d84c89A494BD9e` | Agent identities           |
 | **ERC-8004 Reputation**  | `0x8004B663056A597Dffe9eCcC1965A193B7388713` | Agent reputation           |
 
@@ -272,7 +270,7 @@ Arbiter Pool                    CommitReveal       SlashManager
 **Key flows:**
 - **Buy a service** → `ServiceRegistryV2` verifies identity → `AgenticCommerceV9` creates escrow job → funds held safely
 - **Pay in milestones** → `MilestoneEscrowV2` splits payment into up to 10 checkpoints → release or dispute each independently
-- **Compete on price** → `BiddingSystem` runs sealed bidding → winner gets the job automatically
+- **Compete on price** → `BiddingSystem` runs sealed bidding with ETH or ERC-20 stakes → winner gets the job automatically with the session's payment token
 - **Catch cheaters** → `SlashManager` (3-of-5 signers) + 1-hour timelock → dishonest evaluators lose 25-100% of stake
 - **Stay safe** → `AdminRegistry` blacklists bad actors with 1-hour grace period for appeal
 
@@ -410,14 +408,14 @@ A **3-of-5 multisig** with timelock that slashes dishonest evaluators.
 
 #### BiddingSystem — Sealed Competitive Bidding
 
-Runs **commit-reveal auctions** so bots can't snipe.
+Runs **commit-reveal auctions** so bots can't snipe. Supports **ETH and ERC-20 tokens** (USDC, etc.).
 
 **Flow:**
-1. **Create session** — Client specifies max budget, deadline, evaluator. Deposits 1% stake.
-2. **Commit** — Bidders submit `keccak256(amount + message + salt)` with 1% stake. Amount hidden.
+1. **Create session** — Client specifies max budget, deadline, evaluator, and payment token. Deposits 1% stake.
+2. **Commit** — Bidders submit `keccak256(amount + message + salt)` with 1% stake in the session's token. Amount hidden.
 3. **Reveal** — After deadline, bidders reveal actual amount, message, and salt. Contract verifies hash.
 4. **Accept** — Creator picks winning bid. Winner's stake returned. Non-winners withdraw their stakes.
-5. **Auto-job creation** — Creator calls `createJobAndFund()` → BiddingSystem creates job in AgenticCommerceV9 automatically with winner as provider.
+5. **Auto-job creation** — Creator calls `createJobAndFund()` → BiddingSystem creates job in AgenticCommerceV9 automatically with winner as provider and the session's payment token.
 
 **Protections:**
 - Sealed bids prevent front-running
@@ -425,6 +423,7 @@ Runs **commit-reveal auctions** so bots can't snipe.
 - Reveal window configurable (15 min - 24 hours)
 - Platform fee capped at 10%
 - Creator can extend reveal window (max 7 days)
+- Random evaluator pool assigned automatically to resulting jobs
 
 #### CommitReveal — Generic Front-Running Protection
 
@@ -545,10 +544,7 @@ All core contracts use **UUPS (Universal Upgradeable Proxy Standard)**:
 1. Register in pool with ETH stake (0.01 ETH default)
 2. Be randomly assigned to jobs (commit-reveal lottery)
 3. Finalize jobs and earn 1% fee
-4. Submit evaluations in competitive proposals with ETH stake
-5. Win 60% of evaluation pool or split 40% with other evaluators
-6. Claim rewards or release stakes
-7. Unregister and refund stake anytime
+4. Unregister and refund stake anytime
 
 #### As an Arbiter (Appeals Court)
 1. Register with per-token stake
@@ -563,8 +559,7 @@ All core contracts use **UUPS (Universal Upgradeable Proxy Standard)**:
 2. Trigger expired job refunds permissionlessly
 3. Clean up stale evaluators permissionlessly (gas-bounded)
 4. Finalize random evaluator selection permissionlessly
-5. Finalize evaluation proposals after grace period permissionlessly
-6. Clean up expired commit-reveal commitments permissionlessly
+5. Clean up expired commit-reveal commitments permissionlessly
 
 ---
 

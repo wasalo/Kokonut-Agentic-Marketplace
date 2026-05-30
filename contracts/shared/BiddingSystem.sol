@@ -7,6 +7,7 @@ import "@openzeppelin/contracts-upgradeable/access/Ownable2StepUpgradeable.sol";
 import "@openzeppelin/contracts-upgradeable/utils/PausableUpgradeable.sol";
 import "@openzeppelin/contracts/utils/ReentrancyGuard.sol";
 import "@openzeppelin/contracts/token/ERC20/IERC20.sol";
+import "@openzeppelin/contracts/token/ERC20/utils/SafeERC20.sol";
 import {IAgenticCommerceV9} from "../interfaces/IAgenticCommerceV9.sol";
 import {IBiddingSystem} from "../interfaces/IBiddingSystem.sol";
 import {AdminRegistry} from "./AdminRegistry.sol";
@@ -37,6 +38,7 @@ contract BiddingSystem is
     PausableUpgradeable,
     IBiddingSystem
 {
+    using SafeERC20 for IERC20;
     error BiddingSystem__Already_committed();
     error BiddingSystem__Already_revealed();
     error BiddingSystem__Bid_already_accepted();
@@ -204,14 +206,23 @@ contract BiddingSystem is
         uint256 maxBudget,
         uint256 deadline,
         bytes calldata metadata,
-        uint256 serviceId
+        uint256 serviceId,
+        address paymentToken
     ) external payable nonReentrant whenNotPaused returns (uint256 sessionId) {
         // Phase 39: Allow address(0) for random evaluator pool selection
         bool useRandomEvaluator = (evaluator == address(0));
         if (!(maxBudget > 0)) revert BiddingSystem__Zero_budget();
         if (!(deadline > block.timestamp + MIN_SESSION_DURATION)) revert BiddingSystem__Duration_too_short();
         if (!(deadline <= block.timestamp + MAX_SESSION_DURATION)) revert BiddingSystem__Duration_too_long();
-        if (!(msg.value >= calculateStake(maxBudget))) revert BiddingSystem__Insufficient_stake_for_session();
+
+        // Phase 40: Validate payment token and collect stake
+        uint256 stakeAmount = calculateStake(maxBudget);
+        _receiveToken(paymentToken, msg.sender, stakeAmount);
+
+        // Refund excess for ETH payments
+        if (paymentToken == address(0)) {
+            _refundExcess(paymentToken, msg.sender, msg.value, stakeAmount);
+        }
 
         // Bad Actor: Check if wallets are blacklisted (skip evaluator check for random)
         if (adminRegistry != address(0)) {
@@ -236,17 +247,11 @@ contract BiddingSystem is
             winningBidId: 0,
             jobCreated: false,
             status: SessionStatus.Active,
-            useRandomEvaluator: useRandomEvaluator
+            useRandomEvaluator: useRandomEvaluator,
+            paymentToken: paymentToken
         });
         
-        uint256 stakeAmount = calculateStake(maxBudget);
         totalStakesHeld[sessionId] += stakeAmount;
-        
-        // Refund excess ETH
-        uint256 excess = msg.value - stakeAmount;
-        if (excess > 0) {
-            _sendEth(msg.sender, excess);
-        }
         
         emit BiddingSessionCreated(
             sessionId,
@@ -284,7 +289,13 @@ contract BiddingSystem is
 
         uint256 stakeAmount = calculateStake(session.maxBudget);
         
-        if (!(msg.value >= stakeAmount)) revert BiddingSystem__Insufficient_stake();
+        // Phase 40: Collect stake in session's payment token
+        _receiveToken(session.paymentToken, msg.sender, stakeAmount);
+        
+        // Refund excess for ETH payments
+        if (session.paymentToken == address(0)) {
+            _refundExcess(session.paymentToken, msg.sender, msg.value, stakeAmount);
+        }
         
         // Create bid entry
         uint256 bidId = sessionBids[sessionId].length + 1;
@@ -306,12 +317,6 @@ contract BiddingSystem is
         bidderToBidIndex[sessionId][msg.sender] = bidId;
         validCommits[sessionId][commitHash] = true;
         totalStakesHeld[sessionId] += stakeAmount;
-        
-        // Refund excess
-        uint256 excess = msg.value - stakeAmount;
-        if (excess > 0) {
-            _sendEth(msg.sender, excess);
-        }
         
         emit BidCommitted(sessionId, msg.sender, commitHash, stakeAmount);
     }
@@ -379,7 +384,8 @@ contract BiddingSystem is
         bid.stake = 0;
         totalStakesHeld[sessionId] -= stake;
         
-        _sendEth(bid.bidder, stake);
+        // Phase 40: Refund in session's payment token
+        _sendToken(session.paymentToken, bid.bidder, stake);
         
         emit BidAccepted(sessionId, bid.bidder, bid.proposedAmount, bidId);
         emit StakeClaimed(sessionId, bid.bidder, stake);
@@ -406,7 +412,8 @@ contract BiddingSystem is
         bid.stake = 0;
         totalStakesHeld[sessionId] -= stake;
         
-        _sendEth(bid.bidder, stake);
+        // Phase 40: Refund in session's payment token
+        _sendToken(session.paymentToken, bid.bidder, stake);
         
         emit BidRejected(sessionId, bidId, bid.bidder, reason);
     }
@@ -441,7 +448,8 @@ contract BiddingSystem is
         bid.stakeWithdrawn = true;
         totalStakesHeld[sessionId] -= amount;
         
-        _sendEth(msg.sender, amount);
+        // Phase 40: Refund in session's payment token
+        _sendToken(session.paymentToken, msg.sender, amount);
         
         emit StakeWithdrawn(sessionId, msg.sender, amount);
     }
@@ -479,7 +487,8 @@ contract BiddingSystem is
         uint256 bidAmount = sessionBids[sessionId][session.winningBidId - 1].proposedAmount;
         uint256 totalPayment = bidAmount + (bidAmount * platformFeeBP) / FEE_DENOMINATOR;
         
-        if (!(msg.value >= totalPayment)) revert BiddingSystem__Insufficient_payment();
+        // Phase 40: Collect payment in session's token
+        _receiveToken(session.paymentToken, msg.sender, totalPayment);
         
         // Set guard flags BEFORE external call to prevent reentrancy
         session.jobCreated = true;
@@ -487,12 +496,13 @@ contract BiddingSystem is
         
         // Create job in AgenticCommerceV9 with budget at creation for the session creator (client)
         // Phase 39: Pass address(0) when useRandomEvaluator is true to trigger random selection
+        // Phase 40: Pass session.paymentToken
         address jobEvaluator = session.useRandomEvaluator ? address(0) : session.evaluator;
         jobId = IAgenticCommerceV9(commerce).createJobForClient{value: bidAmount}(
             msg.sender,           // client (session creator)
             session.winner,       // provider
             bidAmount,            // budget
-            address(0),           // paymentToken: ETH
+            session.paymentToken, // paymentToken (Phase 40: from session)
             session.serviceId,    // serviceId
             jobExpiredAt,         // expiredAt
             description,          // description
@@ -507,16 +517,10 @@ contract BiddingSystem is
         // Store jobId after external call (depends on return value)
         session.jobId = jobId;
         
-        // Pay platform fee
+        // Pay platform fee (tracked for accounting; actual transfer happens via job creation)
         uint256 fee = (bidAmount * platformFeeBP) / FEE_DENOMINATOR;
         if (fee > 0) {
             totalAccumulatedFees += fee;
-        }
-        
-        // Refund excess
-        uint256 excess = msg.value - totalPayment;
-        if (excess > 0) {
-            _sendEth(msg.sender, excess);
         }
         
         // Return winner's stake
@@ -524,7 +528,7 @@ contract BiddingSystem is
         if (winStake > 0) {
             sessionBids[sessionId][session.winningBidId - 1].stake = 0;
             totalStakesHeld[sessionId] -= winStake;
-            _sendEth(session.winner, winStake);
+            _sendToken(session.paymentToken, session.winner, winStake);
         }
 
         // Return creator's session stake
@@ -532,7 +536,7 @@ contract BiddingSystem is
         if (creatorStake > 0 && totalStakesHeld[sessionId] >= creatorStake) {
             creatorStakeWithdrawn[sessionId] = true;
             totalStakesHeld[sessionId] -= creatorStake;
-            _sendEth(session.creator, creatorStake);
+            _sendToken(session.paymentToken, session.creator, creatorStake);
         }
         
         emit JobCreatedFromSession(sessionId, jobId, session.winner, bidAmount);
@@ -569,7 +573,8 @@ contract BiddingSystem is
             creatorStakeWithdrawn[sessionId] = true;
             totalStakesHeld[sessionId] -= creatorStake;
         }
-        _sendEth(msg.sender, creatorStake);
+        // Phase 40: Refund in session's payment token
+        _sendToken(session.paymentToken, msg.sender, creatorStake);
         
         emit SessionCancelled(sessionId, msg.sender);
     }
@@ -720,5 +725,30 @@ contract BiddingSystem is
         if (amount == 0) return;
         (bool success, ) = payable(to).call{value: amount}("");
         if (!success) revert BiddingSystem__ETH_transfer_failed();
+    }
+
+    function _sendToken(address token, address to, uint256 amount) internal {
+        if (amount == 0) return;
+        if (token == address(0)) {
+            _sendEth(to, amount);
+        } else {
+            IERC20(token).safeTransfer(to, amount);
+        }
+    }
+
+    function _receiveToken(address token, address from, uint256 amount) internal {
+        if (amount == 0) return;
+        if (token == address(0)) {
+            if (msg.value < amount) revert BiddingSystem__Insufficient_stake();
+        } else {
+            IERC20(token).safeTransferFrom(from, address(this), amount);
+        }
+    }
+
+    function _refundExcess(address token, address from, uint256 received, uint256 required) internal {
+        uint256 excess = received - required;
+        if (excess > 0) {
+            _sendToken(token, from, excess);
+        }
     }
 }

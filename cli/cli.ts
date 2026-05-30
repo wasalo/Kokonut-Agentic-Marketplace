@@ -3017,23 +3017,29 @@ program
   });
 
 // =============================================================================
-// BIDDING SYSTEM COMMANDS (Phase 11 - Standalone Bidding)
-// =============================================================================
+// BIDDING SYSTEM COMMANDS (Phase 41 - Updated for paymentToken + missing commands)
 
 const BIDDING_SYSTEM_ABI_PARSED = parseAbi([
-  'function createBiddingSession(address evaluator, uint256 maxBudget, uint256 deadline, bytes metadata, uint256 serviceId) external payable returns (uint256 sessionId)',
+  'function createBiddingSession(address evaluator, uint256 maxBudget, uint256 deadline, bytes metadata, uint256 serviceId, address paymentToken) external payable returns (uint256 sessionId)',
   'function commitBid(uint256 sessionId, bytes32 commitHash) external payable',
   'function revealBid(uint256 sessionId, uint256 amount, string message, bytes32 salt) external',
   'function acceptBid(uint256 sessionId, uint256 bidId) external',
+  'function rejectBid(uint256 sessionId, uint256 bidId, string reason) external',
   'function withdrawStake(uint256 sessionId) external',
+  'function withdrawCreatorStake(uint256 sessionId) external',
   'function claimStake(uint256 sessionId) external',
+  'function completeSession(uint256 sessionId) external',
   'function createJobAndFund(uint256 sessionId, uint256 jobExpiredAt, string description) external payable returns (uint256 jobId)',
   'function cancelSession(uint256 sessionId) external',
-  'function getSession(uint256 sessionId) external view returns ((uint256 id, address creator, address evaluator, uint256 maxBudget, uint256 deadline, uint256 revealWindowEnd, bytes metadata, uint256 serviceId, uint256 jobId, address winner, uint256 winningBidId, bool jobCreated, uint8 status))',
+  'function extendRevealWindow(uint256 sessionId, uint256 additionalSeconds) external',
+  'function getSession(uint256 sessionId) external view returns ((uint256 id, address creator, address evaluator, uint256 maxBudget, uint256 deadline, uint256 revealWindowEnd, bytes metadata, uint256 serviceId, uint256 jobId, address winner, uint256 winningBidId, bool jobCreated, uint8 status, bool useRandomEvaluator, address paymentToken))',
+  'function getBid(uint256 sessionId, uint256 bidId) external view returns ((uint256 bidId, address bidder, uint256 proposedAmount, uint256 stake, string message, bytes32 commitHash, bool revealed, bool accepted, bool rejected, bool stakeWithdrawn, uint256 timestamp))',
   'function getUserBid(uint256 sessionId, address user) external view returns ((uint256 bidId, address bidder, uint256 proposedAmount, uint256 stake, string message, bytes32 commitHash, bool revealed, bool accepted, bool rejected, bool stakeWithdrawn, uint256 timestamp))',
+  'function getRevealedBids(uint256 sessionId) external view returns ((uint256 bidId, address bidder, uint256 proposedAmount, uint256 stake, string message, bytes32 commitHash, bool revealed, bool accepted, bool rejected, bool stakeWithdrawn, uint256 timestamp)[])',
   'function sessionCounter() external view returns (uint256)',
   'function calculateStake(uint256 maxBudget) external pure returns (uint256)',
-  'event BiddingSessionCreated(uint256 indexed sessionId, address indexed creator, uint256 maxBudget)',
+  'event BiddingSessionCreated(uint256 indexed sessionId, address indexed creator, address indexed evaluator, uint256 maxBudget, uint256 deadline, uint256 serviceId)',
+  'event JobCreatedFromSession(uint256 indexed sessionId, uint256 indexed jobId, address indexed winner, uint256 amount)',
 ]);
 
 program
@@ -3044,10 +3050,12 @@ program
   .requiredOption('--deadline <timestamp>', 'Deadline timestamp (Unix epoch)', parseInt)
   .option('--metadata <string>', 'IPFS or data URI for job metadata')
   .option('--service-id <id>', 'Linked service ID', parseInt)
+  .option('--payment-token <address>', 'Payment token address (0x0 for ETH, or ERC-20 address)')
   .action(async options => {
     try {
       const opts = program.opts();
       initWallet(undefined, opts.wallet, opts.passphrase);
+      const paymentToken = options.paymentToken || ZeroAddress;
 
       if (!config.contracts.biddingSystem) {
         console.error(chalk.red('❌ BiddingSystem not configured'));
@@ -3060,11 +3068,13 @@ program
       );
       const maxBudget = viemParseEther(options.maxBudget.toString());
       const stake = (maxBudget * 100n) / 10000n; // 1% stake
+      const isEth = paymentToken === ZeroAddress;
 
       console.log(chalk.cyan('Creating bidding session...'));
       console.log(chalk.dim('  Evaluator:'), options.evaluator);
       console.log(chalk.dim('  Max Budget:'), options.maxBudget, 'ETH');
-      console.log(chalk.dim('  Stake:'), viemFormatEther(stake), 'ETH');
+      console.log(chalk.dim('  Payment Token:'), isEth ? 'ETH' : paymentToken);
+      console.log(chalk.dim('  Stake:'), viemFormatEther(stake), isEth ? 'ETH' : '(ERC-20)');
       console.log(chalk.dim('  Deadline:'), new Date(options.deadline * 1000).toISOString());
 
       const hash = await contract.write.createBiddingSession(
@@ -3074,8 +3084,9 @@ program
           BigInt(options.deadline),
           (options.metadata || '0x') as `0x${string}`,
           BigInt(options.serviceId || 0),
+          paymentToken as Address,
         ],
-        { value: stake }
+        isEth ? { value: stake } : {}
       );
 
       console.log(chalk.cyan('Transaction sent:'), hash);
@@ -3292,6 +3303,8 @@ program
         statusNames[Number(session.status || session[12])] || 'Unknown'
       );
       console.log(chalk.dim('  Job Created:'), session.jobCreated || session[11]);
+      console.log(chalk.dim('  Random Evaluator:'), session.useRandomEvaluator || session[13] || false);
+      console.log(chalk.dim('  Payment Token:'), (session.paymentToken || session[14]) === ZeroAddress ? 'ETH' : session.paymentToken || session[14]);
     } catch (error: unknown) {
       const err = error as { message?: string };
       console.error(chalk.red('❌ Error:'), err.message);
@@ -3325,6 +3338,310 @@ program
       console.log(chalk.cyan('Transaction sent:'), hash);
       await waitForTransactionReceipt(hash);
       console.log(chalk.green('✅ Stake withdrawn!'));
+    } catch (error: unknown) {
+      const err = error as { message?: string };
+      console.error(chalk.red('❌ Error:'), err.message);
+    }
+  });
+
+program
+  .command('reject-bid')
+  .description('Reject a bid (session creator only)')
+  .requiredOption('--session <id>', 'Session ID', parseInt)
+  .requiredOption('--bid-id <id>', 'Bid ID to reject', parseInt)
+  .requiredOption('--reason <string>', 'Reason for rejection')
+  .action(async options => {
+    try {
+      const opts = program.opts();
+      initWallet(undefined, opts.wallet, opts.passphrase);
+
+      if (!config.contracts.biddingSystem) {
+        console.error(chalk.red('❌ BiddingSystem not configured'));
+        return;
+      }
+
+      const contract = getContractInstance(
+        config.contracts.biddingSystem as Address,
+        BIDDING_SYSTEM_ABI_PARSED
+      );
+
+      console.log(chalk.cyan('Rejecting bid...'));
+      console.log(chalk.dim('  Session ID:'), options.session);
+      console.log(chalk.dim('  Bid ID:'), options.bidId);
+      console.log(chalk.dim('  Reason:'), options.reason);
+
+      const hash = await contract.write.rejectBid([
+        BigInt(options.session),
+        BigInt(options.bidId),
+        options.reason,
+      ]);
+
+      console.log(chalk.cyan('Transaction sent:'), hash);
+      await waitForTransactionReceipt(hash);
+      console.log(chalk.green('✅ Bid rejected!'));
+    } catch (error: unknown) {
+      const err = error as { message?: string };
+      console.error(chalk.red('❌ Error:'), err.message);
+    }
+  });
+
+program
+  .command('cancel-session')
+  .description('Cancel a bidding session (creator only)')
+  .requiredOption('--session <id>', 'Session ID', parseInt)
+  .action(async options => {
+    try {
+      const opts = program.opts();
+      initWallet(undefined, opts.wallet, opts.passphrase);
+
+      if (!config.contracts.biddingSystem) {
+        console.error(chalk.red('❌ BiddingSystem not configured'));
+        return;
+      }
+
+      const contract = getContractInstance(
+        config.contracts.biddingSystem as Address,
+        BIDDING_SYSTEM_ABI_PARSED
+      );
+
+      console.log(chalk.cyan('Cancelling session...'));
+      console.log(chalk.dim('  Session ID:'), options.session);
+
+      const hash = await contract.write.cancelSession([BigInt(options.session)]);
+
+      console.log(chalk.cyan('Transaction sent:'), hash);
+      await waitForTransactionReceipt(hash);
+      console.log(chalk.green('✅ Session cancelled!'));
+    } catch (error: unknown) {
+      const err = error as { message?: string };
+      console.error(chalk.red('❌ Error:'), err.message);
+    }
+  });
+
+program
+  .command('complete-session')
+  .description('Complete a bidding session')
+  .requiredOption('--session <id>', 'Session ID', parseInt)
+  .action(async options => {
+    try {
+      const opts = program.opts();
+      initWallet(undefined, opts.wallet, opts.passphrase);
+
+      if (!config.contracts.biddingSystem) {
+        console.error(chalk.red('❌ BiddingSystem not configured'));
+        return;
+      }
+
+      const contract = getContractInstance(
+        config.contracts.biddingSystem as Address,
+        BIDDING_SYSTEM_ABI_PARSED
+      );
+
+      console.log(chalk.cyan('Completing session...'));
+      console.log(chalk.dim('  Session ID:'), options.session);
+
+      const hash = await contract.write.completeSession([BigInt(options.session)]);
+
+      console.log(chalk.cyan('Transaction sent:'), hash);
+      await waitForTransactionReceipt(hash);
+      console.log(chalk.green('✅ Session completed!'));
+    } catch (error: unknown) {
+      const err = error as { message?: string };
+      console.error(chalk.red('❌ Error:'), err.message);
+    }
+  });
+
+program
+  .command('extend-reveal-window')
+  .description('Extend the reveal window (creator only)')
+  .requiredOption('--session <id>', 'Session ID', parseInt)
+  .requiredOption('--seconds <n>', 'Additional seconds to add', parseInt)
+  .action(async options => {
+    try {
+      const opts = program.opts();
+      initWallet(undefined, opts.wallet, opts.passphrase);
+
+      if (!config.contracts.biddingSystem) {
+        console.error(chalk.red('❌ BiddingSystem not configured'));
+        return;
+      }
+
+      const contract = getContractInstance(
+        config.contracts.biddingSystem as Address,
+        BIDDING_SYSTEM_ABI_PARSED
+      );
+
+      console.log(chalk.cyan('Extending reveal window...'));
+      console.log(chalk.dim('  Session ID:'), options.session);
+      console.log(chalk.dim('  Additional seconds:'), options.seconds);
+
+      const hash = await contract.write.extendRevealWindow([
+        BigInt(options.session),
+        BigInt(options.seconds),
+      ]);
+
+      console.log(chalk.cyan('Transaction sent:'), hash);
+      await waitForTransactionReceipt(hash);
+      console.log(chalk.green('✅ Reveal window extended!'));
+    } catch (error: unknown) {
+      const err = error as { message?: string };
+      console.error(chalk.red('❌ Error:'), err.message);
+    }
+  });
+
+program
+  .command('claim-stake')
+  .description('Claim your stake (winner only)')
+  .requiredOption('--session <id>', 'Session ID', parseInt)
+  .action(async options => {
+    try {
+      const opts = program.opts();
+      initWallet(undefined, opts.wallet, opts.passphrase);
+
+      if (!config.contracts.biddingSystem) {
+        console.error(chalk.red('❌ BiddingSystem not configured'));
+        return;
+      }
+
+      const contract = getContractInstance(
+        config.contracts.biddingSystem as Address,
+        BIDDING_SYSTEM_ABI_PARSED
+      );
+
+      console.log(chalk.cyan('Claiming stake...'));
+      console.log(chalk.dim('  Session ID:'), options.session);
+
+      const hash = await contract.write.claimStake([BigInt(options.session)]);
+
+      console.log(chalk.cyan('Transaction sent:'), hash);
+      await waitForTransactionReceipt(hash);
+      console.log(chalk.green('✅ Stake claimed!'));
+    } catch (error: unknown) {
+      const err = error as { message?: string };
+      console.error(chalk.red('❌ Error:'), err.message);
+    }
+  });
+
+program
+  .command('create-job-from-session')
+  .description('Create and fund a job from a winning bid')
+  .requiredOption('--session <id>', 'Session ID', parseInt)
+  .requiredOption('--expires-in <days>', 'Days until job expires', parseInt)
+  .requiredOption('--description <string>', 'Job description')
+  .action(async options => {
+    try {
+      const opts = program.opts();
+      initWallet(undefined, opts.wallet, opts.passphrase);
+
+      if (!config.contracts.biddingSystem) {
+        console.error(chalk.red('❌ BiddingSystem not configured'));
+        return;
+      }
+
+      const contract = getContractInstance(
+        config.contracts.biddingSystem as Address,
+        BIDDING_SYSTEM_ABI_PARSED
+      );
+
+      const expiredAt = BigInt(Math.floor(Date.now() / 1000) + options.expiresIn * 86400);
+
+      console.log(chalk.cyan('Creating job from session...'));
+      console.log(chalk.dim('  Session ID:'), options.session);
+      console.log(chalk.dim('  Expires in:'), options.expiresIn, 'days');
+      console.log(chalk.dim('  Description:'), options.description);
+
+      const hash = await contract.write.createJobAndFund([
+        BigInt(options.session),
+        expiredAt,
+        options.description,
+      ]);
+
+      console.log(chalk.cyan('Transaction sent:'), hash);
+      const receipt = await waitForTransactionReceipt(hash);
+
+      let jobId;
+      for (const log of receipt.logs) {
+        try {
+          const parsed = parseLog({ log, abi: BIDDING_SYSTEM_ABI_PARSED });
+          if (parsed?.eventName === 'JobCreatedFromSession') {
+            jobId = (parsed.args as any).jobId.toString();
+            break;
+          }
+        } catch {
+          /* ignore */
+        }
+      }
+
+      if (jobId) {
+        console.log(chalk.green('✅ Job created!'));
+        console.log(chalk.cyan('Job ID:'), jobId);
+      } else {
+        console.log(chalk.green('✅ Job created!'));
+      }
+      console.log(chalk.cyan('Gas used:'), receipt.gasUsed.toString());
+    } catch (error: unknown) {
+      const err = error as { message?: string };
+      console.error(chalk.red('❌ Error:'), err.message);
+    }
+  });
+
+program
+  .command('get-bid')
+  .description('Get details of a specific bid')
+  .requiredOption('--session <id>', 'Session ID', parseInt)
+  .requiredOption('--bid-id <id>', 'Bid ID', parseInt)
+  .action(async options => {
+    try {
+      const opts = program.opts();
+      initWallet(undefined, opts.wallet, opts.passphrase);
+
+      if (!config.contracts.biddingSystem) {
+        console.error(chalk.red('❌ BiddingSystem not configured'));
+        return;
+      }
+
+      const contract = getContractInstance(
+        config.contracts.biddingSystem as Address,
+        BIDDING_SYSTEM_ABI_PARSED
+      );
+
+      const bid = (await contract.read.getBid([BigInt(options.session), BigInt(options.bidId)])) as any;
+
+      console.log(chalk.bold('\n📋 Bid Details'));
+      console.log(chalk.dim('  Bid ID:'), bid.bidId || bid[0] || 'N/A');
+      console.log(chalk.dim('  Bidder:'), bid.bidder || bid[1] || 'N/A');
+      console.log(chalk.dim('  Proposed Amount:'), bid.proposedAmount ? viemFormatEther(bid.proposedAmount || bid[2]) + ' ETH' : 'Not revealed');
+      console.log(chalk.dim('  Stake:'), viemFormatEther(bid.stake || bid[3]), 'ETH');
+      console.log(chalk.dim('  Revealed:'), bid.revealed || bid[6] || false);
+      console.log(chalk.dim('  Accepted:'), bid.accepted || bid[7] || false);
+      console.log(chalk.dim('  Rejected:'), bid.rejected || bid[8] || false);
+      console.log(chalk.dim('  Stake Withdrawn:'), bid.stakeWithdrawn || bid[9] || false);
+    } catch (error: unknown) {
+      const err = error as { message?: string };
+      console.error(chalk.red('❌ Error:'), err.message);
+    }
+  });
+
+program
+  .command('get-session-count')
+  .description('Get total number of bidding sessions')
+  .action(async () => {
+    try {
+      const opts = program.opts();
+      initWallet(undefined, opts.wallet, opts.passphrase);
+
+      if (!config.contracts.biddingSystem) {
+        console.error(chalk.red('❌ BiddingSystem not configured'));
+        return;
+      }
+
+      const contract = getContractInstance(
+        config.contracts.biddingSystem as Address,
+        BIDDING_SYSTEM_ABI_PARSED
+      );
+
+      const count = await contract.read.sessionCounter();
+      console.log(chalk.green('Total bidding sessions:'), count.toString());
     } catch (error: unknown) {
       const err = error as { message?: string };
       console.error(chalk.red('❌ Error:'), err.message);
@@ -3928,12 +4245,20 @@ program
     console.log(chalk.dim('  get-my-bid') + '             Use get-bidding-session instead');
     console.log(chalk.dim('  get-job-bid-count') + '      Removed from V9');
     console.log(chalk.cyan('  get-client-job-count') + '   Get job count for a client');
-    console.log(chalk.cyan('  -- BiddingSystem (Phase 11) --'));
+    console.log(chalk.cyan('  -- BiddingSystem (Phase 41) --'));
     console.log(chalk.cyan('  create-bidding-session') + '  Create a new bidding session');
     console.log(chalk.cyan('  commit-bidding') + '         Commit a sealed bid');
     console.log(chalk.cyan('  reveal-bidding') + '         Reveal your committed bid');
     console.log(chalk.cyan('  accept-bidding') + '         Accept a winning bid');
+    console.log(chalk.cyan('  reject-bid') + '             Reject a bid (creator only)');
+    console.log(chalk.cyan('  cancel-session') + '         Cancel a session (creator only)');
+    console.log(chalk.cyan('  complete-session') + '       Complete a bidding session');
+    console.log(chalk.cyan('  extend-reveal-window') + '   Extend the reveal window');
+    console.log(chalk.cyan('  claim-stake') + '            Claim your stake (winner)');
+    console.log(chalk.cyan('  create-job-from-session') + ' Create job from winning bid');
     console.log(chalk.cyan('  get-bidding-session') + '    Get session details');
+    console.log(chalk.cyan('  get-bid') + '                Get specific bid details');
+    console.log(chalk.cyan('  get-session-count') + '      Get total session count');
     console.log(chalk.cyan('  withdraw-bidding-stake') + '  Withdraw your stake');
     console.log(chalk.cyan('  activate-service') + '       Activate a deactivated service');
     console.log(chalk.cyan('  get-service-counter') + '   Get total service counter');

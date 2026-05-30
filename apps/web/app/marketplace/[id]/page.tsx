@@ -32,7 +32,7 @@ import {
   useSetPaymentAddress,
   useWithdrawServiceBond,
 } from '@/lib/hooks/useServices';
-import { useServiceContract } from '@/lib/hooks/useServicesContract';
+import { useServiceContract } from '@/lib/hooks/useServices';
 import { useAgentReputation } from '@/lib/hooks/useAgentReputation';
 import { useTokenPriceConversion } from '@/lib/hooks/useTokenConversion';
 import {

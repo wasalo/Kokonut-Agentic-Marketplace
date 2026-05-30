@@ -1,7 +1,7 @@
 'use client';
 
 import { memo } from 'react';
-import { Service } from '@/lib/hooks/useServicesContract';
+import { Service } from '@/lib/hooks/useServices';
 import { useTokenPriceConversion } from '@/lib/hooks/useTokenConversion';
 import { Card } from '@heroui/react';
 import { useRouter } from 'next/navigation';

@@ -15,7 +15,7 @@ export const CONTRACTS: Record<string, ContractAddress> = {
   erc8004Reputation: '0x8004B663056A597Dffe9eCcC1965A193B7388713',
   serviceRegistry: '0x62E1eeEa1A2Ab987004F35bDA430457Ed6077201',
   agenticCommerce: '0x3a1Bc03cC84040A282F6bf238b917D8351499239', // AgenticCommerceV9
-  agentReview: '0x5CDb592Fd37749bF87448FBf5725D1Cd986dd1Cb', // AgentReviewV5
+  biddingSystem: '0x4D7F38C6A9DE5De44A7B789962B7A2B06bFE8fd6', // BiddingSystem (Phase 40)
   skillRegistry: '0xA84684261558f342d6871DD2CFef90A2117Aa20A',
   priceOracle: '0x29c27a26DD2F80f840cb4D7B5E53b7db3D67143d', // PriceOracleV2
   milestoneEscrow: '0xc89D63057288092012c5D3cEF66121C1F8449a9f', // MilestoneEscrowV2
@@ -144,6 +144,95 @@ export const IDENTITY_REGISTRY_ABI = [
     type: 'function',
     inputs: [{ name: 'agentAddress', type: 'address' }],
     outputs: [{ name: '', type: 'bool' }],
+    stateMutability: 'view',
+  },
+] as const;
+
+export const BIDDING_SYSTEM_ABI = [
+  {
+    name: 'getSession',
+    type: 'function',
+    inputs: [{ name: 'sessionId', type: 'uint256' }],
+    outputs: [
+      {
+        type: 'tuple',
+        components: [
+          { name: 'id', type: 'uint256' },
+          { name: 'creator', type: 'address' },
+          { name: 'evaluator', type: 'address' },
+          { name: 'maxBudget', type: 'uint256' },
+          { name: 'deadline', type: 'uint256' },
+          { name: 'revealWindowEnd', type: 'uint256' },
+          { name: 'metadata', type: 'bytes' },
+          { name: 'serviceId', type: 'uint256' },
+          { name: 'jobId', type: 'uint256' },
+          { name: 'winner', type: 'address' },
+          { name: 'winningBidId', type: 'uint256' },
+          { name: 'jobCreated', type: 'bool' },
+          { name: 'status', type: 'uint8' },
+          { name: 'useRandomEvaluator', type: 'bool' },
+          { name: 'paymentToken', type: 'address' },
+        ],
+      },
+    ],
+    stateMutability: 'view',
+  },
+  {
+    name: 'sessionCounter',
+    type: 'function',
+    inputs: [],
+    outputs: [{ name: '', type: 'uint256' }],
+    stateMutability: 'view',
+  },
+  {
+    name: 'getBid',
+    type: 'function',
+    inputs: [
+      { name: 'sessionId', type: 'uint256' },
+      { name: 'bidId', type: 'uint256' },
+    ],
+    outputs: [
+      {
+        type: 'tuple',
+        components: [
+          { name: 'bidId', type: 'uint256' },
+          { name: 'bidder', type: 'address' },
+          { name: 'proposedAmount', type: 'uint256' },
+          { name: 'stake', type: 'uint256' },
+          { name: 'message', type: 'string' },
+          { name: 'commitHash', type: 'bytes32' },
+          { name: 'revealed', type: 'bool' },
+          { name: 'accepted', type: 'bool' },
+          { name: 'rejected', type: 'bool' },
+          { name: 'stakeWithdrawn', type: 'bool' },
+          { name: 'timestamp', type: 'uint256' },
+        ],
+      },
+    ],
+    stateMutability: 'view',
+  },
+  {
+    name: 'getRevealedBids',
+    type: 'function',
+    inputs: [{ name: 'sessionId', type: 'uint256' }],
+    outputs: [
+      {
+        type: 'tuple[]',
+        components: [
+          { name: 'bidId', type: 'uint256' },
+          { name: 'bidder', type: 'address' },
+          { name: 'proposedAmount', type: 'uint256' },
+          { name: 'stake', type: 'uint256' },
+          { name: 'message', type: 'string' },
+          { name: 'commitHash', type: 'bytes32' },
+          { name: 'revealed', type: 'bool' },
+          { name: 'accepted', type: 'bool' },
+          { name: 'rejected', type: 'bool' },
+          { name: 'stakeWithdrawn', type: 'bool' },
+          { name: 'timestamp', type: 'uint256' },
+        ],
+      },
+    ],
     stateMutability: 'view',
   },
 ] as const;

@@ -3,12 +3,14 @@
 import { useState, useCallback, useEffect, useMemo } from 'react';
 import { useRouter } from 'next/navigation';
 import { useAccount, useBalance } from 'wagmi';
-import { ArrowLeft, Loader2, AlertCircle, DollarSign, Clock, Shield, CheckCircle2, Info } from 'lucide-react';
+import { ArrowLeft, Loader2, AlertCircle, DollarSign, Clock, Shield, Info, Wallet } from 'lucide-react';
 import { Card, Button } from '@heroui/react';
 import NextLink from 'next/link';
-import { parseEther, formatEther, toHex } from 'viem';
+import { parseEther, formatEther, formatUnits, parseUnits, toHex } from 'viem';
 import { useCreateBiddingSession } from '@/lib/hooks/useBiddingSystem';
 import { useEvaluatorPoolSize } from '@/lib/hooks/useJobs';
+import { useTokenPriceConversion, ETH_TOKEN, USDC_TOKEN, type Token } from '@/lib/hooks/useTokenConversion';
+import { useUSDCBalance } from '@/lib/hooks/useUSDC';
 import { showToast } from '@/lib/toast';
 
 // Contract limits (must match BiddingSystem.sol)
@@ -17,6 +19,8 @@ const MAX_DEADLINE_DAYS = 30;
 const MAX_DEADLINE_MINUTES = MAX_DEADLINE_DAYS * 24 * 60;
 const GAS_BUFFER_WEI = parseEther('0.01'); // 0.01 ETH buffer for gas
 const MAX_METADATA_LENGTH = 2000;
+
+const PAYMENT_TOKENS: Token[] = [ETH_TOKEN, USDC_TOKEN];
 
 const DEADLINE_PRESETS = [
   { label: '1 hour', minutes: 60 },
@@ -39,13 +43,47 @@ export default function CreateBiddingSessionPage(): JSX.Element {
   const [deadlineMinutes, setDeadlineMinutes] = useState('');
   const [metadata, setMetadata] = useState('');
   const [serviceId, setServiceId] = useState('');
+  const [paymentToken, setPaymentToken] = useState<Token>(ETH_TOKEN);
   const [showConfirm, setShowConfirm] = useState(false);
 
   // Validation state
   const [errors, setErrors] = useState<Record<string, string>>({});
 
-  // ETH balance
+  // Balances
   const { data: ethBalance } = useBalance({ address });
+  const { balance: usdcBalance, formattedBalance: usdcFormatted } = useUSDCBalance(address);
+
+  // Price conversion
+  const { ethPriceInUsd } = useTokenPriceConversion();
+
+  // Get the relevant balance for the selected token
+  const tokenBalance = useMemo(() => {
+    if (paymentToken.symbol === 'ETH') {
+      return ethBalance?.value ?? 0n;
+    }
+    return usdcBalance ?? 0n;
+  }, [paymentToken, ethBalance, usdcBalance]);
+
+  const tokenBalanceFormatted = useMemo(() => {
+    if (paymentToken.symbol === 'ETH') {
+      return ethBalance ? Number(formatEther(ethBalance.value)).toFixed(4) : '0';
+    }
+    return usdcFormatted !== undefined ? usdcFormatted.toFixed(2) : '0';
+  }, [paymentToken, ethBalance, usdcFormatted]);
+
+  // USD equivalent of budget
+  const budgetUsd = useMemo(() => {
+    if (!maxBudget || !ethPriceInUsd) return null;
+    try {
+      const budgetUnits = parseUnits(maxBudget, paymentToken.decimals);
+      const usdValue = paymentToken.symbol === 'ETH'
+        ? Number(formatEther(budgetUnits)) * ethPriceInUsd
+        : Number(formatUnits(budgetUnits, 6)); // USDC is already in USD
+      return usdValue;
+    } catch {
+      return null;
+    }
+  }, [maxBudget, ethPriceInUsd, paymentToken]);
 
   // Evaluator pool info
   const { count: evaluatorPoolSize } = useEvaluatorPoolSize();
@@ -54,12 +92,12 @@ export default function CreateBiddingSessionPage(): JSX.Element {
   const calculatedStake = useMemo(() => {
     if (!maxBudget) return 0n;
     try {
-      const budgetWei = parseEther(maxBudget);
-      return (budgetWei * 100n) / 10000n;
+      const budgetUnits = parseUnits(maxBudget, paymentToken.decimals);
+      return (budgetUnits * 100n) / 10000n;
     } catch {
       return 0n;
     }
-  }, [maxBudget]);
+  }, [maxBudget, paymentToken]);
 
   // Calculate deadline as absolute timestamp
   const deadlineTimestamp = useMemo(() => {
@@ -69,11 +107,14 @@ export default function CreateBiddingSessionPage(): JSX.Element {
     return BigInt(Math.floor(Date.now() / 1000)) + BigInt(minutes * 60);
   }, [deadlineMinutes]);
 
-  // Balance sufficiency (including gas buffer)
+  // Balance sufficiency (including gas buffer for ETH)
   const hasEnoughBalance = useMemo(() => {
-    if (!ethBalance || calculatedStake === 0n) return false;
-    return ethBalance.value >= calculatedStake + GAS_BUFFER_WEI;
-  }, [ethBalance, calculatedStake]);
+    if (calculatedStake === 0n) return false;
+    if (paymentToken.symbol === 'ETH') {
+      return tokenBalance >= calculatedStake + GAS_BUFFER_WEI;
+    }
+    return tokenBalance >= calculatedStake;
+  }, [tokenBalance, calculatedStake, paymentToken]);
 
   // Create session hook
   const { createSession, hash, isPending, isConfirming, isConfirmed, writeError } =
@@ -131,19 +172,19 @@ export default function CreateBiddingSessionPage(): JSX.Element {
 
   // Confirm and execute
   const handleConfirm = useCallback(() => {
-    const budgetWei = parseEther(maxBudget);
+    const budgetUnits = parseUnits(maxBudget, paymentToken.decimals);
     const sid = serviceId ? BigInt(parseInt(serviceId)) : 0n;
 
     createSession({
       evaluator: '0x0000000000000000000000000000000000000000' as `0x${string}`,
-      maxBudget: budgetWei,
+      maxBudget: budgetUnits,
       deadline: deadlineTimestamp,
       metadata: toHex(metadata.trim()) as `0x${string}`,
       serviceId: sid,
     });
 
     setShowConfirm(false);
-  }, [maxBudget, deadlineTimestamp, metadata, serviceId, createSession]);
+  }, [maxBudget, paymentToken.decimals, deadlineTimestamp, metadata, serviceId, createSession]);
 
   // Redirect after confirmation
   useEffect(() => {
@@ -192,11 +233,11 @@ export default function CreateBiddingSessionPage(): JSX.Element {
             </div>
             <div className="flex justify-between py-2 border-b border-divider">
               <span className="text-default-500">Max Budget</span>
-              <span className="font-medium">{maxBudget} ETH</span>
+              <span className="font-medium">{maxBudget} {paymentToken.symbol}</span>
             </div>
             <div className="flex justify-between py-2 border-b border-divider">
               <span className="text-default-500">Creator Stake (1%)</span>
-              <span className="font-medium">{Number(formatEther(calculatedStake)).toFixed(6)} ETH</span>
+              <span className="font-medium">{paymentToken.symbol === 'ETH' ? Number(formatEther(calculatedStake)).toFixed(6) : formatUnits(calculatedStake, paymentToken.decimals)} {paymentToken.symbol}</span>
             </div>
             <div className="flex justify-between py-2 border-b border-divider">
               <span className="text-default-500">Deadline</span>
@@ -290,17 +331,38 @@ export default function CreateBiddingSessionPage(): JSX.Element {
       {/* Form */}
       <Card className="border border-divider p-6">
         <form onSubmit={handleSubmit} className="space-y-6">
+          {/* Payment Token */}
+          <div>
+            <label className="block text-sm font-medium mb-2">Payment Token</label>
+            <div className="flex gap-2">
+              {PAYMENT_TOKENS.map(token => (
+                <button
+                  key={token.symbol}
+                  type="button"
+                  onClick={() => setPaymentToken(token)}
+                  className={`flex-1 px-4 py-2.5 rounded-lg border text-sm font-medium transition-colors ${
+                    paymentToken.symbol === token.symbol
+                      ? 'border-[#009F4D] bg-[#009F4D]/10 text-[#009F4D]'
+                      : 'border-divider hover:border-[#009F4D]/30'
+                  }`}
+                >
+                  {token.symbol}
+                </button>
+              ))}
+            </div>
+          </div>
+
           {/* Max Budget */}
           <div>
             <label className="block text-sm font-medium mb-2">
-              Maximum Budget (ETH) <span className="text-danger">*</span>
+              Maximum Budget ({paymentToken.symbol}) <span className="text-danger">*</span>
             </label>
             <div className="relative">
               <DollarSign className="absolute left-3 top-1/2 -translate-y-1/2 size-4 text-default-400" />
               <input
                 type="number"
-                step="0.001"
-                min="0.005"
+                step={paymentToken.symbol === 'ETH' ? '0.001' : '1'}
+                min={paymentToken.symbol === 'ETH' ? '0.005' : '1'}
                 value={maxBudget}
                 onChange={e => setMaxBudget(e.target.value)}
                 placeholder="0.0"
@@ -312,13 +374,12 @@ export default function CreateBiddingSessionPage(): JSX.Element {
             {errors.maxBudget && <p className="text-danger text-sm mt-1">{errors.maxBudget}</p>}
             <div className="flex items-center justify-between mt-1">
               <p className="text-xs text-default-400">
-                The maximum amount bidders can propose
+                {budgetUsd !== null ? `≈ $${budgetUsd.toLocaleString(undefined, { maximumFractionDigits: 2 })} USD` : 'Enter amount to see USD equivalent'}
               </p>
-              {ethBalance && (
-                <p className="text-xs text-default-400">
-                  Balance: {Number(formatEther(ethBalance.value)).toFixed(4)} ETH
-                </p>
-              )}
+              <p className="text-xs text-default-400 flex items-center gap-1">
+                <Wallet className="size-3" />
+                Balance: {tokenBalanceFormatted} {paymentToken.symbol}
+              </p>
             </div>
           </div>
 
@@ -329,15 +390,18 @@ export default function CreateBiddingSessionPage(): JSX.Element {
               <span className="text-sm font-medium text-[#009F4D]">Creator Stake</span>
             </div>
             <p className="text-2xl font-bold">
-              {maxBudget ? Number(formatEther(calculatedStake)).toFixed(6) : '0'} ETH
+              {maxBudget ? (paymentToken.symbol === 'ETH' ? Number(formatEther(calculatedStake)).toFixed(6) : formatUnits(calculatedStake, paymentToken.decimals)) : '0'} {paymentToken.symbol}
             </p>
             <p className="text-xs text-default-400 mt-1">
               1% of max budget, refunded after job creation
             </p>
             {maxBudget && !hasEnoughBalance && (
               <p className="text-danger text-sm mt-2">
-                Insufficient balance. You need at least{' '}
-                {Number(formatEther(calculatedStake + GAS_BUFFER_WEI)).toFixed(6)} ETH (stake + gas).
+                Insufficient {paymentToken.symbol} balance. You need at least{' '}
+                {paymentToken.symbol === 'ETH'
+                  ? `${Number(formatEther(calculatedStake + GAS_BUFFER_WEI)).toFixed(6)} ETH (stake + gas)`
+                  : `${formatUnits(calculatedStake, paymentToken.decimals)} ${paymentToken.symbol}`
+                }.
               </p>
             )}
           </div>

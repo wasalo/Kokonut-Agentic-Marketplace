@@ -84,45 +84,6 @@ export function useSetPlatformTreasury() {
 }
 
 /**
- * Hook to set the platform fee (owner only)
- * @param feeBP - Fee in basis points (e.g., 100 = 1%)
- * @param treasury - Treasury address to receive fees
- * @returns Write action result
- */
-/**
- * @deprecated V9 has no setPlatformFee function. Platform fee is hardcoded at 100 bps in _releasePayment().
- */
-export function useSetPlatformFee() {
-  const setFee = (_feeBP: bigint, _treasury: `0x${string}`) => {
-    console.warn('useSetPlatformFee is deprecated - V9 has no setPlatformFee function. Fee is hardcoded at 100 bps.');
-  };
-
-  return {
-    setFee,
-    isPending: false,
-    error: null,
-    reset: () => {},
-  };
-}
-
-/**
- * Hook to get the current platform fee
- * @returns Platform fee in basis points
- */
-/**
- * @deprecated V9 has no platformFeeBP function. Fee is hardcoded at 100 bps in _releasePayment().
- */
-export function usePlatformFee() {
-  return {
-    feeBP: BigInt(100),
-    feePercent: 1,
-    isLoading: false,
-    error: null,
-    refetch: () => {},
-  };
-}
-
-/**
  * Hook to get the evaluator fee basis points
  * @returns Evaluator fee in basis points
  */

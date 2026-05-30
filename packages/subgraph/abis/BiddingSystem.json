@@ -1,0 +1,13 @@
+[
+  {"type":"event","name":"BiddingSessionCreated","inputs":[{"name":"sessionId","type":"uint256","indexed":true},{"name":"creator","type":"address","indexed":true},{"name":"evaluator","type":"address","indexed":true},{"name":"maxBudget","type":"uint256","indexed":false},{"name":"deadline","type":"uint256","indexed":false},{"name":"serviceId","type":"uint256","indexed":false}],"anonymous":false},
+  {"type":"event","name":"BidCommitted","inputs":[{"name":"sessionId","type":"uint256","indexed":true},{"name":"bidder","type":"address","indexed":true},{"name":"commitHash","type":"bytes32","indexed":false},{"name":"stakeAmount","type":"uint256","indexed":false}],"anonymous":false},
+  {"type":"event","name":"BidRevealed","inputs":[{"name":"sessionId","type":"uint256","indexed":true},{"name":"bidder","type":"address","indexed":true},{"name":"proposedAmount","type":"uint256","indexed":false},{"name":"message","type":"string","indexed":false}],"anonymous":false},
+  {"type":"event","name":"BidAccepted","inputs":[{"name":"sessionId","type":"uint256","indexed":true},{"name":"winner","type":"address","indexed":true},{"name":"amount","type":"uint256","indexed":false},{"name":"bidId","type":"uint256","indexed":false}],"anonymous":false},
+  {"type":"event","name":"BidRejected","inputs":[{"name":"sessionId","type":"uint256","indexed":true},{"name":"bidId","type":"uint256","indexed":true},{"name":"bidder","type":"address","indexed":true},{"name":"reason","type":"string","indexed":false}],"anonymous":false},
+  {"type":"event","name":"StakeWithdrawn","inputs":[{"name":"sessionId","type":"uint256","indexed":true},{"name":"bidder","type":"address","indexed":true},{"name":"amount","type":"uint256","indexed":false}],"anonymous":false},
+  {"type":"event","name":"StakeClaimed","inputs":[{"name":"sessionId","type":"uint256","indexed":true},{"name":"winner","type":"address","indexed":true},{"name":"amount","type":"uint256","indexed":false}],"anonymous":false},
+  {"type":"event","name":"JobCreatedFromSession","inputs":[{"name":"sessionId","type":"uint256","indexed":true},{"name":"jobId","type":"uint256","indexed":true},{"name":"winner","type":"address","indexed":true},{"name":"amount","type":"uint256","indexed":false}],"anonymous":false},
+  {"type":"event","name":"SessionCancelled","inputs":[{"name":"sessionId","type":"uint256","indexed":true},{"name":"canceller","type":"address","indexed":true}],"anonymous":false},
+  {"type":"event","name":"SessionCompleted","inputs":[{"name":"sessionId","type":"uint256","indexed":true}],"anonymous":false},
+  {"type":"event","name":"RevealWindowExtended","inputs":[{"name":"sessionId","type":"uint256","indexed":true},{"name":"newRevealWindowEnd","type":"uint256","indexed":false}],"anonymous":false}
+]

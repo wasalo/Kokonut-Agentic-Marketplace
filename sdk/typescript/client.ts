@@ -1741,6 +1741,8 @@ interface BiddingSession {
   winningBidId: bigint;
   jobCreated: boolean;
   status: number;
+  useRandomEvaluator: boolean;
+  paymentToken: Address;
 }
 
 interface BidInfo {
@@ -1752,6 +1754,7 @@ interface BidInfo {
   commitHash: string;
   revealed: boolean;
   accepted: boolean;
+  rejected: boolean;
   stakeWithdrawn: boolean;
   timestamp: bigint;
 }
@@ -1777,7 +1780,10 @@ class BiddingSystemModule {
     deadline: bigint;
     metadata?: string;
     serviceId?: bigint;
+    paymentToken?: Address;
   }): Promise<TransactionResult & { sessionId: bigint }> {
+    const paymentToken = params.paymentToken || ('0x0000000000000000000000000000000000000000' as Address);
+    const isEth = paymentToken === '0x0000000000000000000000000000000000000000';
     const stake = (params.maxBudget * 100n) / 10000n;
     const hash = await this.wallet.writeContract({
       address: this.contracts.biddingSystem! as Address,
@@ -1789,8 +1795,9 @@ class BiddingSystemModule {
         params.deadline,
         (params.metadata || '0x') as `0x${string}`,
         params.serviceId || 0n,
+        paymentToken,
       ],
-      value: stake,
+      ...(isEth ? { value: stake } : {}),
     } as any);
 
     const receipt = await this.publicClient.waitForTransactionReceipt({ hash });
@@ -1825,6 +1832,7 @@ class BiddingSystemModule {
     amount: bigint;
     message: string;
     salt?: string;
+    paymentToken?: Address;
   }): Promise<TransactionResult & { salt: string; commitHash: `0x${string}` }> {
     const saltBytes = params.salt
       ? Buffer.from(params.salt.replace(/^0x/, ''), 'hex')
@@ -1840,13 +1848,14 @@ class BiddingSystemModule {
       [params.amount, params.message, salt]
     ));
     const stake = (params.amount * 100n) / 10000n;
+    const isEth = !params.paymentToken || params.paymentToken === '0x0000000000000000000000000000000000000000';
 
     const hash = await this.wallet.writeContract({
       address: this.contracts.biddingSystem! as Address,
       abi: BIDDING_SYSTEM_ABI,
       functionName: 'commitBid',
       args: [params.sessionId, commitHash as `0x${string}`],
-      value: stake,
+      ...(isEth ? { value: stake } : {}),
     } as any);
 
 
@@ -1944,18 +1953,20 @@ class BiddingSystemModule {
     description: string;
     bidAmount: bigint;
     platformFeeBP?: number;
+    paymentToken?: Address;
   }): Promise<TransactionResult & { jobId: bigint }> {
     const platformFee = params.platformFeeBP
       ? (params.bidAmount * BigInt(params.platformFeeBP)) / 10000n
       : (params.bidAmount * 100n) / 10000n;
     const totalPayment = params.bidAmount + platformFee;
+    const isEth = !params.paymentToken || params.paymentToken === '0x0000000000000000000000000000000000000000';
 
     const hash = await this.wallet.writeContract({
       address: this.contracts.biddingSystem! as Address,
       abi: BIDDING_SYSTEM_ABI,
       functionName: 'createJobAndFund',
       args: [params.sessionId, params.jobExpiredAt, params.description],
-      value: totalPayment,
+      ...(isEth ? { value: totalPayment } : {}),
     } as any);
 
     const receipt = await this.publicClient.waitForTransactionReceipt({ hash });
@@ -1999,6 +2010,107 @@ class BiddingSystemModule {
     };
   }
 
+  async completeSession(sessionId: bigint): Promise<TransactionResult> {
+    const hash = await this.wallet.writeContract({
+      address: this.contracts.biddingSystem!,
+      abi: BIDDING_SYSTEM_ABI,
+      functionName: 'completeSession',
+      args: [sessionId],
+    } as any);
+
+    return {
+      hash,
+      wait: () => this.publicClient.waitForTransactionReceipt({ hash }),
+    };
+  }
+
+  async withdrawCreatorStake(sessionId: bigint): Promise<TransactionResult> {
+    const hash = await this.wallet.writeContract({
+      address: this.contracts.biddingSystem!,
+      abi: BIDDING_SYSTEM_ABI,
+      functionName: 'withdrawCreatorStake',
+      args: [sessionId],
+    } as any);
+
+    return {
+      hash,
+      wait: () => this.publicClient.waitForTransactionReceipt({ hash }),
+    };
+  }
+
+  async getBid(sessionId: bigint, bidId: bigint): Promise<BidInfo | null> {
+    try {
+      const bid = (await this.publicClient.readContract({
+        address: this.contracts.biddingSystem! as Address,
+        abi: BIDDING_SYSTEM_ABI,
+        functionName: 'getBid',
+        args: [BigInt(sessionId), BigInt(bidId)],
+      } as any)) as [
+        bigint,
+        Address,
+        bigint,
+        bigint,
+        string,
+        string,
+        boolean,
+        boolean,
+        boolean,
+        boolean,
+        bigint,
+      ];
+      return {
+        bidId: bid[0],
+        bidder: bid[1],
+        proposedAmount: bid[2],
+        stake: bid[3],
+        message: bid[4],
+        commitHash: bid[5],
+        revealed: bid[6],
+        accepted: bid[7],
+        rejected: bid[8],
+        stakeWithdrawn: bid[9],
+        timestamp: bid[10],
+      };
+    } catch {
+      return null;
+    }
+  }
+
+  async getBidCount(sessionId: bigint): Promise<number> {
+    try {
+      const bids = await this.getRevealedBids(sessionId);
+      return bids.length;
+    } catch {
+      return 0;
+    }
+  }
+
+  private async getRevealedBids(sessionId: bigint): Promise<BidInfo[]> {
+    try {
+      const result = await this.publicClient.readContract({
+        address: this.contracts.biddingSystem! as Address,
+        abi: BIDDING_SYSTEM_ABI,
+        functionName: 'getRevealedBids',
+        args: [BigInt(sessionId)],
+      } as any);
+      return (result as any[]).map((bid: any) => ({
+        bidId: bid.bidId,
+        bidder: bid.bidder,
+        proposedAmount: bid.proposedAmount,
+        stake: bid.stake,
+        message: bid.message,
+        commitHash: bid.commitHash,
+        revealed: bid.revealed,
+        accepted: bid.accepted,
+        rejected: bid.rejected,
+        stakeWithdrawn: bid.stakeWithdrawn,
+        timestamp: bid.timestamp,
+      }));
+    } catch {
+      return [];
+    }
+  }
+
   async extendRevealWindow(params: {
     sessionId: bigint;
     additionalSeconds: bigint;
@@ -2038,6 +2150,8 @@ class BiddingSystemModule {
         bigint,
         boolean,
         number,
+        boolean,
+        Address,
       ];
       return {
         id: session[0],
@@ -2053,6 +2167,8 @@ class BiddingSystemModule {
         winningBidId: session[10],
         jobCreated: session[11],
         status: Number(session[12]),
+        useRandomEvaluator: session[13],
+        paymentToken: session[14],
       };
     } catch {
       return null;
@@ -2077,6 +2193,7 @@ class BiddingSystemModule {
         boolean,
         boolean,
         boolean,
+        boolean,
         bigint,
       ];
       return {
@@ -2088,8 +2205,9 @@ class BiddingSystemModule {
         commitHash: bid[5],
         revealed: bid[6],
         accepted: bid[7],
-        stakeWithdrawn: bid[8],
-        timestamp: bid[9],
+        rejected: bid[8],
+        stakeWithdrawn: bid[9],
+        timestamp: bid[10],
       };
     } catch {
       return null;
@@ -2189,7 +2307,7 @@ class MilestoneModule {
     return { hash, wait: () => this.publicClient.waitForTransactionReceipt({ hash }) };
   }
 
-  async completeMilestone(params: {
+  async submitMilestone(params: {
     jobId: bigint;
     milestoneIndex: bigint;
     proofHash: string;
@@ -2197,7 +2315,7 @@ class MilestoneModule {
     const hash = await this.wallet.writeContract({
       address: this.contracts.milestoneEscrow! as Address,
       abi: MILESTONE_ESCROW_ABI,
-      functionName: 'completeMilestone',
+      functionName: 'submitMilestone',
       args: [params.jobId, params.milestoneIndex, params.proofHash as `0x${string}`],
     } as any);
     return { hash, wait: () => this.publicClient.waitForTransactionReceipt({ hash }) };

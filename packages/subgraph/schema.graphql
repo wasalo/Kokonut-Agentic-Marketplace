@@ -121,6 +121,42 @@ type BlacklistEntry @entity(immutable: false) {
   active: Boolean!
 }
 
+type BiddingSession @entity(immutable: false) {
+  id: ID!
+  sessionId: BigInt!
+  creator: Bytes!
+  evaluator: Bytes!
+  maxBudget: BigInt!
+  deadline: BigInt!
+  revealWindowEnd: BigInt
+  serviceId: BigInt
+  jobId: BigInt
+  winner: Bytes
+  winningBidId: BigInt
+  jobCreated: Boolean!
+  status: Int!
+  useRandomEvaluator: Boolean
+  paymentToken: Bytes
+  createdAt: BigInt!
+  updatedAt: BigInt!
+  bids: [Bid!] @derivedFrom(field: "session")
+}
+
+type Bid @entity(immutable: true) {
+  id: ID!
+  bidId: BigInt!
+  session: BiddingSession!
+  bidder: Bytes!
+  proposedAmount: BigInt
+  stake: BigInt!
+  commitHash: Bytes
+  revealed: Boolean!
+  accepted: Boolean!
+  rejected: Boolean!
+  stakeWithdrawn: Boolean!
+  timestamp: BigInt!
+}
+
 type PlatformStat @entity(immutable: false) {
   id: ID!
   totalAgents: Int!

@@ -5,6 +5,164 @@ All notable changes to the Kokonut Agent Economy Stack are documented in this fi
 The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.0.0/),
 and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0.html).
 
+## [2026-05-30] — Phase 41: SDK/Subgraph/CLI/MCP BiddingSystem Feature Completion
+
+### 🛠️ SDK BiddingSystem Fixes & Feature Completion
+
+#### BiddingSystem Module Updates
+
+| Change | Detail |
+|--------|--------|
+| **`paymentToken` param** | Added `paymentToken` to `createSession()`, `commitBid()`, and `createJobAndFund()` params (defaults to address(0) = ETH) |
+| **`createBiddingSession` ABI** | Updated SDK ABI with 6th `paymentToken` parameter |
+| **ETH vs ERC-20 value** | Methods conditionally send `value` only for ETH sessions; ERC-20 sessions rely on contract's SafeERC20 pull |
+| **`completeSession()`** | New method wrapping `completeSession(sessionId)` |
+| **`withdrawCreatorStake()`** | New method wrapping `withdrawCreatorStake(sessionId)` (perma-reverts after job creation) |
+| **`getBid()`** | New method wrapping `getBid(sessionId, bidId)` — returns `BidInfo` with `rejected` field |
+| **`getRevealedBids()`** | New method wrapping `getRevealedBids(sessionId)` — returns `BidInfo[]` |
+| **`getBidCount()`** | New convenience method returning count of revealed bids |
+
+#### Interface Updates
+
+| Interface | Changes |
+|-----------|---------|
+| **`BiddingSession`** | Added `useRandomEvaluator: boolean` (Phase 39) and `paymentToken: Address` (Phase 40) fields |
+| **`BidInfo`** | Added `rejected: boolean` field; fixed `getUserBid` tuple mapping (was 10 elements, now 11 with `rejected`) |
+| **`getSession` return** | Updated tuple destructure from 13 to 15 elements (added `useRandomEvaluator`, `paymentToken`) |
+
+### 🛠️ SDK Milestone Fix
+
+| Change | Detail |
+|--------|--------|
+| **`completeMilestone` → `submitMilestone`** | Renamed method and fixed `functionName` from `'completeMilestone'` (doesn't exist) to `'submitMilestone'` (matching contract ABI). The old method would revert at runtime. |
+
+### 🧹 Code Cleanup
+
+| Change | Detail |
+|--------|--------|
+| **Deleted `useServicesContract.ts`** | Deprecated re-export shim; 2 imports updated to use `@/lib/hooks/useServices` directly |
+| **Removed `useSetPlatformFee`** | Deprecated no-op hook (V9 has no `setPlatformFee`) — 54 lines removed |
+| **Removed `usePlatformFee`** | Deprecated hook returning hardcoded values (V9 fee is hardcoded at 100 bps) — 8 lines removed |
+
+### 📊 Subgraph: BiddingSystem Support
+
+#### New Entities
+
+| Entity | Fields |
+|--------|--------|
+| **`BiddingSession`** | sessionId, creator, evaluator, maxBudget, deadline, revealWindowEnd, serviceId, jobId, winner, winningBidId, jobCreated, status, useRandomEvaluator, paymentToken, createdAt, updatedAt |
+| **`Bid`** | bidId, session, bidder, proposedAmount, stake, commitHash, revealed, accepted, rejected, stakeWithdrawn, timestamp |
+
+#### New Handler
+
+| File | Event Handlers |
+|------|---------------|
+| `packages/subgraph/src/bidding-system.ts` | `handleBiddingSessionCreated`, `handleBidCommitted`, `handleBidRevealed`, `handleBidAccepted`, `handleBidRejected`, `handleStakeWithdrawn`, `handleStakeClaimed`, `handleJobCreatedFromSession`, `handleSessionCancelled`, `handleSessionCompleted`, `handleRevealWindowExtended` (11 handlers) |
+
+#### Schema & Data Source
+
+- Added `BiddingSystem` data source to `subgraph.yaml` pointing to proxy `0x4D7F38C6A9DE5De44A7B789962B7A2B06bFE8fd6`
+- Created `abis/BiddingSystem.json` with 11 event definitions
+- `Bid` entity is `immutable: true`; `BiddingSession` is `immutable: false`
+
+### 🖥️ CLI: 9 New BiddingSystem Commands
+
+#### New Commands
+
+| Command | Contract Function | Purpose |
+|---------|------------------|---------|
+| `reject-bid` | `rejectBid(sessionId, bidId, reason)` | Reject a bid (creator only) |
+| `cancel-session` | `cancelSession(sessionId)` | Cancel a session (creator only) |
+| `complete-session` | `completeSession(sessionId)` | Complete a session |
+| `extend-reveal-window` | `extendRevealWindow(sessionId, seconds)` | Extend reveal window |
+| `claim-stake` | `claimStake(sessionId)` | Claim stake (winner) |
+| `create-job-from-session` | `createJobAndFund(sessionId, expiredAt, desc)` | Create job from winning bid |
+| `get-bid` | `getBid(sessionId, bidId)` | Get bid details (view) |
+| `get-session-count` | `sessionCounter()` | Get total session count (view) |
+
+#### ABI & Command Updates
+
+| Change | Detail |
+|--------|--------|
+| **CLI ABI updated** | Added `paymentToken` to `createBiddingSession`, added missing functions (`rejectBid`, `completeSession`, `extendRevealWindow`, `withdrawCreatorStake`, `getBid`, `getRevealedBids`), updated `getSession` tuple + `BiddingSessionCreated` event signatures |
+| **`create-bidding-session`** | Added `--payment-token` option (defaults to ETH); conditionally sends `value` for ETH vs no `value` for ERC-20 |
+| **`get-bidding-session`** | Now displays `useRandomEvaluator` and `paymentToken` fields |
+| **Help listing** | Updated from "Phase 11" to "Phase 41"; added all 9 new commands |
+
+### 🔌 MCP Server: BiddingSystem Integration
+
+| Change | Detail |
+|--------|--------|
+| **Stale address removed** | Replaced `agentReview` (`0x5CDb...`) with `biddingSystem` (`0x4D7F...`) in `client.ts` CONTRACTS and `resources/index.ts` |
+| **New ABI** | Added `BIDDING_SYSTEM_ABI` with `getSession`, `sessionCounter`, `getBid`, `getRevealedBids` view functions |
+| **New query functions** | `getBiddingSession(sessionId)` and `listBiddingSessions(start, count)` |
+| **New tools** | `bidding_session_get` and `bidding_sessions_list` registered in MCP tool catalog |
+
+### ✅ Verification
+
+| Check | Status |
+|-------|--------|
+| **Type-check** | 0 errors |
+| **Lint** | Clean |
+| **Contract tests** | 277/277 passing |
+
+---
+
+## [2026-05-28] — Phase 40: BiddingSystem ERC-20 Payment Token Support
+
+### 💰 BiddingSystem Multi-Token Support
+
+Added ERC-20 payment token support to the BiddingSystem contract, enabling bidding sessions to use USDC or any ERC-20 token in addition to native ETH.
+
+#### Smart Contract Changes (BiddingSystem)
+
+| Change | Detail |
+|--------|--------|
+| **`paymentToken` field** | Added `address paymentToken` to Session struct (appended, storage-safe) |
+| **`createBiddingSession`** | New `paymentToken` parameter (address(0) for ETH, ERC-20 address for tokens) |
+| **`commitBid`** | Collects stakes in session's payment token via `SafeERC20` |
+| **`createJobAndFund`** | Passes `session.paymentToken` to `AgenticCommerceV9.createJobForClient` |
+| **Refund functions** | `acceptBid`, `rejectBid`, `withdrawStake`, `cancelSession` all handle ERC-20 refunds |
+| **New helpers** | `_sendToken`, `_receiveToken`, `_refundExcess` for unified ETH/ERC-20 handling |
+| **SafeERC20** | Added OpenZeppelin SafeERC20 for secure ERC-20 transfers |
+
+#### Frontend Changes
+
+| Change | Detail |
+|--------|--------|
+| **Token selector** | ETH / USDC toggle on bidding create form |
+| **USD conversion** | Budget shows "≈ $X USD" equivalent using PriceOracle |
+| **Balance display** | Shows token-specific balance with wallet icon |
+| **Stake calculation** | Uses `parseUnits` with correct decimals per token |
+| **Gas buffer** | Balance check includes 0.01 ETH buffer for ETH payments |
+| **Confirmation modal** | Shows selected token and formatted amounts |
+
+### 🎯 Marketplace Hub UX Improvements
+
+| Change | Detail |
+|--------|--------|
+| **Per-tab icon colors** | Each hub tab has its own brand color when active (green/blue/amber/purple/teal/pink) |
+| **Stats strip visibility** | `MarketplaceStatsStrip` only shows on Discover tab |
+| **Jobs stats consistency** | `JobsStatsStrip` uses counts from `useJobsDirectory` hook |
+| **Redundant CTAs removed** | Removed duplicate buttons from tab panels |
+
+### ✅ Verification
+
+| Check | Status |
+|-------|--------|
+| **Type-check** | 0 errors |
+| **Lint** | Clean |
+| **Contract tests** | 277/277 passing |
+| **Etherscan** | BiddingSystem verified |
+
+### 📦 Deployment (Sepolia)
+
+| Contract | Proxy | Implementation (NEW) | Status |
+|----------|-------|----------------------|--------|
+| `BiddingSystem` | `0x4D7F38C6A9DE5De44A7B789962B7A2B06bFE8fd6` | `0xde7F38E29D3c2dBDff02984BAaB5a658F0acC96a` | ✅ Verified |
+
+---
+
 ## [2026-05-28] — Phase 39: Random Evaluator Pool + Bidding Form Rebuild
 
 ### 🔄 Random Evaluator Pool as Default

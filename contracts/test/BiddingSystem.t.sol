@@ -136,7 +136,8 @@ contract BiddingSystemTest is Test {
             maxBudget,
             deadline,
             "ipfs://QmTest",
-            0
+            0,
+            address(0)
         );
         
         assertEq(sessionId, 1);
@@ -160,7 +161,8 @@ contract BiddingSystemTest is Test {
             maxBudget,
             block.timestamp + 7 days,
             "",
-            0
+            0,
+            address(0)
         );
         
         // Excess should be refunded
@@ -170,7 +172,7 @@ contract BiddingSystemTest is Test {
     function testCreateBiddingSessionRandomEvaluator() public {
         uint256 stake = bidding.calculateStake(10 ether);
         vm.prank(creator);
-        uint256 sessionId = bidding.createBiddingSession{value: stake}(address(0), 10 ether, block.timestamp + 7 days, "", 0);
+        uint256 sessionId = bidding.createBiddingSession{value: stake}(address(0), 10 ether, block.timestamp + 7 days, "", 0, address(0));
         
         IBiddingSystem.Session memory session = bidding.getSession(sessionId);
         assertEq(session.evaluator, address(0), "evaluator should be address(0)");
@@ -180,27 +182,27 @@ contract BiddingSystemTest is Test {
     function testCreateBiddingSessionRevertZeroBudget() public {
         vm.prank(creator);
         vm.expectRevert();
-        bidding.createBiddingSession{value: 1 ether}(evaluator, 0, block.timestamp + 7 days, "", 0);
+        bidding.createBiddingSession{value: 1 ether}(evaluator, 0, block.timestamp + 7 days, "", 0, address(0));
     }
     
     function testCreateBiddingSessionRevertDurationTooShort() public {
         uint256 stake = bidding.calculateStake(10 ether);
         vm.prank(creator);
         vm.expectRevert(abi.encodeWithSelector(BiddingSystem.BiddingSystem__Duration_too_short.selector));
-        bidding.createBiddingSession{value: stake}(evaluator, 10 ether, block.timestamp + 1 minutes, "", 0);
+        bidding.createBiddingSession{value: stake}(evaluator, 10 ether, block.timestamp + 1 minutes, "", 0, address(0));
     }
     
     function testCreateBiddingSessionRevertDurationTooLong() public {
         uint256 stake = bidding.calculateStake(10 ether);
         vm.prank(creator);
         vm.expectRevert(abi.encodeWithSelector(BiddingSystem.BiddingSystem__Duration_too_long.selector));
-        bidding.createBiddingSession{value: stake}(evaluator, 10 ether, block.timestamp + 31 days, "", 0);
+        bidding.createBiddingSession{value: stake}(evaluator, 10 ether, block.timestamp + 31 days, "", 0, address(0));
     }
     
     function testCreateBiddingSessionRevertInsufficientStake() public {
         vm.prank(creator);
-        vm.expectRevert(abi.encodeWithSelector(BiddingSystem.BiddingSystem__Insufficient_stake_for_session.selector));
-        bidding.createBiddingSession{value: 0.001 ether}(evaluator, 10 ether, block.timestamp + 7 days, "", 0);
+        vm.expectRevert(abi.encodeWithSelector(BiddingSystem.BiddingSystem__Insufficient_stake.selector));
+        bidding.createBiddingSession{value: 0.001 ether}(evaluator, 10 ether, block.timestamp + 7 days, "", 0, address(0));
     }
     
     /***********************************/
@@ -886,7 +888,8 @@ contract BiddingSystemTest is Test {
             maxBudget,
             block.timestamp + duration,
             "ipfs://QmTest",
-            0
+            0,
+            address(0)
         );
     }
     

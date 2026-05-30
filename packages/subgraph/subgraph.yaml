@@ -123,6 +123,48 @@ dataSources:
           handler: handleArbiterUnregistered
       file: ./src/milestone-escrow.ts
   - kind: ethereum
+    name: BiddingSystem
+    network: sepolia
+    source:
+      address: "0x4D7F38C6A9DE5De44A7B789962B7A2B06bFE8fd6"
+      abi: BiddingSystem
+      startBlock: 10100000
+    mapping:
+      kind: ethereum/events
+      apiVersion: 0.0.9
+      language: wasm/assemblyscript
+      entities:
+        - BiddingSession
+        - Bid
+        - Activity
+      abis:
+        - name: BiddingSystem
+          file: ./abis/BiddingSystem.json
+      eventHandlers:
+        - event: BiddingSessionCreated(indexed uint256,indexed address,indexed address,uint256,uint256,uint256)
+          handler: handleBiddingSessionCreated
+        - event: BidCommitted(indexed uint256,indexed address,bytes32,uint256)
+          handler: handleBidCommitted
+        - event: BidRevealed(indexed uint256,indexed address,uint256,string)
+          handler: handleBidRevealed
+        - event: BidAccepted(indexed uint256,indexed address,uint256,uint256)
+          handler: handleBidAccepted
+        - event: BidRejected(indexed uint256,indexed uint256,indexed address,string)
+          handler: handleBidRejected
+        - event: StakeWithdrawn(indexed uint256,indexed address,uint256)
+          handler: handleStakeWithdrawn
+        - event: StakeClaimed(indexed uint256,indexed address,uint256)
+          handler: handleStakeClaimed
+        - event: JobCreatedFromSession(indexed uint256,indexed uint256,indexed address,uint256)
+          handler: handleJobCreatedFromSession
+        - event: SessionCancelled(indexed uint256,indexed address)
+          handler: handleSessionCancelled
+        - event: SessionCompleted(indexed uint256)
+          handler: handleSessionCompleted
+        - event: RevealWindowExtended(indexed uint256,uint256)
+          handler: handleRevealWindowExtended
+      file: ./src/bidding-system.ts
+  - kind: ethereum
     name: AdminRegistry
     network: sepolia
     source:
