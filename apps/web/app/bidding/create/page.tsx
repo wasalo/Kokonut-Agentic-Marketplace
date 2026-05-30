@@ -3,7 +3,7 @@
 import { useState, useCallback, useEffect, useMemo } from 'react';
 import { useRouter } from 'next/navigation';
 import { useAccount, useBalance } from 'wagmi';
-import { ArrowLeft, Loader2, AlertCircle, DollarSign, Clock, Shield, Info, Wallet } from 'lucide-react';
+import { ArrowLeft, Loader2, AlertCircle, DollarSign, Clock, Shield, Wallet } from 'lucide-react';
 import { Card, Button } from '@heroui/react';
 import NextLink from 'next/link';
 import { parseEther, formatEther, formatUnits, parseUnits, toHex } from 'viem';
@@ -215,7 +215,6 @@ export default function CreateBiddingSessionPage(): JSX.Element {
 
   // Confirmation modal
   if (showConfirm) {
-    const deadlineDate = new Date(Number(deadlineTimestamp) * 1000);
     const days = Math.floor(parseInt(deadlineMinutes) / 1440);
     const hours = Math.floor((parseInt(deadlineMinutes) % 1440) / 60);
 

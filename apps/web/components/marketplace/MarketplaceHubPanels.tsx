@@ -2,7 +2,7 @@
 
 import type { ReactNode } from 'react';
 import NextLink from 'next/link';
-import { ArrowRight, Briefcase, Code, Plus, RefreshCw } from 'lucide-react';
+import { ArrowRight, Briefcase, Code, RefreshCw } from 'lucide-react';
 import { StatusBadge, getJobStatusBadgeType } from '@/components/StatusBadge';
 import { JobStatus, type Job } from '@/lib/hooks/useJobs';
 import { formatAmount, getTokenByAddress } from '@/lib/tokenUtils';

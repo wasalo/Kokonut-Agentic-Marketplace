@@ -6,7 +6,6 @@ import { useRouter, useSearchParams } from 'next/navigation';
 import { JobStatus, useJobs, type Job } from '@/lib/hooks/useJobs';
 import { useJobEvents } from '@/lib/hooks/useJobEvents';
 import { useDebounce } from '@/lib/hooks/useDebounce';
-import { useJobStatsFromSubgraph } from '@/lib/hooks/useJobStatsFromSubgraph';
 import { getTokenByAddress, tokenAmountToUsd } from '@/lib/tokenUtils';
 
 interface UseJobsDirectoryOptions {
