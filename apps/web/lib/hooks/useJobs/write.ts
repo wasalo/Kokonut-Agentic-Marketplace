@@ -269,3 +269,21 @@ export function useWithdrawStake() {
     reset,
   };
 }
+
+export function useFinalizeRandomEvaluator() {
+  const { writeContract, data, isPending, error, reset } = useWriteContract();
+  return {
+    finalizeRandomEvaluator: (jobId: bigint) =>
+      writeContract({
+        chainId: SEPOLIA_CHAIN_ID,
+        address: AGENTIC_COMMERCE_ADDRESS,
+        abi: AGENTIC_COMMERCE_ABI,
+        functionName: 'finalizeRandomEvaluator',
+        args: [jobId],
+      }),
+    hash: data,
+    isPending,
+    error,
+    reset,
+  };
+}

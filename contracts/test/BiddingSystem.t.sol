@@ -167,11 +167,14 @@ contract BiddingSystemTest is Test {
         assertEq(creator.balance, 100 ether - stake);
     }
     
-    function testCreateBiddingSessionRevertZeroEvaluator() public {
+    function testCreateBiddingSessionRandomEvaluator() public {
         uint256 stake = bidding.calculateStake(10 ether);
         vm.prank(creator);
-        vm.expectRevert(abi.encodeWithSelector(BiddingSystem.BiddingSystem__Zero_evaluator.selector));
-        bidding.createBiddingSession{value: stake}(address(0), 10 ether, block.timestamp + 7 days, "", 0);
+        uint256 sessionId = bidding.createBiddingSession{value: stake}(address(0), 10 ether, block.timestamp + 7 days, "", 0);
+        
+        IBiddingSystem.Session memory session = bidding.getSession(sessionId);
+        assertEq(session.evaluator, address(0), "evaluator should be address(0)");
+        assertTrue(session.useRandomEvaluator, "useRandomEvaluator should be true");
     }
     
     function testCreateBiddingSessionRevertZeroBudget() public {

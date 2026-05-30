@@ -206,17 +206,18 @@ contract BiddingSystem is
         bytes calldata metadata,
         uint256 serviceId
     ) external payable nonReentrant whenNotPaused returns (uint256 sessionId) {
-        if (!(evaluator != address(0))) revert BiddingSystem__Zero_evaluator();
+        // Phase 39: Allow address(0) for random evaluator pool selection
+        bool useRandomEvaluator = (evaluator == address(0));
         if (!(maxBudget > 0)) revert BiddingSystem__Zero_budget();
         if (!(deadline > block.timestamp + MIN_SESSION_DURATION)) revert BiddingSystem__Duration_too_short();
         if (!(deadline <= block.timestamp + MAX_SESSION_DURATION)) revert BiddingSystem__Duration_too_long();
         if (!(msg.value >= calculateStake(maxBudget))) revert BiddingSystem__Insufficient_stake_for_session();
 
-        // Bad Actor: Check if wallets are blacklisted
+        // Bad Actor: Check if wallets are blacklisted (skip evaluator check for random)
         if (adminRegistry != address(0)) {
             AdminRegistry registry = AdminRegistry(adminRegistry);
             if (!(!registry.isWalletBlacklistedActive(msg.sender))) revert BiddingSystem__Wallet_blacklisted();
-            if (!(!registry.isWalletBlacklistedActive(evaluator))) revert BiddingSystem__Evaluator_blacklisted();
+            if (!useRandomEvaluator && !(!registry.isWalletBlacklistedActive(evaluator))) revert BiddingSystem__Evaluator_blacklisted();
         }
         
         sessionId = ++sessionCounter;
@@ -234,7 +235,8 @@ contract BiddingSystem is
             winner: address(0),
             winningBidId: 0,
             jobCreated: false,
-            status: SessionStatus.Active
+            status: SessionStatus.Active,
+            useRandomEvaluator: useRandomEvaluator
         });
         
         uint256 stakeAmount = calculateStake(maxBudget);
@@ -484,6 +486,8 @@ contract BiddingSystem is
         session.status = SessionStatus.JobCreated;
         
         // Create job in AgenticCommerceV9 with budget at creation for the session creator (client)
+        // Phase 39: Pass address(0) when useRandomEvaluator is true to trigger random selection
+        address jobEvaluator = session.useRandomEvaluator ? address(0) : session.evaluator;
         jobId = IAgenticCommerceV9(commerce).createJobForClient{value: bidAmount}(
             msg.sender,           // client (session creator)
             session.winner,       // provider
@@ -492,7 +496,7 @@ contract BiddingSystem is
             session.serviceId,    // serviceId
             jobExpiredAt,         // expiredAt
             description,          // description
-            session.evaluator,    // evaluator
+            jobEvaluator,         // evaluator (address(0) for random, specific address otherwise)
             address(0),           // hook: none
             false,                // evaluatorFee: no
             false,                // clientReview_: no

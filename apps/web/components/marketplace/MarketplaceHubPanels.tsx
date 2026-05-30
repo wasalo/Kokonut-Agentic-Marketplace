@@ -51,7 +51,6 @@ export function JobsHubPanel() {
     jobs,
     isLoading,
     stats,
-    isStatsLoading,
     searchQuery,
     setSearchQuery,
     isSearching,
@@ -80,14 +79,8 @@ export function JobsHubPanel() {
       <PanelHeader
         title="Work Marketplace"
         description="Browse open requests and jump directly into the job workspace."
-        action={
-          <NextLink href="/jobs/create" className="inline-flex items-center gap-2 rounded-xl bg-success px-4 py-2 text-sm font-medium text-white hover:opacity-90">
-            <Plus className="size-4" />
-            Post Job
-          </NextLink>
-        }
       />
-      <JobsStatsStrip stats={stats} isLoading={isStatsLoading} />
+      <JobsStatsStrip stats={stats} />
       <JobsCommandBar
         searchQuery={searchQuery}
         onSearchChange={setSearchQuery}
@@ -183,12 +176,6 @@ export function BiddingHubPanel() {
       <PanelHeader
         title="Bidding Desk"
         description="Create competitive sessions or participate in active bidding rounds."
-        action={
-          <NextLink href="/bidding/create" className="inline-flex items-center gap-2 rounded-xl bg-success px-4 py-2 text-sm font-medium text-white hover:opacity-90">
-            <Plus className="size-4" />
-            Create Session
-          </NextLink>
-        }
       />
       <BiddingStatsStrip
         totalCount={totalCount}
@@ -381,21 +368,15 @@ export function StudioHubPanel({
         title="Provider Studio"
         description="Manage what you offer without leaving the marketplace workspace."
         action={
-          <div className="flex items-center gap-2">
-            <button
-              type="button"
-              onClick={onRefetch}
-              disabled={isLoading}
-              className="inline-flex items-center gap-2 rounded-xl border border-divider bg-content2 px-3 py-2 text-sm font-medium hover:bg-content3 transition-colors disabled:opacity-50"
-            >
-              <RefreshCw className={`size-4 ${isLoading ? 'animate-spin' : ''}`} />
-              Refresh
-            </button>
-            <NextLink href="/marketplace/create" className="inline-flex items-center gap-2 rounded-xl bg-success px-4 py-2 text-sm font-medium text-white hover:opacity-90">
-              <Plus className="size-4" />
-              List Service
-            </NextLink>
-          </div>
+          <button
+            type="button"
+            onClick={onRefetch}
+            disabled={isLoading}
+            className="inline-flex items-center gap-2 rounded-xl border border-divider bg-content2 px-3 py-2 text-sm font-medium hover:bg-content3 transition-colors disabled:opacity-50"
+          >
+            <RefreshCw className={`size-4 ${isLoading ? 'animate-spin' : ''}`} />
+            Refresh
+          </button>
         }
       />
       {error && (

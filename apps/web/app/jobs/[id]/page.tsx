@@ -28,6 +28,7 @@ import {
   useSetBudget,
   useSetPaymentToken,
   useEvaluatorFeeEnabled,
+  useFinalizeRandomEvaluator,
   useCompleteAfterTimeout,
   useRefundExpired,
   JobStatus,
@@ -201,6 +202,13 @@ export default function JobDetailPage({
     error: refundExpiredError,
   } = useRefundExpired();
 
+  const {
+    finalizeRandomEvaluator,
+    hash: finalizeRandomHash,
+    isPending: isFinalizeRandomPending,
+    error: finalizeRandomError,
+  } = useFinalizeRandomEvaluator();
+
   const { isEvaluatorFeeEnabled } = useEvaluatorFeeEnabled(job?.id);
   const jobIsOpen = job ? isOpenJob(job) : false;
   const { bidCount, bids, isLoadingBids } = useJobBids(job?.id, jobIsOpen);
@@ -217,7 +225,8 @@ export default function JobDetailPage({
     refundHash ||
     approveHash ||
     budgetHash ||
-    paymentTokenHash;
+    paymentTokenHash ||
+    finalizeRandomHash;
   const { isSuccess: isTxConfirmed } = useWaitForTransactionReceipt({ hash: txHash });
 
   // Wait for approval to confirm before auto-funding
@@ -423,7 +432,8 @@ export default function JobDetailPage({
     rejectError ||
     refundError ||
     completeAfterTimeoutError ||
-    refundExpiredError;
+    refundExpiredError ||
+    finalizeRandomError;
 
   // Show error toasts for transaction failures
   useEffect(() => {
@@ -513,6 +523,38 @@ export default function JobDetailPage({
               </div>
             </Card>
           )}
+
+        {/* Finalize Random Evaluator */}
+        {job && job.evaluator === '0x0000000000000000000000000000000000000000' && (
+          <Card className="border border-[#009F4D]/20 bg-[#009F4D]/5 p-4">
+            <div className="flex items-start gap-3">
+              <AlertCircle className="size-5 text-[#009F4D] shrink-0 mt-0.5" />
+              <div className="flex-1">
+                <p className="font-medium text-[#009F4D]">Evaluator Pending</p>
+                <p className="text-sm text-default-500 mt-1">
+                  This job uses the random evaluator pool. Click below to finalize the evaluator assignment.
+                </p>
+                <button
+                  type="button"
+                  onClick={() => finalizeRandomEvaluator(job.id)}
+                  disabled={isFinalizeRandomPending}
+                  className="mt-3 inline-flex items-center gap-2 px-4 py-2 bg-[#009F4D] text-white text-sm font-medium rounded-lg hover:opacity-90 transition-opacity disabled:opacity-50"
+                >
+                  {isFinalizeRandomPending ? (
+                    <Loader2 className="size-4 animate-spin" />
+                  ) : finalizeRandomHash ? (
+                    'Evaluator Finalized!'
+                  ) : (
+                    'Finalize Evaluator'
+                  )}
+                </button>
+                {finalizeRandomError && (
+                  <p className="text-danger text-sm mt-2">{finalizeRandomError.message}</p>
+                )}
+              </div>
+            </div>
+          </Card>
+        )}
 
         {/* Transaction Status */}
         {txStep && (

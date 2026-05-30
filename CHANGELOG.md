@@ -5,6 +5,79 @@ All notable changes to the Kokonut Agent Economy Stack are documented in this fi
 The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.0.0/),
 and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0.html).
 
+## [2026-05-28] — Phase 39: Random Evaluator Pool + Bidding Form Rebuild
+
+### 🔄 Random Evaluator Pool as Default
+
+Made the random evaluator pool the default for all job creation flows (services, direct jobs, and bidding sessions). This ensures unbiased evaluation by eliminating manual evaluator selection.
+
+#### Smart Contract Changes (BiddingSystem)
+
+| Change | Detail |
+|--------|--------|
+| **Allow `address(0)` in `createBiddingSession`** | Removed `Zero_evaluator` revert. `address(0)` now triggers random evaluator pool selection |
+| **`useRandomEvaluator` flag** | Added `bool useRandomEvaluator` to Session struct (appended at end, storage-safe for mapping-stored structs) |
+| **`createJobAndFund` updated** | When `useRandomEvaluator` is true, passes `address(0)` to `createJobForClient`, triggering commit-reveal random selection in AgenticCommerceV9 |
+| **Blacklist check** | Evaluator blacklist check skipped when random evaluator is enabled (evaluator not known at creation time) |
+| **Deploy script** | `UpgradeBiddingSystem_Phase39.s.sol` for UUPS upgrade |
+
+#### Frontend Changes
+
+| Change | Detail |
+|--------|--------|
+| **`useFinalizeRandomEvaluator` hook** | New hook in `lib/hooks/useJobs/write.ts` — calls `AgenticCommerceV9.finalizeRandomEvaluator(jobId)`, permissionless after 6 blocks |
+| **Finalize button on job detail** | `jobs/[id]/page.tsx` shows "Finalize Evaluator" button when evaluator is `address(0)` (pending random selection) |
+| **Bidding create form rebuilt** | Complete rewrite with random evaluator only (no manual address input), fixed deadline conversion, confirmation modal, deadline presets, gas buffer |
+
+#### Bidding Form Improvements
+
+| Before | After |
+|--------|-------|
+| Manual evaluator address input (broken escrow model) | Random evaluator pool only — no address input |
+| Deadline as relative duration (always reverted) | Deadline as absolute timestamp (fixed) |
+| Frontend max 1 year, contract max 30 days | Aligned to 30 days |
+| No deadline presets | Quick buttons: 1h, 6h, 1d, 3d, 7d |
+| `type="text"` with inert `step`/`min` | `type="number"` with proper validation |
+| Stake from on-chain fetch + recomputation | Local 1% calculation only |
+| Balance check without gas | Balance check with 0.01 ETH gas buffer |
+| No metadata limit | 2000 char max with counter |
+| Direct submission | Confirmation modal before submission |
+| No ETH balance display | Balance shown prominently |
+| Raw `<input>` for evaluator | Removed (random pool only) |
+
+#### Updated Labels
+
+| Before | After |
+|--------|-------|
+| `Open Jobs` | `Awaiting Escrow` |
+| `Available work` (detail text) | `Jobs pending client funding` |
+
+### 🎨 Marketplace Hub UX Improvements
+
+| Change | Detail |
+|--------|--------|
+| **Per-tab icon colors** | Each hub tab now has its own brand color when active (green=Discover, blue=Jobs, amber=Bidding, purple=Skills, teal=My Work, pink=Studio) |
+| **Stats strip visibility** | `MarketplaceStatsStrip` now only shows on Discover tab (hidden on other tabs to avoid duplication) |
+| **Jobs stats consistency** | `JobsStatsStrip` now uses counts from `useJobsDirectory` hook (same source as displayed list) instead of subgraph |
+| **Redundant CTAs removed** | Removed duplicate "Post Job", "Create Session", "List Service" buttons from tab panels (header actions remain) |
+
+### ✅ Verification
+
+| Check | Status |
+|-------|--------|
+| **Type-check** | 0 errors |
+| **Lint** | Clean |
+| **Contract tests** | 277/277 passing |
+| **Etherscan** | BiddingSystem verified |
+
+### 📦 Deployment (Sepolia)
+
+| Contract | Proxy | Implementation (NEW) | Status |
+|----------|-------|----------------------|--------|
+| `BiddingSystem` | `0x4D7F38C6A9DE5De44A7B789962B7A2B06bFE8fd6` | `0x73B6E21a50d02C3D5a1C8DF6ceC0cC77a2C155b8` | ✅ Verified |
+
+---
+
 ## [2026-05-28] — Phase 38: Review Feature Removal + SlashManager Refactoring
 
 ### 🗑️ Review Feature Removal (Option A)

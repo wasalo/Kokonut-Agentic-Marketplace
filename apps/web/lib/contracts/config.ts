@@ -27,7 +27,7 @@ const sepoliaContracts = {
   agenticCommerceImpl: '0x3b8b4A6d3cc93D5081a286aCC7EcD4f01086c928', // Phase 38: governance slash
   // Phase 11: BiddingSystem - Standalone commit-reveal bidding
   biddingSystem: '0x4D7F38C6A9DE5De44A7B789962B7A2B06bFE8fd6',
-  biddingSystemImpl: '0x9FfE85CBC78144B1bAd32d2Fd61a1fdc3740f047', // Phase 34: creator stake patch
+  biddingSystemImpl: '0x73B6E21a50d02C3D5a1C8DF6ceC0cC77a2C155b8', // Phase 39: random evaluator pool
   commitReveal: '0x85F193670fCb7B0c97D55E70Bf2a950b1065Fb3a',
   commitRevealImpl: '0x0456fb2B6ef68B9133B22809D48D4f3748bEf87C', // Phase 29f: OZ v5 compat
   slashManager: '0x1B8373cDF4f2eD740c3478e0129f0B8494CE4Fa3',
@@ -141,7 +141,7 @@ export const CONTRACT_ADDRESSES = {
   agenticCommerceImpl: '0x3b8b4A6d3cc93D5081a286aCC7EcD4f01086c928', // Phase 38: governance slash
     // Phase 11: BiddingSystem - Standalone commit-reveal bidding
   biddingSystem: '0x4D7F38C6A9DE5De44A7B789962B7A2B06bFE8fd6',
-  biddingSystemImpl: '0x9FfE85CBC78144B1bAd32d2Fd61a1fdc3740f047', // Phase 34: creator stake patch
+  biddingSystemImpl: '0x73B6E21a50d02C3D5a1C8DF6ceC0cC77a2C155b8', // Phase 39: random evaluator pool
     commitReveal: '0x85F193670fCb7B0c97D55E70Bf2a950b1065Fb3a',
   commitRevealImpl: '0x0456fb2B6ef68B9133B22809D48D4f3748bEf87C', // Phase 29f: OZ v5 compat
     slashManager: '0x1B8373cDF4f2eD740c3478e0129f0B8494CE4Fa3',

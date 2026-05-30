@@ -43,6 +43,7 @@ interface IBiddingSystem {
         uint256 winningBidId;
         bool jobCreated;     // Whether job has been created
         SessionStatus status;
+        bool useRandomEvaluator; // Phase 39: Use random evaluator pool for job creation
     }
     
     struct Bid {

@@ -24,6 +24,7 @@ export {
   useRegisterAsEvaluator,
   useUnregisterAsEvaluator,
   useWithdrawStake,
+  useFinalizeRandomEvaluator,
 } from './write';
 
 export {

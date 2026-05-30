@@ -6,7 +6,6 @@ import {
   AtSign,
   Code2,
   Plug,
-  BarChart3,
   Activity,
   Users,
   Briefcase,
@@ -23,10 +22,7 @@ import { BlockNumber } from '@/components/BlockNumber';
 
 const discoverLinks = [
   { name: 'Marketplace', href: '/marketplace', icon: Briefcase },
-  { name: 'Jobs', href: '/jobs', icon: FileText },
   { name: 'Leaderboard', href: '/leaderboard', icon: Users },
-  { name: 'Skills', href: '/skills', icon: BookOpen },
-  { name: 'Bidding', href: '/bidding', icon: Settings },
   { name: 'Networks', href: '/networks', icon: Globe },
 ];
 
@@ -35,16 +31,14 @@ const buildLinks = [
   { name: 'Governance', href: '/governance', icon: Shield },
   { name: 'Admin', href: '/admin', icon: Settings },
   { name: 'Webhooks', href: '/dashboard/webhooks', icon: Plug },
-  { name: 'Integrations', href: '/integrations', icon: Plug },
 ];
 
 const resourceLinks = [
   { name: 'About', href: '/about', icon: Globe },
-  { name: 'Analytics', href: '/analytics', icon: BarChart3 },
-  { name: 'Activity', href: '/activity', icon: Activity },
   { name: 'API Docs', href: '/api-docs', icon: Terminal },
   { name: 'Contact', href: '/contact', icon: Mail },
   { name: 'Contracts', href: '/contracts', icon: Code2 },
+  { name: 'Security', href: '/security', icon: Shield },
 ];
 
 const socialLinks = [

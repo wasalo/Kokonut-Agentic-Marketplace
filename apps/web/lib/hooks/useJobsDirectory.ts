@@ -48,7 +48,13 @@ export function useJobsDirectory({
   }, [searchQuery, debouncedSearch]);
 
   const { jobs, isLoading } = useJobs(0, fetchCount);
-  const { stats, isLoading: isStatsLoading } = useJobStatsFromSubgraph();
+
+  const hookStats = {
+    openJobs: jobs.filter(job => job.status === JobStatus.Open).length,
+    inProgressJobs: jobs.filter(job => job.status === JobStatus.Submitted || job.status === JobStatus.Funded).length,
+    completedJobs: jobs.filter(job => job.status === JobStatus.Completed).length,
+    totalJobs: jobs.length,
+  };
 
   const handleSortChange = useCallback(
     (newSortBy: string, newSortOrder: string) => {
@@ -121,8 +127,7 @@ export function useJobsDirectory({
     isConnected,
     jobs,
     isLoading,
-    stats,
-    isStatsLoading,
+    stats: hookStats,
     searchQuery,
     setSearchQuery,
     isSearching,

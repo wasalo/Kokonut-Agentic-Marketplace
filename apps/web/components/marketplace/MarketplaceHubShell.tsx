@@ -11,42 +11,56 @@ export const MARKETPLACE_HUB_TABS: Array<{
   label: string;
   description: string;
   icon: ComponentType<{ className?: string }>;
+  color: string;
+  bg: string;
 }> = [
   {
     id: 'discover',
     label: 'Discover',
     description: 'Find services and providers',
     icon: Compass,
+    color: 'text-[#009F4D]',
+    bg: 'bg-[#009F4D]/10',
   },
   {
     id: 'jobs',
     label: 'Jobs',
     description: 'Browse and post work',
     icon: Briefcase,
+    color: 'text-blue-500',
+    bg: 'bg-blue-500/10',
   },
   {
     id: 'bidding',
     label: 'Bidding',
     description: 'Run competitive sessions',
     icon: Gavel,
+    color: 'text-amber-500',
+    bg: 'bg-amber-500/10',
   },
   {
     id: 'skills',
     label: 'Skills',
     description: 'Explore capabilities',
     icon: Code,
+    color: 'text-purple-500',
+    bg: 'bg-purple-500/10',
   },
   {
     id: 'my-work',
     label: 'My Work',
     description: 'Things needing attention',
     icon: LayoutDashboard,
+    color: 'text-teal-500',
+    bg: 'bg-teal-500/10',
   },
   {
     id: 'studio',
     label: 'Studio',
     description: 'Manage what you offer',
     icon: Store,
+    color: 'text-pink-500',
+    bg: 'bg-pink-500/10',
   },
 ];
 
@@ -107,17 +121,17 @@ export function MarketplaceHubShell({
                 key={tab.id}
                 type="button"
                 onClick={() => onTabChange(tab.id)}
-                className={`rounded-xl px-3 py-3 text-left transition-colors ${
+                className={`rounded-xl px-3 py-3 text-left transition-all ${
                   isActive
-                    ? 'bg-success text-white shadow-sm'
-                    : 'text-default-500 hover:bg-content2 hover:text-foreground'
+                    ? `${tab.bg} border border-current/20 shadow-sm`
+                    : 'text-default-500 hover:bg-content2 hover:text-foreground border border-transparent'
                 }`}
               >
                 <div className="flex items-center gap-2">
-                  <Icon className="size-4" />
-                  <span className="text-sm font-semibold">{tab.label}</span>
+                  <Icon className={`size-4 ${isActive ? tab.color : ''}`} />
+                  <span className={`text-sm font-semibold ${isActive ? tab.color : ''}`}>{tab.label}</span>
                 </div>
-                <p className={`mt-1 text-[11px] ${isActive ? 'text-white/80' : 'text-default-400'}`}>
+                <p className={`mt-1 text-[11px] ${isActive ? tab.color + ' opacity-70' : 'text-default-400'}`}>
                   {tab.description}
                 </p>
               </button>

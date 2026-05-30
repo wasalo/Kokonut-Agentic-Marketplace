@@ -1,18 +1,31 @@
 'use client';
 
-import { useState, useCallback, useEffect } from 'react';
+import { useState, useCallback, useEffect, useMemo } from 'react';
 import { useRouter } from 'next/navigation';
 import { useAccount, useBalance } from 'wagmi';
-import { ArrowLeft, Loader2, AlertCircle, DollarSign, Clock } from 'lucide-react';
-import { Card } from '@heroui/react';
+import { ArrowLeft, Loader2, AlertCircle, DollarSign, Clock, Shield, CheckCircle2, Info } from 'lucide-react';
+import { Card, Button } from '@heroui/react';
 import NextLink from 'next/link';
 import { parseEther, formatEther, toHex } from 'viem';
-import { useBiddingCalculateStake, useCreateBiddingSession } from '@/lib/hooks/useBiddingSystem';
-import { validateAddress } from '@/lib/hooks/useValidation';
+import { useCreateBiddingSession } from '@/lib/hooks/useBiddingSystem';
+import { useEvaluatorPoolSize } from '@/lib/hooks/useJobs';
 import { showToast } from '@/lib/toast';
 
-const MIN_DEADLINE = 5 * 60; // 5 minutes in seconds
-const MAX_DEADLINE = 365 * 24 * 60 * 60; // 1 year in seconds
+// Contract limits (must match BiddingSystem.sol)
+const MIN_DEADLINE_MINUTES = 5;
+const MAX_DEADLINE_DAYS = 30;
+const MAX_DEADLINE_MINUTES = MAX_DEADLINE_DAYS * 24 * 60;
+const GAS_BUFFER_WEI = parseEther('0.01'); // 0.01 ETH buffer for gas
+const MAX_METADATA_LENGTH = 2000;
+
+const DEADLINE_PRESETS = [
+  { label: '1 hour', minutes: 60 },
+  { label: '6 hours', minutes: 360 },
+  { label: '1 day', minutes: 1440 },
+  { label: '3 days', minutes: 4320 },
+  { label: '7 days', minutes: 10080 },
+];
+
 export default function CreateBiddingSessionPage(): JSX.Element {
   useEffect(() => {
     document.title = 'Create Bidding Session | Kokonut Agent Economy';
@@ -22,11 +35,11 @@ export default function CreateBiddingSessionPage(): JSX.Element {
   const { address, isConnected } = useAccount();
 
   // Form state
-  const [evaluator, setEvaluator] = useState('');
   const [maxBudget, setMaxBudget] = useState('');
-  const [deadline, setDeadline] = useState('');
+  const [deadlineMinutes, setDeadlineMinutes] = useState('');
   const [metadata, setMetadata] = useState('');
   const [serviceId, setServiceId] = useState('');
+  const [showConfirm, setShowConfirm] = useState(false);
 
   // Validation state
   const [errors, setErrors] = useState<Record<string, string>>({});
@@ -34,10 +47,33 @@ export default function CreateBiddingSessionPage(): JSX.Element {
   // ETH balance
   const { data: ethBalance } = useBalance({ address });
 
-  // Calculate stake
-  const { stakePerEth } = useBiddingCalculateStake();
-  const calculatedStake =
-    stakePerEth && maxBudget ? (parseEther(maxBudget) * stakePerEth) / parseEther('1') : 0n;
+  // Evaluator pool info
+  const { count: evaluatorPoolSize } = useEvaluatorPoolSize();
+
+  // Calculate stake (1% of budget, local only)
+  const calculatedStake = useMemo(() => {
+    if (!maxBudget) return 0n;
+    try {
+      const budgetWei = parseEther(maxBudget);
+      return (budgetWei * 100n) / 10000n;
+    } catch {
+      return 0n;
+    }
+  }, [maxBudget]);
+
+  // Calculate deadline as absolute timestamp
+  const deadlineTimestamp = useMemo(() => {
+    if (!deadlineMinutes) return 0n;
+    const minutes = parseInt(deadlineMinutes);
+    if (isNaN(minutes) || minutes < MIN_DEADLINE_MINUTES) return 0n;
+    return BigInt(Math.floor(Date.now() / 1000)) + BigInt(minutes * 60);
+  }, [deadlineMinutes]);
+
+  // Balance sufficiency (including gas buffer)
+  const hasEnoughBalance = useMemo(() => {
+    if (!ethBalance || calculatedStake === 0n) return false;
+    return ethBalance.value >= calculatedStake + GAS_BUFFER_WEI;
+  }, [ethBalance, calculatedStake]);
 
   // Create session hook
   const { createSession, hash, isPending, isConfirming, isConfirmed, writeError } =
@@ -47,28 +83,27 @@ export default function CreateBiddingSessionPage(): JSX.Element {
   const validate = useCallback(() => {
     const newErrors: Record<string, string> = {};
 
-    if (!evaluator) {
-      newErrors.evaluator = 'Evaluator address is required';
-    } else if (!validateAddress(evaluator)) {
-      newErrors.evaluator = 'Invalid Ethereum address';
-    }
-
     if (!maxBudget) {
       newErrors.maxBudget = 'Maximum budget is required';
-    } else if (parseFloat(maxBudget) <= 0) {
-      newErrors.maxBudget = 'Budget must be greater than 0';
-    } else if (parseFloat(maxBudget) < 0.005) {
-      newErrors.maxBudget = 'Minimum budget is 0.005 ETH';
+    } else {
+      try {
+        const budgetWei = parseEther(maxBudget);
+        if (budgetWei <= 0n) {
+          newErrors.maxBudget = 'Budget must be greater than 0';
+        }
+      } catch {
+        newErrors.maxBudget = 'Invalid budget amount';
+      }
     }
 
-    if (!deadline) {
+    if (!deadlineMinutes) {
       newErrors.deadline = 'Deadline is required';
     } else {
-      const deadlineSeconds = parseInt(deadline) * 60; // Convert minutes to seconds
-      if (deadlineSeconds < MIN_DEADLINE) {
-        newErrors.deadline = 'Minimum deadline is 5 minutes';
-      } else if (deadlineSeconds > MAX_DEADLINE) {
-        newErrors.deadline = 'Maximum deadline is 1 year';
+      const minutes = parseInt(deadlineMinutes);
+      if (isNaN(minutes) || minutes < MIN_DEADLINE_MINUTES) {
+        newErrors.deadline = `Minimum deadline is ${MIN_DEADLINE_MINUTES} minutes`;
+      } else if (minutes > MAX_DEADLINE_MINUTES) {
+        newErrors.deadline = `Maximum deadline is ${MAX_DEADLINE_DAYS} days`;
       }
     }
 
@@ -76,42 +111,47 @@ export default function CreateBiddingSessionPage(): JSX.Element {
       newErrors.serviceId = 'Invalid service ID';
     }
 
+    if (metadata.length > MAX_METADATA_LENGTH) {
+      newErrors.metadata = `Description must be ${MAX_METADATA_LENGTH} characters or less`;
+    }
+
     setErrors(newErrors);
     return Object.keys(newErrors).length === 0;
-  }, [evaluator, maxBudget, deadline, serviceId]);
+  }, [maxBudget, deadlineMinutes, serviceId, metadata]);
 
   // Handle form submission
   const handleSubmit = useCallback(
     (e: React.FormEvent) => {
       e.preventDefault();
-
       if (!validate()) return;
-
-      const deadlineSeconds = BigInt(parseInt(deadline) * 60);
-      const budgetWei = parseEther(maxBudget);
-      const sid = serviceId ? BigInt(parseInt(serviceId)) : 0n;
-
-      createSession({
-        evaluator: evaluator as `0x${string}`,
-        maxBudget: budgetWei,
-        deadline: deadlineSeconds,
-        metadata: toHex(metadata.trim()) as `0x${string}`,
-        serviceId: sid,
-      });
+      setShowConfirm(true);
     },
-    [validate, evaluator, maxBudget, deadline, metadata, serviceId, createSession]
+    [validate]
   );
 
-  useEffect(() => {
-    if (!isConfirmed || !hash) {
-      return;
-    }
+  // Confirm and execute
+  const handleConfirm = useCallback(() => {
+    const budgetWei = parseEther(maxBudget);
+    const sid = serviceId ? BigInt(parseInt(serviceId)) : 0n;
 
+    createSession({
+      evaluator: '0x0000000000000000000000000000000000000000' as `0x${string}`,
+      maxBudget: budgetWei,
+      deadline: deadlineTimestamp,
+      metadata: toHex(metadata.trim()) as `0x${string}`,
+      serviceId: sid,
+    });
+
+    setShowConfirm(false);
+  }, [maxBudget, deadlineTimestamp, metadata, serviceId, createSession]);
+
+  // Redirect after confirmation
+  useEffect(() => {
+    if (!isConfirmed || !hash) return;
     const timeoutId = window.setTimeout(() => {
       showToast.success('Session created!', 'Your bidding session has been created successfully.');
       router.push('/marketplace?tab=bidding');
     }, 2000);
-
     return () => window.clearTimeout(timeoutId);
   }, [hash, isConfirmed, router]);
 
@@ -132,6 +172,95 @@ export default function CreateBiddingSessionPage(): JSX.Element {
     );
   }
 
+  // Confirmation modal
+  if (showConfirm) {
+    const deadlineDate = new Date(Number(deadlineTimestamp) * 1000);
+    const days = Math.floor(parseInt(deadlineMinutes) / 1440);
+    const hours = Math.floor((parseInt(deadlineMinutes) % 1440) / 60);
+
+    return (
+      <div className="container mx-auto px-4 py-8 max-w-2xl">
+        <Card className="border border-divider p-6">
+          <h2 className="text-xl font-bold mb-4">Confirm Session Creation</h2>
+          <div className="space-y-3 mb-6">
+            <div className="flex justify-between py-2 border-b border-divider">
+              <span className="text-default-500">Evaluator</span>
+              <span className="font-medium flex items-center gap-1">
+                <Shield className="size-4 text-[#009F4D]" />
+                Random Pool
+              </span>
+            </div>
+            <div className="flex justify-between py-2 border-b border-divider">
+              <span className="text-default-500">Max Budget</span>
+              <span className="font-medium">{maxBudget} ETH</span>
+            </div>
+            <div className="flex justify-between py-2 border-b border-divider">
+              <span className="text-default-500">Creator Stake (1%)</span>
+              <span className="font-medium">{Number(formatEther(calculatedStake)).toFixed(6)} ETH</span>
+            </div>
+            <div className="flex justify-between py-2 border-b border-divider">
+              <span className="text-default-500">Deadline</span>
+              <span className="font-medium">
+                {days > 0 ? `${days}d ` : ''}{hours > 0 ? `${hours}h ` : ''}{parseInt(deadlineMinutes) % 60}m
+              </span>
+            </div>
+            {serviceId && (
+              <div className="flex justify-between py-2 border-b border-divider">
+                <span className="text-default-500">Service ID</span>
+                <span className="font-medium">{serviceId}</span>
+              </div>
+            )}
+            {metadata && (
+              <div className="py-2 border-b border-divider">
+                <span className="text-default-500 block mb-1">Description</span>
+                <p className="text-sm">{metadata.slice(0, 200)}{metadata.length > 200 ? '...' : ''}</p>
+              </div>
+            )}
+            <div className="flex justify-between py-2">
+              <span className="text-default-500">Evaluators in Pool</span>
+              <span className="font-medium">{evaluatorPoolSize}</span>
+            </div>
+          </div>
+
+          {writeError && (
+            <div className="p-4 bg-danger/10 border border-danger/30 rounded-lg mb-4">
+              <div className="flex items-center gap-2">
+                <AlertCircle className="size-4 text-danger" />
+                <span className="text-sm font-medium text-danger">Transaction Failed</span>
+              </div>
+              <p className="text-sm text-danger/80 mt-1">
+                {writeError.message || 'An error occurred'}
+              </p>
+            </div>
+          )}
+
+          <div className="flex items-center justify-between">
+            <Button
+              variant="ghost"
+              isDisabled={isPending || isConfirming}
+              onPress={() => setShowConfirm(false)}
+            >
+              Back
+            </Button>
+            <Button
+              className="bg-gradient-to-r from-[#009F4D] to-[#00c853] text-white"
+              onPress={handleConfirm}
+              isDisabled={isPending || isConfirming}
+            >
+              {isPending || isConfirming ? (
+                <Loader2 className="size-4 animate-spin" />
+              ) : isConfirmed ? (
+                'Session Created!'
+              ) : (
+                'Confirm & Create'
+              )}
+            </Button>
+          </div>
+        </Card>
+      </div>
+    );
+  }
+
   return (
     <div className="container mx-auto px-4 py-8 max-w-2xl">
       {/* Header */}
@@ -145,29 +274,22 @@ export default function CreateBiddingSessionPage(): JSX.Element {
         </div>
       </div>
 
+      {/* Random Evaluator Info */}
+      <Card className="border border-[#009F4D]/20 bg-[#009F4D]/5 p-4 mb-6">
+        <div className="flex items-start gap-3">
+          <Shield className="size-5 text-[#009F4D] mt-0.5" />
+          <div>
+            <p className="text-sm font-medium text-[#009F4D]">Random Evaluator Pool</p>
+            <p className="text-xs text-default-500 mt-1">
+              After bidding closes and a winner is selected, a random evaluator from the registered pool will be assigned to judge the work. This ensures unbiased evaluation.
+            </p>
+          </div>
+        </div>
+      </Card>
+
       {/* Form */}
       <Card className="border border-divider p-6">
         <form onSubmit={handleSubmit} className="space-y-6">
-          {/* Evaluator */}
-          <div>
-            <label className="block text-sm font-medium mb-2">
-              Evaluator Address <span className="text-danger">*</span>
-            </label>
-            <input
-              type="text"
-              value={evaluator}
-              onChange={e => setEvaluator(e.target.value)}
-              placeholder="0x…"
-              className={`w-full px-4 py-2 bg-content1 border rounded-lg focus:outline-none focus:ring-2 focus:ring-[#009F4D]/50 ${
-                errors.evaluator ? 'border-danger' : 'border-divider'
-              }`}
-            />
-            {errors.evaluator && <p className="text-danger text-sm mt-1">{errors.evaluator}</p>}
-            <p className="text-xs text-default-400 mt-1">
-              The address that will evaluate the winning bid
-            </p>
-          </div>
-
           {/* Max Budget */}
           <div>
             <label className="block text-sm font-medium mb-2">
@@ -176,40 +298,46 @@ export default function CreateBiddingSessionPage(): JSX.Element {
             <div className="relative">
               <DollarSign className="absolute left-3 top-1/2 -translate-y-1/2 size-4 text-default-400" />
               <input
-                type="text"
-                inputMode="decimal"
+                type="number"
+                step="0.001"
+                min="0.005"
                 value={maxBudget}
                 onChange={e => setMaxBudget(e.target.value)}
                 placeholder="0.0"
-                step="0.001"
-                min="0.005"
                 className={`w-full pl-10 pr-4 py-2 bg-content1 border rounded-lg focus:outline-none focus:ring-2 focus:ring-[#009F4D]/50 ${
                   errors.maxBudget ? 'border-danger' : 'border-divider'
                 }`}
               />
             </div>
             {errors.maxBudget && <p className="text-danger text-sm mt-1">{errors.maxBudget}</p>}
-            <p className="text-xs text-default-400 mt-1">
-              The maximum amount you are willing to pay
-            </p>
+            <div className="flex items-center justify-between mt-1">
+              <p className="text-xs text-default-400">
+                The maximum amount bidders can propose
+              </p>
+              {ethBalance && (
+                <p className="text-xs text-default-400">
+                  Balance: {Number(formatEther(ethBalance.value)).toFixed(4)} ETH
+                </p>
+              )}
+            </div>
           </div>
 
           {/* Stake Info */}
           <div className="p-4 bg-[#009F4D]/10 rounded-lg">
             <div className="flex items-center gap-2 mb-2">
               <DollarSign className="size-4 text-[#009F4D]" />
-              <span className="text-sm font-medium text-[#009F4D]">Required Stake</span>
+              <span className="text-sm font-medium text-[#009F4D]">Creator Stake</span>
             </div>
             <p className="text-2xl font-bold">
               {maxBudget ? Number(formatEther(calculatedStake)).toFixed(6) : '0'} ETH
             </p>
             <p className="text-xs text-default-400 mt-1">
-              Providers must stake 1% of max budget to commit bids
+              1% of max budget, refunded after job creation
             </p>
-            {ethBalance && ethBalance.value < calculatedStake && (
+            {maxBudget && !hasEnoughBalance && (
               <p className="text-danger text-sm mt-2">
                 Insufficient balance. You need at least{' '}
-                {Number(formatEther(calculatedStake)).toFixed(6)} ETH to create this session.
+                {Number(formatEther(calculatedStake + GAS_BUFFER_WEI)).toFixed(6)} ETH (stake + gas).
               </p>
             )}
           </div>
@@ -217,17 +345,33 @@ export default function CreateBiddingSessionPage(): JSX.Element {
           {/* Deadline */}
           <div>
             <label className="block text-sm font-medium mb-2">
-              Deadline (minutes from now) <span className="text-danger">*</span>
+              Deadline <span className="text-danger">*</span>
             </label>
+            <div className="flex flex-wrap gap-2 mb-3">
+              {DEADLINE_PRESETS.map(preset => (
+                <button
+                  key={preset.minutes}
+                  type="button"
+                  onClick={() => setDeadlineMinutes(String(preset.minutes))}
+                  className={`px-3 py-1.5 text-xs rounded-lg border transition-colors ${
+                    deadlineMinutes === String(preset.minutes)
+                      ? 'border-[#009F4D] bg-[#009F4D]/10 text-[#009F4D]'
+                      : 'border-divider hover:border-[#009F4D]/30'
+                  }`}
+                >
+                  {preset.label}
+                </button>
+              ))}
+            </div>
             <div className="relative">
               <Clock className="absolute left-3 top-1/2 -translate-y-1/2 size-4 text-default-400" />
               <input
                 type="number"
-                value={deadline}
-                onChange={e => setDeadline(e.target.value)}
-                placeholder="60"
-                min="5"
-                max={MAX_DEADLINE / 60}
+                value={deadlineMinutes}
+                onChange={e => setDeadlineMinutes(e.target.value)}
+                placeholder="1440"
+                min={MIN_DEADLINE_MINUTES}
+                max={MAX_DEADLINE_MINUTES}
                 className={`w-full pl-10 pr-4 py-2 bg-content1 border rounded-lg focus:outline-none focus:ring-2 focus:ring-[#009F4D]/50 ${
                   errors.deadline ? 'border-danger' : 'border-divider'
                 }`}
@@ -235,7 +379,7 @@ export default function CreateBiddingSessionPage(): JSX.Element {
             </div>
             {errors.deadline && <p className="text-danger text-sm mt-1">{errors.deadline}</p>}
             <p className="text-xs text-default-400 mt-1">
-              After this deadline, a 1-hour reveal window opens
+              Minutes from now. Bidding closes at deadline, then 1-hour reveal window opens.
             </p>
           </div>
 
@@ -254,39 +398,29 @@ export default function CreateBiddingSessionPage(): JSX.Element {
             />
             {errors.serviceId && <p className="text-danger text-sm mt-1">{errors.serviceId}</p>}
             <p className="text-xs text-default-400 mt-1">
-              Link to a service on the marketplace (optional)
+              Link to a marketplace service (optional)
             </p>
           </div>
 
           {/* Metadata (Optional) */}
           <div>
             <label className="block text-sm font-medium mb-2">
-              Description / Metadata (optional)
+              Description (optional)
             </label>
             <textarea
               value={metadata}
-              onChange={e => setMetadata(e.target.value)}
-              placeholder="Describe your project or requirements…"
+              onChange={e => setMetadata(e.target.value.slice(0, MAX_METADATA_LENGTH))}
+              placeholder="Describe your project or requirements..."
               rows={4}
-              className="w-full px-4 py-2 bg-content1 border border-divider rounded-lg focus:outline-none focus:ring-2 focus:ring-[#009F4D]/50 resize-none"
+              className={`w-full px-4 py-2 bg-content1 border rounded-lg focus:outline-none focus:ring-2 focus:ring-[#009F4D]/50 resize-none ${
+                errors.metadata ? 'border-danger' : 'border-divider'
+              }`}
             />
+            {errors.metadata && <p className="text-danger text-sm mt-1">{errors.metadata}</p>}
             <p className="text-xs text-default-400 mt-1">
-              Additional information for bidders (stored as bytes)
+              {metadata.length}/{MAX_METADATA_LENGTH} characters
             </p>
           </div>
-
-          {/* Error */}
-          {writeError && (
-            <div className="p-4 bg-danger/10 border border-danger/30 rounded-lg">
-              <div className="flex items-center gap-2">
-                <AlertCircle className="size-4 text-danger" />
-                <span className="text-sm font-medium text-danger">Transaction Failed</span>
-              </div>
-              <p className="text-sm text-danger/80 mt-1">
-                {writeError.message || 'An error occurred'}
-              </p>
-            </div>
-          )}
 
           {/* Submit */}
           <div className="flex items-center justify-between pt-4">
@@ -299,9 +433,8 @@ export default function CreateBiddingSessionPage(): JSX.Element {
                 isPending ||
                 isConfirming ||
                 !maxBudget ||
-                !evaluator ||
-                !deadline ||
-                (ethBalance ? ethBalance.value < calculatedStake : true)
+                !deadlineMinutes ||
+                !hasEnoughBalance
               }
               className="inline-flex items-center justify-center gap-2 px-5 py-2.5 bg-gradient-to-r from-[#009F4D] to-[#00c853] text-white rounded-lg font-medium hover:opacity-90 transition-opacity disabled:opacity-50"
             >
@@ -310,7 +443,7 @@ export default function CreateBiddingSessionPage(): JSX.Element {
               ) : isConfirmed ? (
                 'Session Created!'
               ) : (
-                'Create Session'
+                'Review & Create'
               )}
             </button>
           </div>
@@ -325,7 +458,7 @@ export default function CreateBiddingSessionPage(): JSX.Element {
           <li>Providers commit sealed bids with 1% ETH stake</li>
           <li>After the deadline, providers reveal their bids</li>
           <li>You accept the winning bid to create a funded job</li>
-          <li>The winner&apos;s stake is returned; you fund the job</li>
+          <li>A random evaluator is assigned to judge the completed work</li>
         </ol>
       </Card>
     </div>

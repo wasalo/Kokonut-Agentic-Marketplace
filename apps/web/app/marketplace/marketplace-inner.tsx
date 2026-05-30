@@ -330,9 +330,9 @@ export default function MarketplaceInner() {
       isLoading: isServicesLoading || isTotalCountLoading,
     },
     {
-      label: 'Open Jobs',
+      label: 'Awaiting Escrow',
       value: openJobsCount,
-      detail: 'Available work',
+      detail: 'Jobs pending client funding',
       icon: <Briefcase className="size-4" />,
       isLoading: isJobsLoading,
     },
@@ -381,7 +381,7 @@ export default function MarketplaceInner() {
         ) : undefined
       }
     >
-      <MarketplaceStatsStrip items={hubStats} />
+      {activeTab === 'discover' && <MarketplaceStatsStrip items={hubStats} />}
 
       {activeTab === 'discover' && (
         <section>
