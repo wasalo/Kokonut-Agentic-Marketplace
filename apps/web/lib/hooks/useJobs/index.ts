@@ -50,8 +50,8 @@ import {
 
 export function useCommitBid() {
   const { commitBid: _commitBid, hash, isPending, isConfirming, isConfirmed, writeError } = useBiddingCommitBid();
-  const commitBid = (sessionId: bigint, commitHash: `0x${string}`, stake: bigint) => {
-    _commitBid({ sessionId, commitHash, stake });
+  const commitBid = (sessionId: bigint, commitHash: `0x${string}`, stake: bigint, paymentToken?: `0x${string}`) => {
+    _commitBid({ sessionId, commitHash, stake, paymentToken });
   };
   return { commitBid, hash, isPending, isConfirming, isConfirmed, error: writeError };
 }

@@ -2,8 +2,8 @@
 
 import { useState, useCallback, useEffect, useMemo } from 'react';
 import { useRouter } from 'next/navigation';
-import { useAccount, useBalance } from 'wagmi';
-import { ArrowLeft, Loader2, AlertCircle, DollarSign, Clock, Shield, Wallet } from 'lucide-react';
+import { useAccount, useBalance, usePublicClient, useWriteContract } from 'wagmi';
+import { ArrowLeft, Loader2, AlertCircle, Clock, Shield, Wallet } from 'lucide-react';
 import { Card, Button } from '@heroui/react';
 import NextLink from 'next/link';
 import { parseEther, formatEther, formatUnits, parseUnits, toHex } from 'viem';
@@ -11,6 +11,8 @@ import { useCreateBiddingSession } from '@/lib/hooks/useBiddingSystem';
 import { useEvaluatorPoolSize } from '@/lib/hooks/useJobs';
 import { useTokenPriceConversion, ETH_TOKEN, USDC_TOKEN, type Token } from '@/lib/hooks/useTokenConversion';
 import { useUSDCBalance } from '@/lib/hooks/useUSDC';
+import { useUSDCApproval } from '@/lib/hooks/useUSDCApproval';
+import { getContractAddress } from '@/lib/contracts/config';
 import { showToast } from '@/lib/toast';
 
 // Contract limits (must match BiddingSystem.sol)
@@ -21,6 +23,9 @@ const GAS_BUFFER_WEI = parseEther('0.01'); // 0.01 ETH buffer for gas
 const MAX_METADATA_LENGTH = 2000;
 
 const PAYMENT_TOKENS: Token[] = [ETH_TOKEN, USDC_TOKEN];
+const BIDDING_SYSTEM_ADDRESS = getContractAddress('BIDDING_SYSTEM');
+
+type ApprovalPhase = 'idle' | 'checking' | 'approving' | 'creating';
 
 const DEADLINE_PRESETS = [
   { label: '1 hour', minutes: 60 },
@@ -37,6 +42,8 @@ export default function CreateBiddingSessionPage(): JSX.Element {
 
   const router = useRouter();
   const { address, isConnected } = useAccount();
+  const publicClient = usePublicClient();
+  const { writeContractAsync: writeApprovalAsync } = useWriteContract();
 
   // Form state
   const [maxBudget, setMaxBudget] = useState('');
@@ -45,6 +52,7 @@ export default function CreateBiddingSessionPage(): JSX.Element {
   const [serviceId, setServiceId] = useState('');
   const [paymentToken, setPaymentToken] = useState<Token>(ETH_TOKEN);
   const [showConfirm, setShowConfirm] = useState(false);
+  const [approvalPhase, setApprovalPhase] = useState<ApprovalPhase>('idle');
 
   // Validation state
   const [errors, setErrors] = useState<Record<string, string>>({});
@@ -119,6 +127,14 @@ export default function CreateBiddingSessionPage(): JSX.Element {
   // Create session hook
   const { createSession, hash, isPending, isConfirming, isConfirmed, writeError } =
     useCreateBiddingSession();
+  const { ensureUSDCApproval } = useUSDCApproval({
+    account: address,
+    publicClient,
+    spender: BIDDING_SYSTEM_ADDRESS,
+    writeContractAsync: writeApprovalAsync,
+    setPhase: setApprovalPhase,
+  });
+  const isBusy = isPending || isConfirming || approvalPhase !== 'idle';
 
   // Validate form
   const validate = useCallback(() => {
@@ -128,8 +144,8 @@ export default function CreateBiddingSessionPage(): JSX.Element {
       newErrors.maxBudget = 'Maximum budget is required';
     } else {
       try {
-        const budgetWei = parseEther(maxBudget);
-        if (budgetWei <= 0n) {
+        const budgetUnits = parseUnits(maxBudget, paymentToken.decimals);
+        if (budgetUnits <= 0n) {
           newErrors.maxBudget = 'Budget must be greater than 0';
         }
       } catch {
@@ -158,7 +174,7 @@ export default function CreateBiddingSessionPage(): JSX.Element {
 
     setErrors(newErrors);
     return Object.keys(newErrors).length === 0;
-  }, [maxBudget, deadlineMinutes, serviceId, metadata]);
+  }, [maxBudget, paymentToken.decimals, deadlineMinutes, serviceId, metadata]);
 
   // Handle form submission
   const handleSubmit = useCallback(
@@ -171,9 +187,17 @@ export default function CreateBiddingSessionPage(): JSX.Element {
   );
 
   // Confirm and execute
-  const handleConfirm = useCallback(() => {
+  const handleConfirm = useCallback(async () => {
     const budgetUnits = parseUnits(maxBudget, paymentToken.decimals);
     const sid = serviceId ? BigInt(parseInt(serviceId)) : 0n;
+
+    if (paymentToken.symbol === 'USDC') {
+      const amountLabel = formatUnits(calculatedStake, paymentToken.decimals);
+      const approved = await ensureUSDCApproval(calculatedStake, amountLabel);
+      if (!approved) return;
+    }
+
+    setApprovalPhase('creating');
 
     createSession({
       evaluator: '0x0000000000000000000000000000000000000000' as `0x${string}`,
@@ -181,10 +205,15 @@ export default function CreateBiddingSessionPage(): JSX.Element {
       deadline: deadlineTimestamp,
       metadata: toHex(metadata.trim()) as `0x${string}`,
       serviceId: sid,
+      paymentToken: paymentToken.address,
     });
 
     setShowConfirm(false);
-  }, [maxBudget, paymentToken.decimals, deadlineTimestamp, metadata, serviceId, createSession]);
+  }, [maxBudget, paymentToken, calculatedStake, ensureUSDCApproval, deadlineTimestamp, metadata, serviceId, createSession]);
+
+  useEffect(() => {
+    if (writeError) setApprovalPhase('idle');
+  }, [writeError]);
 
   // Redirect after confirmation
   useEffect(() => {
@@ -217,6 +246,13 @@ export default function CreateBiddingSessionPage(): JSX.Element {
   if (showConfirm) {
     const days = Math.floor(parseInt(deadlineMinutes) / 1440);
     const hours = Math.floor((parseInt(deadlineMinutes) % 1440) / 60);
+    const confirmLabel = approvalPhase === 'checking'
+      ? 'Checking USDC...'
+      : approvalPhase === 'approving'
+        ? 'Approving USDC...'
+        : isConfirmed
+          ? 'Session Created!'
+          : 'Confirm & Create';
 
     return (
       <div className="container mx-auto px-4 py-8 max-w-2xl">
@@ -277,7 +313,7 @@ export default function CreateBiddingSessionPage(): JSX.Element {
           <div className="flex items-center justify-between">
             <Button
               variant="ghost"
-              isDisabled={isPending || isConfirming}
+              isDisabled={isBusy}
               onPress={() => setShowConfirm(false)}
             >
               Back
@@ -285,14 +321,12 @@ export default function CreateBiddingSessionPage(): JSX.Element {
             <Button
               className="bg-gradient-to-r from-[#009F4D] to-[#00c853] text-white"
               onPress={handleConfirm}
-              isDisabled={isPending || isConfirming}
+              isDisabled={isBusy}
             >
-              {isPending || isConfirming ? (
+              {isPending || isConfirming || approvalPhase === 'creating' ? (
                 <Loader2 className="size-4 animate-spin" />
-              ) : isConfirmed ? (
-                'Session Created!'
               ) : (
-                'Confirm & Create'
+                confirmLabel
               )}
             </Button>
           </div>
@@ -357,7 +391,6 @@ export default function CreateBiddingSessionPage(): JSX.Element {
               Maximum Budget ({paymentToken.symbol}) <span className="text-danger">*</span>
             </label>
             <div className="relative">
-              <DollarSign className="absolute left-3 top-1/2 -translate-y-1/2 size-4 text-default-400" />
               <input
                 type="number"
                 step={paymentToken.symbol === 'ETH' ? '0.001' : '1'}
@@ -365,7 +398,7 @@ export default function CreateBiddingSessionPage(): JSX.Element {
                 value={maxBudget}
                 onChange={e => setMaxBudget(e.target.value)}
                 placeholder="0.0"
-                className={`w-full pl-10 pr-4 py-2 bg-content1 border rounded-lg focus:outline-none focus:ring-2 focus:ring-[#009F4D]/50 ${
+                className={`w-full px-4 py-2 bg-content1 border rounded-lg focus:outline-none focus:ring-2 focus:ring-[#009F4D]/50 ${
                   errors.maxBudget ? 'border-danger' : 'border-divider'
                 }`}
               />
@@ -385,7 +418,6 @@ export default function CreateBiddingSessionPage(): JSX.Element {
           {/* Stake Info */}
           <div className="p-4 bg-[#009F4D]/10 rounded-lg">
             <div className="flex items-center gap-2 mb-2">
-              <DollarSign className="size-4 text-[#009F4D]" />
               <span className="text-sm font-medium text-[#009F4D]">Creator Stake</span>
             </div>
             <p className="text-2xl font-bold">
@@ -493,15 +525,14 @@ export default function CreateBiddingSessionPage(): JSX.Element {
             <button type="submit"
               disabled={
                 !isConnected ||
-                isPending ||
-                isConfirming ||
+                isBusy ||
                 !maxBudget ||
                 !deadlineMinutes ||
                 !hasEnoughBalance
               }
               className="inline-flex items-center justify-center gap-2 px-5 py-2.5 bg-gradient-to-r from-[#009F4D] to-[#00c853] text-white rounded-lg font-medium hover:opacity-90 transition-opacity disabled:opacity-50"
             >
-              {isPending || isConfirming ? (
+              {isBusy ? (
                 <Loader2 className="size-5 animate-spin inline" />
               ) : isConfirmed ? (
                 'Session Created!'
@@ -518,7 +549,7 @@ export default function CreateBiddingSessionPage(): JSX.Element {
         <h3 className="text-sm font-semibold mb-2">How Bidding Works</h3>
         <ol className="text-sm text-default-500 space-y-2 list-decimal list-inside">
           <li>Create a session with your maximum budget and deadline</li>
-          <li>Providers commit sealed bids with 1% ETH stake</li>
+          <li>Providers commit sealed bids with a 1% stake in the session token</li>
           <li>After the deadline, providers reveal their bids</li>
           <li>You accept the winning bid to create a funded job</li>
           <li>A random evaluator is assigned to judge the completed work</li>

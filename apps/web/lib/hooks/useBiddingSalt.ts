@@ -1,18 +1,19 @@
 'use client';
 
 import { useCallback, useEffect, useState } from 'react';
-import { encodeAbiParameters, keccak256, parseEther } from 'viem';
+import { encodeAbiParameters, keccak256, parseUnits } from 'viem';
 import { copyTextToClipboard, generateSalt } from '@/lib/crypto';
 
 export function buildBidCommitHash(
-  amountEth: string,
+  amount: string,
   message: string,
-  salt: `0x${string}`
+  salt: `0x${string}`,
+  decimals = 18
 ): `0x${string}` {
   return keccak256(
     encodeAbiParameters(
       [{ type: 'uint256' }, { type: 'string' }, { type: 'bytes32' }],
-      [parseEther(amountEth), message, salt]
+      [parseUnits(amount, decimals), message, salt]
     )
   );
 }
@@ -26,7 +27,7 @@ export function useBiddingSalt(sessionId: bigint, hasUnrevealedBid: boolean, bid
   const [commitMessage, setCommitMessage] = useState('');
   const [commitSalt, setCommitSalt] = useState(() => {
     if (typeof window === 'undefined') return generateSalt();
-    return window.localStorage.getItem(saltStorageKey) || generateSalt();
+    return window.localStorage.getItem(saltStorageKey) || (hasUnrevealedBid ? '' : generateSalt());
   });
   const [revealAmount, setRevealAmount] = useState(() => {
     if (typeof window === 'undefined') return '';
@@ -39,8 +40,15 @@ export function useBiddingSalt(sessionId: bigint, hasUnrevealedBid: boolean, bid
   const [saltCopied, setSaltCopied] = useState(false);
 
   useEffect(() => {
+    if (!commitSalt) return;
     window.localStorage.setItem(saltStorageKey, commitSalt);
   }, [saltStorageKey, commitSalt]);
+
+  useEffect(() => {
+    if (typeof window === 'undefined' || !hasUnrevealedBid) return;
+    const storedSalt = window.localStorage.getItem(saltStorageKey);
+    setCommitSalt(storedSalt || '');
+  }, [hasUnrevealedBid, saltStorageKey]);
 
   useEffect(() => {
     if (!commitAmount) return;
@@ -70,10 +78,17 @@ export function useBiddingSalt(sessionId: bigint, hasUnrevealedBid: boolean, bid
   }, [hasUnrevealedBid, commitSalt]);
 
   const copySalt = useCallback(() => {
+    if (!commitSalt) return;
     copyTextToClipboard(commitSalt);
     setSaltCopied(true);
     setTimeout(() => setSaltCopied(false), 2000);
   }, [commitSalt]);
+
+  const regenerateSalt = useCallback(() => {
+    const newSalt = generateSalt();
+    setCommitSalt(newSalt);
+    setSaltCopied(false);
+  }, []);
 
   const persistCommitForReveal = useCallback(() => {
     window.localStorage.setItem(amountStorageKey, commitAmount);
@@ -92,6 +107,7 @@ export function useBiddingSalt(sessionId: bigint, hasUnrevealedBid: boolean, bid
     setCommitAmount,
     setCommitMessage,
     setCommitSalt,
+    regenerateSalt,
     setRevealAmount,
     setRevealMessage,
     copySalt,

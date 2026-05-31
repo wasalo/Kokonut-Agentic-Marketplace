@@ -1,7 +1,7 @@
 import { useMemo } from 'react';
 import { useReadContract, useReadContracts, useWriteContract, useWaitForTransactionReceipt } from 'wagmi';
 import { BIDDING_SYSTEM_ABI } from '@/lib/contracts/abis';
-import { getContractAddress } from '@/lib/contracts/config';
+import { getContractAddress, ZERO_ADDRESS } from '@/lib/contracts/config';
 import { parseEther } from 'viem';
 
 const BIDDING_SYSTEM_ADDRESS = getContractAddress('BIDDING_SYSTEM');
@@ -32,6 +32,8 @@ export interface BiddingSession {
   winningBidId: bigint;
   jobCreated: boolean;
   status: SessionStatusType;
+  useRandomEvaluator: boolean;
+  paymentToken: `0x${string}`;
 }
 
 export interface BidInfo {
@@ -166,8 +168,16 @@ export function useBiddingUserBid(
     },
   });
 
+  const bid = useMemo(() => {
+    const userBid = data as BidInfo | undefined;
+    if (!userBid || userBid.bidId === 0n || userBid.bidder.toLowerCase() === ZERO_ADDRESS.toLowerCase()) {
+      return undefined;
+    }
+    return userBid;
+  }, [data]);
+
   return {
-    bid: data as BidInfo | undefined,
+    bid,
     isLoading,
     error,
     refetch,
@@ -241,8 +251,10 @@ export function useCreateBiddingSession() {
     deadline: bigint;
     metadata: `0x${string}`;
     serviceId: bigint;
+    paymentToken: `0x${string}`;
   }) {
     const stake = (params.maxBudget * 100n) / 10000n; // 1% stake
+    const isNativePayment = params.paymentToken.toLowerCase() === ZERO_ADDRESS.toLowerCase();
 
     writeContract({
       chainId: SEPOLIA_CHAIN_ID,
@@ -255,8 +267,9 @@ export function useCreateBiddingSession() {
         params.deadline,
         params.metadata,
         params.serviceId,
+        params.paymentToken,
       ],
-      value: stake,
+      value: isNativePayment ? stake : 0n,
     });
   }
 
@@ -277,14 +290,22 @@ export function useBiddingCommitBid() {
     hash,
   });
 
-  function commitBid(params: { sessionId: bigint; commitHash: `0x${string}`; stake: bigint }) {
+  function commitBid(params: {
+    sessionId: bigint;
+    commitHash: `0x${string}`;
+    stake: bigint;
+    paymentToken?: `0x${string}`;
+  }) {
+    const paymentToken = params.paymentToken ?? ZERO_ADDRESS;
+    const isNativePayment = paymentToken.toLowerCase() === ZERO_ADDRESS.toLowerCase();
+
     writeContract({
       chainId: SEPOLIA_CHAIN_ID,
       address: BIDDING_SYSTEM_ADDRESS,
       abi: BIDDING_SYSTEM_ABI,
       functionName: 'commitBid',
       args: [params.sessionId, params.commitHash],
-      value: params.stake,
+      value: isNativePayment ? params.stake : 0n,
     });
   }
 

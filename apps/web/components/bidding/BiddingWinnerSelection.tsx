@@ -1,16 +1,19 @@
 'use client';
 
 import { Loader2 } from 'lucide-react';
-import { formatEther } from 'viem';
 import type { BidInfo } from '@/lib/hooks/useBiddingSystem';
+import type { Token } from '@/lib/tokenUtils';
+import { formatAmount } from '@/lib/tokenUtils';
 
 interface BiddingWinnerSelectionProps {
   selectableBids: BidInfo[];
   selectedBid: BidInfo | undefined;
+  token: Token;
   isLoadingRevealedBids: boolean;
   isAcceptPending: boolean;
   isRejectPending: boolean;
   isCancelPending: boolean;
+  canCancelSession: boolean;
   onSelectBid: (bidId: bigint) => void;
   onAcceptBid: () => void;
   onRejectBid: () => void;
@@ -20,10 +23,12 @@ interface BiddingWinnerSelectionProps {
 export function BiddingWinnerSelection({
   selectableBids,
   selectedBid,
+  token,
   isLoadingRevealedBids,
   isAcceptPending,
   isRejectPending,
   isCancelPending,
+  canCancelSession,
   onSelectBid,
   onAcceptBid,
   onRejectBid,
@@ -68,10 +73,10 @@ export function BiddingWinnerSelection({
                   </div>
                   <div className="md:text-right">
                     <p className="font-semibold text-[#009F4D]">
-                      {Number(formatEther(bid.proposedAmount)).toFixed(4)} ETH
+                      {formatAmount(bid.proposedAmount, token, { includeSymbol: true })}
                     </p>
                     <p className="text-xs text-default-500">
-                      Stake {Number(formatEther(bid.stake)).toFixed(4)} ETH
+                      Stake {formatAmount(bid.stake, token, { includeSymbol: true })}
                     </p>
                   </div>
                 </div>
@@ -80,12 +85,12 @@ export function BiddingWinnerSelection({
           })}
         </div>
       )}
-      <div className="flex flex-wrap gap-4">
+      <div className="flex flex-col sm:flex-row sm:flex-wrap gap-3">
         <button
           type="button"
           onClick={onAcceptBid}
           disabled={!selectedBid || selectedBid.accepted || isAcceptPending}
-          className="px-6 py-2 bg-[#009F4D] text-white font-medium rounded-lg hover:bg-[#008F3D] transition-colors disabled:opacity-50 disabled:cursor-not-allowed"
+          className="w-full sm:w-auto px-6 py-2 bg-[#009F4D] text-white font-medium rounded-lg hover:bg-[#008F3D] transition-colors disabled:opacity-50 disabled:cursor-not-allowed"
         >
           {isAcceptPending ? (
             <Loader2 className="size-4 animate-spin inline" />
@@ -99,7 +104,7 @@ export function BiddingWinnerSelection({
           type="button"
           onClick={onRejectBid}
           disabled={!selectedBid || selectedBid.rejected || isRejectPending}
-          className="px-6 py-2 bg-warning text-white font-medium rounded-lg hover:opacity-80 transition-colors disabled:opacity-50 disabled:cursor-not-allowed"
+          className="w-full sm:w-auto px-6 py-2 bg-warning text-white font-medium rounded-lg hover:opacity-80 transition-colors disabled:opacity-50 disabled:cursor-not-allowed"
         >
           {isRejectPending ? (
             <Loader2 className="size-4 animate-spin inline" />
@@ -109,18 +114,20 @@ export function BiddingWinnerSelection({
             'Reject Bid'
           )}
         </button>
-        <button
-          type="button"
-          onClick={onCancelSession}
-          disabled={isCancelPending}
-          className="px-6 py-2 bg-danger text-white font-medium rounded-lg hover:opacity-80 transition-colors disabled:opacity-50 disabled:cursor-not-allowed"
-        >
-          {isCancelPending ? (
-            <Loader2 className="size-4 animate-spin inline" />
-          ) : (
-            'Cancel Session'
-          )}
-        </button>
+        {canCancelSession && (
+          <button
+            type="button"
+            onClick={onCancelSession}
+            disabled={isCancelPending}
+            className="w-full sm:w-auto px-6 py-2 bg-danger text-white font-medium rounded-lg hover:opacity-80 transition-colors disabled:opacity-50 disabled:cursor-not-allowed"
+          >
+            {isCancelPending ? (
+              <Loader2 className="size-4 animate-spin inline" />
+            ) : (
+              'Cancel Session'
+            )}
+          </button>
+        )}
       </div>
     </div>
   );
