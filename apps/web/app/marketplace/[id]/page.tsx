@@ -46,6 +46,7 @@ import { parseEther } from 'viem';
 import { showToast, getTransactionError } from '@/lib/toast';
 import { Address } from '@/components/Address';
 import { Breadcrumb } from '@/components/ui/Breadcrumb';
+import { ActiveJobsForService } from '@/components/marketplace/ActiveJobsForService';
 import { SERVICE_REGISTRY_ABI } from '@/lib/contracts/abis';
 import { getContractAddress } from '@/lib/contracts/config';
 
@@ -578,6 +579,11 @@ export default function ServiceDetailPage({
             </div>
           </Card>
         )}
+
+        {/* Active jobs using this service */}
+        <Card className="border border-divider p-6">
+          <ActiveJobsForService serviceId={serviceId} />
+        </Card>
 
         {/* Payment Address Modal */}
         {showPaymentModal && (

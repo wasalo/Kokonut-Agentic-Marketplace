@@ -5,6 +5,27 @@ All notable changes to the Kokonut Agent Economy Stack are documented in this fi
 The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.0.0/),
 and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0.html).
 
+## [2026-06-01] — Phase 44c: Detail Page Decomposition + Action Queue + Event Refactor
+
+### Quick Wins
+
+| ID | Title | Detail |
+|----|-------|--------|
+| **F-22a** | `useBiddingSessionState` + slim bidding detail page | New `apps/web/lib/hooks/useBiddingSessionState.ts` returns the full bidding surface: `session`, `userBid`, `revealedBids`, `phase: 'commit' \| 'reveal' \| 'selection' \| 'completed'`, role flags (`isCreator`, `isWinner`), every `canX` permission, every `isXPending` flag, `txStep`, `currentError`, and 9 action handlers (`handleCommitBid`, `handleRevealBid`, `handleAcceptBid`, `handleRejectBid`, `handleCancelSession`, `handleExtendWindow`, `handleWithdrawStake`, `handleWithdrawCreatorStake`, `handleCompleteSession`). `apps/web/app/bidding/[id]/page.tsx` is now pure view composition (556 → 380 LOC). |
+| **F-22b** | `useJobLifecycle` + slim job detail page | New `apps/web/lib/hooks/useJobLifecycle.ts` exposes the full job lifecycle contract surface: reads, writes, role detection, derived booleans, LLM evaluation handler, and all 10 action handlers (fund / submit / approve / finalize / reject / claimRefund / completeAfterTimeout / refundExpired / flagDispute / finalizeRandom). `apps/web/app/jobs/[id]/page.tsx` is now pure view composition (690 → 365 LOC). The LLM evaluation form, dispute form, and payment-token-modal state remain local to the page (view-only). |
+| **F-29** | Single event subscription | `apps/web/lib/hooks/useJobEvents.ts` collapses 9 separate `useWatchContractEvent({ eventName: '...' })` calls into one `useWatchContractEvent({ abi: AGENTIC_COMMERCE_EVENTS, onLogs })` that dispatches per-event `queryClient.invalidateQueries(...)` calls. `useWatchJob` and `useJobLimitWarnings` similarly collapse to a single subscription. Hook dropped from 203 → 85 LOC. Net result: every page that mounts these hooks now opens one websocket subscription instead of N. |
+| **Theme** | Action queue + `HeaderBell` | New `apps/web/lib/hooks/useActionQueue.ts` aggregates `getAttentionReason` results across all user jobs and a new `biddingReasonFor` heuristic for the 5 creator-side session states (`Active accepting bids`, `BiddingClosed → select winner`, `WinnerSelected → create job`, `JobCreated → complete session`, `Completed/Cancelled → withdraw creator stake`). New `apps/web/components/ActionQueuePanel.tsx` exports `HeaderBell` — a bell icon with a numeric badge, slide-out dialog with urgency dots (red/yellow/grey), deep links to `/jobs/[id]` and `/bidding/[id]`, and an "Open My Work" footer. Mounted in `apps/web/components/heroui/navbar.tsx:88`. Empty state and stale-state both supported; click-outside / Escape close; `aria-haspopup`, `aria-expanded`, `aria-label`, `role="dialog"`. |
+| **Theme** | Cross-link — Active jobs for service | New `apps/web/components/marketplace/ActiveJobsForService.tsx` uses `useJobs(0, 100)` and filters by `serviceId === job.serviceId && isOpenJob(job)`. Mounted in `apps/web/app/marketplace/[id]/page.tsx` between "Similar Services" and "Payment Address Modal". Hidden when no matches. "View all" link routes to `/marketplace?tab=jobs&serviceId={id}`. The existing `JobHeader` "Service: {name}" link and the `useUnifiedAgentProfile` Services tab on `/identity/[id]` round out the bidirectional Service ↔ Job ↔ Provider triangle. |
+
+### Verification
+
+- `pnpm --filter @kokonut/web type-check:strict` — clean
+- `pnpm --filter @kokonut/web type-check` — clean
+- `pnpm --filter @kokonut/web lint` — clean
+- `pnpm --filter @kokonut/web build` — clean (no new warnings; pre-existing `immutable` package warnings only)
+- Detail page LOC: `/bidding/[id]` 556 → 380, `/jobs/[id]` 690 → 365
+- Hook LOC: `useJobEvents` 203 → 85
+
 ## [2026-06-01] — Phase 44b: Lifecycle Visibility + Token Consolidation + My Bids
 
 ### Quick Wins

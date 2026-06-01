@@ -8,6 +8,7 @@ import { useAccount } from 'wagmi';
 import { useUSDCBalance } from '@/lib/hooks/useUSDC';
 import { ConnectButton } from '@/components/wallet/ConnectButton';
 import { UnifiedDrawer } from '@/components/UnifiedDrawer';
+import { HeaderBell } from '@/components/ActionQueuePanel';
 
 function USDCBalance() {
   const { address } = useAccount();
@@ -85,6 +86,7 @@ export function NavbarComponent(): JSX.Element {
 
           <div className="flex items-center gap-2">
             <USDCBalance />
+            <HeaderBell />
             <UnifiedDrawer />
             {mounted && (
               <button type="button"

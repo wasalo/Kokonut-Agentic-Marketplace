@@ -1,67 +1,32 @@
 'use client';
 
-import { use, useState, useCallback, useEffect, useRef } from 'react';
-import { useQueryClient } from '@tanstack/react-query';
-import {
-  useAccount,
-  useWalletClient,
-  useWaitForTransactionReceipt,
-  useWriteContract,
-  useBalance,
-} from 'wagmi';
-import {
-  Loader2,
-  AlertCircle,
-} from 'lucide-react';
+import { use, useEffect, useState } from 'react';
+import { Loader2, AlertCircle } from 'lucide-react';
 import { Card } from '@heroui/react';
 import { Breadcrumb } from '@/components/ui/Breadcrumb';
-import { formatUnits, toHex, keccak256 } from 'viem';
-import {
-  useJob,
-  useFundJob,
-  useSubmitJob,
-  useApproveByClient,
-  useFinalizeByEvaluator,
-  useRejectJob,
-  useClaimRefund,
-  useSetBudget,
-  useSetPaymentToken,
-  useEvaluatorFeeEnabled,
-  useFinalizeRandomEvaluator,
-  useCompleteAfterTimeout,
-  useRefundExpired,
-  JobStatus,
-  isOpenJob,
-} from '@/lib/hooks/useJobs';
-import { useTokenPriceConversion } from '@/lib/hooks/useTokenConversion';
-import { useWatchJob } from '@/lib/hooks/useJobEvents';
-import { useService } from '@/lib/hooks/useServices';
-import { useUSDCAllowance, useUSDCApprove, useUSDCBalance } from '@/lib/hooks/useUSDC';
-import { CONTRACTS } from '@/lib/wagmi';
-import { AGENTIC_COMMERCE_ABI } from '@/lib/contracts/abis';
-import { SUPPORTED_TOKENS, Token } from '@/components/PaymentTokenSelector';
-import dynamic from 'next/dynamic';
-const MilestoneSection = dynamic(() => import('@/components/MilestoneSection').then(m => m.MilestoneSection), {
-  loading: () => <div className="animate-pulse h-48 bg-content2 rounded-lg" />,
-});
-import { ErrorDisplay } from '@/components/ErrorDisplay';
-import { showToast } from '@/lib/toast';
-import { createOwnerAuthHeaders } from '@/lib/client-auth';
-import { useDispute, useFlagDispute, useJobMilestones } from '@/lib/hooks/useMilestoneEscrow';
+import { useJobLifecycle, type LlmEvaluationResult } from '@/lib/hooks/useJobLifecycle';
+import { JobStatus } from '@/lib/hooks/useJobs';
 import { JobHeader } from '@/components/jobs/JobHeader';
 import { JobWarnings } from '@/components/jobs/JobWarnings';
-import { BalanceCard } from '@/components/jobs/BalanceCard';
 import { TransactionStatusCard } from '@/components/jobs/TransactionStatusCard';
-import { DeliverableDisplay } from '@/components/jobs/DeliverableDisplay';
+import { ErrorDisplay } from '@/components/ErrorDisplay';
+import { BalanceCard } from '@/components/jobs/BalanceCard';
 import { JobSettingsCard } from '@/components/jobs/JobSettingsCard';
+import { DeliverableDisplay } from '@/components/jobs/DeliverableDisplay';
 import { FeedbackCard } from '@/components/jobs/FeedbackCard';
 import { BiddingSectionForProvider } from '@/components/jobs/BiddingSectionForProvider';
 import { JobFundingSection } from '@/components/jobs/JobFundingSection';
 import { JobActionsCard } from '@/components/jobs/JobActionsCard';
 import { JobBidListCard } from '@/components/jobs/JobBidListCard';
 import { PaymentTokenSetupModal } from '@/components/jobs/PaymentTokenSetupModal';
-import { useJobBids } from '@/lib/hooks/useJobBids';
-import { getTokenByAddress } from '@/lib/tokenUtils';
+import dynamic from 'next/dynamic';
+
+const MilestoneSectionDynamic = dynamic(
+  () => import('@/components/MilestoneSection').then(m => m.MilestoneSection),
+  {
+    loading: () => <div className="animate-pulse h-48 bg-content2 rounded-lg" />,
+  }
+);
 
 export default function JobDetailPage({
   params,
@@ -74,372 +39,89 @@ export default function JobDetailPage({
 
   const { id } = use(params);
   const jobId = BigInt(id);
-  const { address } = useAccount();
-  const { data: walletClient } = useWalletClient();
-  const queryClient = useQueryClient();
+  const state = useJobLifecycle({ jobId });
 
-  const { job, isLoading, refetch } = useJob(jobId);
-  const { service } = useService(job?.serviceId ?? BigInt(0));
-
-  // Enable event-driven updates for this specific job
-  useWatchJob(jobId);
-
-  // USDC approval and balance hooks
-  const AGENTIC_COMMERCE_ADDRESS = CONTRACTS[11155111].agenticCommerce as `0x${string}`;
-  const USDC_ADDRESS = CONTRACTS[11155111].usdc as `0x${string}`;
-  const { allowance } = useUSDCAllowance(address, AGENTIC_COMMERCE_ADDRESS);
-  const { formattedBalance: usdcBalance, isLoading: usdcBalanceLoading } = useUSDCBalance(address);
-  const { data: ethBalance, isLoading: ethBalanceLoading } = useBalance({ address });
-  const { approve, hash: approveHash, isPending: isApprovePending } = useUSDCApprove();
-
-  // Optimistic approval state - immediately show "Fund Job" after approve is clicked
-  const [optimisticApprovalSent, setOptimisticApprovalSent] = useState(false);
-  const prevApproveHashRef = useRef<string | undefined>(undefined);
-
-  // Unified Fund Job flow state - chains approval then funding
-  const [isApprovingAndFunding, setIsApprovingAndFunding] = useState(false);
-  const [approvalTxHash, setApprovalTxHash] = useState<string | undefined>();
-
-  // Payment token setup for direct jobs
-  const {
-    setPaymentToken,
-    hash: paymentTokenHash,
-    isPending: isPaymentTokenPending,
-  } = useSetPaymentToken();
-  const [showPaymentTokenModal, setShowPaymentTokenModal] = useState(false);
-  const [selectedPaymentToken, setSelectedPaymentToken] = useState<Token>(SUPPORTED_TOKENS[0]); // Default to USDC
-  const { formatUsdValue, isLoading: isPriceLoading } = useTokenPriceConversion();
-
-  const [txStep, setTxStep] = useState<string | null>(null);
-
-  // LLM Evaluation state
-  const [fulfillmentText, setFulfillmentText] = useState('');
-  const [evaluationResult, setEvaluationResult] = useState<{
-    meetsRequirements: boolean;
-    confidenceScore: number;
-    analysis: string;
-    checks: { passed: string[]; failed: string[] };
-  } | null>(null);
-  const [isEvaluating, setIsEvaluating] = useState(false);
   const [showFulfillmentInput, setShowFulfillmentInput] = useState(false);
-
-  // Client review state (Phase 3)
-  const [clientApproved] = useState(false);
-
-  // Dispute state
+  const [fulfillmentText, setFulfillmentText] = useState('');
+  const [evaluationResult, setEvaluationResult] = useState<LlmEvaluationResult | null>(null);
+  const [isEvaluating, setIsEvaluating] = useState(false);
   const [showDisputeForm, setShowDisputeForm] = useState(false);
-  const [disputeMilestoneIndex, setDisputeMilestoneIndex] = useState<number>(0);
-  const { dispute } = useDispute(jobId);
-  const { milestones } = useJobMilestones(jobId);
-  const { flagDispute, isPending: isFlagPending, writeError: flagError } = useFlagDispute();
-
-  const { fundJob, hash: fundHash, isPending: isFundPending, error: fundError } = useFundJob();
-
-  // ETH funding with value
-  const {
-    writeContract: writeFundETH,
-    data: fundETHTxHash,
-    isPending: isFundETHPending,
-  } = useWriteContract();
-
-  const fundJobWithETH = useCallback(
-    (jobId: bigint, value: bigint, expectedBudget: bigint) => {
-      writeFundETH({
-        address: AGENTIC_COMMERCE_ADDRESS,
-        abi: AGENTIC_COMMERCE_ABI,
-        chainId: 11155111,
-        functionName: 'fund',
-        args: [jobId, expectedBudget],
-        value,
-      });
-    },
-    [writeFundETH, AGENTIC_COMMERCE_ADDRESS]
-  );
+  const [disputeMilestoneIndex, setDisputeMilestoneIndex] = useState(0);
 
   const {
-    submitJob,
-    hash: submitHash,
-    isPending: isSubmitPending,
-    error: submitError,
-  } = useSubmitJob();
-  const {
-    approveByClient,
-    hash: approveByClientHash,
-    isPending: isApproveByClientPending,
-    error: approveByClientError,
-  } = useApproveByClient();
-  const {
-    finalizeByEvaluator,
-    hash: finalizeHash,
-    isPending: isFinalizePending,
-    error: finalizeError,
-  } = useFinalizeByEvaluator();
-  const {
-    rejectJob,
-    hash: rejectHash,
-    isPending: isRejectPending,
-    error: rejectError,
-  } = useRejectJob();
-  const {
-    claimRefund,
-    hash: refundHash,
-    isPending: isRefundPending,
-    error: refundError,
-  } = useClaimRefund();
-
-  const { setBudget, hash: budgetHash, isPending: isBudgetPending } = useSetBudget();
-
-  // Phase 14/15 - New hooks for permissionless operations
-  const {
-    completeAfterTimeout,
-    isPending: isCompleteAfterTimeoutPending,
-    error: completeAfterTimeoutError,
-  } = useCompleteAfterTimeout();
-  const {
-    refundExpired,
-    isPending: isRefundExpiredPending,
-    error: refundExpiredError,
-  } = useRefundExpired();
-
-  const {
+    address,
+    job,
+    service,
+    isLoading,
+    refetch,
+    jobPaymentToken,
+    isUSDC,
+    budgetDecimals,
+    formattedBudget,
+    usdcBalance,
+    usdcBalanceLoading,
+    ethBalance,
+    ethBalanceLoading,
+    isApprovePending,
+    isFundPending,
+    isFundETHPending,
+    isApprovingAndFunding,
+    isPaymentTokenPending,
+    isPriceLoading,
+    isOpen,
+    isEvaluatorFeeEnabled,
+    isClient,
+    isProvider,
+    isEvaluator,
+    isExpired,
+    isPastDisputeWindow,
+    isTerminal,
+    hasActiveDispute,
+    canFlagDispute,
+    hasActions,
+    dispute,
+    milestones,
+    needsApproval,
+    hasAllowance,
+    txStep,
+    currentError,
+    bidCount,
+    bids,
+    isLoadingBids,
+    isFinalizeRandomPending,
+    finalizeRandomHash,
+    finalizeRandomError,
+    showPaymentTokenModal,
+    selectedPaymentToken,
+    newBudget,
+    setNewBudget,
+    setBudget,
+    isBudgetPending,
+    formatUsdValue,
+    handleFundJob,
+    handleSubmitDeliverable,
+    handleClientApprove,
+    handleFinalize,
+    handleEvaluate,
+    handleRejectWork,
+    handleClaimRefund,
+    handleCompleteAfterTimeout,
+    handleRefundExpired,
+    handlePaymentTokenSetup,
+    handleFlagDispute,
     finalizeRandomEvaluator,
-    hash: finalizeRandomHash,
-    isPending: isFinalizeRandomPending,
-    error: finalizeRandomError,
-  } = useFinalizeRandomEvaluator();
-
-  const { isEvaluatorFeeEnabled } = useEvaluatorFeeEnabled(job?.id);
-  const jobIsOpen = job ? isOpenJob(job) : false;
-  const { bidCount, bids, isLoadingBids } = useJobBids(job?.id, jobIsOpen);
-
-  const [newBudget, setNewBudget] = useState('');
-
-  const txHash =
-    fundHash ||
-    fundETHTxHash ||
-    submitHash ||
-    approveByClientHash ||
-    finalizeHash ||
-    rejectHash ||
-    refundHash ||
-    approveHash ||
-    budgetHash ||
-    paymentTokenHash ||
-    finalizeRandomHash;
-  const { isSuccess: isTxConfirmed } = useWaitForTransactionReceipt({ hash: txHash });
-
-  // Wait for approval to confirm before auto-funding
-  const { isSuccess: isApprovalConfirmed } = useWaitForTransactionReceipt({ 
-    hash: approvalTxHash as `0x${string}`,
-  });
-
-  // Track when approval tx is sent to optimistically update UI
-  useEffect(() => {
-    if (approveHash && approveHash !== prevApproveHashRef.current) {
-      prevApproveHashRef.current = approveHash;
-      setOptimisticApprovalSent(true);
-      // Capture approval hash for the unified flow
-      if (isApprovingAndFunding) {
-        setApprovalTxHash(approveHash);
-      }
-    }
-  }, [approveHash, isApprovingAndFunding]);
-
-  // After approval tx confirms, invalidate allowance query and clear optimistic state
-  useEffect(() => {
-    if (isTxConfirmed && txStep === 'Approving USDC') {
-      setTxStep(null);
-      setOptimisticApprovalSent(false);
-      queryClient.invalidateQueries({
-        queryKey: ['useReadContract', USDC_ADDRESS, 'allowance'],
-      });
-      void refetch();
-    } else if (isTxConfirmed && txStep) {
-      showToast.success(`${txStep} completed!`, 'Transaction confirmed.');
-      setTxStep(null);
-      void refetch();
-    }
-  }, [isTxConfirmed, txStep, refetch, queryClient, USDC_ADDRESS]);
-
-  // Moved after isUSDC is defined (line ~457)
-
-  const handleAction = useCallback((action: string, fn: () => void) => {
-    setTxStep(action);
-    fn();
-  }, []);
-
-  // LLM Evaluation handler
-  const handleEvaluate = useCallback(async () => {
-    if (!fulfillmentText || !job?.description || !address || !walletClient) return;
-    setIsEvaluating(true);
-    setEvaluationResult(null);
-    try {
-      const authHeaders = await createOwnerAuthHeaders(address, walletClient);
-      const response = await fetch('/api/llm/evaluate', {
-        method: 'POST',
-        headers: { 'Content-Type': 'application/json', ...authHeaders },
-        body: JSON.stringify({
-          jobDescription: job.description,
-          fulfillmentText,
-        }),
-      });
-      const data = await response.json();
-      if (data.success) {
-        setEvaluationResult(data);
-      }
-    } catch (error) {
-      console.error('Evaluation failed:', error);
-    } finally {
-      setIsEvaluating(false);
-    }
-  }, [fulfillmentText, job?.description, address, walletClient]);
-
-  // Client review handler (Phase 3) — actually calls approveByClient on-chain
-  const handleClientApprove = useCallback(() => {
-    if (!job) return;
-    handleAction('Approving delivery', () => approveByClient(job.id));
-  }, [job, approveByClient, handleAction]);
-
-  // Dispute handler
-  const handleFlagDispute = useCallback(() => {
-    if (!job) return;
-    handleAction('Flagging dispute', () => flagDispute(job.id, BigInt(disputeMilestoneIndex)));
-  }, [job, disputeMilestoneIndex, flagDispute, handleAction]);
-
-  // Determine if job uses USDC or ETH - defined before early returns to maintain hooks order
-  // Note: Uses fallback values since job might be undefined at this point
-  const jobPaymentToken = job ? getTokenByAddress(job.paymentToken) : SUPPORTED_TOKENS[0];
-  const isUSDC = jobPaymentToken.symbol === 'USDC';
-
-  useEffect(() => {
-    if (!job?.paymentToken) return;
-    setSelectedPaymentToken(getTokenByAddress(job.paymentToken));
-  }, [job?.paymentToken]);
-
-  // Auto-fund job after approval confirms in unified flow - MUST be before early returns
-  useEffect(() => {
-    if (!job) return;
-    if (isApprovalConfirmed && isApprovingAndFunding) {
-      setIsApprovingAndFunding(false);
-      setApprovalTxHash(undefined);
-      // Now fund the job
-      if (!isUSDC) {
-        fundJobWithETH(job.id, job.budget, job.budget);
-      } else {
-        fundJob(job.id, job.budget);
-      }
-    }
-  }, [isApprovalConfirmed, isApprovingAndFunding, job, isUSDC, fundJob, fundJobWithETH]);
-
-  const isClient = !!(job && address && job.client.toLowerCase() === address.toLowerCase());
-  const isProvider = !!(job && address && job.provider.toLowerCase() === address.toLowerCase());
-  const isEvaluator = !!(job && address && job.evaluator.toLowerCase() === address.toLowerCase());
-
-  // USDC approval check - includes optimistic state
-  const hasAllowance = (allowance && job && allowance >= job.budget) || optimisticApprovalSent;
-  const needsApproval = !hasAllowance && job?.status === JobStatus.Open && isClient;
-  const isExpired = job && Date.now() / 1000 > Number(job.expiredAt);
-
-  // Phase 14: Calculate dispute window - 7 days after expiration for auto-complete
-  // After expiredAt + 7 days, anyone can call completeAfterTimeout
-  const DISPUTE_WINDOW_SECONDS = 7 * 24 * 60 * 60; // 7 days
-  const isPastDisputeWindow =
-    job && Date.now() / 1000 > Number(job.expiredAt) + DISPUTE_WINDOW_SECONDS;
-
-  const handleFundJob = useCallback(() => {
-    if (!job) return;
-
-    if (!job.paymentToken) {
-      setShowPaymentTokenModal(true);
-      return;
-    }
-
-    if (isUSDC && !hasAllowance) {
-      setIsApprovingAndFunding(true);
-      approve(AGENTIC_COMMERCE_ADDRESS, job.budget);
-      return;
-    }
-
-    handleAction('Funding job', () => {
-      if (!isUSDC) {
-        fundJobWithETH(job.id, job.budget, job.budget);
-      } else {
-        fundJob(job.id, job.budget);
-      }
-    });
-  }, [job, isUSDC, hasAllowance, approve, AGENTIC_COMMERCE_ADDRESS, handleAction, fundJobWithETH, fundJob]);
-
-  const handleSubmitDeliverable = useCallback(() => {
-    if (!job) return;
-    handleAction('Submitting deliverable', () => {
-      const deliverableHash = fulfillmentText
-        ? keccak256(toHex(fulfillmentText))
-        : keccak256(toHex('deliverable-submitted'));
-      submitJob(job.id, deliverableHash);
-    });
-  }, [job, fulfillmentText, submitJob, handleAction]);
-
-  const handleFinalize = useCallback(() => {
-    if (!job) return;
-    handleAction('Finalizing evaluation', () => finalizeByEvaluator(job.id, keccak256(toHex('approved'))));
-  }, [job, finalizeByEvaluator, handleAction]);
-
-  const handleRejectWork = useCallback(() => {
-    if (!job) return;
-    handleAction('Rejecting work', () => rejectJob(job.id, keccak256(toHex('rejected'))));
-  }, [job, rejectJob, handleAction]);
-
-  const handleClaimRefund = useCallback(() => {
-    if (!job) return;
-    handleAction('Claiming refund', () => claimRefund(job.id));
-  }, [job, claimRefund, handleAction]);
-
-  const handleCompleteAfterTimeout = useCallback(() => {
-    if (!job) return;
-    handleAction('Completing job after timeout', () => completeAfterTimeout(job.id));
-  }, [job, completeAfterTimeout, handleAction]);
-
-  const handleRefundExpired = useCallback(() => {
-    if (!job) return;
-    handleAction('Triggering permissionless refund', () => refundExpired(job.id));
-  }, [job, refundExpired, handleAction]);
-
-  const handlePaymentTokenSetup = useCallback(() => {
-    handleAction('Setting payment token', () => setPaymentToken(jobId, selectedPaymentToken.address));
-    setShowPaymentTokenModal(false);
-  }, [handleAction, setPaymentToken, jobId, selectedPaymentToken.address]);
-
-  // Determine if there are any actionable items for the current viewer
-  const isTerminal =
-    job?.status === JobStatus.Completed ||
-    job?.status === JobStatus.Rejected ||
-    job?.status === JobStatus.Expired;
-  const hasActiveDispute = !!dispute?.flagger && !dispute?.resolved;
-  const canFlagDispute = (isClient || isProvider) && !dispute?.resolved && !isTerminal;
-  const hasActions =
-    isClient ||
-    isProvider ||
-    isEvaluator ||
-    hasActiveDispute ||
-    canFlagDispute ||
-    isTerminal;
-  const currentError =
-    fundError ||
-    submitError ||
-    approveByClientError ||
-    finalizeError ||
-    rejectError ||
-    refundError ||
-    completeAfterTimeoutError ||
-    refundExpiredError ||
-    finalizeRandomError;
-
-  // Show error toasts for transaction failures
-  useEffect(() => {
-    if (currentError) {
-      showToast.error('Transaction failed', (currentError as any).message || 'Please try again.');
-    }
-  }, [currentError]);
+    setShowPaymentTokenModal,
+    setSelectedPaymentToken,
+    isSubmitPending,
+    isApproveByClientPending,
+    isFinalizePending,
+    isRejectPending,
+    isRefundPending,
+    isCompleteAfterTimeoutPending,
+    isRefundExpiredPending,
+    isFlagPending,
+    flagError,
+  } = state;
 
   if (isLoading) {
     return (
@@ -464,9 +146,6 @@ export default function JobDetailPage({
     );
   }
 
-  const budgetDecimals = isUSDC ? 6 : 18;
-  const formattedBudget = formatUnits(job.budget, budgetDecimals);
-
   return (
     <div className="container mx-auto px-3 md:px-4 py-6 md:py-8">
       <Breadcrumb
@@ -479,22 +158,17 @@ export default function JobDetailPage({
       />
 
       <div className="max-w-2xl mx-auto space-y-6">
-        {/* Job Header */}
         <JobHeader job={job} service={service} isClient={isClient} isProvider={isProvider} isEvaluator={isEvaluator} />
 
-        {/* Warnings */}
         <JobWarnings job={job} isClient={isClient} isProvider={isProvider} isEvaluatorFeeEnabled={isEvaluatorFeeEnabled} address={address} />
 
-        {/* Transaction Status */}
         <TransactionStatusCard txStep={txStep} />
 
-        {currentError && <ErrorDisplay error={currentError} />}
+        {Boolean(currentError) && <ErrorDisplay error={currentError as Error} />}
 
-        {/* Balance Card */}
         <BalanceCard job={job} isClient={isClient} address={address} />
 
-        {/* Milestone Section */}
-        <MilestoneSection
+        <MilestoneSectionDynamic
           jobId={jobId}
           client={job.client}
           provider={job.provider}
@@ -506,7 +180,6 @@ export default function JobDetailPage({
           onRefetch={refetch}
         />
 
-        {/* Evaluator = Provider Warning */}
         {job.provider &&
           job.provider !== '0x0000000000000000000000000000000000000000' &&
           job.evaluator.toLowerCase() === job.provider.toLowerCase() && (
@@ -524,7 +197,6 @@ export default function JobDetailPage({
             </Card>
           )}
 
-        {/* Finalize Random Evaluator */}
         {job && job.evaluator === '0x0000000000000000000000000000000000000000' && (
           <Card className="border border-[#009F4D]/20 bg-[#009F4D]/5 p-4">
             <div className="flex items-start gap-3">
@@ -536,7 +208,7 @@ export default function JobDetailPage({
                 </p>
                 <button
                   type="button"
-                  onClick={() => finalizeRandomEvaluator(job.id)}
+                  onClick={finalizeRandomEvaluator}
                   disabled={isFinalizeRandomPending}
                   className="mt-3 inline-flex items-center gap-2 px-4 py-2 bg-[#009F4D] text-white text-sm font-medium rounded-lg hover:opacity-90 transition-opacity disabled:opacity-50"
                 >
@@ -548,15 +220,14 @@ export default function JobDetailPage({
                     'Finalize Evaluator'
                   )}
                 </button>
-                {finalizeRandomError && (
-                  <p className="text-danger text-sm mt-2">{finalizeRandomError.message}</p>
+                {Boolean(finalizeRandomError) && (
+                  <p className="text-danger text-sm mt-2">{(finalizeRandomError as { message?: string }).message}</p>
                 )}
               </div>
             </div>
           </Card>
         )}
 
-        {/* Transaction Status */}
         {txStep && (
           <Card className="border border-primary/20 p-4">
             <div className="flex items-center gap-3">
@@ -569,7 +240,7 @@ export default function JobDetailPage({
           </Card>
         )}
 
-        {currentError && <ErrorDisplay error={currentError} />}
+        {Boolean(currentError) && <ErrorDisplay error={currentError as Error} />}
 
         <JobFundingSection
           job={job}
@@ -581,7 +252,7 @@ export default function JobDetailPage({
           ethBalanceLoading={ethBalanceLoading}
           needsApproval={needsApproval}
           isUSDC={isUSDC}
-          hasAllowance={!!hasAllowance}
+          hasAllowance={hasAllowance}
           formattedBudget={formattedBudget}
           txStep={txStep}
           isApprovePending={isApprovePending}
@@ -613,7 +284,7 @@ export default function JobDetailPage({
           txStep={txStep}
           fulfillmentText={fulfillmentText}
           showFulfillmentInput={showFulfillmentInput}
-          clientApproved={clientApproved}
+          clientApproved={false}
           evaluationResult={evaluationResult}
           isEvaluating={isEvaluating}
           showDisputeForm={showDisputeForm}
@@ -626,24 +297,23 @@ export default function JobDetailPage({
           isCompleteAfterTimeoutPending={isCompleteAfterTimeoutPending}
           isRefundExpiredPending={isRefundExpiredPending}
           isFlagPending={isFlagPending}
-          flagError={flagError}
+          flagError={flagError as Error | null}
           onFulfillmentTextChange={setFulfillmentText}
           onShowFulfillmentInputChange={setShowFulfillmentInput}
-          onSubmitDeliverable={handleSubmitDeliverable}
+          onSubmitDeliverable={() => handleSubmitDeliverable(fulfillmentText)}
           onClientApprove={handleClientApprove}
           onFinalize={handleFinalize}
-          onEvaluate={handleEvaluate}
+          onEvaluate={() => handleEvaluate({ fulfillmentText, setFulfillmentText, setEvaluationResult, setIsEvaluating })}
           onReject={handleRejectWork}
           onClaimRefund={handleClaimRefund}
           onCompleteAfterTimeout={handleCompleteAfterTimeout}
           onRefundExpired={handleRefundExpired}
           onToggleDisputeForm={() => setShowDisputeForm(!showDisputeForm)}
           onDisputeMilestoneChange={setDisputeMilestoneIndex}
-          onFlagDispute={handleFlagDispute}
+          onFlagDispute={() => handleFlagDispute(disputeMilestoneIndex)}
         />
 
-        {/* Open Job Bidding Section */}
-        {jobIsOpen && (
+        {isOpen && (
           <>
             {!isClient && address && (
               <BiddingSectionForProvider job={job} address={address} refetch={refetch} />
@@ -651,7 +321,7 @@ export default function JobDetailPage({
             {isClient && (
               <JobBidListCard
                 job={job}
-                bidCount={bidCount}
+                bidCount={bidCount ?? 0}
                 bids={bids}
                 isLoadingBids={isLoadingBids}
                 onAccepted={() => void refetch()}
@@ -660,13 +330,20 @@ export default function JobDetailPage({
           </>
         )}
 
-        {/* Job Settings */}
-        <JobSettingsCard job={job} isClient={isClient} isUSDC={isUSDC} budgetDecimals={budgetDecimals} newBudget={newBudget} setNewBudget={setNewBudget} setBudget={setBudget} isBudgetPending={isBudgetPending} handleAction={handleAction} />
+        <JobSettingsCard
+          job={job}
+          isClient={isClient}
+          isUSDC={isUSDC}
+          budgetDecimals={budgetDecimals}
+          newBudget={newBudget}
+          setNewBudget={setNewBudget}
+          setBudget={setBudget}
+          isBudgetPending={isBudgetPending}
+          handleAction={(_action: string, fn: () => void) => fn()}
+        />
 
-        {/* Deliverable */}
         <DeliverableDisplay job={job} />
 
-        {/* Submit Feedback (client only, after completion) */}
         {job.status === JobStatus.Completed &&
           isClient &&
           service &&
@@ -683,8 +360,6 @@ export default function JobDetailPage({
           />
         )}
       </div>
-
-
-      </div>
-    );
-  }
+    </div>
+  );
+}

@@ -1,13 +1,13 @@
 
 import { useWatchContractEvent } from 'wagmi';
 import { useQueryClient } from '@tanstack/react-query';
-import { AGENTIC_COMMERCE_ABI } from '@/lib/contracts/abis';
+import { AGENTIC_COMMERCE_EVENTS } from '@/lib/contracts/abis';
 import { CONTRACT_ADDRESSES } from '@/lib/contracts/config';
 import { debugLog } from '@/lib/debug';
 
 const AGENTIC_COMMERCE_ADDRESS = CONTRACT_ADDRESSES.sepolia.agenticCommerce;
 
-function invalidateJobQueries(queryClient: any, jobId: bigint) {
+function invalidateJobQueries(queryClient: any, jobId: bigint | undefined) {
   if (jobId) {
     queryClient.invalidateQueries({ queryKey: ['job', jobId.toString()] });
   }
@@ -15,189 +15,81 @@ function invalidateJobQueries(queryClient: any, jobId: bigint) {
   queryClient.invalidateQueries({ queryKey: ['userJobs'] });
 }
 
+const JOB_LIFECYCLE_EVENTS = new Set([
+  'JobCreated',
+  'JobStatusChanged',
+  'JobFunded',
+  'JobSubmitted',
+  'JobCompleted',
+  'JobRejected',
+  'JobExpired',
+  'PaymentReleased',
+  'Refunded',
+  'PermissionlessRefund',
+]);
+
 /**
  * Hook to watch all job events for real-time updates
- * Watches 16 job lifecycle events including bids
+ * Single subscription over the events ABI dispatches per-event invalidation.
  */
-export function useJobEvents(_jobId?: bigint) {
+export function useJobEvents() {
   const queryClient = useQueryClient();
 
-  // Watch JobCreated events
   useWatchContractEvent({
     address: AGENTIC_COMMERCE_ADDRESS,
-    abi: AGENTIC_COMMERCE_ABI,
-    eventName: 'JobCreated',
+    abi: AGENTIC_COMMERCE_EVENTS,
     onLogs: logs => {
-      logs.forEach((log: any) => {
+      for (const log of logs as Array<{ eventName?: string; args?: { jobId?: bigint } }>) {
+        if (!log.eventName) continue;
+        if (!JOB_LIFECYCLE_EVENTS.has(log.eventName)) continue;
         const jobId = log.args?.jobId;
-        debugLog('hooks', 'Job created:', jobId?.toString());
+        debugLog('hooks', `Job event ${log.eventName}:`, jobId?.toString());
         invalidateJobQueries(queryClient, jobId);
-      });
-    },
-  });
-
-  // Watch JobStatusChanged events
-  useWatchContractEvent({
-    address: AGENTIC_COMMERCE_ADDRESS,
-    abi: AGENTIC_COMMERCE_ABI,
-    eventName: 'JobStatusChanged',
-    onLogs: logs => {
-      logs.forEach((log: any) => {
-        const jobId = log.args?.jobId;
-        const oldStatus = log.args?.oldStatus;
-        const newStatus = log.args?.newStatus;
-
-        debugLog('hooks', 'Job status changed:', {
-          jobId: jobId?.toString(),
-          oldStatus,
-          newStatus,
-        });
-
-        invalidateJobQueries(queryClient, jobId);
-      });
-    },
-  });
-
-  // Watch JobFunded events
-  useWatchContractEvent({
-    address: AGENTIC_COMMERCE_ADDRESS,
-    abi: AGENTIC_COMMERCE_ABI,
-    eventName: 'JobFunded',
-    onLogs: logs => {
-      logs.forEach((log: any) => {
-        const jobId = log.args?.jobId;
-        debugLog('[Events] Job funded:', jobId?.toString());
-        invalidateJobQueries(queryClient, jobId);
-      });
-    },
-  });
-
-  // Watch JobSubmitted events
-  useWatchContractEvent({
-    address: AGENTIC_COMMERCE_ADDRESS,
-    abi: AGENTIC_COMMERCE_ABI,
-    eventName: 'JobSubmitted',
-    onLogs: logs => {
-      logs.forEach((log: any) => {
-        const jobId = log.args?.jobId;
-        debugLog('[Events] Job submitted:', jobId?.toString());
-        invalidateJobQueries(queryClient, jobId);
-      });
-    },
-  });
-
-  // Watch JobCompleted events
-  useWatchContractEvent({
-    address: AGENTIC_COMMERCE_ADDRESS,
-    abi: AGENTIC_COMMERCE_ABI,
-    eventName: 'JobCompleted',
-    onLogs: logs => {
-      logs.forEach((log: any) => {
-        const jobId = log.args?.jobId;
-        debugLog('[Events] Job completed:', jobId?.toString());
-        invalidateJobQueries(queryClient, jobId);
-      });
-    },
-  });
-
-  // Watch JobRejected events
-  useWatchContractEvent({
-    address: AGENTIC_COMMERCE_ADDRESS,
-    abi: AGENTIC_COMMERCE_ABI,
-    eventName: 'JobRejected',
-    onLogs: logs => {
-      logs.forEach((log: any) => {
-        const jobId = log.args?.jobId;
-        debugLog('[Events] Job rejected:', jobId?.toString());
-        invalidateJobQueries(queryClient, jobId);
-      });
-    },
-  });
-
-  // Watch JobExpired events
-  useWatchContractEvent({
-    address: AGENTIC_COMMERCE_ADDRESS,
-    abi: AGENTIC_COMMERCE_ABI,
-    eventName: 'JobExpired',
-    onLogs: logs => {
-      logs.forEach((log: any) => {
-        const jobId = log.args?.jobId;
-        debugLog('[Events] Job expired:', jobId?.toString());
-        invalidateJobQueries(queryClient, jobId);
-      });
-    },
-  });
-
-  // Watch PaymentReleased events
-  useWatchContractEvent({
-    address: AGENTIC_COMMERCE_ADDRESS,
-    abi: AGENTIC_COMMERCE_ABI,
-    eventName: 'PaymentReleased',
-    onLogs: logs => {
-      logs.forEach((log: any) => {
-        const jobId = log.args?.jobId;
-        debugLog('[Events] Payment released:', jobId?.toString());
-        invalidateJobQueries(queryClient, jobId);
-      });
-    },
-  });
-
-  // Watch Refunded events
-  useWatchContractEvent({
-    address: AGENTIC_COMMERCE_ADDRESS,
-    abi: AGENTIC_COMMERCE_ABI,
-    eventName: 'Refunded',
-    onLogs: logs => {
-      logs.forEach((log: any) => {
-        const jobId = log.args?.jobId;
-        debugLog('[Events] Job refunded:', jobId?.toString());
-        invalidateJobQueries(queryClient, jobId);
-      });
+      }
     },
   });
 }
 
 /**
- * Hook to watch specific job for real-time updates
+ * Hook to watch a specific job for real-time updates.
+ * Invalidation is scoped to the requested jobId; other events are ignored.
  */
 export function useWatchJob(jobId: bigint) {
   const queryClient = useQueryClient();
 
   useWatchContractEvent({
     address: AGENTIC_COMMERCE_ADDRESS,
-    abi: AGENTIC_COMMERCE_ABI,
-    eventName: 'JobStatusChanged',
+    abi: AGENTIC_COMMERCE_EVENTS,
     onLogs: logs => {
-      logs.forEach((log: any) => {
+      for (const log of logs as Array<{ eventName?: string; args?: { jobId?: bigint } }>) {
+        if (!log.eventName) continue;
+        if (!JOB_LIFECYCLE_EVENTS.has(log.eventName)) continue;
         const eventJobId = log.args?.jobId;
-        if (eventJobId === jobId) {
+        if (eventJobId !== undefined && eventJobId === jobId) {
           queryClient.invalidateQueries({ queryKey: ['job', jobId.toString()] });
         }
-      });
+      }
     },
   });
 }
 
 /**
- * Hook to watch job limit exceeded warnings
+ * Hook to watch job limit exceeded warnings.
+ * Single subscription only — no per-event dispatcher needed.
  */
-export function useJobLimitWarnings(_userAddress?: string) {
+export function useJobLimitWarnings() {
   useWatchContractEvent({
     address: AGENTIC_COMMERCE_ADDRESS,
-    abi: AGENTIC_COMMERCE_ABI,
+    abi: AGENTIC_COMMERCE_EVENTS,
     eventName: 'JobLimitExceeded',
     onLogs: logs => {
-      logs.forEach((log: any) => {
-        const client = log.args?.client;
-        const attemptedCount = log.args?.attemptedCount;
-        const maxAllowed = log.args?.maxAllowed;
-
+      for (const log of logs as Array<{ args?: { client: string; attemptedCount: bigint; maxAllowed: bigint } }>) {
         debugLog('hooks', 'Job limit exceeded:', {
-          client,
-          attemptedCount: attemptedCount?.toString(),
-          maxAllowed: maxAllowed?.toString(),
+          client: log.args?.client,
+          attemptedCount: log.args?.attemptedCount?.toString(),
+          maxAllowed: log.args?.maxAllowed?.toString(),
         });
-      });
+      }
     },
   });
 }
