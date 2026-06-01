@@ -4,6 +4,7 @@ import { Coins } from 'lucide-react';
 import {
   SERVICE_LISTING_PAYMENT_TOKENS,
   Token,
+  useTokenPriceConversion,
 } from '@/lib/hooks/useTokenConversion';
 
 interface PaymentTokenSelectorProps {
@@ -17,10 +18,12 @@ export function ServicePaymentTokenSelector({
   onSelect,
   disabled,
 }: PaymentTokenSelectorProps) {
+  const { ethToUsdcRate, isLoading: isRateLoading } = useTokenPriceConversion();
+
   return (
     <div className="space-y-2">
       <label className="text-sm font-medium">Payment Token</label>
-      <div className="grid grid-cols-1 gap-3">
+      <div className="grid grid-cols-1 md:grid-cols-2 gap-3">
         {SERVICE_LISTING_PAYMENT_TOKENS.map(token => (
           <button
             type="button"
@@ -46,9 +49,20 @@ export function ServicePaymentTokenSelector({
                 <p className="text-xs text-default-500">{token.name}</p>
               </div>
             </div>
+            {isRateLoading && token.symbol === 'ETH' && (
+              <p className="text-xs text-default-400 mt-2 text-left">Loading rate...</p>
+            )}
+            {ethToUsdcRate && token.symbol === 'ETH' && (
+              <p className="text-xs text-default-400 mt-2 text-left">
+                1 ETH ~= ${ethToUsdcRate.toFixed(2)}
+              </p>
+            )}
           </button>
         ))}
       </div>
+      <p className="text-xs text-default-500">
+        Buyers pay this token into escrow when they purchase your service.
+      </p>
     </div>
   );
 }

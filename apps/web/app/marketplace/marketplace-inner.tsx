@@ -132,11 +132,12 @@ export default function MarketplaceInner() {
     error: ownServicesError,
     refetch: refetchOwnServices,
   } = useProviderServices(address);
-  const { jobs: hubJobs, isLoading: isJobsLoading } = useJobs(0, 60);
+  const { jobs: hubJobs, isLoading: isJobsLoading, refetch: refetchHubJobs } = useJobs(0, 60);
   const {
     sessions: biddingSessions,
     totalCount: biddingTotalCount,
     isLoading: isBiddingLoading,
+    refetch: refetchBiddingSessions,
   } = useBiddingSessions(0, 60);
 
   const {
@@ -491,10 +492,20 @@ export default function MarketplaceInner() {
       {activeTab === 'studio' && (
         <StudioHubPanel
           services={ownServices}
+          jobs={hubJobs}
+          sessions={biddingSessions}
+          user={address}
           isConnected={isConnected}
           isLoading={isOwnServicesLoading}
+          isJobsLoading={isJobsLoading}
+          isBiddingLoading={isBiddingLoading}
           error={ownServicesError}
           onRefetch={refetchOwnServices}
+          onRefreshAll={() => {
+            refetchOwnServices();
+            void refetchHubJobs();
+            void refetchBiddingSessions();
+          }}
         />
       )}
     </MarketplaceHubShell>

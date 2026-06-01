@@ -229,7 +229,7 @@ The wildcard format (e.g., `10.108.1.*`) allows any IP in that subnet. Add expli
 | **MilestoneEscrowV2 Impl** | `0x8F9Bae14966Af0BceE5c291A764cE3503f9D49F3` | Phase 34: Isolated milestone custody + native currency |
 | **AgentSkillRegistryV2** | `0xA84684261558f342d6871DD2CFef90A2117Aa20A` | Skills/capabilities (UUPS) |
 | **ServiceRegistryV2**    | `0x62E1eeEa1A2Ab987004F35bDA430457Ed6077201` | Service listings (UUPS)    |
-| **ServiceRegistryV2 Impl** | `0xe8dEf9ce280ebDf43d8273223C1957747a292e23` | Phase 34c: bond withdrawal + 7-day cooldown |
+| **ServiceRegistryV2 Impl** | `0xe2000Ec87D00980EE912F35fefE2D365DA402BCA` | Phase 42: native-token service listings |
 | **AgenticCommerceV9**    | `0x3a1Bc03cC84040A282F6bf238b917D8351499239` | Job escrow (V9: Multi-Token Configurable Minimums) |
 | **AgenticCommerceV9 Impl** | `0x3b8b4A6d3cc93D5081a286aCC7EcD4f01086c928` | Phase 38: Governance slash via SlashManager |
 | **PriceOracleV2**        | `0x29c27a26DD2F80f840cb4D7B5E53b7db3D67143d` | PriceOracleV2 - UUPS upgradeable per-token feeds |

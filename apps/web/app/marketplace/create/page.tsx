@@ -1,29 +1,35 @@
 'use client';
 
 import { useState, useCallback, useEffect } from 'react';
-import { useAccount, useWaitForTransactionReceipt } from 'wagmi';
+import { useAccount, useBalance, useWaitForTransactionReceipt } from 'wagmi';
 import { useRouter } from 'next/navigation';
 import { ArrowLeft, ShieldCheck } from 'lucide-react';
 import NextLink from 'next/link';
 import { Card } from '@heroui/react';
 import { useCreateService } from '@/lib/hooks/useServices';
 import { useWalletAgentsFromSubgraph } from '@/lib/hooks';
-import { useAddKokonutTag } from '@/lib/hooks/useAddKokonutTag';
 import { useDebug } from '@/contexts/DebugContext';
 import { validateStringLength, validateMetadataURI } from '@/lib/hooks/useValidation';
 import { useFormSubmit } from '@/lib/hooks/useDebounce';
 import { showToast } from '@/lib/toast';
-import { USDC_TOKEN, Token } from '@/lib/hooks/useTokenConversion';
-import { parseAmount } from '@/lib/tokenUtils';
+import {
+  SERVICE_LISTING_PAYMENT_TOKENS,
+  ETH_TOKEN,
+  USDC_TOKEN,
+  Token,
+  useTokenPriceConversion,
+} from '@/lib/hooks/useTokenConversion';
+import { useMaxBudgetUsd, useMinBudget } from '@/lib/hooks/useMinBudget';
+import { formatAmount, parseAmount, tokenAmountToUsd } from '@/lib/tokenUtils';
 import { CreateServiceSteps } from '@/components/marketplace/CreateServiceSteps';
-import { AgentTagSetup } from '@/components/marketplace/AgentTagSetup';
 import { ServiceFormFields } from '@/components/marketplace/ServiceFormFields';
+import { parseEther } from 'viem';
 
 const MAX_SERVICE_NAME_LENGTH = 100;
 const MAX_DESCRIPTION_LENGTH = 500;
 const MAX_METADATA_URI_LENGTH = 2000;
-const MIN_PRICE_USD = 0.01;
 const ZERO_ADDRESS = '0x0000000000000000000000000000000000000000' as const;
+const SERVICE_BOND_AMOUNT = parseEther('0.01');
 
 interface FormData {
   name: string;
@@ -59,7 +65,16 @@ const initialFormErrors: FormErrors = {
   paymentAddress: null,
 };
 
-type Step = 'checking' | 'no-agents' | 'untagged' | 'ready' | 'creating' | 'done';
+type Step = 'checking' | 'no-agents' | 'ready' | 'creating' | 'done';
+
+function hasValidDecimalFormat(value: string): boolean {
+  return /^\d+(\.\d+)?$/.test(value.trim().replace(/,/g, ''));
+}
+
+function getDecimalPlaces(value: string): number {
+  const [, decimals = ''] = value.trim().replace(/,/g, '').split('.');
+  return decimals.length;
+}
 
 export default function CreateServicePage() {
   useEffect(() => {
@@ -68,6 +83,7 @@ export default function CreateServicePage() {
 
   const router = useRouter();
   const { isConnected, address } = useAccount();
+  const { data: ethBalance } = useBalance({ address });
   const { addLog, isDebugMode } = useDebug();
   const [formData, setFormData] = useState<FormData>(initialFormData);
   const [formErrors, setFormErrors] = useState<FormErrors>(initialFormErrors);
@@ -75,41 +91,30 @@ export default function CreateServicePage() {
 
   const {
     agents,
-    taggedAgents,
-    untaggedAgents,
     isLoading: isCheckingAgents,
     error: agentsError,
-    refetch,
   } = useWalletAgentsFromSubgraph(address);
-
-  const {
-    addTag,
-    isLoading: isAddingTag,
-    isSuccess: tagAdded,
-    error: tagError,
-    txHash: tagTxHash,
-  } = useAddKokonutTag();
 
   const [step, setStep] = useState<Step>('checking');
 
+  const {
+    minBudgetRaw,
+    isLoading: isMinBudgetLoading,
+  } = useMinBudget(formData.paymentToken.address, formData.paymentToken.decimals);
+  const { maxBudgetUsd } = useMaxBudgetUsd();
+  const { ethToUsdcRate } = useTokenPriceConversion();
+
   useEffect(() => {
+    if (step === 'creating' || step === 'done') return;
+
     if (isCheckingAgents) {
       setStep('checking');
     } else if (agents.length === 0) {
       setStep('no-agents');
-    } else if (taggedAgents.length === 0 && untaggedAgents.length > 0) {
-      setStep('untagged');
-    } else if (taggedAgents.length > 0) {
+    } else if (agents.length > 0) {
       setStep('ready');
     }
-  }, [isCheckingAgents, agents, taggedAgents, untaggedAgents]);
-
-  useEffect(() => {
-    if (tagAdded) {
-      addLog('info', 'Tag added successfully, refetching agents…');
-      refetch();
-    }
-  }, [tagAdded, refetch, addLog]);
+  }, [isCheckingAgents, agents, step]);
 
   const validateName = useCallback((value: string): string | null => {
     return validateStringLength(value, 1, MAX_SERVICE_NAME_LENGTH, 'Service name');
@@ -126,15 +131,29 @@ export default function CreateServicePage() {
   const validatePrice = useCallback((value: string): string | null => {
     if (!value || value === '') return 'Price is required';
     try {
+      if (!hasValidDecimalFormat(value)) return 'Price must be a valid decimal amount';
+      if (getDecimalPlaces(value) > formData.paymentToken.decimals) {
+        return `${formData.paymentToken.symbol} supports up to ${formData.paymentToken.decimals} decimals`;
+      }
+
       const priceNum = parseFloat(value);
       if (isNaN(priceNum) || priceNum <= 0) return 'Price must be greater than 0';
-      if (priceNum < MIN_PRICE_USD) return `Minimum price is $${MIN_PRICE_USD} USD`;
-      if (priceNum > 1000000) return 'Price must be less than 1,000,000 USD';
+
+      const rawAmount = parseAmount(value, formData.paymentToken);
+      if (!minBudgetRaw || isMinBudgetLoading) return 'Minimum price is still loading';
+      if (rawAmount < minBudgetRaw) {
+        return `Minimum price is ${formatAmount(minBudgetRaw, formData.paymentToken, { includeSymbol: true })}`;
+      }
+
+      const usdValue = tokenAmountToUsd(rawAmount, formData.paymentToken, ethToUsdcRate);
+      if (usdValue > maxBudgetUsd) {
+        return `Price must be less than ${maxBudgetUsd.toLocaleString()} USD equivalent`;
+      }
       return null;
     } catch {
       return 'Price must be a valid number';
     }
-  }, []);
+  }, [ethToUsdcRate, formData.paymentToken, isMinBudgetLoading, maxBudgetUsd, minBudgetRaw]);
 
   const validatePaymentAddress = useCallback((value: string): string | null => {
     if (!value || value === '') return null;
@@ -145,8 +164,9 @@ export default function CreateServicePage() {
   const handleInputChange = useCallback(
     (field: keyof FormData, value: string) => {
       if (field === 'paymentToken') {
-        const token = [USDC_TOKEN].find(t => t.symbol === value) || USDC_TOKEN;
+        const token = SERVICE_LISTING_PAYMENT_TOKENS.find(t => t.symbol === value) || USDC_TOKEN;
         setFormData(prev => ({ ...prev, paymentToken: token }));
+        setFormErrors(prev => ({ ...prev, price: null }));
         return;
       }
 
@@ -166,10 +186,13 @@ export default function CreateServicePage() {
         case 'price':
           error = validatePrice(value);
           break;
+        case 'paymentAddress':
+          error = validatePaymentAddress(value);
+          break;
       }
       setFormErrors(prev => ({ ...prev, [field]: error }));
     },
-    [validateName, validateDescription, validateMetadataURIField, validatePrice]
+    [validateName, validateDescription, validateMetadataURIField, validatePrice, validatePaymentAddress]
   );
 
   const {
@@ -195,18 +218,15 @@ export default function CreateServicePage() {
     }
   }, [serviceError]);
 
-  const handleAddTag = useCallback(
-    async (agentId: number) => {
-      addLog('info', `User clicked Add Tag for agent ${agentId}`);
-      await addTag(agentId);
-    },
-    [addTag, addLog]
-  );
+  useEffect(() => {
+    if (!formData.price) return;
+    setFormErrors(prev => ({ ...prev, price: validatePrice(formData.price) }));
+  }, [formData.paymentToken, formData.price, validatePrice]);
 
   const performSubmit = useCallback(
     (e: React.FormEvent) => {
       e.preventDefault();
-      if (!isConnected || taggedAgents.length === 0) return;
+      if (!isConnected || agents.length === 0) return;
 
       const errors: FormErrors = {
         name: validateName(formData.name),
@@ -223,7 +243,9 @@ export default function CreateServicePage() {
         return;
       }
 
-      const agent = taggedAgents[0];
+      const agent = selectedAgentId
+        ? agents.find(a => a.id === selectedAgentId) || agents[0]
+        : agents[0];
       addLog('info', 'Submitting service creation', { agentId: agent.id, formData });
 
       setStep('creating');
@@ -243,7 +265,8 @@ export default function CreateServicePage() {
     },
     [
       isConnected,
-      taggedAgents,
+      agents,
+      selectedAgentId,
       formData,
       createService,
       addLog,
@@ -259,11 +282,26 @@ export default function CreateServicePage() {
   const { handleSubmit, isSubmitting, timeUntilNextSubmit } = useFormSubmit(performSubmit, 500);
 
   const formPrice = parseFloat(formData.price);
+  const hasEnoughBondBalance = ethBalance ? ethBalance.value >= SERVICE_BOND_AMOUNT : true;
+  const ethBalanceLabel = ethBalance
+    ? formatAmount(ethBalance.value, ETH_TOKEN, {
+        includeSymbol: true,
+        maxFractionDigits: 4,
+      })
+    : 'Loading...';
+  const minPriceLabel = minBudgetRaw
+    ? formatAmount(minBudgetRaw, formData.paymentToken, {
+        includeSymbol: true,
+        minFractionDigits: formData.paymentToken.symbol === 'USDC' ? 2 : 0,
+        maxFractionDigits: formData.paymentToken.symbol === 'USDC' ? 2 : 6,
+      })
+    : `$5 USD equivalent`;
   const canSubmit =
     formData.name.trim().length > 0 &&
     formData.description.trim().length > 0 &&
     !isNaN(formPrice) &&
-    formPrice > 0;
+    formPrice > 0 &&
+    !formErrors.price;
 
   // Handle step-based views
   if (step === 'done' || step === 'checking' || step === 'no-agents') {
@@ -277,26 +315,11 @@ export default function CreateServicePage() {
     );
   }
 
-  // Untagged agents state
-  if (step === 'untagged' && untaggedAgents.length > 0) {
-    return (
-      <AgentTagSetup
-        untaggedAgents={untaggedAgents}
-        isAddingTag={isAddingTag}
-        tagAdded={tagAdded}
-        tagError={tagError}
-        tagTxHash={tagTxHash}
-        onAddTag={handleAddTag}
-        onRefetch={refetch}
-      />
-    );
-  }
-
   // Ready state - show form
-  if (step === 'ready' && taggedAgents.length > 0) {
+  if (step === 'ready' && agents.length > 0) {
     const agent = selectedAgentId
-      ? taggedAgents.find(a => a.id === selectedAgentId) || taggedAgents[0]
-      : taggedAgents[0];
+      ? agents.find(a => a.id === selectedAgentId) || agents[0]
+      : agents[0];
 
     return (
       <div className="container mx-auto px-4 py-8">
@@ -330,9 +353,14 @@ export default function CreateServicePage() {
               isConnected={isConnected}
               serviceError={serviceError}
               address={address}
-              taggedAgents={taggedAgents}
+              agents={agents}
               selectedAgentId={selectedAgentId}
               onAgentSelect={setSelectedAgentId}
+              minPriceLabel={minPriceLabel}
+              isMinBudgetLoading={isMinBudgetLoading}
+              maxBudgetUsd={maxBudgetUsd}
+              ethBalanceLabel={ethBalanceLabel}
+              hasEnoughBondBalance={hasEnoughBondBalance}
             />
           </div>
         </Card>

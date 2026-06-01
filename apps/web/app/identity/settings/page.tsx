@@ -48,26 +48,35 @@ export default function AgentSettingsPage(): JSX.Element {
   const urlAgentId = searchParams.get('agentId');
   const [selectedAgentIndex, setSelectedAgentIndex] = useState<number>(0);
 
+  const urlSelectedAgentIndex = useMemo(() => {
+    if (!urlAgentId) return -1;
+    return agents.findIndex(a => a.id.toString() === urlAgentId);
+  }, [agents, urlAgentId]);
+
+  const effectiveSelectedAgentIndex = urlSelectedAgentIndex !== -1
+    ? urlSelectedAgentIndex
+    : selectedAgentIndex;
+
   const selectedAgent = useMemo(() => {
     if (agents.length === 0) return null;
-    if (urlAgentId) {
-      const idx = agents.findIndex(a => a.id.toString() === urlAgentId);
-      if (idx !== -1) {
-        setSelectedAgentIndex(idx);
-        return agents[idx];
-      }
-    }
-    return agents[selectedAgentIndex] || null;
-  }, [agents, urlAgentId, selectedAgentIndex]);
-
-  const agent = selectedAgent;
-  const agentId = agent?.id ? BigInt(agent.id) : undefined;
+    return agents[effectiveSelectedAgentIndex] || null;
+  }, [agents, effectiveSelectedAgentIndex]);
 
   useEffect(() => {
+    if (urlSelectedAgentIndex !== -1 && selectedAgentIndex !== urlSelectedAgentIndex) {
+      setSelectedAgentIndex(urlSelectedAgentIndex);
+    }
+  }, [selectedAgentIndex, urlSelectedAgentIndex]);
+
+  useEffect(() => {
+    if (urlSelectedAgentIndex !== -1) return;
     if (selectedAgentIndex >= agents.length && agents.length > 0) {
       setSelectedAgentIndex(0);
     }
-  }, [agents.length, selectedAgentIndex]);
+  }, [agents.length, selectedAgentIndex, urlSelectedAgentIndex]);
+
+  const agent = selectedAgent;
+  const agentId = agent?.id ? BigInt(agent.id) : undefined;
 
   const { jobsCompleted, rating, feedbackCount } = useAgentStats(agentId);
 

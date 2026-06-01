@@ -1,6 +1,6 @@
 'use client';
 
-import { Loader2 } from 'lucide-react';
+import { AlertTriangle, Loader2, ShieldCheck, Wallet } from 'lucide-react';
 import { Button } from '@heroui/react';
 import { TransactionError } from '@/components/TransactionError';
 import { ServicePaymentTokenSelector } from './ServicePaymentTokenSelector';
@@ -10,8 +10,6 @@ import { formatTimeRemaining } from '@/lib/hooks/useDebounce';
 const MAX_SERVICE_NAME_LENGTH = 100;
 const MAX_DESCRIPTION_LENGTH = 500;
 const MAX_METADATA_URI_LENGTH = 2000;
-const MIN_PRICE_USD = 0.01;
-
 interface FormData {
   name: string;
   description: string;
@@ -42,9 +40,14 @@ interface ServiceFormFieldsProps {
   isConnected: boolean;
   serviceError: Error | null;
   address?: string;
-  taggedAgents: Array<{ id: number; metadata?: { name?: string } | null }>;
+  agents: Array<{ id: number; metadata?: { name?: string } | null }>;
   selectedAgentId: number | null;
   onAgentSelect: (id: number) => void;
+  minPriceLabel: string;
+  isMinBudgetLoading: boolean;
+  maxBudgetUsd: number;
+  ethBalanceLabel: string;
+  hasEnoughBondBalance: boolean;
 }
 
 export function ServiceFormFields({
@@ -60,36 +63,52 @@ export function ServiceFormFields({
   isConnected,
   serviceError,
   address,
-  taggedAgents,
+  agents,
   selectedAgentId,
   onAgentSelect,
+  minPriceLabel,
+  isMinBudgetLoading,
+  maxBudgetUsd,
+  ethBalanceLabel,
+  hasEnoughBondBalance,
 }: ServiceFormFieldsProps) {
   const agent = selectedAgentId
-    ? taggedAgents.find(a => a.id === selectedAgentId) || taggedAgents[0]
-    : taggedAgents[0];
+    ? agents.find(a => a.id === selectedAgentId) || agents[0]
+    : agents[0];
 
   return (
     <form onSubmit={handleSubmit} className="space-y-6">
-      {/* ETH Bond Warning */}
       <div className="bg-warning/10 border border-warning/30 rounded-lg p-4">
         <div className="flex items-start gap-3">
-          <div className="size-5 text-warning shrink-0 mt-0.5">⚠️</div>
+          <AlertTriangle className="size-5 text-warning shrink-0 mt-0.5" />
           <div>
             <p className="font-medium text-warning-900 dark:text-warning-100">
               0.01 ETH Service Bond Required
             </p>
             <p className="text-sm text-default-600 dark:text-default-400 mt-1">
-              Creating a service requires depositing a 0.01 ETH listing bond. This bond
-              secures your service listing and stays locked while the service is active.
-              You can withdraw it after deactivating your service (7-day cooldown).
-              Make sure you have enough ETH in your wallet to cover this deposit.
+              The listing bond stays locked while your service is active and can be withdrawn
+              after deactivation plus the 7-day cooldown. Your service price can be paid in
+              {` ${formData.paymentToken.symbol}`}, but the listing bond is always paid in ETH.
             </p>
+            <div className="mt-3 flex flex-wrap gap-2 text-xs">
+              <span className="inline-flex items-center gap-1 rounded-full bg-content2 px-2 py-1 text-default-600">
+                <ShieldCheck className="size-3" /> Bond: 0.01 ETH
+              </span>
+              <span className={`inline-flex items-center gap-1 rounded-full px-2 py-1 ${hasEnoughBondBalance ? 'bg-content2 text-default-600' : 'bg-danger/10 text-danger'}`}>
+                <Wallet className="size-3" /> Balance: {ethBalanceLabel}
+              </span>
+            </div>
+            {!hasEnoughBondBalance && (
+              <p className="text-xs text-danger mt-2">
+                Add ETH before creating this service. You need at least 0.01 ETH plus gas.
+              </p>
+            )}
           </div>
         </div>
       </div>
 
       {/* Agent Selector */}
-      {taggedAgents.length > 1 && (
+      {agents.length > 1 && (
         <div>
           <label htmlFor="agent-select" className="block text-sm font-medium mb-2">
             Select Agent *
@@ -100,7 +119,7 @@ export function ServiceFormFields({
             onChange={e => onAgentSelect(Number(e.target.value))}
             className="w-full px-3 py-2 border border-divider rounded-lg bg-content2"
           >
-            {taggedAgents.map(a => (
+            {agents.map(a => (
               <option key={a.id} value={a.id}>
                 Agent #{a.id} {a.metadata?.name ? `- ${a.metadata.name}` : ''}
               </option>
@@ -196,15 +215,15 @@ export function ServiceFormFields({
               formErrors.price ? 'border-danger' : 'border-divider'
             }`}
             placeholder="100"
-            min="0.01"
-            step="0.01"
+            min="0"
+            step={formData.paymentToken.symbol === 'USDC' ? '0.01' : '0.000001'}
           />
         </div>
         {formErrors.price ? (
           <p className="text-xs text-danger mt-1">{formErrors.price}</p>
         ) : (
           <p className="text-xs text-default-400 mt-1">
-            Minimum ${MIN_PRICE_USD}, maximum $1,000,000
+            {isMinBudgetLoading ? 'Loading minimum price...' : `Minimum ${minPriceLabel}`}, maximum ${maxBudgetUsd.toLocaleString()} USD equivalent
           </p>
         )}
       </div>
@@ -261,12 +280,40 @@ export function ServiceFormFields({
         )}
       </div>
 
+      <div className="rounded-xl border border-divider bg-content2/50 p-4">
+        <p className="text-sm font-semibold mb-3">Review Listing</p>
+        <div className="grid grid-cols-1 sm:grid-cols-2 gap-3 text-sm">
+          <div>
+            <p className="text-xs text-default-400">Agent</p>
+            <p className="font-medium">
+              Agent #{agent?.id} {agent?.metadata?.name ? `- ${agent.metadata.name}` : ''}
+            </p>
+          </div>
+          <div>
+            <p className="text-xs text-default-400">Service Price</p>
+            <p className="font-medium">
+              {formData.price || '0'} {formData.paymentToken.symbol}
+            </p>
+          </div>
+          <div>
+            <p className="text-xs text-default-400">Listing Bond</p>
+            <p className="font-medium">0.01 ETH</p>
+          </div>
+          <div>
+            <p className="text-xs text-default-400">Payment Address</p>
+            <p className="font-mono text-xs break-all">
+              {formData.paymentAddress.trim() || address || 'Connect wallet'}
+            </p>
+          </div>
+        </div>
+      </div>
+
       <TransactionError error={serviceError} />
 
       <Button
         type="submit"
         className="w-full border-2 border-[#009F4D] text-[#009F4D] hover:bg-[#009F4D]/5 font-semibold"
-        isDisabled={!isConnected || isServicePending || isServiceConfirming || !canSubmit}
+        isDisabled={!isConnected || isServicePending || isServiceConfirming || !canSubmit || !hasEnoughBondBalance}
       >
         {isServicePending || isServiceConfirming
           ? <><Loader2 className="size-4 mr-2 animate-spin" />Creating…</>

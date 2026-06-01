@@ -28,9 +28,7 @@ export const ETH_TOKEN: Token = {
 
 export const SUPPORTED_PAYMENT_TOKENS: Token[] = [USDC_TOKEN, ETH_TOKEN];
 
-// ServiceRegistryV2 rejects address(0), so service listings are ERC-20 only
-// until native-token service pricing is supported on-chain.
-export const SERVICE_LISTING_PAYMENT_TOKENS: Token[] = [USDC_TOKEN];
+export const SERVICE_LISTING_PAYMENT_TOKENS: Token[] = [USDC_TOKEN, ETH_TOKEN];
 
 function isNativeToken(address: string | undefined | null): boolean {
   return !!address && address.toLowerCase() === NATIVE_TOKEN_ADDRESS.toLowerCase();

@@ -3,7 +3,7 @@
 import { useMemo, useEffect } from 'react';
 import { useAccount } from 'wagmi';
 import { Button, Card, Skeleton } from '@heroui/react';
-import { Wallet, UserPlus, ShoppingBag, Check, Tag, BriefcaseBusiness } from 'lucide-react';
+import { Wallet, UserPlus, ShoppingBag, Check, BriefcaseBusiness } from 'lucide-react';
 import Link from 'next/link';
 import { ConnectButton } from '@/components/wallet/ConnectButton';
 import { useWalletAgentsFromSubgraph } from '@/lib/hooks';
@@ -61,17 +61,11 @@ export default function OnboardingPage(): JSX.Element {
   }, []);
 
   const { address, isConnected } = useAccount();
-  const {
-    agents,
-    taggedAgents,
-    untaggedAgents,
-    isLoading: isLoadingAgents,
-  } = useWalletAgentsFromSubgraph(address);
+  const { agents, isLoading: isLoadingAgents } = useWalletAgentsFromSubgraph(address);
   const { services, isLoading: isLoadingServices } = useProviderServices(address);
   const { jobs, isLoading: isLoadingJobs } = useJobs(0, 50);
 
   const hasAgent = agents.length > 0;
-  const hasKokonutTag = taggedAgents.length > 0;
   const hasService = services.length > 0;
   const hasJob = useMemo(() => {
     if (!address) return false;
@@ -97,18 +91,6 @@ export default function OnboardingPage(): JSX.Element {
       complete: hasAgent,
       href: '/identity/register',
       actionLabel: 'Register',
-    },
-    {
-      title: 'Add Kokonut Tag',
-      description: hasKokonutTag
-        ? `${taggedAgents.length} marketplace-ready agent${taggedAgents.length === 1 ? '' : 's'}`
-        : untaggedAgents.length > 0
-        ? 'Mark an existing agent as marketplace-ready.'
-        : 'Register an agent before adding the marketplace tag.',
-      icon: Tag,
-      complete: hasKokonutTag,
-      href: untaggedAgents.length > 0 ? '/marketplace/create' : '/identity/register',
-      actionLabel: untaggedAgents.length > 0 ? 'Add Tag' : 'Register',
     },
     {
       title: 'Create Service',

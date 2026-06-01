@@ -19,9 +19,9 @@ const sepoliaContracts = {
 
   // SkillRegistry V2 - Uses ownerOf() instead of getAgent()
   skillRegistry: '0xA84684261558f342d6871DD2CFef90A2117Aa20A',
-  skillRegistryImpl: '0x656B6520CE44Bb0Fb08552274Be3a9B11aaa3569', // Phase 14: O(1) domain lookup
+  skillRegistryImpl: '0xbf7283c4d141ca991dae6c91d29a255e7caff48d', // Current Sepolia implementation
   serviceRegistry: '0x62E1eeEa1A2Ab987004F35bDA430457Ed6077201',
-  serviceRegistryImpl: '0xe8dEf9ce280ebDf43d8273223C1957747a292e23', // Phase 34c: bond withdrawal + cooldown
+  serviceRegistryImpl: '0xe2000Ec87D00980EE912F35fefE2D365DA402BCA', // Phase 42: native-token service listings
     // Phase 29: V9 - Multi-token configurable minimum budgets
   agenticCommerce: '0x3a1Bc03cC84040A282F6bf238b917D8351499239',
   agenticCommerceImpl: '0x3b8b4A6d3cc93D5081a286aCC7EcD4f01086c928', // Phase 38: governance slash
@@ -29,7 +29,7 @@ const sepoliaContracts = {
   biddingSystem: '0x4D7F38C6A9DE5De44A7B789962B7A2B06bFE8fd6',
   biddingSystemImpl: '0xde7F38E29D3c2dBDff02984BAaB5a658F0acC96a', // Phase 40: ERC-20 payment token support
   commitReveal: '0x85F193670fCb7B0c97D55E70Bf2a950b1065Fb3a',
-  commitRevealImpl: '0x0456fb2B6ef68B9133B22809D48D4f3748bEf87C', // Phase 29f: OZ v5 compat
+  commitRevealImpl: '0x85ac5fd55de6f19e95bed33991f11659a92dbbd2', // Current Sepolia implementation
   slashManager: '0x1B8373cDF4f2eD740c3478e0129f0B8494CE4Fa3',
   slashManagerImpl: '0x8754Abeba49B6688dA132552b9f183FbC7acdc58', // Phase 38: retarget to commerce
 
@@ -133,9 +133,9 @@ export const CONTRACT_ADDRESSES = {
 
     // SkillRegistry V2 - Uses ownerOf() instead of getAgent()
     skillRegistry: '0xA84684261558f342d6871DD2CFef90A2117Aa20A',
-    skillRegistryImpl: '0x656B6520CE44Bb0Fb08552274Be3a9B11aaa3569', // Phase 14: O(1) domain lookup
+    skillRegistryImpl: '0xbf7283c4d141ca991dae6c91d29a255e7caff48d', // Current Sepolia implementation
     serviceRegistry: '0x62E1eeEa1A2Ab987004F35bDA430457Ed6077201',
-  serviceRegistryImpl: '0xe8dEf9ce280ebDf43d8273223C1957747a292e23', // Phase 34c: bond withdrawal + cooldown
+  serviceRegistryImpl: '0xe2000Ec87D00980EE912F35fefE2D365DA402BCA', // Phase 42: native-token service listings
   // Phase 29: V9 - Multi-token configurable minimum budgets
   agenticCommerce: '0x3a1Bc03cC84040A282F6bf238b917D8351499239',
   agenticCommerceImpl: '0x3b8b4A6d3cc93D5081a286aCC7EcD4f01086c928', // Phase 38: governance slash
@@ -143,7 +143,7 @@ export const CONTRACT_ADDRESSES = {
   biddingSystem: '0x4D7F38C6A9DE5De44A7B789962B7A2B06bFE8fd6',
   biddingSystemImpl: '0xde7F38E29D3c2dBDff02984BAaB5a658F0acC96a', // Phase 40: ERC-20 payment token support
     commitReveal: '0x85F193670fCb7B0c97D55E70Bf2a950b1065Fb3a',
-  commitRevealImpl: '0x0456fb2B6ef68B9133B22809D48D4f3748bEf87C', // Phase 29f: OZ v5 compat
+  commitRevealImpl: '0x85ac5fd55de6f19e95bed33991f11659a92dbbd2', // Current Sepolia implementation
     slashManager: '0x1B8373cDF4f2eD740c3478e0129f0B8494CE4Fa3',
   slashManagerImpl: '0x8754Abeba49B6688dA132552b9f183FbC7acdc58', // Phase 38: retarget to commerce
 

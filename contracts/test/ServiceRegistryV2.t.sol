@@ -99,10 +99,45 @@ contract ServiceRegistryV2Test is TestFixtures {
         serviceRegistry.createService{value: 0.01 ether}(1, "Service", "Desc", "", 0, address(usdc), address(0));
     }
 
-    function test_CreateService_ZeroPaymentToken_Reverts() public {
+    function test_CreateService_NativePaymentToken_Success() public {
         vm.prank(provider);
-        vm.expectRevert(abi.encodeWithSelector(ServiceRegistryV2.ServiceRegistryV2__Invalid_payment_token.selector));
-        serviceRegistry.createService{value: 0.01 ether}(1, "Service", "Desc", "", 100, address(0), address(0));
+        uint256 serviceId = serviceRegistry.createService{value: 0.01 ether}(
+            1,
+            "ETH Service",
+            "Desc",
+            "",
+            0.01 ether,
+            address(0),
+            address(0)
+        );
+
+        ServiceRegistryV2.Service memory service = serviceRegistry.getService(serviceId);
+        assertEq(service.paymentToken, address(0));
+        assertEq(service.paymentAddress, provider);
+        assertEq(service.price, 0.01 ether);
+        assertTrue(service.isActive);
+    }
+
+    function test_CreateService_DefaultsPaymentAddressToProvider() public {
+        vm.prank(provider);
+        uint256 serviceId = serviceRegistry.createService{value: 0.01 ether}(
+            1,
+            "Service",
+            "Desc",
+            "",
+            100,
+            address(usdc),
+            address(0)
+        );
+
+        ServiceRegistryV2.Service memory service = serviceRegistry.getService(serviceId);
+        assertEq(service.paymentAddress, provider);
+    }
+
+    function test_CreateService_PaymentAddressCannotBeTokenContract_Reverts() public {
+        vm.prank(provider);
+        vm.expectRevert(abi.encodeWithSelector(ServiceRegistryV2.ServiceRegistryV2__Invalid_payment_address.selector));
+        serviceRegistry.createService{value: 0.01 ether}(1, "Service", "Desc", "", 100, address(usdc), address(usdc));
     }
     
     // =====================================================

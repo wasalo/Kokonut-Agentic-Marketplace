@@ -83,9 +83,9 @@ export default function RegisterAgentPage(): JSX.Element {
     return !emailError;
   }, []);
 
-  const { taggedAgents } = useWalletAgentsFromSubgraph(address);
-  const isRegistered = taggedAgents.length > 0;
-  const agent = taggedAgents[0];
+  const { agents } = useWalletAgentsFromSubgraph(address);
+  const isRegistered = agents.length > 0;
+  const agent = agents[0];
 
   const handleFieldChange = useCallback((field: keyof FormData, value: string) => {
     setFormData(prev => ({ ...prev, [field]: value }));
@@ -123,7 +123,7 @@ export default function RegisterAgentPage(): JSX.Element {
       };
       const agentURI = generateAgentMetadata(metadata);
 
-      // Use simple register function with source tag in metadata JSON
+      // Keep Kokonut provenance in metadata without gating marketplace access on it.
       writeContract({
         chainId: SEPOLIA_CHAIN_ID,
         address: ERC8004_ADDRESS,
@@ -162,8 +162,7 @@ export default function RegisterAgentPage(): JSX.Element {
               Agent Registered!
             </h2>
             <p className="text-sm text-default-500 mt-2">
-              Your agent is now registered on the ERC-8004 registry and tagged as a Kokonut
-              Marketplace agent.
+              Your agent is now registered on the ERC-8004 registry and ready for marketplace use.
             </p>
           </div>
           <p className="text-xs text-default-400 font-mono break-all mb-4">TX: {txHash}</p>
@@ -191,8 +190,8 @@ export default function RegisterAgentPage(): JSX.Element {
       <div className="max-w-2xl mx-auto">
         <h1 className="text-3xl font-bold mb-2">Register Agent</h1>
         <p className="text-default-500 mb-8">
-          Create an onchain identity on the official ERC-8004 registry. Agents registered through
-          Kokonut are automatically tagged for marketplace discovery.
+          Create an onchain identity on the official ERC-8004 registry. Existing ERC-8004 agents can
+          use Kokonut without any app-specific tag requirement.
         </p>
 
         {isRegistered && agent && (

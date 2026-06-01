@@ -5,6 +5,41 @@ All notable changes to the Kokonut Agent Economy Stack are documented in this fi
 The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.0.0/),
 and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0.html).
 
+## [2026-06-01] — Phase 42: Native-Token Service Listings + Service Creation UX
+
+### ServiceRegistryV2 Native Service Pricing
+
+| Change | Detail |
+|--------|--------|
+| **Native ETH service listings** | `createService()` now accepts `paymentToken == address(0)` for native ETH-priced services. |
+| **Listing bond unchanged** | The separate `0.01 ETH` service bond remains required and locked while active. |
+| **Payment address defaulting** | Zero `paymentAddress` still defaults to the provider before validation. |
+| **ERC-20 guard retained** | Rejects ERC-20 token contract addresses as payment receivers. |
+
+### Service Creation UX
+
+| Change | Detail |
+|--------|--------|
+| **USDC/ETH selector** | `/marketplace/create` now supports USDC and ETH service prices. |
+| **Contract-aware validation** | Price validation uses `AgenticCommerceV9.getMinBudget()` for the selected token. |
+| **Bond balance check** | Form shows ETH balance and blocks creation when the wallet lacks the `0.01 ETH` bond. |
+| **Review summary** | Added listing review for agent, service price, bond, and payment address. |
+| **Tag gate removed** | Any owned ERC-8004 agent can create services; Kokonut source metadata is optional provenance/display only. |
+
+### Deployment
+
+| Contract | Proxy | New Implementation | Status |
+|----------|-------|--------------------|--------|
+| `ServiceRegistryV2` | `0x62E1eeEa1A2Ab987004F35bDA430457Ed6077201` | `0xe2000Ec87D00980EE912F35fefE2D365DA402BCA` | Verified |
+
+### Verification
+
+- `forge test --match-contract ServiceRegistryV2Test` - 45/45 passing
+- `pnpm run test:contracts` - 279/279 passing
+- `pnpm --filter @kokonut/web type-check:strict` - passing
+- `pnpm --filter @kokonut/web type-check` - passing
+- `pnpm --filter @kokonut/web lint` - passing
+
 ## [2026-05-30] — Phase 41: SDK/Subgraph/CLI/MCP BiddingSystem Feature Completion
 
 ### 🛠️ SDK BiddingSystem Fixes & Feature Completion

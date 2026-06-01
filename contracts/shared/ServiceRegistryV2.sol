@@ -231,8 +231,6 @@ contract ServiceRegistryV2 is
         if (!(bytes(name).length > 0)) revert ServiceRegistryV2__Name_required();
         if (!(bytes(description).length > 0)) revert ServiceRegistryV2__Description_required();
         if (!(price > 0)) revert ServiceRegistryV2__Price_must_be_greater_than_0();
-        if (!(paymentToken != address(0))) revert ServiceRegistryV2__Invalid_payment_token();
-        if (!(paymentAddress != paymentToken)) revert ServiceRegistryV2__Invalid_payment_address();
         if (!(msg.value >= SERVICE_BOND_AMOUNT)) revert ServiceRegistryV2__Bond_required(); // M3 Fix
 
         // Bad Actor: Check if agent or wallet is blacklisted
@@ -248,6 +246,9 @@ contract ServiceRegistryV2 is
         // paymentAddress defaults to provider if not set
         if (paymentAddress == address(0)) {
             paymentAddress = msg.sender;
+        }
+        if (paymentAddress == paymentToken && paymentToken != address(0)) {
+            revert ServiceRegistryV2__Invalid_payment_address();
         }
 
         serviceId = _serviceCounter++;

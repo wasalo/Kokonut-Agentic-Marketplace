@@ -18,6 +18,7 @@
     "test:gas": "cd contracts && forge test --match-contract GasSnapshot -vvv",
     "test:visual": "pnpm --filter @kokonut/web test:visual",
     "check:storage": "node scripts/check-storage-layout.js",
+    "storage:health": "node scripts/storage-health-report.js",
     "test:sepolia": "tsx scripts/sepolia-test.ts",
     "generate:addresses": "node scripts/generate-address-configs.js",
     "lint": "pnpm -r --if-present run lint",

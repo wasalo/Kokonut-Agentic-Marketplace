@@ -2,8 +2,8 @@
 
 import type { ReactNode } from 'react';
 import NextLink from 'next/link';
-import { ArrowRight, Briefcase, Code, RefreshCw } from 'lucide-react';
-import { StatusBadge, getJobStatusBadgeType } from '@/components/StatusBadge';
+import { ArrowRight, Briefcase, Code, Gavel, RefreshCw, Store } from 'lucide-react';
+import { StatusBadge, getJobStatusBadgeType, type StatusType } from '@/components/StatusBadge';
 import { JobStatus, type Job } from '@/lib/hooks/useJobs';
 import { formatAmount, getTokenByAddress } from '@/lib/tokenUtils';
 import { UnifiedWorkCard } from '@/components/marketplace/UnifiedWorkCard';
@@ -20,10 +20,21 @@ import { ProviderServiceCard } from '@/components/marketplace/ProviderServiceCar
 import { SkillDomainGrid } from '@/components/marketplace/SkillDomainGrid';
 import { SkillsCommandBar } from '@/components/marketplace/SkillsCommandBar';
 import { useBiddingDirectory } from '@/lib/hooks/useBiddingDirectory';
+import { SessionStatus, type BiddingSession, type SessionStatusType } from '@/lib/hooks/useBiddingSystem';
 import { useJobsDirectory } from '@/lib/hooks/useJobsDirectory';
 import { useMarketplaceSkillsDirectory } from '@/lib/hooks/useMarketplaceSkillsDirectory';
+import { DS, btn, card } from '@/lib/design-system';
 
 const HUB_PAGE_SIZE = 10;
+
+const STUDIO_SESSION_STATUS_BADGE: Record<SessionStatusType, StatusType> = {
+  [SessionStatus.Active]: 'active',
+  [SessionStatus.BiddingClosed]: 'pending',
+  [SessionStatus.WinnerSelected]: 'under-review',
+  [SessionStatus.JobCreated]: 'under-review',
+  [SessionStatus.Completed]: 'completed',
+  [SessionStatus.Cancelled]: 'cancelled',
+};
 
 export function getAttentionReason(job: Job, user: `0x${string}`): string | null {
   const lower = user.toLowerCase();
@@ -344,37 +355,71 @@ export function MyWorkHubPanel({ jobs, user, isLoading }: { jobs: Job[]; user?: 
 
 export function StudioHubPanel({
   services,
+  jobs,
+  sessions,
+  user,
   isConnected,
   isLoading,
+  isJobsLoading,
+  isBiddingLoading,
   error,
   onRefetch,
+  onRefreshAll,
 }: {
   services: Service[];
+  jobs: Job[];
+  sessions: BiddingSession[];
+  user?: `0x${string}`;
   isConnected: boolean;
   isLoading: boolean;
+  isJobsLoading: boolean;
+  isBiddingLoading: boolean;
   error?: Error | null;
   onRefetch: () => void;
+  onRefreshAll: () => void;
 }) {
-  if (!isConnected) {
+  if (!isConnected || !user) {
     return <EmptyHubState title="Connect to manage your studio" description="Your services, agents, and skills live here once connected." />;
   }
 
+  const lowerUser = user.toLowerCase();
   const activeServices = services.filter(service => service.isActive);
   const inactiveServices = services.filter(service => !service.isActive);
+  const studioJobs = jobs.filter(job =>
+    job.client.toLowerCase() === lowerUser ||
+    job.provider.toLowerCase() === lowerUser ||
+    job.evaluator.toLowerCase() === lowerUser
+  );
+  const studioSessions = sessions.filter(session =>
+    session.creator.toLowerCase() === lowerUser ||
+    session.winner.toLowerCase() === lowerUser
+  );
+  const attentionJobs = studioJobs.filter(job => getAttentionReason(job, user) !== null);
+  const activeJobs = studioJobs.filter(job =>
+    job.status !== JobStatus.Completed &&
+    job.status !== JobStatus.Rejected &&
+    job.status !== JobStatus.Expired
+  );
+  const completedJobs = studioJobs.filter(job => job.status === JobStatus.Completed);
+  const createdSessions = studioSessions.filter(session => session.creator.toLowerCase() === lowerUser);
+  const wonSessions = studioSessions.filter(session => session.winner.toLowerCase() === lowerUser);
+  const activeSessions = studioSessions.filter(session => session.status === SessionStatus.Active);
+
+  const isRefreshing = isLoading || isJobsLoading || isBiddingLoading;
 
   return (
     <section>
       <PanelHeader
         title="Provider Studio"
-        description="Manage what you offer without leaving the marketplace workspace."
+        description="Manage your services, jobs, bid sessions, agents, and capabilities from one workspace."
         action={
           <button
             type="button"
-            onClick={onRefetch}
-            disabled={isLoading}
-            className="inline-flex items-center gap-2 rounded-xl border border-divider bg-content2 px-3 py-2 text-sm font-medium hover:bg-content3 transition-colors disabled:opacity-50"
+            onClick={onRefreshAll}
+            disabled={isRefreshing}
+            className={btn('ghost', 'rounded-xl bg-content2 text-sm font-medium')}
           >
-            <RefreshCw className={`size-4 ${isLoading ? 'animate-spin' : ''}`} />
+            <RefreshCw className={`size-4 ${isRefreshing ? 'animate-spin' : ''}`} />
             Refresh
           </button>
         }
@@ -396,41 +441,147 @@ export function StudioHubPanel({
           </div>
         </div>
       )}
+      <div className="grid grid-cols-1 md:grid-cols-3 gap-4 mb-6">
+        <StudioMetric
+          icon={<Store className="size-5" />}
+          label="Services"
+          value={services.length.toString()}
+          detail={`${activeServices.length} active · ${inactiveServices.length} inactive`}
+        />
+        <StudioMetric
+          icon={<Briefcase className="size-5" />}
+          label="Jobs"
+          value={studioJobs.length.toString()}
+          detail={`${attentionJobs.length} need attention · ${completedJobs.length} completed`}
+          isLoading={isJobsLoading}
+        />
+        <StudioMetric
+          icon={<Gavel className="size-5" />}
+          label="Bid Sessions"
+          value={studioSessions.length.toString()}
+          detail={`${createdSessions.length} created · ${wonSessions.length} won`}
+          isLoading={isBiddingLoading}
+        />
+      </div>
+
       <div className="grid grid-cols-1 md:grid-cols-2 gap-4 mb-6">
         <StudioShortcut href="/dashboard/agents" icon={<Briefcase className="size-5" />} title="Agents" detail="Manage identities" />
         <StudioShortcut href="/dashboard/skills" icon={<Code className="size-5" />} title="Skills" detail="Add capabilities" />
       </div>
-      {isLoading ? (
-        <div className="h-32 animate-pulse rounded-2xl bg-content2" />
-      ) : services.length === 0 ? (
-        <EmptyHubState title="No services listed yet" description="Create your first listing to start receiving work." href="/marketplace/create" action="List service" />
-      ) : (
-        <div className="space-y-6">
-          {activeServices.length > 0 && (
-            <ServiceGroup title={`Active Services (${activeServices.length})`}>
-              {activeServices.map(service => (
-                <ProviderServiceCard
-                  key={service.id.toString()}
-                  service={service}
-                  onRefetch={onRefetch}
-                />
-              ))}
-            </ServiceGroup>
-          )}
 
-          {inactiveServices.length > 0 && (
-            <ServiceGroup title={`Inactive Services (${inactiveServices.length})`} muted>
-              {inactiveServices.map(service => (
-                <ProviderServiceCard
-                  key={service.id.toString()}
-                  service={service}
-                  onRefetch={onRefetch}
+      <div className="space-y-6">
+        <StudioSection
+          title="Services"
+          description="Listings you offer as a provider."
+          action={<NextLink href="/marketplace/create" className={btn('primary', 'text-sm')}>List Service</NextLink>}
+        >
+          {isLoading ? (
+            <div className="h-32 animate-pulse rounded-xl bg-content2" />
+          ) : services.length === 0 ? (
+            <CompactEmptyState
+              title="No services listed yet"
+              description="Create your first listing to start receiving work."
+              href="/marketplace/create"
+              action="List service"
+            />
+          ) : (
+            <div className="space-y-5">
+              {activeServices.length > 0 && (
+                <ServiceGroup title={`Active (${activeServices.length})`}>
+                  {activeServices.slice(0, 4).map(service => (
+                    <ProviderServiceCard
+                      key={service.id.toString()}
+                      service={service}
+                      onRefetch={onRefetch}
+                    />
+                  ))}
+                </ServiceGroup>
+              )}
+              {inactiveServices.length > 0 && (
+                <ServiceGroup title={`Inactive (${inactiveServices.length})`} muted>
+                  {inactiveServices.slice(0, 4).map(service => (
+                    <ProviderServiceCard
+                      key={service.id.toString()}
+                      service={service}
+                      onRefetch={onRefetch}
+                    />
+                  ))}
+                </ServiceGroup>
+              )}
+            </div>
+          )}
+        </StudioSection>
+
+        <StudioSection
+          title="Jobs"
+          description="Jobs where your wallet is client, provider, or evaluator."
+          action={<FullDirectoryLink href="/marketplace?tab=jobs" label="Open jobs tab" compact />}
+        >
+          {isJobsLoading ? (
+            <div className="h-32 animate-pulse rounded-xl bg-content2" />
+          ) : studioJobs.length === 0 ? (
+            <CompactEmptyState
+              title="No jobs yet"
+              description="Post a job or win work through bidding to see it here."
+              href="/jobs/create"
+              action="Post job"
+            />
+          ) : (
+            <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+              {studioJobs.slice(0, 6).map(job => (
+                <UnifiedWorkCard
+                  key={job.id.toString()}
+                  title={`Job #${job.id.toString()}`}
+                  description={getAttentionReason(job, user) ?? job.description}
+                  href={`/jobs/${job.id.toString()}`}
+                  eyebrow={getUserRole(job, user)}
+                  status={<StatusBadge status={getJobStatusBadgeType(job.status)} size="sm" />}
+                  meta={[
+                    { label: 'Budget', value: formatJobBudget(job) },
+                    { label: 'State', value: attentionJobs.includes(job) ? 'Needs attention' : activeJobs.includes(job) ? 'Active' : 'Complete' },
+                  ]}
+                  actionLabel="Open Job"
                 />
               ))}
-            </ServiceGroup>
+            </div>
           )}
-        </div>
-      )}
+        </StudioSection>
+
+        <StudioSection
+          title="Bid Sessions"
+          description="Sessions you created or won. Participant history can be added later with per-session bid reads."
+          action={<FullDirectoryLink href="/marketplace?tab=bidding" label="Open bidding tab" compact />}
+        >
+          {isBiddingLoading ? (
+            <div className="h-32 animate-pulse rounded-xl bg-content2" />
+          ) : studioSessions.length === 0 ? (
+            <CompactEmptyState
+              title="No studio bid sessions"
+              description="Create a bidding session to source work competitively."
+              href="/bidding/create"
+              action="Create session"
+            />
+          ) : (
+            <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+              {studioSessions.slice(0, 6).map(session => (
+                <UnifiedWorkCard
+                  key={session.id.toString()}
+                  title={`Session #${session.id.toString()}`}
+                  description={session.creator.toLowerCase() === lowerUser ? 'You created this bidding session.' : 'You won this bidding session.'}
+                  href={`/bidding/${session.id.toString()}`}
+                  eyebrow={session.creator.toLowerCase() === lowerUser ? 'Creator' : 'Winner'}
+                  status={<StatusBadge status={STUDIO_SESSION_STATUS_BADGE[session.status]} size="sm" />}
+                  meta={[
+                    { label: 'Budget', value: formatSessionBudget(session) },
+                    { label: 'State', value: activeSessions.includes(session) ? 'Active' : formatSessionDeadline(session) },
+                  ]}
+                  actionLabel="Open Session"
+                />
+              ))}
+            </div>
+          )}
+        </StudioSection>
+      </div>
     </section>
   );
 }
@@ -489,6 +640,81 @@ function ServiceGroup({
   );
 }
 
+function StudioSection({
+  title,
+  description,
+  action,
+  children,
+}: {
+  title: string;
+  description: string;
+  action?: ReactNode;
+  children: ReactNode;
+}) {
+  return (
+    <div className={card('padded')}>
+      <div className="mb-4 flex flex-col gap-3 sm:flex-row sm:items-start sm:justify-between">
+        <div>
+          <h3 className={DS.typography.cardTitle}>{title}</h3>
+          <p className="mt-1 text-sm text-default-500">{description}</p>
+        </div>
+        {action}
+      </div>
+      {children}
+    </div>
+  );
+}
+
+function StudioMetric({
+  icon,
+  label,
+  value,
+  detail,
+  isLoading = false,
+}: {
+  icon: ReactNode;
+  label: string;
+  value: string;
+  detail: string;
+  isLoading?: boolean;
+}) {
+  return (
+    <div className={card('padded', 'flex items-start gap-3')}>
+      <div className="rounded-xl bg-success/10 p-2 text-success">{icon}</div>
+      <div>
+        <p className="text-xs font-medium uppercase tracking-wide text-default-400">{label}</p>
+        <p className="mt-1 text-2xl font-bold text-foreground">{isLoading ? '…' : value}</p>
+        <p className="mt-1 text-xs text-default-500">{detail}</p>
+      </div>
+    </div>
+  );
+}
+
+function CompactEmptyState({
+  title,
+  description,
+  href,
+  action,
+}: {
+  title: string;
+  description: string;
+  href?: string;
+  action?: string;
+}) {
+  return (
+    <div className="rounded-xl border border-dashed border-divider bg-content2/40 p-5 text-center">
+      <h4 className={DS.emptyState.title}>{title}</h4>
+      <p className="mx-auto mt-1 max-w-md text-sm text-default-500">{description}</p>
+      {href && action && (
+        <NextLink href={href} className={btn('ghost', 'mt-4 text-sm')}>
+          {action}
+          <ArrowRight className="size-3" />
+        </NextLink>
+      )}
+    </div>
+  );
+}
+
 function PanelHeader({ title, description, action }: { title: string; description: string; action?: ReactNode }) {
   return (
     <div className="mb-5 flex flex-col gap-3 md:flex-row md:items-center md:justify-between">
@@ -503,7 +729,7 @@ function PanelHeader({ title, description, action }: { title: string; descriptio
 
 function StudioShortcut({ href, icon, title, detail }: { href: string; icon: ReactNode; title: string; detail: string }) {
   return (
-    <NextLink href={href} className="rounded-2xl border border-divider bg-content1 p-4 transition hover:border-success/40 hover:bg-content2/60">
+    <NextLink href={href} className={card('interactive')}>
       <div className="mb-3 text-success">{icon}</div>
       <p className="font-semibold">{title}</p>
       <p className="mt-1 text-sm text-default-500">{detail}</p>
@@ -552,6 +778,19 @@ function formatJobBudget(job: Job): string {
     minFractionDigits: token.symbol === 'USDC' ? 2 : 0,
     maxFractionDigits: token.symbol === 'USDC' ? 2 : 6,
   });
+}
+
+function formatSessionBudget(session: BiddingSession): string {
+  const token = getTokenByAddress(session.paymentToken);
+  return formatAmount(session.maxBudget, token, {
+    includeSymbol: true,
+    minFractionDigits: token.symbol === 'USDC' ? 2 : 0,
+    maxFractionDigits: token.symbol === 'USDC' ? 2 : 6,
+  });
+}
+
+function formatSessionDeadline(session: BiddingSession): string {
+  return new Date(Number(session.deadline) * 1000).toLocaleDateString();
 }
 
 function getUserRole(job: Job, user: `0x${string}`): string {
