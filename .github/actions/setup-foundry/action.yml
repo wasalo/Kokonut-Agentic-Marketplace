@@ -15,4 +15,3 @@ runs:
       with:
         version: ${{ inputs.version }}
         cache: true
-      shell: bash

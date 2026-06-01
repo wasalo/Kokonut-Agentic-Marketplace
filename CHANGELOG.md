@@ -15,6 +15,7 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 | **Pinned version** | `v1.7.1` (latest stable, published 2026-05-08). |
 | **All 12 call sites updated** | `ci.yml` (5), `staging.yml` (3), `deploy.yml` (3), `storage-layout.yml` (1). |
 | **Cache enabled** | Composite action sets `cache: true` so the toolchain is reused across jobs in a single run. |
+| **Manifest fix** | Removed an invalid `shell: bash` key on the composite action's `uses:` step (only valid on `run:` steps). The upstream `foundry-rs/foundry-toolchain` action is a JavaScript action and runs in its own runtime, so no shell declaration is needed. |
 
 ### Root Cause
 
