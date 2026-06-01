@@ -8,6 +8,7 @@ import { StatusBadge, getJobStatusBadgeType } from '@/components/StatusBadge';
 import { Address } from '@/components/Address';
 import { PaymentTokenBadge, SUPPORTED_TOKENS } from '@/components/PaymentTokenSelector';
 import { useTokenPriceConversion, ETH_TOKEN, USDC_TOKEN } from '@/lib/hooks/useTokenConversion';
+import { useEvaluatorFeeEnabled } from '@/lib/hooks/useJobs';
 import type { Job } from '@/lib/types/contracts';
 
 interface Service {
@@ -34,7 +35,7 @@ export function JobHeader({ job, service, isClient, isProvider, isEvaluator }: J
   const usdValue = formatUsdValue(job.budget, token);
   const deadlineDate = new Date(Number(job.expiredAt) * 1000);
   const isExpired = Date.now() / 1000 > Number(job.expiredAt);
-  const { isEnabled: isEvaluatorFeeEnabled } = { isEnabled: false };
+  const { isEvaluatorFeeEnabled } = useEvaluatorFeeEnabled(job?.id);
 
   return (
     <Card className="border border-divider p-6">

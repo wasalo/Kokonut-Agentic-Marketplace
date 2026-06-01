@@ -2,7 +2,7 @@
 
 import { use, useState, useCallback, useEffect, useMemo, type ReactNode } from 'react';
 import { useAccount, useBalance, usePublicClient, useWriteContract } from 'wagmi';
-import { ArrowLeft, Loader2, CheckCircle, AlertCircle, RefreshCw, Trophy, Wallet } from 'lucide-react';
+import { Loader2, CheckCircle, AlertCircle, RefreshCw, Trophy, Wallet } from 'lucide-react';
 import { Card } from '@heroui/react';
 import NextLink from 'next/link';
 import {
@@ -19,15 +19,17 @@ import {
   useBiddingCompleteSession,
   useBiddingWithdrawCreatorStake,
   SessionStatus,
-  SessionStatusType,
+  getSessionStatusBadge,
 } from '@/lib/hooks/useBiddingSystem';
 import { StatusBadge } from '@/components/StatusBadge';
+import { Breadcrumb } from '@/components/ui/Breadcrumb';
 import { buildBidCommitHash, useBiddingSalt } from '@/lib/hooks/useBiddingSalt';
 import { BiddingSessionHeader } from '@/components/bidding/BiddingSessionHeader';
 import { CommitBidForm } from '@/components/bidding/CommitBidForm';
 import { RevealBidForm } from '@/components/bidding/RevealBidForm';
 import { BiddingWinnerSelection } from '@/components/bidding/BiddingWinnerSelection';
 import { ExtendRevealWindow } from '@/components/bidding/ExtendRevealWindow';
+import { BidRecoveryPanel } from '@/components/bidding/BidRecoveryPanel';
 import { useUSDCBalance } from '@/lib/hooks/useUSDC';
 import { useUSDCApproval } from '@/lib/hooks/useUSDCApproval';
 import { getContractAddress } from '@/lib/contracts/config';
@@ -37,15 +39,6 @@ import { ErrorDisplay } from '@/components/ErrorDisplay';
 const BIDDING_SYSTEM_ADDRESS = getContractAddress('BIDDING_SYSTEM');
 
 type ApprovalPhase = 'idle' | 'checking' | 'approving' | 'creating';
-
-const SESSION_STATUS_BADGE: Record<SessionStatusType, string> = {
-  [SessionStatus.Active]: 'active',
-  [SessionStatus.BiddingClosed]: 'pending',
-  [SessionStatus.WinnerSelected]: 'under-review',
-  [SessionStatus.JobCreated]: 'under-review',
-  [SessionStatus.Completed]: 'completed',
-  [SessionStatus.Cancelled]: 'cancelled',
-};
 
 export default function BiddingSessionDetailPage({
   params,
@@ -304,13 +297,14 @@ export default function BiddingSessionDetailPage({
 
   return (
     <div className="container mx-auto px-3 md:px-4 py-6 md:py-8">
-      <NextLink
-        href="/marketplace?tab=bidding"
-        className="inline-flex items-center text-sm text-default-500 hover:text-foreground mb-6"
-      >
-        <ArrowLeft className="h-4 w-4 mr-2" />
-        Back to Bidding Sessions
-      </NextLink>
+      <Breadcrumb
+        items={[
+          { label: 'Marketplace', href: '/marketplace' },
+          { label: 'Bidding', href: '/marketplace?tab=bidding' },
+          { label: `Session #${id}` },
+        ]}
+        className="mb-6"
+      />
 
       <div className="max-w-2xl mx-auto space-y-6">
         <BiddingSessionHeader sessionId={id} session={session} stake={stake} token={sessionToken} />
@@ -337,7 +331,7 @@ export default function BiddingSessionDetailPage({
               <div className="flex items-center justify-between">
                 <span className="text-default-500">Status</span>
                 <StatusBadge
-                  status={(SESSION_STATUS_BADGE[session.status as SessionStatusType] || 'active') as any}
+                  status={getSessionStatusBadge(session.status).badge}
                   size="md"
                 />
               </div>
@@ -417,6 +411,10 @@ export default function BiddingSessionDetailPage({
           />
         )}
 
+        {isCommitPhase && !isCreator && isConnected && (
+          <BidRecoveryPanel sessionId={id} />
+        )}
+
         {isRevealPhase && userBid && !userBid.revealed && isConnected && (
           <RevealBidForm
             revealAmount={revealAmount}
@@ -431,6 +429,10 @@ export default function BiddingSessionDetailPage({
             onReveal={handleRevealBid}
             onCopySalt={copySalt}
           />
+        )}
+
+        {isRevealPhase && userBid && !userBid.revealed && isConnected && (
+          <BidRecoveryPanel sessionId={id} />
         )}
 
         {isSelectionPhase && (

@@ -83,22 +83,34 @@ function FilterSection({
       onChange={setSearchQuery}
       placeholder="Search services, providers, or outcomes..."
     >
-        {SKILL_DOMAINS.slice(1, 6).map(domain => (
+        <div className="flex gap-2 overflow-x-auto pb-1 -mx-1 px-1 scrollbar-thin">
           <button type="button"
-            key={domain.value}
-            onClick={() => setSkillDomain(skillDomain === domain.value ? '' : domain.value)}
-            className={`px-3 py-1.5 rounded-full text-xs transition-colors cursor-pointer ${
-              skillDomain === domain.value
+            onClick={() => setSkillDomain('')}
+            className={`px-3 py-1.5 rounded-full text-xs whitespace-nowrap transition-colors cursor-pointer ${
+              skillDomain === ''
                 ? 'bg-[#009F4D] text-white'
                 : 'bg-content2 text-default-600 hover:bg-content3'
             }`}
           >
-            {domain.label}
+            All
           </button>
-        ))}
+          {SKILL_DOMAINS.slice(1).map(domain => (
+            <button type="button"
+              key={domain.value}
+              onClick={() => setSkillDomain(skillDomain === domain.value ? '' : domain.value)}
+              className={`px-3 py-1.5 rounded-full text-xs whitespace-nowrap transition-colors cursor-pointer ${
+                skillDomain === domain.value
+                  ? 'bg-[#009F4D] text-white'
+                  : 'bg-content2 text-default-600 hover:bg-content3'
+              }`}
+            >
+              {domain.label}
+            </button>
+          ))}
+        </div>
         <NextLink
           href="/marketplace?tab=skills"
-          className="px-3 py-1.5 rounded-full text-xs text-[#009F4D] hover:bg-content2 transition-colors flex items-center gap-1 cursor-pointer"
+          className="px-3 py-1.5 rounded-full text-xs text-[#009F4D] hover:bg-content2 transition-colors flex items-center gap-1 cursor-pointer whitespace-nowrap"
         >
           <Code className="size-3" />
           Browse Skills
@@ -163,9 +175,14 @@ export default function MarketplaceInner() {
 
   const [searchQuery, setSearchQuery] = useState(initialQuery);
   const [debouncedSearchQuery, setDebouncedSearchQuery] = useState(initialQuery);
-  const [showActiveOnly, setShowActiveOnly] = useState(true);
-  const [minPrice, setMinPrice] = useState('');
-  const [maxPrice, setMaxPrice] = useState('');
+  const initialActiveOnly = (() => {
+    const raw = searchParams.get('active');
+    if (raw === null) return true;
+    return raw !== '0' && raw !== 'false';
+  })();
+  const [showActiveOnly, setShowActiveOnly] = useState(initialActiveOnly);
+  const [minPrice, setMinPrice] = useState(searchParams.get('minPrice') || '');
+  const [maxPrice, setMaxPrice] = useState(searchParams.get('maxPrice') || '');
   const [skillDomain, setSkillDomain] = useState(initialSkill);
   const hasMountedSearchRef = useRef(false);
 
@@ -309,6 +326,30 @@ export default function MarketplaceInner() {
     [updateMarketplaceUrl]
   );
 
+  const handleShowActiveOnlyChange = useCallback(
+    (value: boolean) => {
+      setShowActiveOnly(value);
+      updateMarketplaceUrl({ active: value ? null : '0', page: '0' });
+    },
+    [updateMarketplaceUrl]
+  );
+
+  const handleMinPriceChange = useCallback(
+    (value: string) => {
+      setMinPrice(value);
+      updateMarketplaceUrl({ minPrice: value.trim() || null, page: '0' });
+    },
+    [updateMarketplaceUrl]
+  );
+
+  const handleMaxPriceChange = useCallback(
+    (value: string) => {
+      setMaxPrice(value);
+      updateMarketplaceUrl({ maxPrice: value.trim() || null, page: '0' });
+    },
+    [updateMarketplaceUrl]
+  );
+
   const handleTabChange = useCallback(
     (tab: MarketplaceHubTab) => {
       updateMarketplaceUrl({ tab: tab === 'discover' ? null : tab, page: '0' });
@@ -406,11 +447,11 @@ export default function MarketplaceInner() {
             searchQuery={searchQuery}
             setSearchQuery={setSearchQuery}
             showActiveOnly={showActiveOnly}
-            setShowActiveOnly={setShowActiveOnly}
+            setShowActiveOnly={handleShowActiveOnlyChange}
             minPrice={minPrice}
-            setMinPrice={setMinPrice}
+            setMinPrice={handleMinPriceChange}
             maxPrice={maxPrice}
-            setMaxPrice={setMaxPrice}
+            setMaxPrice={handleMaxPriceChange}
             skillDomain={skillDomain}
             setSkillDomain={handleSkillDomainChange}
           />

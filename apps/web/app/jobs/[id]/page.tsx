@@ -9,13 +9,12 @@ import {
   useWriteContract,
   useBalance,
 } from 'wagmi';
-import NextLink from 'next/link';
 import {
-  ArrowLeft,
   Loader2,
   AlertCircle,
 } from 'lucide-react';
 import { Card } from '@heroui/react';
+import { Breadcrumb } from '@/components/ui/Breadcrumb';
 import { formatUnits, toHex, keccak256 } from 'viem';
 import {
   useJob,
@@ -470,13 +469,14 @@ export default function JobDetailPage({
 
   return (
     <div className="container mx-auto px-3 md:px-4 py-6 md:py-8">
-      <NextLink
-        href="/marketplace?tab=jobs"
-        className="inline-flex items-center text-sm text-default-500 hover:text-foreground mb-6"
-      >
-        <ArrowLeft className="h-4 w-4 mr-2" />
-        Back to Jobs
-      </NextLink>
+      <Breadcrumb
+        items={[
+          { label: 'Marketplace', href: '/marketplace' },
+          { label: 'Jobs', href: '/marketplace?tab=jobs' },
+          { label: `Job #${id}` },
+        ]}
+        className="mb-6"
+      />
 
       <div className="max-w-2xl mx-auto space-y-6">
         {/* Job Header */}

@@ -3,22 +3,13 @@
 import NextLink from 'next/link';
 import { Card } from '@heroui/react';
 import { CircleDot, Clock, DollarSign } from 'lucide-react';
-import { StatusBadge, type StatusType } from '@/components/StatusBadge';
+import { StatusBadge } from '@/components/StatusBadge';
 import {
   SessionStatus,
+  getSessionStatusBadge,
   type BiddingSession,
-  type SessionStatusType,
 } from '@/lib/hooks/useBiddingSystem';
 import { formatAmount, getTokenByAddress } from '@/lib/tokenUtils';
-
-const SESSION_STATUS_BADGE: Record<SessionStatusType, StatusType> = {
-  [SessionStatus.Active]: 'active',
-  [SessionStatus.BiddingClosed]: 'pending',
-  [SessionStatus.WinnerSelected]: 'under-review',
-  [SessionStatus.JobCreated]: 'under-review',
-  [SessionStatus.Completed]: 'completed',
-  [SessionStatus.Cancelled]: 'cancelled',
-};
 
 interface BiddingSessionCardProps {
   session: BiddingSession;
@@ -41,7 +32,7 @@ export function BiddingSessionCard({ session, isConnected }: BiddingSessionCardP
         <NextLink href={`/bidding/${sessionIdStr}`} className="flex-1 min-w-0">
           <div className="flex flex-wrap items-center gap-2">
             <h3 className="font-semibold">Session #{sessionIdStr}</h3>
-            <StatusBadge status={SESSION_STATUS_BADGE[session.status]} size="sm" />
+            <StatusBadge status={getSessionStatusBadge(session.status).badge} size="sm" />
           </div>
           <p className="text-sm text-default-500 mt-0.5 truncate">Evaluator: {evaluatorLabel}</p>
           <div className="flex flex-wrap items-center gap-x-4 gap-y-2 mt-2 text-xs text-default-400">

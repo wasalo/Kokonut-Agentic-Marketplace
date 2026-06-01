@@ -5,6 +5,29 @@ All notable changes to the Kokonut Agent Economy Stack are documented in this fi
 The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.0.0/),
 and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0.html).
 
+## [2026-06-01] — Phase 44a: Marketplace UX & Logic Flow Hardening
+
+### Quick Wins
+
+| ID | Title | Detail |
+|----|-------|--------|
+| **F-08** | "More from provider" service price fix | `apps/web/app/marketplace/[id]/page.tsx` now multicalls each related service to resolve the on-chain `paymentToken` and formats the price with the correct token (USDC vs. ETH). The previous hardcoded `formatUsd(BigInt(s.price), { decimals: 6 })` showed wrong values for ETH-priced services. |
+| **F-04** | JobHeader dead `isEvaluatorFeeEnabled` | `apps/web/components/jobs/JobHeader.tsx:37` no longer hardcodes `{ isEnabled: false }`. It calls the canonical `useEvaluatorFeeEnabled(job?.id)` placeholder hook from `apps/web/lib/hooks/useJobs/read.ts` so the evaluator fee flag is sourced from the same hook used by `apps/web/app/jobs/[id]/page.tsx`. The placeholder still returns `false` until on-chain wiring lands. |
+| **F-06** | "View Service" CTA on creation | `CreateServiceSteps` accepts a new `lastCreatedServiceId: bigint \| null` prop and renders a primary "View Service" button alongside "View Marketplace" and "Go to Dashboard". The page (`apps/web/app/marketplace/create/page.tsx`) reads `getServiceCounter()` after confirmation and derives the new id as `counter - 1`. |
+| **F-07** | Actual bond value in withdrawal toast | `apps/web/app/marketplace/[id]/page.tsx` formats the live `bond` value with `ETH_TOKEN` (4 max fraction digits) and includes the symbol, replacing the hardcoded `'0.01 ETH returned'`. |
+| **F-23** | Breadcrumbs on detail pages | `apps/web/components/ui/Breadcrumb` (Phase 35 primitive) now drives navigation on `/marketplace/[id]`, `/jobs/[id]`, and `/bidding/[id]`. Replaces three "Back to ..." inline links. |
+| **F-10 + F-18** | All 11 skill domains + "All" chip | `apps/web/app/marketplace/marketplace-inner.tsx` now renders the full `SKILL_DOMAINS.slice(1)` set inside a horizontal-scroll container with a leading "All" chip that clears the filter. The previous `slice(1, 6)` only surfaced 5 domains. |
+| **F-09** | URL state sync for filters | `minPrice`, `maxPrice`, and `showActiveOnly` are now persisted to the URL via `updateMarketplaceUrl`. Sharing a URL now reproduces the same filter view. `showActiveOnly=true` is the default and is elided from the URL. |
+| **F-27** | Unified `SESSION_STATUS_BADGE` | The duplicated status-to-badge map in `BiddingSessionCard` and `apps/web/app/bidding/[id]/page.tsx` has been deleted. The single source of truth is now `SESSION_STATUS_BADGE` and `getSessionStatusBadge()` in `apps/web/lib/hooks/useBiddingSystem.ts`, with a `SessionStatusBadgeType` type for the badge enum. |
+| **F-01** | Bidding salt EIP-4361 recovery | New `apps/web/lib/hooks/useBidRecovery.ts` (status: `missing` \| `local` \| `signed` \| `migrated`) plus `apps/web/components/bidding/BidRecoveryPanel.tsx`. The panel appears under the commit and reveal forms and signs a `personal_sign` envelope binding `{ sessionId, address, salt, amount, message }`. The signed envelope (JSON + signature + `keccak256` fingerprint) is stored in `localStorage` under `kokonut:bid:signed:{sessionId}:{address}`. Helpers `importBidFromEnvelope` and `isCommitHashMatch` enable cross-browser recovery. |
+
+### Verification
+
+- `pnpm --filter @kokonut/web type-check:strict` — clean
+- `pnpm --filter @kokonut/web type-check` — clean
+- `pnpm --filter @kokonut/web lint` — clean
+- `pnpm --filter @kokonut/web build` — clean
+
 ## [2026-06-01] — Phase 43: Foundry Toolchain Pin + CI Fuzz Stabilization
 
 ### Foundry Toolchain Pin

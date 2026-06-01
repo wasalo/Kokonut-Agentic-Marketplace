@@ -6,7 +6,7 @@ import { useRouter } from 'next/navigation';
 import { ArrowLeft, ShieldCheck } from 'lucide-react';
 import NextLink from 'next/link';
 import { Card } from '@heroui/react';
-import { useCreateService } from '@/lib/hooks/useServices';
+import { useCreateService, useTotalServiceCount } from '@/lib/hooks/useServices';
 import { useWalletAgentsFromSubgraph } from '@/lib/hooks';
 import { useDebug } from '@/contexts/DebugContext';
 import { validateStringLength, validateMetadataURI } from '@/lib/hooks/useValidation';
@@ -96,6 +96,8 @@ export default function CreateServicePage() {
   } = useWalletAgentsFromSubgraph(address);
 
   const [step, setStep] = useState<Step>('checking');
+  const [lastCreatedServiceId, setLastCreatedServiceId] = useState<bigint | null>(null);
+  const { refetch: refetchServiceCount } = useTotalServiceCount();
 
   const {
     minBudgetRaw,
@@ -209,8 +211,16 @@ export default function CreateServicePage() {
     if (isServiceConfirmed && step === 'creating') {
       setStep('done');
       showToast.success('Service created!', 'Your service is now live on the marketplace.');
+      refetchServiceCount().then(({ data }) => {
+        const newCount = typeof data === 'bigint' ? data : BigInt(data ?? 0);
+        if (newCount > 0n) {
+          setLastCreatedServiceId(newCount - 1n);
+        }
+      }).catch(() => {
+        /* best-effort; CTA falls back to View Marketplace if id is unavailable */
+      });
     }
-  }, [isServiceConfirmed, step]);
+  }, [isServiceConfirmed, step, refetchServiceCount]);
 
   useEffect(() => {
     if (serviceError) {
@@ -311,6 +321,7 @@ export default function CreateServicePage() {
         agentsError={agentsError}
         isDebugMode={isDebugMode}
         onNavigate={(path) => router.push(path)}
+        lastCreatedServiceId={lastCreatedServiceId}
       />
     );
   }

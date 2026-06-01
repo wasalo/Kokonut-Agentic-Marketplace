@@ -9,6 +9,7 @@ interface CreateServiceStepsProps {
   agentsError?: Error | null;
   isDebugMode?: boolean;
   onNavigate: (path: string) => void;
+  lastCreatedServiceId?: bigint | null;
 }
 
 export function CreateServiceSteps({
@@ -16,8 +17,12 @@ export function CreateServiceSteps({
   agentsError,
   isDebugMode,
   onNavigate,
+  lastCreatedServiceId,
 }: CreateServiceStepsProps) {
   if (step === 'done') {
+    const viewServiceHref = lastCreatedServiceId
+      ? `/marketplace/${lastCreatedServiceId.toString()}`
+      : null;
     return (
       <div className="container mx-auto px-4 py-8">
         <Card className="max-w-2xl mx-auto border border-divider p-8 text-center">
@@ -26,10 +31,23 @@ export function CreateServiceSteps({
           <p className="text-default-500 mb-6">
             Your service has been successfully created and is now visible in the marketplace.
           </p>
-          <div className="flex gap-4 justify-center">
+          <div className="flex flex-wrap gap-4 justify-center">
+            {viewServiceHref && (
+              <Button
+                onPress={() => onNavigate(viewServiceHref)}
+                className="bg-gradient-to-r from-[#009F4D] to-[#00c853] text-white font-semibold"
+              >
+                View Service
+              </Button>
+            )}
             <Button
+              variant={viewServiceHref ? 'ghost' : undefined}
               onPress={() => onNavigate('/marketplace')}
-              className="bg-gradient-to-r from-[#009F4D] to-[#00c853] text-white font-semibold"
+              className={
+                viewServiceHref
+                  ? undefined
+                  : 'bg-gradient-to-r from-[#009F4D] to-[#00c853] text-white font-semibold'
+              }
             >
               View Marketplace
             </Button>

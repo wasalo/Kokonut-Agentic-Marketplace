@@ -1,12 +1,11 @@
 'use client';
 
-import { use, useState, useEffect } from 'react';
-import { useAccount } from 'wagmi';
+import { use, useState, useEffect, useMemo } from 'react';
+import { useAccount, useReadContracts } from 'wagmi';
 import NextLink from 'next/link';
 import { FollowButton } from '@/components/FollowButton';
 import { useUnifiedAgentProfile } from '@/lib/hooks/useUnifiedAgentProfile';
 import {
-  ArrowLeft,
   ShoppingBag,
   User,
   Clock,
@@ -34,7 +33,7 @@ import {
 } from '@/lib/hooks/useServices';
 import { useServiceContract } from '@/lib/hooks/useServices';
 import { useAgentReputation } from '@/lib/hooks/useAgentReputation';
-import { useTokenPriceConversion } from '@/lib/hooks/useTokenConversion';
+import { useTokenPriceConversion, ETH_TOKEN } from '@/lib/hooks/useTokenConversion';
 import {
   formatAmount,
   formatInputAmount,
@@ -46,6 +45,11 @@ import {
 import { parseEther } from 'viem';
 import { showToast, getTransactionError } from '@/lib/toast';
 import { Address } from '@/components/Address';
+import { Breadcrumb } from '@/components/ui/Breadcrumb';
+import { SERVICE_REGISTRY_ABI } from '@/lib/contracts/abis';
+import { getContractAddress } from '@/lib/contracts/config';
+
+const SERVICE_REGISTRY_ADDRESS = getContractAddress('SERVICE_REGISTRY');
 
 export default function ServiceDetailPage({
   params,
@@ -84,6 +88,27 @@ export default function ServiceDetailPage({
   const { withdrawServiceBond, isPending: isWithdrawPending } = useWithdrawServiceBond();
   const { bond } = useGetServiceBond(serviceId);
   const { deactivatedAt } = useDeactivatedAt(serviceId);
+
+  const relatedServiceIds = useMemo(() => {
+    if (!agentProfile?.services || !service) return [];
+    return agentProfile.services
+      .filter(s => s.id !== service.id.toString())
+      .slice(0, 3)
+      .map(s => BigInt(s.serviceId));
+  }, [agentProfile?.services, service]);
+
+  const { data: relatedServicesData } = useReadContracts({
+    contracts: relatedServiceIds.map(id => ({
+      address: SERVICE_REGISTRY_ADDRESS as `0x${string}`,
+      abi: SERVICE_REGISTRY_ABI,
+      functionName: 'getService' as const,
+      args: [id] as const,
+    })),
+    query: {
+      enabled: relatedServiceIds.length > 0,
+      staleTime: 60000,
+    },
+  });
 
   const [showPaymentModal, setShowPaymentModal] = useState(false);
   const [paymentAddressInput, setPaymentAddressInput] = useState('');
@@ -131,13 +156,13 @@ export default function ServiceDetailPage({
 
   return (
     <div className="container mx-auto px-4 py-8">
-      <NextLink
-        href="/marketplace"
-        className="inline-flex items-center text-sm text-default-500 hover:text-foreground mb-6"
-      >
-        <ArrowLeft className="h-4 w-4 mr-2" />
-        Back to Marketplace
-      </NextLink>
+      <Breadcrumb
+        items={[
+          { label: 'Marketplace', href: '/marketplace' },
+          { label: service?.name ?? 'Service' },
+        ]}
+        className="mb-6"
+      />
 
       <div className="max-w-2xl mx-auto space-y-6">
         {/* Service Info */}
@@ -312,7 +337,14 @@ export default function ServiceDetailPage({
                               const toastId = showToast.loading('Withdrawing bond…');
                               await withdrawServiceBond(serviceId);
                               showToast.dismiss(toastId);
-                              showToast.success('Bond withdrawn', '0.01 ETH returned to your wallet.');
+                              const returnedAmount = formatAmount(bond, ETH_TOKEN, {
+                                maxFractionDigits: 4,
+                                minFractionDigits: 0,
+                              });
+                              showToast.success(
+                                'Bond withdrawn',
+                                `${returnedAmount} ${ETH_TOKEN.symbol} returned to your wallet.`
+                              );
                               refetch();
                             } catch (err) {
                               showToast.error('Withdrawal failed', getTransactionError(err));
@@ -514,21 +546,35 @@ export default function ServiceDetailPage({
               {agentProfile.services
                 .filter(s => s.id !== service.id.toString())
                 .slice(0, 3)
-                .map(s => (
-                  <NextLink
-                    key={s.id}
-                    href={`/marketplace/${s.serviceId}`}
-                    className="block p-3 border border-divider rounded-lg hover:border-primary/50 transition-colors cursor-pointer"
-                  >
-                    <p className="text-sm font-medium truncate">{s.name}</p>
-                    <p className="text-xs text-default-500 mt-1 line-clamp-1">{s.description || ''}</p>
-                    {s.price && (
-                      <p className="text-xs text-success font-medium mt-1">
-                        {formatUsd(BigInt(s.price), { decimals: 6 })}
-                      </p>
-                    )}
-                  </NextLink>
-                ))}
+                .map((s, idx) => {
+                  const related = relatedServicesData?.[idx]?.result as
+                    | { paymentToken?: `0x${string}`; price?: bigint }
+                    | undefined;
+                  const relatedToken = related?.paymentToken
+                    ? getTokenByAddress(related.paymentToken)
+                    : null;
+                  const relatedPrice = related?.price ?? BigInt(s.price);
+                  const tokenLabel = relatedToken?.symbol ?? 'USDC';
+                  return (
+                    <NextLink
+                      key={s.id}
+                      href={`/marketplace/${s.serviceId}`}
+                      className="block p-3 border border-divider rounded-lg hover:border-primary/50 transition-colors cursor-pointer"
+                    >
+                      <p className="text-sm font-medium truncate">{s.name}</p>
+                      <p className="text-xs text-default-500 mt-1 line-clamp-1">{s.description || ''}</p>
+                      {s.price && (
+                        <p className="text-xs text-success font-medium mt-1">
+                          {formatAmount(relatedPrice, relatedToken ?? 6, {
+                            minFractionDigits: tokenLabel === 'USDC' ? 2 : 0,
+                            maxFractionDigits: tokenLabel === 'USDC' ? 2 : 6,
+                          })}{' '}
+                          {tokenLabel}
+                        </p>
+                      )}
+                    </NextLink>
+                  );
+                })}
             </div>
           </Card>
         )}

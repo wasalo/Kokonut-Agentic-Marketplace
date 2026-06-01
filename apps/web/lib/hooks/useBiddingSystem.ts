@@ -18,6 +18,21 @@ export const SessionStatus = {
 
 export type SessionStatusType = (typeof SessionStatus)[keyof typeof SessionStatus];
 
+export type SessionStatusBadgeType = 'active' | 'pending' | 'under-review' | 'completed' | 'cancelled';
+
+export const SESSION_STATUS_BADGE: Record<SessionStatusType, { badge: SessionStatusBadgeType; label: string }> = {
+  [SessionStatus.Active]: { badge: 'active', label: 'Active' },
+  [SessionStatus.BiddingClosed]: { badge: 'pending', label: 'Bidding Closed' },
+  [SessionStatus.WinnerSelected]: { badge: 'under-review', label: 'Winner Selected' },
+  [SessionStatus.JobCreated]: { badge: 'under-review', label: 'Job Created' },
+  [SessionStatus.Completed]: { badge: 'completed', label: 'Completed' },
+  [SessionStatus.Cancelled]: { badge: 'cancelled', label: 'Cancelled' },
+};
+
+export function getSessionStatusBadge(status: number | SessionStatusType): { badge: SessionStatusBadgeType; label: string } {
+  return SESSION_STATUS_BADGE[status as SessionStatusType] ?? SESSION_STATUS_BADGE[SessionStatus.Active];
+}
+
 export interface BiddingSession {
   id: bigint;
   creator: `0x${string}`;
