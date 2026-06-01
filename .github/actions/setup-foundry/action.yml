@@ -1,0 +1,18 @@
+name: Setup Foundry
+description: Install a pinned Foundry toolchain with cache enabled.
+
+inputs:
+  version:
+    description: Foundry version (tag, e.g. v1.7.1) to install
+    required: false
+    default: v1.7.1
+
+runs:
+  using: composite
+  steps:
+    - name: Install Foundry
+      uses: foundry-rs/foundry-toolchain@c7450ba673e133f5ee30098b3b54f444d3a2ca2d # v1.7.0
+      with:
+        version: ${{ inputs.version }}
+        cache: true
+      shell: bash

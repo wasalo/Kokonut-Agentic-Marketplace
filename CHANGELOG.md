@@ -5,6 +5,34 @@ All notable changes to the Kokonut Agent Economy Stack are documented in this fi
 The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.0.0/),
 and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0.html).
 
+## [2026-06-01] — Phase 43: Foundry Toolchain Pin + CI Fuzz Stabilization
+
+### Foundry Toolchain Pin
+
+| Change | Detail |
+|--------|--------|
+| **New composite action** | `.github/actions/setup-foundry/action.yml` — single source of truth for Foundry version. |
+| **Pinned version** | `v1.7.1` (latest stable, published 2026-05-08). |
+| **All 12 call sites updated** | `ci.yml` (5), `staging.yml` (3), `deploy.yml` (3), `storage-layout.yml` (1). |
+| **Cache enabled** | Composite action sets `cache: true` so the toolchain is reused across jobs in a single run. |
+
+### Root Cause
+
+The `Fuzzing Tests` CI job was failing with `curl: (22) The requested URL returned error: 403` from `foundryup`. The previous `version: stable` triggered an unauthenticated GitHub Releases API call to resolve the latest tag. With 5+ parallel jobs on a single runner, the shared 60 req/hr/IP budget was exhausted. Pinning to `v1.7.1` eliminates the API call and lets the action's built-in cache reduce re-installs.
+
+### Cleanup
+
+| Change | Detail |
+|--------|--------|
+| **`foundry.toml` gas_reports** | Removed stale `AgentReviewV5` entry (contract archived in Phase 38). |
+
+### Verification
+
+- `forge test --via-ir` — 279/279 passing
+- `forge test --match-contract Fuzz --fuzz-runs 1000 --via-ir` — 5/5 passing
+- `pnpm run check:storage` — 9/9 active UUPS compatible
+- `python3 -c "import yaml; yaml.safe_load(...)"` — all 4 workflow YAMLs and the composite action validate
+
 ## [2026-06-01] — Phase 42: Native-Token Service Listings + Service Creation UX
 
 ### ServiceRegistryV2 Native Service Pricing

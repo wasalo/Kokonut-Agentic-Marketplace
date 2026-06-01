@@ -67,9 +67,9 @@ jobs:
           submodules: recursive
 
       - name: Install Foundry
-        uses: foundry-rs/foundry-toolchain@c7450ba673e133f5ee30098b3b54f444d3a2ca2d # v1.7.0
+        uses: ./.github/actions/setup-foundry
         with:
-          version: stable
+          version: v1.7.1
 
       - name: Forge build
         run: forge build --sizes --via-ir
@@ -105,9 +105,9 @@ jobs:
           submodules: recursive
 
       - name: Install Foundry
-        uses: foundry-rs/foundry-toolchain@c7450ba673e133f5ee30098b3b54f444d3a2ca2d # v1.7.0
+        uses: ./.github/actions/setup-foundry
         with:
-          version: stable
+          version: v1.7.1
 
       - name: Run gas benchmarks
         run: forge test --match-contract GasBenchmark -vvv --via-ir
@@ -124,9 +124,9 @@ jobs:
           submodules: recursive
 
       - name: Install Foundry
-        uses: foundry-rs/foundry-toolchain@c7450ba673e133f5ee30098b3b54f444d3a2ca2d # v1.7.0
+        uses: ./.github/actions/setup-foundry
         with:
-          version: stable
+          version: v1.7.1
 
       - name: Run fuzz tests
         run: forge test --match-contract Fuzz -vvv --fuzz-runs 10000 --via-ir

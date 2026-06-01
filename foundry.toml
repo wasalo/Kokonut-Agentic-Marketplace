@@ -32,7 +32,6 @@ via_ir = true
 # Phase 4: Gas reporting for all contracts
 gas_reports = [
     "AgenticCommerceV9",
-    "AgentReviewV5",
     "ServiceRegistryV2",
     "AgentSkillRegistryV2",
     "SlashManager",

@@ -21,9 +21,9 @@ jobs:
           submodules: recursive
 
       - name: Install Foundry
-        uses: foundry-rs/foundry-toolchain@c7450ba673e133f5ee30098b3b54f444d3a2ca2d # v1.7.0
+        uses: ./.github/actions/setup-foundry
         with:
-          version: stable
+          version: v1.7.1
 
       - name: Build contracts
         run: cd contracts && forge build
