@@ -9,6 +9,7 @@ import { Address } from '@/components/Address';
 import { PaymentTokenBadge, SUPPORTED_TOKENS } from '@/components/PaymentTokenSelector';
 import { useTokenPriceConversion, ETH_TOKEN, USDC_TOKEN } from '@/lib/hooks/useTokenConversion';
 import { useEvaluatorFeeEnabled } from '@/lib/hooks/useJobs';
+import { JobLifecycleStepper, type JobRole } from '@/components/jobs/JobLifecycleStepper';
 import type { Job } from '@/lib/types/contracts';
 
 interface Service {
@@ -25,6 +26,7 @@ interface JobHeaderProps {
 }
 
 export function JobHeader({ job, service, isClient, isProvider, isEvaluator }: JobHeaderProps) {
+  const role: JobRole = isClient ? 'client' : isProvider ? 'provider' : isEvaluator ? 'evaluator' : 'observer';
   const isUSDC = job.paymentToken && job.paymentToken.toLowerCase() !== '0x0000000000000000000000000000000000000000'
     ? (SUPPORTED_TOKENS.find(t => t.address.toLowerCase() === job.paymentToken.toLowerCase())?.symbol === 'USDC')
     : true;
@@ -65,6 +67,10 @@ export function JobHeader({ job, service, isClient, isProvider, isEvaluator }: J
           </button>
           <StatusBadge status={getJobStatusBadgeType(job.status)} size="md" />
         </div>
+      </div>
+
+      <div className="mb-4">
+        <JobLifecycleStepper status={job.status} role={role} />
       </div>
 
       {service && Number(service.id) > 0 && (

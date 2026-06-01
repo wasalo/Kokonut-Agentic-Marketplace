@@ -5,6 +5,25 @@ All notable changes to the Kokonut Agent Economy Stack are documented in this fi
 The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.0.0/),
 and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0.html).
 
+## [2026-06-01] — Phase 44b: Lifecycle Visibility + Token Consolidation + My Bids
+
+### Quick Wins
+
+| ID | Title | Detail |
+|----|-------|--------|
+| **F-11** | Unified token registry + `<TokenPicker>` | New `apps/web/lib/tokens.ts` registry exports `TokenMeta`, `ALL_TOKENS`, `SERVICE_LISTING_TOKENS`, `JOB_FUNDING_TOKENS`, `BIDDING_TOKENS`, `getTokenMetaByAddress`. New `apps/web/components/TokenPicker.tsx` with `dropdown` and `grid` variants. `PaymentTokenSelector.tsx`, `components/marketplace/ServicePaymentTokenSelector.tsx`, and `components/jobs/create/JobPaymentTokenSelector.tsx` are now thin re-exports of `<TokenPicker>`. The `/bidding/create` page now uses the same `<TokenPicker variant="dropdown" />` component. |
+| **F-02** | Job lifecycle stepper | New `apps/web/components/jobs/JobLifecycleStepper.tsx` with 4 nodes (`Open → Funded → Submitted → Completed`) plus a branch indicator for `PendingClientApproval` / `Rejected` / `Expired`. Role-aware highlight (client / provider / evaluator) marks the actionable node. Integrated in `JobHeader.tsx:73` and `JobActionsCard.tsx:145` (replaces the single status badge in the header). |
+| **F-15** | My Bids subtab | New `MyBidsPanel` in `apps/web/components/marketplace/MarketplaceHubPanels.tsx` and `apps/web/lib/hooks/useMyBids.ts` hook that multicalls `getUserBid` for the most recent 50 sessions. `MyWorkHubPanel` now has a `Jobs (n)` / `My Bids` subtab toggle persisted to the URL via `?subtab=jobs\|bids`. Each row deep-links to `/bidding/[id]`. The empty state links to `?tab=bidding`. |
+| **F-14** | Expanded `getAttentionReason` | `getAttentionReason()` now returns non-null cues for the 7 actionable states (`Open → fund`, `Funded → submit / awaiting`, `Submitted → review`, `PendingClientApproval → review`, `Rejected → inspect`, `Expired → claim`) and is restricted to the user's own role on the job. |
+
+### Verification
+
+- `pnpm --filter @kokonut/web type-check:strict` — clean
+- `pnpm --filter @kokonut/web type-check` — clean
+- `pnpm --filter @kokonut/web lint` — clean
+- `pnpm --filter @kokonut/web build` — clean
+- Token picker regression: create service (ETH + USDC), create job (ETH + USDC), open existing bidding (USDC) — paths still work via the unified component.
+
 ## [2026-06-01] — Phase 44a: Marketplace UX & Logic Flow Hardening
 
 ### Quick Wins

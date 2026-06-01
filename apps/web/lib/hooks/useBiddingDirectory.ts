@@ -12,11 +12,24 @@ import {
 interface UseBiddingDirectoryOptions {
   routePath?: string;
   pageSize?: number;
+  /**
+   * If set, filters to sessions where the given address is the bidder (via
+   * `getUserBid`). When supplied, the hook expects an additional `getUserBid`
+   * loader to be available via the same `useBiddingSessions` flow.
+   */
+  bidder?: `0x${string}`;
+  /**
+   * If set, restricts the returned sessions to a list of session ids (e.g. for
+   * "My Bids" panels that already know the user's session ids).
+   */
+  sessionIds?: bigint[];
 }
 
 export function useBiddingDirectory({
   routePath = '/bidding',
   pageSize = 10,
+  bidder,
+  sessionIds,
 }: UseBiddingDirectoryOptions = {}) {
   const { isConnected } = useAccount();
   const router = useRouter();
@@ -53,10 +66,20 @@ export function useBiddingDirectory({
 
   const filteredSessions = useMemo(() => {
     const normalizedSearch = searchQuery.trim().toLowerCase();
+    const idFilter = sessionIds ? new Set(sessionIds.map(id => id.toString())) : null;
 
     const filtered = sessions.filter(session => {
+      if (idFilter && !idFilter.has(session.id.toString())) {
+        return false;
+      }
       if (statusFilter !== 'all' && session.status !== Number(statusFilter)) {
         return false;
+      }
+      if (bidder) {
+        const lower = bidder.toLowerCase();
+        if (session.creator.toLowerCase() !== lower && session.winner.toLowerCase() !== lower) {
+          return false;
+        }
       }
 
       if (!normalizedSearch) {
@@ -85,7 +108,7 @@ export function useBiddingDirectory({
     });
 
     return filtered;
-  }, [searchQuery, sessions, sortBy, sortOrder, statusFilter]);
+  }, [searchQuery, sessions, sortBy, sortOrder, statusFilter, sessionIds, bidder]);
 
   const totalPages = Math.ceil(filteredSessions.length / pageSize);
   const paginatedSessions = filteredSessions.slice(page * pageSize, (page + 1) * pageSize);

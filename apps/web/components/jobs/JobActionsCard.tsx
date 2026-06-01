@@ -19,6 +19,7 @@ import { Address } from '@/components/Address';
 import { ErrorDisplay } from '@/components/ErrorDisplay';
 import { StatusBadge } from '@/components/StatusBadge';
 import { JobStatus, type Job } from '@/lib/hooks/useJobs';
+import { JobLifecycleStepper, type JobRole } from '@/components/jobs/JobLifecycleStepper';
 import type { Token } from '@/lib/hooks/useTokenConversion';
 
 interface EvaluationResult {
@@ -134,10 +135,15 @@ export function JobActionsCard({
   onFlagDispute,
 }: JobActionsCardProps) {
   if (!hasActions) return null;
+  const role: JobRole = isClient ? 'client' : isProvider ? 'provider' : isEvaluator ? 'evaluator' : 'observer';
 
   return (
     <Card className="border border-divider p-6">
       <h2 className="text-xl font-bold mb-5">Actions</h2>
+
+      <div className="mb-5">
+        <JobLifecycleStepper status={job.status} role={role} />
+      </div>
 
       {hasActiveDispute && dispute?.flagger && (
         <div className="mb-4 p-4 bg-warning/10 border border-warning/30 rounded-lg">

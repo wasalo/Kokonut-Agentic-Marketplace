@@ -9,7 +9,8 @@ import NextLink from 'next/link';
 import { parseEther, formatEther, formatUnits, parseUnits, toHex } from 'viem';
 import { useCreateBiddingSession } from '@/lib/hooks/useBiddingSystem';
 import { useEvaluatorPoolSize } from '@/lib/hooks/useJobs';
-import { useTokenPriceConversion, ETH_TOKEN, USDC_TOKEN, type Token } from '@/lib/hooks/useTokenConversion';
+import { useTokenPriceConversion, ETH_TOKEN, type Token } from '@/lib/hooks/useTokenConversion';
+import { TokenPicker, BIDDING_TOKENS, type TokenMeta as TokenPickerMeta } from '@/components/TokenPicker';
 import { useUSDCBalance } from '@/lib/hooks/useUSDC';
 import { useUSDCApproval } from '@/lib/hooks/useUSDCApproval';
 import { getContractAddress } from '@/lib/contracts/config';
@@ -21,8 +22,6 @@ const MAX_DEADLINE_DAYS = 30;
 const MAX_DEADLINE_MINUTES = MAX_DEADLINE_DAYS * 24 * 60;
 const GAS_BUFFER_WEI = parseEther('0.01'); // 0.01 ETH buffer for gas
 const MAX_METADATA_LENGTH = 2000;
-
-const PAYMENT_TOKENS: Token[] = [ETH_TOKEN, USDC_TOKEN];
 const BIDDING_SYSTEM_ADDRESS = getContractAddress('BIDDING_SYSTEM');
 
 type ApprovalPhase = 'idle' | 'checking' | 'approving' | 'creating';
@@ -367,22 +366,13 @@ export default function CreateBiddingSessionPage(): JSX.Element {
           {/* Payment Token */}
           <div>
             <label className="block text-sm font-medium mb-2">Payment Token</label>
-            <div className="flex gap-2">
-              {PAYMENT_TOKENS.map(token => (
-                <button
-                  key={token.symbol}
-                  type="button"
-                  onClick={() => setPaymentToken(token)}
-                  className={`flex-1 px-4 py-2.5 rounded-lg border text-sm font-medium transition-colors ${
-                    paymentToken.symbol === token.symbol
-                      ? 'border-[#009F4D] bg-[#009F4D]/10 text-[#009F4D]'
-                      : 'border-divider hover:border-[#009F4D]/30'
-                  }`}
-                >
-                  {token.symbol}
-                </button>
-              ))}
-            </div>
+            <TokenPicker
+              variant="dropdown"
+              tokens={BIDDING_TOKENS as unknown as TokenPickerMeta[]}
+              selectedToken={paymentToken as unknown as TokenPickerMeta}
+              onSelectToken={token => setPaymentToken(token as Token)}
+              ariaLabel="Select bidding session payment token"
+            />
           </div>
 
           {/* Max Budget */}

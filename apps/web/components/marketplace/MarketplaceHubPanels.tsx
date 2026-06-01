@@ -1,9 +1,10 @@
 'use client';
 
-import type { ReactNode } from 'react';
+import { useMemo, type ReactNode } from 'react';
 import NextLink from 'next/link';
+import { useRouter, useSearchParams } from 'next/navigation';
 import { ArrowRight, Briefcase, Code, Gavel, RefreshCw, Store } from 'lucide-react';
-import { StatusBadge, getJobStatusBadgeType, type StatusType } from '@/components/StatusBadge';
+import { StatusBadge, getJobStatusBadgeType } from '@/components/StatusBadge';
 import { JobStatus, type Job } from '@/lib/hooks/useJobs';
 import { formatAmount, getTokenByAddress } from '@/lib/tokenUtils';
 import { UnifiedWorkCard } from '@/components/marketplace/UnifiedWorkCard';
@@ -20,39 +21,40 @@ import { ProviderServiceCard } from '@/components/marketplace/ProviderServiceCar
 import { SkillDomainGrid } from '@/components/marketplace/SkillDomainGrid';
 import { SkillsCommandBar } from '@/components/marketplace/SkillsCommandBar';
 import { useBiddingDirectory } from '@/lib/hooks/useBiddingDirectory';
-import { SessionStatus, type BiddingSession, type SessionStatusType } from '@/lib/hooks/useBiddingSystem';
+import { useMyBids } from '@/lib/hooks/useMyBids';
+import { SessionStatus, getSessionStatusBadge, useBiddingSessions, type BiddingSession } from '@/lib/hooks/useBiddingSystem';
 import { useJobsDirectory } from '@/lib/hooks/useJobsDirectory';
 import { useMarketplaceSkillsDirectory } from '@/lib/hooks/useMarketplaceSkillsDirectory';
 import { DS, btn, card } from '@/lib/design-system';
 
 const HUB_PAGE_SIZE = 10;
 
-const STUDIO_SESSION_STATUS_BADGE: Record<SessionStatusType, StatusType> = {
-  [SessionStatus.Active]: 'active',
-  [SessionStatus.BiddingClosed]: 'pending',
-  [SessionStatus.WinnerSelected]: 'under-review',
-  [SessionStatus.JobCreated]: 'under-review',
-  [SessionStatus.Completed]: 'completed',
-  [SessionStatus.Cancelled]: 'cancelled',
-};
-
 export function getAttentionReason(job: Job, user: `0x${string}`): string | null {
   const lower = user.toLowerCase();
-  if (job.client.toLowerCase() === lower && job.status === JobStatus.Open) {
-    return 'Fund escrow to start the job';
-  }
-  if (
-    job.client.toLowerCase() === lower &&
-    (job.status === JobStatus.Submitted || job.status === JobStatus.PendingClientApproval)
-  ) {
+  const isClient = job.client.toLowerCase() === lower;
+  const isProvider = job.provider.toLowerCase() === lower;
+  const isEvaluator = job.evaluator.toLowerCase() === lower;
+  const isParticipant = isClient || isProvider || isEvaluator;
+  if (!isParticipant) return null;
+
+  if (isClient && job.status === JobStatus.Open) return 'Fund escrow to start the job';
+  if (isClient && job.status === JobStatus.Funded) return 'Awaiting provider deliverable';
+  if (isClient && (job.status === JobStatus.Submitted || job.status === JobStatus.PendingClientApproval)) {
     return 'Review deliverable and release payment';
   }
-  if (job.provider.toLowerCase() === lower && job.status === JobStatus.Funded) {
-    return 'Submit your deliverable';
-  }
-  if (job.evaluator.toLowerCase() === lower && job.status === JobStatus.Submitted) {
-    return 'Finalize evaluation';
-  }
+  if (isClient && job.status === JobStatus.Rejected) return 'Job was rejected — open to inspect';
+  if (isClient && job.status === JobStatus.Expired) return 'Job expired — claim refund if funded';
+
+  if (isProvider && job.status === JobStatus.Funded) return 'Submit your deliverable';
+  if (isProvider && job.status === JobStatus.Submitted) return 'Awaiting client / evaluator decision';
+  if (isProvider && job.status === JobStatus.Rejected) return 'Deliverable rejected — review feedback';
+  if (isProvider && job.status === JobStatus.Expired) return 'Job expired — job is no longer active';
+
+  if (isEvaluator && job.status === JobStatus.Submitted) return 'Finalize evaluation';
+  if (isEvaluator && job.status === JobStatus.Funded) return 'Stand by — provider is preparing work';
+  if (isEvaluator && job.status === JobStatus.Rejected) return 'Job already rejected — no action';
+  if (isEvaluator && job.status === JobStatus.Expired) return 'Job expired — no action';
+
   return null;
 }
 
@@ -310,6 +312,10 @@ export function SkillsHubPanel() {
 }
 
 export function MyWorkHubPanel({ jobs, user, isLoading }: { jobs: Job[]; user?: `0x${string}`; isLoading: boolean }) {
+  const searchParams = useSearchParams();
+  const router = useRouter();
+  const subtab: 'jobs' | 'bids' = searchParams.get('subtab') === 'bids' ? 'bids' : 'jobs';
+
   if (!user) {
     return <EmptyHubState title="Connect to see your work" description="Your active jobs and required actions will appear here." />;
   }
@@ -323,10 +329,47 @@ export function MyWorkHubPanel({ jobs, user, isLoading }: { jobs: Job[]; user?: 
     .filter((item): item is { job: Job; reason: string } => item.reason !== null)
     .slice(0, 8);
 
+  const switchSubtab = (next: 'jobs' | 'bids') => {
+    const params = new URLSearchParams(searchParams.toString());
+    if (next === 'jobs') params.delete('subtab');
+    else params.set('subtab', next);
+    const query = params.toString();
+    router.replace(`/marketplace?tab=work${query ? `&${query}` : ''}`, { scroll: false });
+  };
+
   return (
     <section>
-      <PanelHeader title="My Work" description="A focused queue of things you can act on now." action={<FullDirectoryLink href="/dashboard" label="Open dashboard" compact />} />
-      {isLoading ? (
+      <PanelHeader
+        title="My Work"
+        description="A focused queue of things you can act on now."
+        action={<FullDirectoryLink href="/dashboard" label="Open dashboard" compact />}
+      />
+      <div className="mb-5 inline-flex items-center gap-1 rounded-full bg-content2 p-1 text-sm">
+        <button
+          type="button"
+          onClick={() => switchSubtab('jobs')}
+          aria-pressed={subtab === 'jobs'}
+          className={`px-4 py-1.5 rounded-full transition-colors ${
+            subtab === 'jobs' ? 'bg-[#009F4D] text-white' : 'text-default-500 hover:text-foreground'
+          }`}
+        >
+          Jobs ({attentionJobs.length})
+        </button>
+        <button
+          type="button"
+          onClick={() => switchSubtab('bids')}
+          aria-pressed={subtab === 'bids'}
+          className={`px-4 py-1.5 rounded-full transition-colors ${
+            subtab === 'bids' ? 'bg-[#009F4D] text-white' : 'text-default-500 hover:text-foreground'
+          }`}
+        >
+          My Bids
+        </button>
+      </div>
+
+      {subtab === 'bids' ? (
+        <MyBidsPanel user={user} />
+      ) : isLoading ? (
         <div className="h-40 animate-pulse rounded-2xl bg-content2" />
       ) : attentionJobs.length === 0 ? (
         <EmptyHubState title="Nothing needs attention" description="You are clear. New funding, review, delivery, and evaluation actions will appear here." />
@@ -351,6 +394,65 @@ export function MyWorkHubPanel({ jobs, user, isLoading }: { jobs: Job[]; user?: 
       )}
     </section>
   );
+}
+
+export function MyBidsPanel({ user }: { user: `0x${string}` }) {
+  const { entries, isLoading } = useMyBids(user);
+  const { sessions } = useBiddingSessionsLite();
+  const sessionMap = useMemo(() => new Map(sessions.map(s => [s.id.toString(), s])), [sessions]);
+
+  const myBids = useMemo(() => {
+    return entries
+      .map(entry => {
+        const session = sessionMap.get(entry.sessionId.toString());
+        if (!session) return null;
+        if (session.status === SessionStatus.Completed || session.status === SessionStatus.JobCreated) {
+          return null;
+        }
+        return { session, bid: entry.bid };
+      })
+      .filter((item): item is { session: BiddingSession; bid: unknown } => item !== null);
+  }, [entries, sessionMap]);
+
+  return (
+    <div className="space-y-3">
+      {isLoading ? (
+        <div className="h-32 animate-pulse rounded-2xl bg-content2" />
+      ) : myBids.length === 0 ? (
+        <EmptyHubState
+          title="No active bids"
+          description="You haven't committed any bids yet. Browse bidding sessions →"
+          href="/marketplace?tab=bidding"
+          action="Browse bidding sessions"
+        />
+      ) : (
+        myBids.map(({ session }) => {
+          const token = getTokenByAddress(session.paymentToken);
+          return (
+            <NextLink
+              key={session.id.toString()}
+              href={`/bidding/${session.id.toString()}`}
+              className="block p-4 rounded-2xl border border-divider bg-content1/60 hover:border-[#009F4D]/40 transition-colors"
+            >
+              <div className="flex items-start justify-between gap-3">
+                <div className="min-w-0">
+                  <p className="font-semibold">Session #{session.id.toString()}</p>
+                  <p className="text-xs text-default-500 mt-0.5">
+                    Max budget: {formatAmount(session.maxBudget, token, { includeSymbol: true })}
+                  </p>
+                </div>
+                <StatusBadge status={getSessionStatusBadge(session.status).badge} size="sm" />
+              </div>
+            </NextLink>
+          );
+        })
+      )}
+    </div>
+  );
+}
+
+function useBiddingSessionsLite() {
+  return useBiddingSessions();
 }
 
 export function StudioHubPanel({
@@ -570,7 +672,7 @@ export function StudioHubPanel({
                   description={session.creator.toLowerCase() === lowerUser ? 'You created this bidding session.' : 'You won this bidding session.'}
                   href={`/bidding/${session.id.toString()}`}
                   eyebrow={session.creator.toLowerCase() === lowerUser ? 'Creator' : 'Winner'}
-                  status={<StatusBadge status={STUDIO_SESSION_STATUS_BADGE[session.status]} size="sm" />}
+                  status={<StatusBadge status={getSessionStatusBadge(session.status).badge} size="sm" />}
                   meta={[
                     { label: 'Budget', value: formatSessionBudget(session) },
                     { label: 'State', value: activeSessions.includes(session) ? 'Active' : formatSessionDeadline(session) },
