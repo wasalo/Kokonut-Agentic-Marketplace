@@ -185,6 +185,17 @@
   pointer-events: none;
 }
 
+/* iOS safe-area-inset for fixed bottom navigation (Phase 45a BottomNav) */
+.safe-area-bottom {
+  padding-bottom: env(safe-area-inset-bottom, 0);
+}
+
+@supports (padding: max(0px)) {
+  .safe-area-bottom {
+    padding-bottom: max(env(safe-area-inset-bottom, 0), 0px);
+  }
+}
+
 /* Respect prefers-reduced-motion (WCAG 2.3.3) */
 @media (prefers-reduced-motion: reduce) {
   *, *::before, *::after {

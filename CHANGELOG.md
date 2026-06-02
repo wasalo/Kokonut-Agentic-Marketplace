@@ -5,6 +5,64 @@ All notable changes to the Kokonut Agent Economy Stack are documented in this fi
 The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.0.0/),
 and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0.html).
 
+## [2026-06-01] — Phase 45a: Mobile Bottom-Nav Redesign + E2E Stabilization + Component Test Infrastructure
+
+### Mobile Bottom-Nav
+
+| Change | Detail |
+|--------|--------|
+| **`useBottomNavState` hook** | New `apps/web/lib/hooks/useBottomNavState.ts` derives `activeTab` from `usePathname()` + `useSearchParams()` (prefix match per tab), `isConnected`, `pendingTxCount` (from `useTransactionRegistry`), `unreadCount` (from `useActionQueue`), `isAdmin` (from `useAgenticCommerceOwner`), and a `connect()` callback for the Profile "Connect" CTA. |
+| **BottomNav rewrite (67 → ~210 LOC)** | `apps/web/components/BottomNav.tsx` now ships 5 tabs (Market, Work, Activity, Alerts, Profile) with `aria-current="page"`, `aria-label` per tab, `focus-visible:ring-2` keyboard focus rings, `navigator.vibrate(10)` haptic feedback on tap, 56px minimum touch targets (Apple HIG), gradient avatar (3-letter truncated address) on Profile when connected, and a "Connect" button replacing the tab when not connected. iOS safe-area handled via new `.safe-area-bottom` utility. |
+| **iOS safe-area utility** | `apps/web/app/globals.css` adds `.safe-area-bottom` that uses `padding-bottom: env(safe-area-inset-bottom, 0)` with `@supports (padding: max(0px))` fallback for browsers that understand `max()`. |
+| **Bug fix** | `apps/web/components/ActionQueuePanel.tsx:131` "Open My Work" footer link corrected from `?tab=mywork` to `?tab=my-work` to match the marketplace hub tab id. |
+
+### E2E Test Stabilization
+
+| Change | Detail |
+|--------|--------|
+| **Deleted dead code** | `apps/web/tests/helpers.ts` (54 LOC) — never imported by any spec. |
+| **Moved misnamed unit test** | `apps/web/tests/token-utils.spec.ts` (Playwright spec running pure functions) → `apps/web/lib/__tests__/tokenUtils.unit.test.ts` (Vitest). Same 6 tests, plus 2 new round-trip cases. |
+| **Wallet mock fixture** | New `apps/web/tests/_fixtures/wallet-mock.ts` exposes `WALLET_INIT_SCRIPT` (deterministic `window.ethereum` shim for Sepolia chainId 11155111, single test account) and `installMockWallet(context)` to inject it via `addInitScript`. |
+| **Test fixtures** | New `apps/web/tests/_fixtures/fixtures.ts` provides `freshPage`, `walletPage`, and `connectedPage` test fixtures that auto-install the wallet mock. |
+| **Playwright config cleanup** | `apps/web/playwright.config.ts` adds `testMatch: /.*\.spec\.ts$/` (excludes `_fixtures/`), `timeout: 30_000`, `expect.timeout: 5_000`, `actionTimeout: 8_000`, `navigationTimeout: 20_000`, and a `mobile-chromium` project gated on `PLAYWRIGHT_ALL=1` (chromium only on CI). |
+
+### Component Test Infrastructure (Vitest)
+
+| Change | Detail |
+|--------|--------|
+| **Runner installed** | `vitest@^3.0.0`, `@vitest/ui@^3.0.0`, `@testing-library/react@^16.0.0`, `@testing-library/jest-dom@^6.4.0`, `@testing-library/user-event@^14.5.0`, `jsdom@^25.0.0`, `happy-dom@^15.0.0`. |
+| **Config** | New `apps/web/vitest.config.ts` — `jsdom` env, `setupFiles: ['./lib/__tests__/setup.ts']`, `@/*` alias to `./`, `wagmi/experimental` alias to existing shim, v8 coverage with `lines/statements/functions: 70` and `branches: 60` thresholds. |
+| **Setup** | New `apps/web/lib/__tests__/setup.ts` — `cleanup()` per test, `localStorage.clear()` per test, mocks for `window.matchMedia`, `navigator.clipboard`, `navigator.vibrate`, `IntersectionObserver`, `ResizeObserver`, `next/navigation`, `next/link`, full `wagmi` surface, and `sonner`. |
+| **Scripts** | `pnpm --filter @kokonut/web test:components` (run), `test:components:watch` (Vitest watch), `test:components:ui` (Vitest UI). |
+
+### Component Test Files (8 files, 66 tests, all passing)
+
+| File | Tests | Covers |
+|------|------:|--------|
+| `apps/web/components/__tests__/BidRecoveryPanel.test.tsx` | 7 | `missing`/`local`/`signed`/`migrated` states; sign/import buttons; copy fingerprint; connect-wallet hint when disconnected; `isSigning` disables button |
+| `apps/web/components/__tests__/ActionQueuePanel.test.tsx` | 8 | `HeaderBell` mounted only when connected; `aria-haspopup`/`aria-expanded`/`aria-label`; badge count; click opens dialog; Escape closes dialog; empty state; "Open My Work" deep link to `?tab=my-work` |
+| `apps/web/components/__tests__/JobLifecycleStepper.test.tsx` | 10 | 4 step nodes; `aria-current="step"` on current node; `Open`/`Funded`/`Submitted`/`Completed` status mapping; branch indicators for `Rejected`/`PendingClientApproval`/`Expired`; role-aware action cue (e.g. "Submit deliverable" for provider + Funded); raw numeric status accepted |
+| `apps/web/components/__tests__/ActiveJobsForService.test.tsx` | 7 | Loading → null; empty → null; serviceId filtering; max 5 rows cap; closed jobs filtered out; "View all" link to `/marketplace?tab=jobs&serviceId={id}`; per-row deep link to `/jobs/[id]` |
+| `apps/web/components/__tests__/MyBidsPanel.test.tsx` | 9 | Empty state with bid browse link; loading skeleton; renders all non-terminal bids; omits `Completed` + `JobCreated`; `MyWorkHubPanel` connect prompt; subtab URL sync (`?subtab=jobs\|bids`); `?subtab=bids` default; loading state; participant filter |
+| `apps/web/lib/hooks/__tests__/useBiddingSalt.test.ts` | 7 | `buildBidCommitHash` keccak256 roundtrip; localStorage init/persist; `regenerateSalt`; `persistCommitForReveal`; `bidRevealed` cleanup |
+| `apps/web/lib/hooks/__tests__/useActionQueue.test.ts` | 12 | `getAttentionReason` for client/provider/evaluator × 6 statuses (Open/Funded/Submitted/PendingClientApproval/Rejected/Expired/Completed); case-insensitive address match; null for non-participants |
+| `apps/web/lib/__tests__/tokenUtils.unit.test.ts` | 6 | USDC + ETH parse/format roundtrip; legacy `getTokenByAddress` fallback; `formatUsd` rounding |
+
+### i18n Foundation (skeleton)
+
+| Change | Detail |
+|--------|--------|
+| **`next-intl@^3.26.0` installed** | Package present so future work has a starting point. |
+| **`apps/web/lib/i18n.ts` stub** | Re-exports `getLocale`/`getTranslations` from `next-intl/server` and exports `SUPPORTED_LOCALES = ['en']`, `DEFAULT_LOCALE`, `isLocale` type guard. Wiring instructions in file header comments for `messages/`, `middleware.ts`, `next.config.js`, and `layout.tsx` changes required to enable locale routing. |
+
+### Verification
+
+- `pnpm --filter @kokonut/web test:components` — 8 files, 66 tests passing
+- `pnpm --filter @kokonut/web type-check:strict` — see A6
+- `pnpm --filter @kokonut/web type-check` — see A6
+- `pnpm --filter @kokonut/web lint` — see A6
+- `pnpm --filter @kokonut/web build` — see A6
+
 ## [2026-06-01] — Phase 44c: Detail Page Decomposition + Action Queue + Event Refactor
 
 ### Quick Wins

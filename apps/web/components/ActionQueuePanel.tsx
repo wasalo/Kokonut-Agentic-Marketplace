@@ -128,7 +128,7 @@ export function HeaderBell(): JSX.Element | null {
           {(jobCount > 0 || biddingCount > 0) && (
             <div className="sticky bottom-0 px-4 py-2 border-t border-divider bg-background/95">
               <NextLink
-                href="/marketplace?tab=mywork"
+                href="/marketplace?tab=my-work"
                 onClick={close}
                 className="text-xs text-[#009F4D] hover:underline"
               >
