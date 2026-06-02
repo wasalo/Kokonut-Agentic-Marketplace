@@ -52,6 +52,9 @@ export default function CreateBiddingSessionPage(): JSX.Element {
   const [paymentToken, setPaymentToken] = useState<Token>(ETH_TOKEN);
   const [showConfirm, setShowConfirm] = useState(false);
   const [approvalPhase, setApprovalPhase] = useState<ApprovalPhase>('idle');
+  // Phase 45c O-6 + O-7
+  const [evaluatorFee, setEvaluatorFee] = useState(false);
+  const [hookAddress, setHookAddress] = useState('');
 
   // Validation state
   const [errors, setErrors] = useState<Record<string, string>>({});
@@ -205,10 +208,12 @@ export default function CreateBiddingSessionPage(): JSX.Element {
       metadata: toHex(metadata.trim()) as `0x${string}`,
       serviceId: sid,
       paymentToken: paymentToken.address,
+      evaluatorFee,
+      hook: (hookAddress.trim() || '0x0000000000000000000000000000000000000000') as `0x${string}`,
     });
 
     setShowConfirm(false);
-  }, [maxBudget, paymentToken, calculatedStake, ensureUSDCApproval, deadlineTimestamp, metadata, serviceId, createSession]);
+  }, [maxBudget, paymentToken, calculatedStake, ensureUSDCApproval, deadlineTimestamp, metadata, serviceId, createSession, evaluatorFee, hookAddress]);
 
   useEffect(() => {
     if (writeError) setApprovalPhase('idle');
@@ -504,6 +509,37 @@ export default function CreateBiddingSessionPage(): JSX.Element {
             {errors.metadata && <p className="text-danger text-sm mt-1">{errors.metadata}</p>}
             <p className="text-xs text-default-400 mt-1">
               {metadata.length}/{MAX_METADATA_LENGTH} characters
+            </p>
+          </div>
+
+          {/* Phase 45c O-6: Evaluator fee toggle */}
+          <label className="flex items-start gap-3 cursor-pointer">
+            <input
+              type="checkbox"
+              checked={evaluatorFee}
+              onChange={e => setEvaluatorFee(e.target.checked)}
+              className="mt-1 size-4 accent-[#009F4D]"
+            />
+            <div>
+              <span className="block text-sm font-medium">Evaluator fee share (O-6)</span>
+              <span className="block text-xs text-default-400">
+                When enabled, the evaluator receives a fee share from the job budget on accept.
+              </span>
+            </div>
+          </label>
+
+          {/* Phase 45c O-7: Post-bid hook */}
+          <div>
+            <label className="block text-sm font-medium mb-2">Post-bid hook (optional, O-7)</label>
+            <input
+              type="text"
+              value={hookAddress}
+              onChange={e => setHookAddress(e.target.value)}
+              placeholder="0x... (contract address, leave blank for none)"
+              className="w-full px-4 py-2 bg-content1 border border-divider rounded-lg focus:outline-none focus:ring-2 focus:ring-[#009F4D]/50 font-mono text-sm"
+            />
+            <p className="text-xs text-default-400 mt-1">
+              An optional contract to be notified on bid events (e.g. webhook relay). Must be a deployed contract (no EOAs).
             </p>
           </div>
 

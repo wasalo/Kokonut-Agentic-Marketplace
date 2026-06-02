@@ -115,7 +115,7 @@ export class KokonutClient {
     this.services = new ServicesModule(this.wallet, this.publicClient, this.contracts);
     this.commerce = new CommerceModule(this.wallet, this.publicClient, this.contracts);
     this.skills = new SkillsModule(this.wallet, this.publicClient, this.contracts);
-    this.priceOracle = new PriceOracleModule(this.publicClient, this.contracts);
+    this.priceOracle = new PriceOracleModule(this.wallet, this.publicClient, this.contracts);
     this.commitReveal = new CommitRevealModule(this.wallet, this.publicClient, this.contracts);
     this.slashManager = new SlashManagerModule(this.wallet, this.publicClient, this.contracts);
     this.bidding = new BiddingSystemModule(this.wallet, this.publicClient, this.contracts);
@@ -656,7 +656,7 @@ interface BidTuple {
   bidder: Address;
   amount: bigint;
   message: string;
-  status: BidStatus;
+  status: OnchainBidStatus;
   committedAt: bigint;
   revealedAt: bigint;
 }
@@ -1235,6 +1235,88 @@ class CommerceModule {
     };
   }
 
+  // ============ Phase 45d: Governance + config setters ============
+
+  async slashByGovernance(evaluator: Address, reason: string): Promise<TransactionResult> {
+    const hash = await this.wallet.writeContract({
+      address: this.contracts.agenticCommerce,
+      abi: AGENTIC_COMMERCE_ABI,
+      functionName: 'slashByGovernance',
+      args: [evaluator, reason],
+    } as any);
+    return { hash, wait: () => this.publicClient.waitForTransactionReceipt({ hash }) };
+  }
+
+  async setDisputeWindow(jobId: bigint, windowSeconds: bigint): Promise<TransactionResult> {
+    const hash = await this.wallet.writeContract({
+      address: this.contracts.agenticCommerce,
+      abi: AGENTIC_COMMERCE_ABI,
+      functionName: 'setDisputeWindow',
+      args: [jobId, windowSeconds],
+    } as any);
+    return { hash, wait: () => this.publicClient.waitForTransactionReceipt({ hash }) };
+  }
+
+  async setNonResponsiveSlashBP(jobId: bigint, slashBP: bigint): Promise<TransactionResult> {
+    const hash = await this.wallet.writeContract({
+      address: this.contracts.agenticCommerce,
+      abi: AGENTIC_COMMERCE_ABI,
+      functionName: 'setNonResponsiveSlashBP',
+      args: [jobId, slashBP],
+    } as any);
+    return { hash, wait: () => this.publicClient.waitForTransactionReceipt({ hash }) };
+  }
+
+  async setMinEvaluatorStake(wei: bigint): Promise<TransactionResult> {
+    const hash = await this.wallet.writeContract({
+      address: this.contracts.agenticCommerce,
+      abi: AGENTIC_COMMERCE_ABI,
+      functionName: 'setMinEvaluatorStake',
+      args: [wei],
+    } as any);
+    return { hash, wait: () => this.publicClient.waitForTransactionReceipt({ hash }) };
+  }
+
+  async setPriceOracle(oracleAddress: Address): Promise<TransactionResult> {
+    const hash = await this.wallet.writeContract({
+      address: this.contracts.agenticCommerce,
+      abi: AGENTIC_COMMERCE_ABI,
+      functionName: 'setPriceOracle',
+      args: [oracleAddress],
+    } as any);
+    return { hash, wait: () => this.publicClient.waitForTransactionReceipt({ hash }) };
+  }
+
+  async setServiceRegistry(registryAddress: Address): Promise<TransactionResult> {
+    const hash = await this.wallet.writeContract({
+      address: this.contracts.agenticCommerce,
+      abi: AGENTIC_COMMERCE_ABI,
+      functionName: 'setServiceRegistry',
+      args: [registryAddress],
+    } as any);
+    return { hash, wait: () => this.publicClient.waitForTransactionReceipt({ hash }) };
+  }
+
+  async setAdminRegistry(registryAddress: Address): Promise<TransactionResult> {
+    const hash = await this.wallet.writeContract({
+      address: this.contracts.agenticCommerce,
+      abi: AGENTIC_COMMERCE_ABI,
+      functionName: 'setAdminRegistry',
+      args: [registryAddress],
+    } as any);
+    return { hash, wait: () => this.publicClient.waitForTransactionReceipt({ hash }) };
+  }
+
+  async getTokenAmountForUsd(token: Address, usdAmount6d: bigint): Promise<bigint> {
+    const result = (await this.publicClient.readContract({
+      address: this.contracts.priceOracle,
+      abi: PRICE_ORACLE_ABI,
+      functionName: 'getTokenAmountForUsd',
+      args: [usdAmount6d, token],
+    } as any)) as bigint;
+    return result;
+  }
+
   on<K extends 'JobCreated' | 'JobFunded' | 'JobSubmitted' | 'PaymentReleased'>(
     event: K,
     handler: SDKEventHandler<SDKEventMap[K]>
@@ -1425,10 +1507,12 @@ class SkillsModule {
 // ============================================================================
 
 class PriceOracleModule {
+  private wallet: any;
   private publicClient: ReturnType<typeof createPublicClient>;
   private contracts: ContractAddresses;
 
-  constructor(publicClient: ReturnType<typeof createPublicClient>, contracts: ContractAddresses) {
+  constructor(wallet: any, publicClient: ReturnType<typeof createPublicClient>, contracts: ContractAddresses) {
+    this.wallet = wallet;
     this.publicClient = publicClient;
     this.contracts = contracts;
   }
@@ -1501,6 +1585,37 @@ class PriceOracleModule {
     return { feed: result[0], decimals: Number(result[1]), stable: result[2] };
   }
 
+  // ============ Phase 45d: PriceOracle admin setters ============
+
+  async setAllowedToken(token: Address, allowed: boolean, decimals: number): Promise<TransactionResult> {
+    const hash = await this.wallet.writeContract({
+      address: this.contracts.priceOracle,
+      abi: PRICE_ORACLE_ABI,
+      functionName: 'setAllowedToken',
+      args: [token, allowed, decimals],
+    } as any);
+    return { hash, wait: () => this.publicClient.waitForTransactionReceipt({ hash }) };
+  }
+
+  async removeAllowedToken(token: Address): Promise<TransactionResult> {
+    const hash = await this.wallet.writeContract({
+      address: this.contracts.priceOracle,
+      abi: PRICE_ORACLE_ABI,
+      functionName: 'setAllowedToken',
+      args: [token, false, 0],
+    } as any);
+    return { hash, wait: () => this.publicClient.waitForTransactionReceipt({ hash }) };
+  }
+
+  async setTokenPriceFeed(token: Address, feed: Address): Promise<TransactionResult> {
+    const hash = await this.wallet.writeContract({
+      address: this.contracts.priceOracle,
+      abi: PRICE_ORACLE_ABI,
+      functionName: 'setTokenPriceFeed',
+      args: [token, feed],
+    } as any);
+    return { hash, wait: () => this.publicClient.waitForTransactionReceipt({ hash }) };
+  }
 }
 
 // ============================================================================
@@ -1743,7 +1858,26 @@ interface BiddingSession {
   status: number;
   useRandomEvaluator: boolean;
   paymentToken: Address;
+  evaluatorFee: boolean; // Phase 45c O-6
+  hook: Address;         // Phase 45c O-7
 }
+
+export type OnchainBidStatus =
+  | 0 // None
+  | 1 // Pending
+  | 2 // Revealed
+  | 3 // Accepted
+  | 4 // Rejected
+  | 5; // Withdrawn
+
+export const ONCHAIN_BID_STATUS = {
+  None: 0,
+  Pending: 1,
+  Revealed: 2,
+  Accepted: 3,
+  Rejected: 4,
+  Withdrawn: 5,
+} as const;
 
 interface BidInfo {
   bidId: bigint;
@@ -1757,6 +1891,7 @@ interface BidInfo {
   rejected: boolean;
   stakeWithdrawn: boolean;
   timestamp: bigint;
+  status: OnchainBidStatus; // Phase 45c O-12
 }
 
 class BiddingSystemModule {
@@ -1781,6 +1916,8 @@ class BiddingSystemModule {
     metadata?: string;
     serviceId?: bigint;
     paymentToken?: Address;
+    evaluatorFee?: boolean;        // Phase 45c O-6
+    hook?: Address;                // Phase 45c O-7
   }): Promise<TransactionResult & { sessionId: bigint }> {
     const paymentToken = params.paymentToken || ('0x0000000000000000000000000000000000000000' as Address);
     const isEth = paymentToken === '0x0000000000000000000000000000000000000000';
@@ -1796,6 +1933,8 @@ class BiddingSystemModule {
         (params.metadata || '0x') as `0x${string}`,
         params.serviceId || 0n,
         paymentToken,
+        params.evaluatorFee ?? false,
+        params.hook ?? ('0x0000000000000000000000000000000000000000' as Address),
       ],
       ...(isEth ? { value: stake } : {}),
     } as any);
@@ -1840,20 +1979,23 @@ class BiddingSystemModule {
       : (globalThis.crypto?.getRandomValues?.(new Uint8Array(32))
           || new Uint8Array(32).map(() => Math.floor(Math.random() * 256)));
     const salt = `0x${Buffer.from(saltBytes).toString('hex')}` as `0x${string}`;
-    // Phase 45b O-1: hash now binds to (sessionId, msg.sender, amount, message, salt)
+    // Phase 45b O-1: hash binds to (sessionId, msg.sender, amount, message, salt)
+    // Phase 45c O-8: hash also binds to PROTOCOL_VERSION=2 (prepended)
     const fromAddress = (params.fromAddress ?? this.wallet.account?.address) as Address | undefined;
     if (!fromAddress) {
       throw new Error('commitBid: fromAddress is required (no wallet account available)');
     }
+    const PROTOCOL_VERSION = 2n;
     const commitHash = keccak256(encodeAbiParameters(
       [
+        { type: 'uint256' },
         { type: 'uint256' },
         { type: 'address' },
         { type: 'uint256' },
         { type: 'string' },
         { type: 'bytes32' },
       ],
-      [params.sessionId, fromAddress, params.amount, params.message, salt]
+      [PROTOCOL_VERSION, params.sessionId, fromAddress, params.amount, params.message, salt]
     ));
     const stake = (params.amount * 100n) / 10000n;
     const isEth = !params.paymentToken || params.paymentToken === '0x0000000000000000000000000000000000000000';
@@ -2111,6 +2253,7 @@ class BiddingSystemModule {
         boolean,
         boolean,
         bigint,
+        number,
       ];
       return {
         bidId: bid[0],
@@ -2124,6 +2267,7 @@ class BiddingSystemModule {
         rejected: bid[8],
         stakeWithdrawn: bid[9],
         timestamp: bid[10],
+        status: bid[11] as OnchainBidStatus,
       };
     } catch {
       return null;
@@ -2159,6 +2303,7 @@ class BiddingSystemModule {
         rejected: bid.rejected,
         stakeWithdrawn: bid.stakeWithdrawn,
         timestamp: bid.timestamp,
+        status: (bid.status ?? 0) as OnchainBidStatus,
       }));
     } catch {
       return [];
@@ -2206,6 +2351,8 @@ class BiddingSystemModule {
         number,
         boolean,
         Address,
+        boolean,
+        Address,
       ];
       return {
         id: session[0],
@@ -2223,6 +2370,8 @@ class BiddingSystemModule {
         status: Number(session[12]),
         useRandomEvaluator: session[13],
         paymentToken: session[14],
+        evaluatorFee: session[15],
+        hook: session[16],
       };
     } catch {
       return null;
@@ -2249,6 +2398,7 @@ class BiddingSystemModule {
         boolean,
         boolean,
         bigint,
+        number,
       ];
       return {
         bidId: bid[0],
@@ -2262,6 +2412,7 @@ class BiddingSystemModule {
         rejected: bid[8],
         stakeWithdrawn: bid[9],
         timestamp: bid[10],
+        status: bid[11] as OnchainBidStatus,
       };
     } catch {
       return null;
@@ -2280,6 +2431,124 @@ class BiddingSystemModule {
 
   calculateStake(maxBudget: bigint): bigint {
     return (maxBudget * 100n) / 10000n;
+  }
+
+  // ============ Phase 45c O-9: Sweep unclaimed stakes ============
+
+  async sweepUnclaimedStakes(sessionId: bigint): Promise<TransactionResult & { sweptCount?: bigint }> {
+    const hash = await this.wallet.writeContract({
+      address: this.contracts.biddingSystem! as Address,
+      abi: BIDDING_SYSTEM_ABI,
+      functionName: 'sweepUnclaimedStakes',
+      args: [sessionId],
+    } as any);
+    return { hash, wait: () => this.publicClient.waitForTransactionReceipt({ hash }) };
+  }
+
+  async getWithdrawStakeClaimableAt(sessionId: bigint, bidder: Address): Promise<bigint> {
+    return (await this.publicClient.readContract({
+      address: this.contracts.biddingSystem! as Address,
+      abi: BIDDING_SYSTEM_ABI,
+      functionName: 'withdrawStakeClaimableAt',
+      args: [sessionId, bidder],
+    } as any)) as bigint;
+  }
+
+  // ============ Phase 45c O-4: Stake bounds ============
+
+  async getMinStake(): Promise<bigint> {
+    return (await this.publicClient.readContract({
+      address: this.contracts.biddingSystem! as Address,
+      abi: BIDDING_SYSTEM_ABI,
+      functionName: 'minStake',
+    } as any)) as bigint;
+  }
+
+  async getMaxStake(): Promise<bigint> {
+    return (await this.publicClient.readContract({
+      address: this.contracts.biddingSystem! as Address,
+      abi: BIDDING_SYSTEM_ABI,
+      functionName: 'maxStake',
+    } as any)) as bigint;
+  }
+
+  async setMinStake(newMin: bigint): Promise<TransactionResult> {
+    const hash = await this.wallet.writeContract({
+      address: this.contracts.biddingSystem!,
+      abi: BIDDING_SYSTEM_ABI,
+      functionName: 'setMinStake',
+      args: [newMin],
+    } as any);
+    return { hash, wait: () => this.publicClient.waitForTransactionReceipt({ hash }) };
+  }
+
+  async setMaxStake(newMax: bigint): Promise<TransactionResult> {
+    const hash = await this.wallet.writeContract({
+      address: this.contracts.biddingSystem!,
+      abi: BIDDING_SYSTEM_ABI,
+      functionName: 'setMaxStake',
+      args: [newMax],
+    } as any);
+    return { hash, wait: () => this.publicClient.waitForTransactionReceipt({ hash }) };
+  }
+
+  async setStakeBounds(newMin: bigint, newMax: bigint): Promise<TransactionResult> {
+    const hash = await this.wallet.writeContract({
+      address: this.contracts.biddingSystem!,
+      abi: BIDDING_SYSTEM_ABI,
+      functionName: 'setStakeBounds',
+      args: [newMin, newMax],
+    } as any);
+    return { hash, wait: () => this.publicClient.waitForTransactionReceipt({ hash }) };
+  }
+
+  // ============ Phase 45c O-11: Per-token platform fee ============
+
+  async getPlatformFeeBP(token: Address): Promise<bigint> {
+    return (await this.publicClient.readContract({
+      address: this.contracts.biddingSystem! as Address,
+      abi: BIDDING_SYSTEM_ABI,
+      functionName: 'getPlatformFeeBP',
+      args: [token],
+    } as any)) as bigint;
+  }
+
+  async setPlatformFeeBPForToken(token: Address, basisPoints: bigint): Promise<TransactionResult> {
+    const hash = await this.wallet.writeContract({
+      address: this.contracts.biddingSystem!,
+      abi: BIDDING_SYSTEM_ABI,
+      functionName: 'setPlatformFeeBPForToken',
+      args: [token, basisPoints],
+    } as any);
+    return { hash, wait: () => this.publicClient.waitForTransactionReceipt({ hash }) };
+  }
+
+  // ============ Phase 45c O-12: BidStatus lookup ============
+
+  async getBidStatus(sessionId: bigint, bidder: Address): Promise<BidStatus> {
+    const result = await this.publicClient.readContract({
+      address: this.contracts.biddingSystem! as Address,
+      abi: BIDDING_SYSTEM_ABI,
+      functionName: 'getBidStatus',
+      args: [sessionId, bidder],
+    } as any);
+    return Number(result) as BidStatus;
+  }
+
+  // ============ Phase 45d: bidding session bound setters ============
+
+  async setMinDeadline(seconds: bigint): Promise<TransactionResult> {
+    // The contract has MIN_SESSION_DURATION as a constant (1 hour, post-45c).
+    // This wrapper is a no-op stub kept for API symmetry with the planned
+    // setMinDeadline setter in a future version.
+    void seconds;
+    throw new Error('setMinDeadline is not yet available on the contract; deadline min is 1 hour');
+  }
+
+  async setMaxDeadline(seconds: bigint): Promise<TransactionResult> {
+    // See note in setMinDeadline above. Currently the constant is 30 days.
+    void seconds;
+    throw new Error('setMaxDeadline is not yet available on the contract; deadline max is 30 days');
   }
 }
 
@@ -2413,6 +2682,39 @@ class MilestoneModule {
       abi: MILESTONE_ESCROW_ABI,
       functionName: 'registerAsArbiter',
       args: [token, amount],
+    } as any);
+    return { hash, wait: () => this.publicClient.waitForTransactionReceipt({ hash }) };
+
+  }
+
+  // ============ Phase 45d: Milestone config setters ============
+
+  async setDisputeWindow(jobId: bigint, windowSeconds: bigint): Promise<TransactionResult> {
+    const hash = await this.wallet.writeContract({
+      address: this.contracts.milestoneEscrow! as Address,
+      abi: MILESTONE_ESCROW_ABI,
+      functionName: 'setDisputeWindow',
+      args: [jobId, windowSeconds],
+    } as any);
+    return { hash, wait: () => this.publicClient.waitForTransactionReceipt({ hash }) };
+  }
+
+  async setNonResponsiveSlashBP(jobId: bigint, slashBP: bigint): Promise<TransactionResult> {
+    const hash = await this.wallet.writeContract({
+      address: this.contracts.milestoneEscrow! as Address,
+      abi: MILESTONE_ESCROW_ABI,
+      functionName: 'setNonResponsiveSlashBP',
+      args: [jobId, slashBP],
+    } as any);
+    return { hash, wait: () => this.publicClient.waitForTransactionReceipt({ hash }) };
+  }
+
+  async setAgenticCommerce(commerceAddress: Address): Promise<TransactionResult> {
+    const hash = await this.wallet.writeContract({
+      address: this.contracts.milestoneEscrow! as Address,
+      abi: MILESTONE_ESCROW_ABI,
+      functionName: 'setAgenticCommerce',
+      args: [commerceAddress],
     } as any);
     return { hash, wait: () => this.publicClient.waitForTransactionReceipt({ hash }) };
   }
@@ -2680,6 +2982,38 @@ class AdminRegistryModule {
       abi: ADMIN_REGISTRY_ABI,
       functionName: 'getBlacklistedWalletCount',
     } as any));
+  }
+
+  // ============ Phase 45d: AdminRegistry wiring setters ============
+
+  async setCommerce(commerceAddress: Address): Promise<TransactionResult> {
+    const hash = await this.wallet.writeContract({
+      address: this.contracts.adminRegistry! as Address,
+      abi: ADMIN_REGISTRY_ABI,
+      functionName: 'setCommerce',
+      args: [commerceAddress],
+    } as any);
+    return { hash, wait: () => this.publicClient.waitForTransactionReceipt({ hash }) };
+  }
+
+  async setServiceRegistry(registryAddress: Address): Promise<TransactionResult> {
+    const hash = await this.wallet.writeContract({
+      address: this.contracts.adminRegistry! as Address,
+      abi: ADMIN_REGISTRY_ABI,
+      functionName: 'setServiceRegistry',
+      args: [registryAddress],
+    } as any);
+    return { hash, wait: () => this.publicClient.waitForTransactionReceipt({ hash }) };
+  }
+
+  async setIdentityRegistry(registryAddress: Address): Promise<TransactionResult> {
+    const hash = await this.wallet.writeContract({
+      address: this.contracts.adminRegistry! as Address,
+      abi: ADMIN_REGISTRY_ABI,
+      functionName: 'setIdentityRegistry',
+      args: [registryAddress],
+    } as any);
+    return { hash, wait: () => this.publicClient.waitForTransactionReceipt({ hash }) };
   }
 }
 

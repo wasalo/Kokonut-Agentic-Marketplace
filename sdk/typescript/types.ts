@@ -188,10 +188,11 @@ export enum JobStatus {
 
 export enum BidStatus {
   None = 0,
-  Committed = 1,
+  Pending = 1,    // Phase 45c O-12: was 'Committed' pre-45c
   Revealed = 2,
   Accepted = 3,
-  Forfeited = 4,
+  Rejected = 4,   // Phase 45c O-12: was 'Forfeited' pre-45c
+  Withdrawn = 5,  // Phase 45c O-12
 }
 
 export interface Job {

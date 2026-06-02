@@ -96,6 +96,7 @@ export function handleBidCommitted(event: BidCommittedEvent): void {
   bid.rejected = false;
   bid.stakeWithdrawn = false;
   bid.timestamp = event.block.timestamp;
+  bid.status = 1; // Phase 45c O-12: Pending
   bid.save();
 }
 
@@ -111,6 +112,7 @@ export function handleBidRevealed(event: BidRevealedEvent): void {
   if (bid) {
     bid.revealed = true;
     bid.proposedAmount = event.params.proposedAmount;
+    bid.status = 2; // Phase 45c O-12: Revealed
     bid.save();
   }
 }
@@ -129,6 +131,7 @@ export function handleBidAccepted(event: BidAcceptedEvent): void {
   let bid = Bid.load(bidId);
   if (bid) {
     bid.accepted = true;
+    bid.status = 3; // Phase 45c O-12: Accepted
     bid.save();
   }
 
@@ -154,6 +157,7 @@ export function handleBidRejected(event: BidRejectedEvent): void {
   let bid = Bid.load(bidId);
   if (bid) {
     bid.rejected = true;
+    bid.status = 4; // Phase 45c O-12: Rejected
     bid.save();
   }
 }
@@ -163,6 +167,7 @@ export function handleStakeWithdrawn(event: StakeWithdrawnEvent): void {
   let bid = Bid.load(bidId);
   if (bid) {
     bid.stakeWithdrawn = true;
+    bid.status = 5; // Phase 45c O-12: Withdrawn
     bid.save();
   }
 }
@@ -172,6 +177,7 @@ export function handleStakeClaimed(event: StakeClaimedEvent): void {
   let bid = Bid.load(bidId);
   if (bid) {
     bid.stakeWithdrawn = true;
+    bid.status = 3; // Phase 45c O-12: Accepted (winner is paid via StakeClaimed)
     bid.save();
   }
 }
@@ -245,6 +251,7 @@ export function handleBidderSlashed(event: BidderSlashedEvent): void {
     bid.refundAmount = event.params.refundAmount;
     bid.stakeWithdrawn = true;
     bid.rejected = true;
+    bid.status = 4; // Phase 45c O-12: Rejected (slash marks bid rejected)
     bid.save();
   }
 }

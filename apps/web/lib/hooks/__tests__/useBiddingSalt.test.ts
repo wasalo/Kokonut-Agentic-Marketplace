@@ -8,19 +8,20 @@ describe('useBiddingSalt', () => {
     window.localStorage.clear();
   });
 
-  it('buildBidCommitHash produces a keccak256 of (sessionId, bidder, amount, message, salt)', () => {
+  it('buildBidCommitHash produces a keccak256 of (PROTOCOL_VERSION=2, sessionId, bidder, amount, message, salt)', () => {
     const salt = ('0x' + '1'.repeat(64)) as `0x${string}`;
     const bidder = '0x000000000000000000000000000000000000beef' as `0x${string}`;
     const expected = keccak256(
       encodeAbiParameters(
         [
           { type: 'uint256' },
+          { type: 'uint256' },
           { type: 'address' },
           { type: 'uint256' },
           { type: 'string' },
           { type: 'bytes32' },
         ],
-        [7n, bidder, parseUnits('1.5', 18), 'hello', salt]
+        [2n, 7n, bidder, parseUnits('1.5', 18), 'hello', salt]
       )
     );
     expect(buildBidCommitHash(7n, bidder, '1.5', 'hello', salt, 18)).toBe(expected);

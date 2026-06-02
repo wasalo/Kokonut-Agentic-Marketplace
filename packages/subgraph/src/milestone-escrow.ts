@@ -50,6 +50,11 @@ export function handleMilestoneReleased(event: MilestoneReleasedEvent): void {
   }
 }
 
+// Phase 45d alias
+export function handleMilestoneDisputed(event: DisputeFlaggedEvent): void {
+  return handleDisputeFlagged(event);
+}
+
 export function handleDisputeFlagged(event: DisputeFlaggedEvent): void {
   let disputeId = event.params.jobId.toString();
   let dispute = new Dispute(disputeId);

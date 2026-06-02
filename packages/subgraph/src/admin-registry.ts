@@ -5,8 +5,11 @@ import {
   WalletBlacklisted as WalletBlacklistedEvent,
   WalletUnblacklisted as WalletUnblacklistedEvent,
   FeaturedAgentUpdated as FeaturedAgentUpdatedEvent,
+  SlashManagerSet as SlashManagerSetEvent,
+  CommerceSet as CommerceSetEvent,
+  ServiceRegistrySet as ServiceRegistrySetEvent,
 } from '../generated/AdminRegistry/AdminRegistry';
-import { BlacklistEntry, Agent, PlatformStat } from '../generated/schema';
+import { BlacklistEntry, Agent, PlatformStat, Activity } from '../generated/schema';
 import { updatePlatformStat } from './helpers';
 
 export function handleAgentBlacklisted(event: AgentBlacklistedEvent): void {
@@ -71,4 +74,41 @@ export function handleFeaturedAgentUpdated(event: FeaturedAgentUpdatedEvent): vo
     agent.featured = event.params.isFeatured;
     agent.save();
   }
+}
+
+// Phase 45d: wiring setters
+export function handleSlashManagerSet(event: SlashManagerSetEvent): void {
+  let activity = new Activity(
+    event.transaction.hash.toHexString() + '-' + event.logIndex.toString()
+  );
+  activity.type = 'SLASH_MANAGER_SET';
+  activity.actor = event.transaction.from;
+  activity.blockNumber = event.block.number;
+  activity.timestamp = event.block.timestamp;
+  activity.transactionHash = event.transaction.hash;
+  activity.save();
+}
+
+export function handleCommerceSet(event: CommerceSetEvent): void {
+  let activity = new Activity(
+    event.transaction.hash.toHexString() + '-' + event.logIndex.toString()
+  );
+  activity.type = 'COMMERCE_SET';
+  activity.actor = event.transaction.from;
+  activity.blockNumber = event.block.number;
+  activity.timestamp = event.block.timestamp;
+  activity.transactionHash = event.transaction.hash;
+  activity.save();
+}
+
+export function handleServiceRegistrySet(event: ServiceRegistrySetEvent): void {
+  let activity = new Activity(
+    event.transaction.hash.toHexString() + '-' + event.logIndex.toString()
+  );
+  activity.type = 'SERVICE_REGISTRY_SET';
+  activity.actor = event.transaction.from;
+  activity.blockNumber = event.block.number;
+  activity.timestamp = event.block.timestamp;
+  activity.transactionHash = event.transaction.hash;
+  activity.save();
 }

@@ -49,7 +49,26 @@ export interface BiddingSession {
   status: SessionStatusType;
   useRandomEvaluator: boolean;
   paymentToken: `0x${string}`;
+  evaluatorFee: boolean; // Phase 45c O-6
+  hook: `0x${string}`;    // Phase 45c O-7
 }
+
+export type BidStatusType =
+  | 'None'       // 0
+  | 'Pending'    // 1
+  | 'Revealed'   // 2
+  | 'Accepted'   // 3
+  | 'Rejected'   // 4
+  | 'Withdrawn'; // 5
+
+export const BID_STATUS = {
+  None: 0,
+  Pending: 1,
+  Revealed: 2,
+  Accepted: 3,
+  Rejected: 4,
+  Withdrawn: 5,
+} as const;
 
 export interface BidInfo {
   bidId: bigint;
@@ -63,6 +82,7 @@ export interface BidInfo {
   rejected: boolean;
   stakeWithdrawn: boolean;
   timestamp: bigint;
+  status: number; // Phase 45c O-12: BidStatus enum value (use BID_STATUS)
 }
 
 // ============ Read Hooks ============
@@ -267,6 +287,8 @@ export function useCreateBiddingSession() {
     metadata: `0x${string}`;
     serviceId: bigint;
     paymentToken: `0x${string}`;
+    evaluatorFee?: boolean;       // Phase 45c O-6 (default false)
+    hook?: `0x${string}`;         // Phase 45c O-7 (default address(0))
   }) {
     const stake = (params.maxBudget * 100n) / 10000n; // 1% stake
     const isNativePayment = params.paymentToken.toLowerCase() === ZERO_ADDRESS.toLowerCase();
@@ -283,6 +305,8 @@ export function useCreateBiddingSession() {
         params.metadata,
         params.serviceId,
         params.paymentToken,
+        params.evaluatorFee ?? false,
+        params.hook ?? ZERO_ADDRESS,
       ],
       value: isNativePayment ? stake : 0n,
     });
@@ -698,4 +722,134 @@ export function useAccumulatedFeesByToken(token: `0x${string}` | undefined) {
     error,
     refetch,
   };
+}
+
+// ============ Phase 45c Hooks ============
+
+/// @notice Phase 45c O-4: read the configured min/max stake bounds.
+export function useStakeBounds() {
+  const { data: minData, isLoading: isMinLoading, error: minError } = useReadContract({
+    address: BIDDING_SYSTEM_ADDRESS,
+    abi: BIDDING_SYSTEM_ABI,
+    functionName: 'minStake',
+    query: { retry: 2, staleTime: 60 * 1000 },
+  });
+  const { data: maxData, isLoading: isMaxLoading, error: maxError } = useReadContract({
+    address: BIDDING_SYSTEM_ADDRESS,
+    abi: BIDDING_SYSTEM_ABI,
+    functionName: 'maxStake',
+    query: { retry: 2, staleTime: 60 * 1000 },
+  });
+  return {
+    minStake: (minData as bigint | undefined) ?? 0n,
+    maxStake: (maxData as bigint | undefined) ?? 0n,
+    isLoading: isMinLoading || isMaxLoading,
+    error: minError || maxError,
+  };
+}
+
+/// @notice Phase 45c O-4: owner-only setters for stake bounds.
+export function useSetStakeBounds() {
+  const { data: hash, isPending, writeContract, error: writeError } = useWriteContract();
+  const { isLoading: isConfirming, isSuccess: isConfirmed } = useWaitForTransactionReceipt({ hash });
+
+  function setMin(newMin: bigint) {
+    writeContract({
+      chainId: SEPOLIA_CHAIN_ID,
+      address: BIDDING_SYSTEM_ADDRESS,
+      abi: BIDDING_SYSTEM_ABI,
+      functionName: 'setMinStake',
+      args: [newMin],
+    });
+  }
+  function setMax(newMax: bigint) {
+    writeContract({
+      chainId: SEPOLIA_CHAIN_ID,
+      address: BIDDING_SYSTEM_ADDRESS,
+      abi: BIDDING_SYSTEM_ABI,
+      functionName: 'setMaxStake',
+      args: [newMax],
+    });
+  }
+  function setBounds(newMin: bigint, newMax: bigint) {
+    writeContract({
+      chainId: SEPOLIA_CHAIN_ID,
+      address: BIDDING_SYSTEM_ADDRESS,
+      abi: BIDDING_SYSTEM_ABI,
+      functionName: 'setStakeBounds',
+      args: [newMin, newMax],
+    });
+  }
+  return { setMin, setMax, setBounds, hash, isPending, isConfirming, isConfirmed, writeError };
+}
+
+/// @notice Phase 45c O-9: read the deadline after which `sweepUnclaimedStakes` can
+///         pull the bidder's stake. 0 = no pending claim.
+export function useWithdrawStakeClaimableAt(sessionId: bigint | undefined, bidder: `0x${string}` | undefined) {
+  const { data, isLoading, error, refetch } = useReadContract({
+    address: BIDDING_SYSTEM_ADDRESS,
+    abi: BIDDING_SYSTEM_ABI,
+    functionName: 'withdrawStakeClaimableAt',
+    args: sessionId !== undefined && bidder !== undefined ? [sessionId, bidder] : undefined,
+    query: { retry: 2, staleTime: 30 * 1000, enabled: sessionId !== undefined && bidder !== undefined },
+  });
+  return { claimableAt: (data as bigint | undefined) ?? 0n, isLoading, error, refetch };
+}
+
+/// @notice Phase 45c O-9: permissionless sweep of un-withdrawn stakes after the
+///         30-day window. Returns the number of stakes swept.
+export function useSweepUnclaimedStakes() {
+  const { data: hash, isPending, writeContract, error: writeError } = useWriteContract();
+  const { isLoading: isConfirming, isSuccess: isConfirmed, data: receipt } = useWaitForTransactionReceipt({ hash });
+  return {
+    sweep: (sessionId: bigint) =>
+      writeContract({
+        chainId: SEPOLIA_CHAIN_ID,
+        address: BIDDING_SYSTEM_ADDRESS,
+        abi: BIDDING_SYSTEM_ABI,
+        functionName: 'sweepUnclaimedStakes',
+        args: [sessionId],
+      }),
+    hash, isPending, isConfirming, isConfirmed, writeError, receipt,
+  };
+}
+
+/// @notice Phase 45c O-11: read the effective platform fee for a given token.
+export function usePlatformFeeBPForToken(token: `0x${string}` | undefined) {
+  const { data, isLoading, error, refetch } = useReadContract({
+    address: BIDDING_SYSTEM_ADDRESS,
+    abi: BIDDING_SYSTEM_ABI,
+    functionName: 'getPlatformFeeBP',
+    args: token !== undefined ? [token] : undefined,
+    query: { retry: 2, staleTime: 30 * 1000, enabled: token !== undefined },
+  });
+  return { feeBP: (data as bigint | undefined) ?? 0n, isLoading, error, refetch };
+}
+
+/// @notice Phase 45c O-11: owner-only setter for per-token platform fees.
+export function useSetPlatformFeeBPForToken() {
+  const { data: hash, isPending, writeContract, error: writeError } = useWriteContract();
+  const { isLoading: isConfirming, isSuccess: isConfirmed } = useWaitForTransactionReceipt({ hash });
+  function setForToken(token: `0x${string}`, basisPoints: bigint) {
+    writeContract({
+      chainId: SEPOLIA_CHAIN_ID,
+      address: BIDDING_SYSTEM_ADDRESS,
+      abi: BIDDING_SYSTEM_ABI,
+      functionName: 'setPlatformFeeBPForToken',
+      args: [token, basisPoints],
+    });
+  }
+  return { setForToken, hash, isPending, isConfirming, isConfirmed, writeError };
+}
+
+/// @notice Phase 45c O-12: read the explicit BidStatus for a (session, bidder) pair.
+export function useBidStatus(sessionId: bigint | undefined, bidder: `0x${string}` | undefined) {
+  const { data, isLoading, error, refetch } = useReadContract({
+    address: BIDDING_SYSTEM_ADDRESS,
+    abi: BIDDING_SYSTEM_ABI,
+    functionName: 'getBidStatus',
+    args: sessionId !== undefined && bidder !== undefined ? [sessionId, bidder] : undefined,
+    query: { retry: 2, staleTime: 15 * 1000, enabled: sessionId !== undefined && bidder !== undefined },
+  });
+  return { status: (data as number | undefined) ?? 0, isLoading, error, refetch };
 }

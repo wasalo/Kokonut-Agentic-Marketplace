@@ -1,6 +1,6 @@
 {
   "version": "semantic-v1",
-  "generatedAt": "2026-06-01T13:12:05.861Z",
+  "generatedAt": "2026-06-02T15:08:06.635Z",
   "contracts": {
     "AgenticCommerceV9": {
       "target": "contracts/shared/AgenticCommerceV9.sol:AgenticCommerceV9",
@@ -349,13 +349,13 @@
             "label": "sessions",
             "slot": 2,
             "offset": 0,
-            "type": "mapping(uint256=>struct{id@0:0:uint256,creator@1:0:address,evaluator@2:0:address,maxBudget@3:0:uint256,deadline@4:0:uint256,revealWindowEnd@5:0:uint256,metadata@6:0:bytes,serviceId@7:0:uint256,jobId@8:0:uint256,winner@9:0:address,winningBidId@10:0:uint256,jobCreated@11:0:bool,status@11:1:enum IBiddingSystem.SessionStatus,useRandomEvaluator@11:2:bool,paymentToken@11:3:address})"
+            "type": "mapping(uint256=>struct{id@0:0:uint256,creator@1:0:address,evaluator@2:0:address,maxBudget@3:0:uint256,deadline@4:0:uint256,revealWindowEnd@5:0:uint256,metadata@6:0:bytes,serviceId@7:0:uint256,jobId@8:0:uint256,winner@9:0:address,winningBidId@10:0:uint256,jobCreated@11:0:bool,status@11:1:enum IBiddingSystem.SessionStatus,useRandomEvaluator@11:2:bool,paymentToken@11:3:address,evaluatorFee@11:23:bool,hook@12:0:address})"
           },
           {
             "label": "sessionBids",
             "slot": 3,
             "offset": 0,
-            "type": "mapping(uint256=>struct{bidId@0:0:uint256,bidder@1:0:address,proposedAmount@2:0:uint256,stake@3:0:uint256,message@4:0:string,commitHash@5:0:bytes32,revealed@6:0:bool,accepted@6:1:bool,rejected@6:2:bool,stakeWithdrawn@6:3:bool,timestamp@7:0:uint256}[])"
+            "type": "mapping(uint256=>struct{bidId@0:0:uint256,bidder@1:0:address,proposedAmount@2:0:uint256,stake@3:0:uint256,message@4:0:string,commitHash@5:0:bytes32,revealed@6:0:bool,accepted@6:1:bool,rejected@6:2:bool,stakeWithdrawn@6:3:bool,timestamp@7:0:uint256,status@8:0:enum IBiddingSystem.BidStatus}[])"
           },
           {
             "label": "bidderToBidIndex",
@@ -415,23 +415,47 @@
             "label": "__gap",
             "slot": 13,
             "offset": 0,
-            "type": "uint256[49]"
+            "type": "uint256[42]"
           },
           {
             "label": "totalAccumulatedFees",
-            "slot": 62,
+            "slot": 55,
             "offset": 0,
             "type": "uint256"
           },
           {
             "label": "creatorStakeWithdrawn",
-            "slot": 63,
+            "slot": 56,
             "offset": 0,
             "type": "mapping(uint256=>bool)"
           },
           {
             "label": "accumulatedFeesByToken",
-            "slot": 64,
+            "slot": 57,
+            "offset": 0,
+            "type": "mapping(address=>uint256)"
+          },
+          {
+            "label": "minStake",
+            "slot": 58,
+            "offset": 0,
+            "type": "uint256"
+          },
+          {
+            "label": "maxStake",
+            "slot": 59,
+            "offset": 0,
+            "type": "uint256"
+          },
+          {
+            "label": "withdrawStakeClaimableAt",
+            "slot": 60,
+            "offset": 0,
+            "type": "mapping(uint256=>mapping(address=>uint256))"
+          },
+          {
+            "label": "platformFeeBPByToken",
+            "slot": 61,
             "offset": 0,
             "type": "mapping(address=>uint256)"
           }

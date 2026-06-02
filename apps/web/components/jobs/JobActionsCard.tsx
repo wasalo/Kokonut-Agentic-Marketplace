@@ -21,6 +21,7 @@ import { StatusBadge } from '@/components/StatusBadge';
 import { JobStatus, type Job } from '@/lib/hooks/useJobs';
 import { JobLifecycleStepper, type JobRole } from '@/components/jobs/JobLifecycleStepper';
 import type { Token } from '@/lib/hooks/useTokenConversion';
+import { useActiveSlash } from '@/lib/hooks/useActiveSlash';
 
 interface EvaluationResult {
   meetsRequirements: boolean;
@@ -134,6 +135,7 @@ export function JobActionsCard({
   onDisputeMilestoneChange,
   onFlagDispute,
 }: JobActionsCardProps) {
+  const slashWarning = useActiveSlash(job?.id, job?.evaluator ?? null);
   if (!hasActions) return null;
   const role: JobRole = isClient ? 'client' : isProvider ? 'provider' : isEvaluator ? 'evaluator' : 'observer';
 
@@ -144,6 +146,34 @@ export function JobActionsCard({
       <div className="mb-5">
         <JobLifecycleStepper status={job.status} role={role} />
       </div>
+
+      {slashWarning.risk !== 'none' && slashWarning.evaluator && (
+        <div
+          className={`mb-4 p-4 rounded-lg border ${
+            slashWarning.risk === 'high'
+              ? 'bg-danger/10 border-danger/30'
+              : slashWarning.risk === 'medium'
+                ? 'bg-warning/10 border-warning/30'
+                : 'bg-default/10 border-divider'
+          }`}
+        >
+          <div className="flex items-center gap-2">
+            <ShieldAlert
+              className={`size-5 ${
+                slashWarning.risk === 'high'
+                  ? 'text-danger'
+                  : slashWarning.risk === 'medium'
+                    ? 'text-warning'
+                    : 'text-default-500'
+              }`}
+            />
+            <p className="text-sm font-medium">Evaluator may be slashed</p>
+          </div>
+          <p className="text-xs text-default-500 mt-1">
+            {slashWarning.reason} Stake could be at risk if evaluator does not respond.
+          </p>
+        </div>
+      )}
 
       {hasActiveDispute && dispute?.flagger && (
         <div className="mb-4 p-4 bg-warning/10 border border-warning/30 rounded-lg">

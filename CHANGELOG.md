@@ -5,6 +5,122 @@ All notable changes to the Kokonut Agent Economy Stack are documented in this fi
 The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.0.0/),
 and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0.html).
 
+## [2026-06-01] — Phase 45d: Contract Feature Parity (D1/D2/D3/D4/D5/D6)
+
+### Frontend (apps/web)
+
+| Change | Detail |
+|--------|--------|
+| **D1 `useTokenAmountForUsd`** | New `apps/web/lib/hooks/useTokenAmountForUsd.ts` — converts a USD amount to a token amount using the on-chain `PriceOracle.getTokenAmountForUsd(usd, token)`. Uses `@tanstack/react-query` for caching. |
+| **D1 `useBiddingRecovery` expand** | Adds `exportEnvelope()` (base64url), `decodeEnvelope()` (with optional sessionId/address match check), `buildEmailRecoveryLink()` (mailto: with embedded URL). |
+| **D1 `useServiceEvents` expand** | Subscribes to `ServiceCreated`, `ServiceBondWithdrawn`, `PaymentAddressSet`, `ServiceReactivated`. Returns `recentEvents` (last 50) + `clearEvents()`. |
+| **D1 `useActiveSlash` (new)** | `apps/web/lib/hooks/useActiveSlash.ts` — fires low/medium/high slash-risk warnings in `JobActionsCard` when the assigned evaluator has not produced activity for >24h / >72h / >168h. |
+| **D1 `useCommitReveal` expand** | New `useCommitReveal(address)` polls events for a single user (last 10k blocks) and exposes `pending`, `revealed`, `pendingCount`. Plus new `useIsRevealed(commitment)` (uses `isCommitmentValid`). |
+| **D1 `useNetworkStats` expand** | Adds `bidPoolStats` (total/active sessions), `disputeCount` (reads MilestoneEscrow `disputeCounter`), `evaluatorPoolSize`. |
+| **D1 `useAgentSettings` expand** | New `useServicePricingPreferences(agentId)` returns `preferences`, `save()`, and `isJobAcceptable(budget)` filter. localStorage-backed. |
+| **D1 `useKokonutStats` expand** | New `bidding: { activeSessions, totalCommitted, noShowRate }` derived from `useBiddingSessionCount` + job status histogram. |
+| **D2 Admin pages (6 new)** | `/admin/milestone-disputes` (dispute table + resolve form + sweep), `/admin/service-registry` (service table + pause + set-registry), `/admin/evaluator-pool` (table + cleanup + min-stake form), `/admin/milestone-config` (per-job dispute window + slash BP), `/admin/arbiter-pool` (table), `/admin/token-allowlist` (table + add/remove + set price feed). |
+| **JobActionsCard integration** | `useActiveSlash` warning now renders at the top of the action card before the dispute banner. |
+| **Bidding create form** | `/bidding/create` adds an `evaluatorFee` checkbox (O-6) and a `hookAddress` input (O-7). |
+
+### SDK (sdk/typescript)
+
+| Change | Detail |
+|--------|--------|
+| **CommerceModule** | `slashByGovernance(address, reason)`, `setDisputeWindow(jobId, window)`, `setNonResponsiveSlashBP(jobId, bp)`, `setMinEvaluatorStake(wei)`, `setPriceOracle(addr)`, `setServiceRegistry(addr)`, `setAdminRegistry(addr)`, `getTokenAmountForUsd(token, usd6d)`. |
+| **MilestoneModule** | `setDisputeWindow`, `setNonResponsiveSlashBP`, `setAgenticCommerce`. |
+| **BiddingSystemModule** | `setMinDeadline` / `setMaxDeadline` (stubs throwing — constants 1h/30d). |
+| **PriceOracleModule** | `setAllowedToken`, `removeAllowedToken`, `setTokenPriceFeed` (newly writable — required injecting wallet into the constructor). |
+| **AdminRegistryModule** | `setCommerce`, `setServiceRegistry`, `setIdentityRegistry` (alongside existing `setSlashManager`). |
+
+### CLI (cli/cli.ts)
+
+| Change | Detail |
+|--------|--------|
+| **11 new commands** | `slash-by-governance --address <addr> --reason <str>`, `set-dispute-window --job <id> --seconds <n>`, `set-non-responsive-slash-bp --job <id> --bp <n>`, `set-min-evaluator-stake --wei <n>`, `add-allowed-token --address <addr> --decimals <n> [--stable]`, `remove-allowed-token --address <addr>`, `set-platform-fee-by-token --address <addr> --bp <n>`, `set-min-stake --wei <n>`, `set-max-stake --wei <n>`, `set-min-deadline --seconds <n>`, `set-max-deadline --seconds <n>`. |
+
+### Subgraph (packages/subgraph)
+
+| Change | Detail |
+|--------|--------|
+| **`service-registry.ts`** | New handlers `handleServiceBondWithdrawn`, `handleServiceReactivated`, `handlePaymentAddressSet` (last one creates an `Activity` log entry). |
+| **`milestone-escrow.ts`** | `handleMilestoneDisputed` alias for the existing `handleDisputeFlagged`. |
+| **`admin-registry.ts`** | `handleSlashManagerSet`, `handleCommerceSet`, `handleServiceRegistrySet` (all create `Activity` log entries). |
+| **`price-oracle.ts` (new file)** | `handleTokenAdded`, `handleTokenRemoved`, `handleTokenPriceFeedSet`. New `PriceOracleToken` entity managed. |
+| **`schema.graphql`** | `Milestone` adds `disputeRaisedAt`, `disputeResolvedAt`. `Service` adds `deactivatedAt`, `bondWithdrawnAt`. |
+
+### Verification
+
+- `type-check:strict` ✓ / `type-check` ✓ / `lint` ✓
+- `test:components` 8/8 files 66/66 tests ✓
+- `forge test` 343/343 ✓
+- `pnpm --filter @kokonut/sdk type-check` ✓
+- `pnpm --filter @kokonut/cli type-check` ✓
+- `node scripts/check-storage-layout.js` 9/9 compatible ✓ (no contract changes — Phase 45d is pure frontend/SDK/CLI/subgraph)
+
+## [2026-06-01] — Phase 45c: Bidding Feature UUPS Upgrade (O-4/O-5/O-6/O-7/O-8/O-9/O-11/O-12)
+
+### BiddingSystem Contract
+
+| Change | Detail |
+|--------|--------|
+| **O-4 — Min/Max stake bounds** | New `minStake` / `maxStake` storage variables (defaults 0.001 ETH / 100 ETH) enforced in `createBiddingSession`. New errors `Stake_below_min`, `Stake_above_max`, `Invalid_stake_bounds`. New setters: `setMinStake`, `setMaxStake`, `setStakeBounds` (owner only). |
+| **O-5 — Deadline sanity tightened** | `MIN_SESSION_DURATION` bumped from 5 min to 1 hour. `MAX_SESSION_DURATION` kept at 30 days. |
+| **O-6 — `evaluatorFee` param** | `createBiddingSession` accepts `bool evaluatorFee`; stored on `Session.evaluatorFee`. When true, evaluator gets fee share from job budget on accept. |
+| **O-7 — `hook` param** | `createBiddingSession` accepts `address hook`; stored on `Session.hook`. Must be address(0) or a deployed contract (EOA rejected). |
+| **O-8 — `PROTOCOL_VERSION=2` in commit hash** | Reveal hash now `keccak256(abi.encode(PROTOCOL_VERSION, sessionId, msg.sender, amount, message, salt))`. v0 (Phase 40) and v1 (Phase 45b) reveals invalidated by the version bump. |
+| **O-9 — Withdraw timeout + sweep** | `acceptBid` / `cancelSession` / `completeSession` stamp `withdrawStakeClaimableAt[sessionId][bidder] = block.timestamp + 30 days` for non-winning bids. New `sweepUnclaimedStakes(sessionId)` permissionless after the deadline. `withdrawStake` clears the timestamp. New errors `Sweep_too_early`. |
+| **O-11 — Per-token platform fee** | New `mapping(address => uint256) public platformFeeBPByToken` (default 0 = use global `platformFeeBP`). New `getPlatformFeeBP(token)` resolver. New `setPlatformFeeBPForToken(token, bp)` setter. `createJobAndFund` now uses the per-token fee. |
+| **O-12 — `BidStatus` enum + state machine** | New `enum BidStatus { None, Pending, Revealed, Accepted, Rejected, Withdrawn }` and `Bid.status` field. `commitBid` → Pending; `revealBid` → Revealed; `acceptBid` → Accepted; `rejectBid` → Rejected; `withdrawStake` and `slashNoShow` → Withdrawn. New `getBidStatus(sessionId, bidder)` view. |
+| **O-14 — `BidRevealed` event** | No contract change; subgraph handler now exists (Phase 45b stub). |
+| **O-15 — `BidRejected` event** | No contract change; subgraph handler now exists (Phase 45b stub). |
+| **Storage layout** | 4 new top-level state variables (`minStake`, `maxStake`, `withdrawStakeClaimableAt`, `platformFeeBPByToken`); `__gap` reduced from 49 to 42 slots accordingly. `Session` and `Bid` structs gained new fields at the END (existing fields unchanged). 9/9 storage layouts compatible. |
+| **Tests** | 39 new tests added to `contracts/test/BiddingSystem.t.sol` (118 total in suite). 343/343 forge tests pass (+39 from Phase 45c). |
+
+### Frontend (apps/web)
+
+| Change | Detail |
+|--------|--------|
+| **ABI** | `apps/web/lib/contracts/abis.ts` adds `sweepUnclaimedStakes`, `setMinStake`, `setMaxStake`, `setStakeBounds`, `setPlatformFeeBPForToken`, `getPlatformFeeBP`, `getBidStatus`, `minStake`, `maxStake`, `withdrawStakeClaimableAt`; `createBiddingSession` now takes `(evaluatorFee, hook)`. `Session` adds `evaluatorFee`, `hook`; `Bid` adds `status`. |
+| **Hooks** | `useBiddingSystem.ts` adds `useStakeBounds`, `useSetStakeBounds`, `useWithdrawStakeClaimableAt`, `useSweepUnclaimedStakes`, `usePlatformFeeBPForToken`, `useSetPlatformFeeBPForToken`, `useBidStatus`. `useCreateBiddingSession` takes `evaluatorFee` and `hook` params. |
+| **Commit hash builder** | `useBiddingSalt.ts` now exports `PROTOCOL_VERSION = 2n`; `buildBidCommitHash` pre-pends it. Recovery: `isCommitHashMatch` unchanged (uses `buildBidCommitHash`). |
+| **Create form** | `apps/web/app/bidding/create/page.tsx` adds `evaluatorFee` checkbox and `hookAddress` input. |
+| **Test** | `useBiddingSalt.test.ts` rewritten for 6-field hash. |
+
+### SDK (sdk/typescript)
+
+| Change | Detail |
+|--------|--------|
+| **`createSession`** | Now accepts optional `evaluatorFee` (default false) and `hook` (default address(0)). |
+| **`commitBid`** | Hash now 6-field with `PROTOCOL_VERSION = 2n` prefix. |
+| **`BiddingSession`** | Interface adds `evaluatorFee: boolean` and `hook: Address`. |
+| **`BidInfo`** | Interface adds `status: BidStatus` (where `BidStatus` is the existing enum from `types.ts` with new values Pending/Rejected/Withdrawn replacing old Committed/Forfeited). |
+| **New methods** | `sweepUnclaimedStakes`, `getWithdrawStakeClaimableAt`, `getMinStake`, `getMaxStake`, `setMinStake`, `setMaxStake`, `setStakeBounds`, `getPlatformFeeBP`, `setPlatformFeeBPForToken`, `getBidStatus`. |
+| **`types.ts`** | `BidStatus` enum updated: `None=0, Pending=1, Revealed=2, Accepted=3, Rejected=4, Withdrawn=5`. |
+
+### CLI (cli/cli.ts)
+
+| Change | Detail |
+|--------|--------|
+| **`create-bidding-session`** | New options `--evaluator-fee` (flag) and `--hook <address>` (default zero). |
+| **New commands** | `sweep-unclaimed-stakes --session <id>` (O-9), `set-stake-bounds --min <wei> --max <wei>` (O-4), `set-platform-fee-for-token --token <address> --bp <number>` (O-11), `get-bid-status --session <id> --bidder <address>` (O-12). |
+
+### Subgraph (packages/subgraph)
+
+| Change | Detail |
+|--------|--------|
+| **`schema.graphql`** | `BiddingSession` adds `evaluatorFee: Boolean` and `hook: Bytes`. `Bid` adds `status: Int` (BidStatus enum value). |
+| **`bidding-system.ts`** | All 5 bid handlers set `bid.status` to the new enum value: 1 (Pending) on commit, 2 (Revealed) on reveal, 3 (Accepted) on accept and `StakeClaimed`, 4 (Rejected) on reject and `BidderSlashed`, 5 (Withdrawn) on `StakeWithdrawn`. |
+
+### Infrastructure
+
+| Change | Detail |
+|--------|--------|
+| **Upgrade script** | `contracts/script/UpgradeBiddingSystem_Phase45c.s.sol` (UUPS upgrade). Documents the O-8 hash-format change and post-upgrade owner actions (setStakeBounds). |
+| **Address manifest** | `config/address-manifest.json` version bumped to `2026-06-01-phase-45c`. |
+| **Storage baseline** | `node scripts/check-storage-layout.js --write` regenerated. 9/9 contracts compatible. |
+| **Verification** | `type-check:strict` ✓, `type-check` ✓, `lint` ✓, `test:components` 8/8 files 66/66 tests ✓, `forge test` 343/343 ✓, storage layout 9/9 compatible ✓. |
+
 ## [2026-06-01] — Phase 45b: Bidding Safety UUPS Upgrade (O-1/O-2/O-3/O-10/O-13/O-20)
 
 ### BiddingSystem Contract

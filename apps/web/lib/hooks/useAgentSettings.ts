@@ -1,3 +1,4 @@
+import { useState, useEffect, useCallback } from 'react';
 import { useWriteContract, useReadContract } from 'wagmi';
 import { parseAbi } from 'viem';
 import { CONTRACT_ADDRESSES } from '@/lib/contracts/config';
@@ -81,4 +82,71 @@ export function useAgentStats(agentId: bigint | undefined) {
     rating: reputation?.[0] ? Number(reputation[0]) / 1e18 : 0,
     feedbackCount: Number(feedbackCountData ?? 0),
   };
+}
+
+// ============== Phase 45d: Service pricing preferences ==============
+
+export interface ServicePricingPreferences {
+  defaultToken: `0x${string}`; // address(0) for native ETH
+  minPrice: bigint;            // wei raw
+  maxPrice: bigint;            // wei raw
+  autoAccept: boolean;         // auto-accept bids within range
+  minBudget: bigint;           // minimum job budget this agent will consider
+}
+
+const PREF_KEY = (agentId: bigint) => `kokonut:agent:${agentId.toString()}:pricing-prefs`;
+
+function readPreferences(agentId: bigint): ServicePricingPreferences {
+  if (typeof window === 'undefined') {
+    return { defaultToken: '0x0000000000000000000000000000000000000000', minPrice: 0n, maxPrice: 0n, autoAccept: false, minBudget: 0n };
+  }
+  const raw = localStorage.getItem(PREF_KEY(agentId));
+  if (!raw) {
+    return { defaultToken: '0x0000000000000000000000000000000000000000', minPrice: 0n, maxPrice: 0n, autoAccept: false, minBudget: 0n };
+  }
+  try {
+    return JSON.parse(raw) as ServicePricingPreferences;
+  } catch {
+    return { defaultToken: '0x0000000000000000000000000000000000000000', minPrice: 0n, maxPrice: 0n, autoAccept: false, minBudget: 0n };
+  }
+}
+
+function writePreferences(agentId: bigint, prefs: ServicePricingPreferences): void {
+  if (typeof window === 'undefined') return;
+  localStorage.setItem(PREF_KEY(agentId), JSON.stringify(prefs));
+}
+
+export function useServicePricingPreferences(agentId: bigint | undefined) {
+  const [prefs, setPrefs] = useState<ServicePricingPreferences>(
+    () => (agentId !== undefined
+      ? readPreferences(agentId)
+      : { defaultToken: '0x0000000000000000000000000000000000000000', minPrice: 0n, maxPrice: 0n, autoAccept: false, minBudget: 0n })
+  );
+
+  useEffect(() => {
+    if (agentId !== undefined) {
+      setPrefs(readPreferences(agentId));
+    }
+  }, [agentId]);
+
+  const save = useCallback(
+    (next: Partial<ServicePricingPreferences>) => {
+      if (agentId === undefined) return;
+      const merged = { ...prefs, ...next };
+      setPrefs(merged);
+      writePreferences(agentId, merged);
+    },
+    [agentId, prefs]
+  );
+
+  const isJobAcceptable = useCallback(
+    (budget: bigint): boolean => {
+      if (budget < prefs.minBudget) return false;
+      if (prefs.maxPrice > 0n && budget > prefs.maxPrice) return false;
+      return true;
+    },
+    [prefs]
+  );
+
+  return { preferences: prefs, save, isJobAcceptable };
 }

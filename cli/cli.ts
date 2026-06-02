@@ -3020,7 +3020,7 @@ program
 // BIDDING SYSTEM COMMANDS (Phase 41 - Updated for paymentToken + missing commands)
 
 const BIDDING_SYSTEM_ABI_PARSED = parseAbi([
-  'function createBiddingSession(address evaluator, uint256 maxBudget, uint256 deadline, bytes metadata, uint256 serviceId, address paymentToken) external payable returns (uint256 sessionId)',
+  'function createBiddingSession(address evaluator, uint256 maxBudget, uint256 deadline, bytes metadata, uint256 serviceId, address paymentToken, bool evaluatorFee, address hook) external payable returns (uint256 sessionId)',
   'function commitBid(uint256 sessionId, bytes32 commitHash) external payable',
   'function revealBid(uint256 sessionId, uint256 amount, string message, bytes32 salt) external',
   'function acceptBid(uint256 sessionId, uint256 bidId) external',
@@ -3030,35 +3030,51 @@ const BIDDING_SYSTEM_ABI_PARSED = parseAbi([
   'function completeSession(uint256 sessionId) external',
   'function closeBidding(uint256 sessionId) external',
   'function slashNoShow(uint256 sessionId, address bidder) external',
+  'function sweepUnclaimedStakes(uint256 sessionId) external returns (uint256 sweptCount)',
   'function withdrawFees(address token) external',
   'function accumulatedFeesByToken(address token) external view returns (uint256)',
+  'function minStake() external view returns (uint256)',
+  'function maxStake() external view returns (uint256)',
+  'function setMinStake(uint256 newMin) external',
+  'function setMaxStake(uint256 newMax) external',
+  'function setStakeBounds(uint256 newMin, uint256 newMax) external',
+  'function getPlatformFeeBP(address token) external view returns (uint256)',
+  'function setPlatformFeeBPForToken(address token, uint256 basisPoints_) external',
+  'function getBidStatus(uint256 sessionId, address bidder) external view returns (uint8)',
   'function createJobAndFund(uint256 sessionId, uint256 jobExpiredAt, string description) external payable returns (uint256 jobId)',
   'function cancelSession(uint256 sessionId) external',
   'function extendRevealWindow(uint256 sessionId, uint256 additionalSeconds) external',
-  'function getSession(uint256 sessionId) external view returns ((uint256 id, address creator, address evaluator, uint256 maxBudget, uint256 deadline, uint256 revealWindowEnd, bytes metadata, uint256 serviceId, uint256 jobId, address winner, uint256 winningBidId, bool jobCreated, uint8 status, bool useRandomEvaluator, address paymentToken))',
-  'function getBid(uint256 sessionId, uint256 bidId) external view returns ((uint256 bidId, address bidder, uint256 proposedAmount, uint256 stake, string message, bytes32 commitHash, bool revealed, bool accepted, bool rejected, bool stakeWithdrawn, uint256 timestamp))',
-  'function getUserBid(uint256 sessionId, address user) external view returns ((uint256 bidId, address bidder, uint256 proposedAmount, uint256 stake, string message, bytes32 commitHash, bool revealed, bool accepted, bool rejected, bool stakeWithdrawn, uint256 timestamp))',
-  'function getRevealedBids(uint256 sessionId) external view returns ((uint256 bidId, address bidder, uint256 proposedAmount, uint256 stake, string message, bytes32 commitHash, bool revealed, bool accepted, bool rejected, bool stakeWithdrawn, uint256 timestamp)[])',
+  'function getSession(uint256 sessionId) external view returns ((uint256 id, address creator, address evaluator, uint256 maxBudget, uint256 deadline, uint256 revealWindowEnd, bytes metadata, uint256 serviceId, uint256 jobId, address winner, uint256 winningBidId, bool jobCreated, uint8 status, bool useRandomEvaluator, address paymentToken, bool evaluatorFee, address hook))',
+  'function getBid(uint256 sessionId, uint256 bidId) external view returns ((uint256 bidId, address bidder, uint256 proposedAmount, uint256 stake, string message, bytes32 commitHash, bool revealed, bool accepted, bool rejected, bool stakeWithdrawn, uint256 timestamp, uint8 status))',
+  'function getUserBid(uint256 sessionId, address user) external view returns ((uint256 bidId, address bidder, uint256 proposedAmount, uint256 stake, string message, bytes32 commitHash, bool revealed, bool accepted, bool rejected, bool stakeWithdrawn, uint256 timestamp, uint8 status))',
+  'function getRevealedBids(uint256 sessionId) external view returns ((uint256 bidId, address bidder, uint256 proposedAmount, uint256 stake, string message, bytes32 commitHash, bool revealed, bool accepted, bool rejected, bool stakeWithdrawn, uint256 timestamp, uint8 status)[])',
   'function sessionCounter() external view returns (uint256)',
   'function calculateStake(uint256 maxBudget) external pure returns (uint256)',
   'event BiddingSessionCreated(uint256 indexed sessionId, address indexed creator, address indexed evaluator, uint256 maxBudget, uint256 deadline, uint256 serviceId)',
   'event JobCreatedFromSession(uint256 indexed sessionId, uint256 indexed jobId, address indexed winner, uint256 amount)',
+  'event BidderSlashed(uint256 indexed sessionId, address indexed bidder, uint256 slashAmount, uint256 refundAmount)',
+  'event BiddingClosed(uint256 indexed sessionId, address indexed caller, uint256 closedAt)',
+  'event EvaluatorFinalized(uint256 indexed sessionId, address indexed evaluator, uint256 finalizedAt)',
+  'event FeesWithdrawn(address indexed token, address indexed to, uint256 amount)',
 ]);
 
 program
   .command('create-bidding-session')
   .description('Create a new bidding session')
-  .requiredOption('--evaluator <address>', 'Evaluator address')
+  .requiredOption('--evaluator <address>', 'Evaluator address (0x0 for random pool)')
   .requiredOption('--max-budget <amount>', 'Maximum budget in ETH (e.g., 5)', parseFloat)
   .requiredOption('--deadline <timestamp>', 'Deadline timestamp (Unix epoch)', parseInt)
   .option('--metadata <string>', 'IPFS or data URI for job metadata')
   .option('--service-id <id>', 'Linked service ID', parseInt)
   .option('--payment-token <address>', 'Payment token address (0x0 for ETH, or ERC-20 address)')
+  .option('--evaluator-fee', 'Enable evaluator fee share (Phase 45c O-6)', false)
+  .option('--hook <address>', 'Post-bid hook contract address (Phase 45c O-7)', ZeroAddress)
   .action(async options => {
     try {
       const opts = program.opts();
       initWallet(undefined, opts.wallet, opts.passphrase);
       const paymentToken = options.paymentToken || ZeroAddress;
+      const hookAddress = options.hook || ZeroAddress;
 
       if (!config.contracts.biddingSystem) {
         console.error(chalk.red('❌ BiddingSystem not configured'));
@@ -3079,6 +3095,8 @@ program
       console.log(chalk.dim('  Payment Token:'), isEth ? 'ETH' : paymentToken);
       console.log(chalk.dim('  Stake:'), viemFormatEther(stake), isEth ? 'ETH' : '(ERC-20)');
       console.log(chalk.dim('  Deadline:'), new Date(options.deadline * 1000).toISOString());
+      console.log(chalk.dim('  Evaluator Fee:'), options.evaluatorFee ? 'enabled' : 'disabled');
+      console.log(chalk.dim('  Hook:'), hookAddress);
 
       const hash = await contract.write.createBiddingSession(
         [
@@ -3088,6 +3106,8 @@ program
           (options.metadata || '0x') as `0x${string}`,
           BigInt(options.serviceId || 0),
           paymentToken as Address,
+          options.evaluatorFee,
+          hookAddress as Address,
         ],
         isEth ? { value: stake } : {}
       );
@@ -3722,6 +3742,149 @@ program
     }
   });
 
+// Phase 45c O-9: Sweep unclaimed stakes
+program
+  .command('sweep-unclaimed-stakes')
+  .description('Permissionlessly sweep un-withdrawn stakes to treasury after 30-day window (Phase 45c O-9)')
+  .requiredOption('--session <id>', 'Session ID', parseInt)
+  .action(async (options) => {
+    try {
+      const opts = program.opts();
+      initWallet(undefined, opts.wallet, opts.passphrase);
+
+      if (!config.contracts.biddingSystem) {
+        console.error(chalk.red('❌ BiddingSystem not configured'));
+        return;
+      }
+
+      const contract = getContractInstance(
+        config.contracts.biddingSystem as Address,
+        BIDDING_SYSTEM_ABI_PARSED
+      );
+
+      console.log(chalk.cyan('Sweeping unclaimed stakes...'));
+      console.log(chalk.dim('  Session ID:'), options.session);
+
+      const hash = await contract.write.sweepUnclaimedStakes([BigInt(options.session)]);
+
+      console.log(chalk.cyan('Transaction sent:'), hash);
+      const receipt = await waitForTransactionReceipt(hash);
+      console.log(chalk.green('✅ Sweep complete!'));
+      console.log(chalk.cyan('Gas used:'), receipt.gasUsed.toString());
+    } catch (error: unknown) {
+      const err = error as { message?: string };
+      console.error(chalk.red('❌ Error:'), err.message);
+    }
+  });
+
+// Phase 45c O-4: Stake bounds admin
+program
+  .command('set-stake-bounds')
+  .description('Set the min/max stake bounds (owner only, Phase 45c O-4)')
+  .requiredOption('--min <wei>', 'Min stake in wei', BigInt)
+  .requiredOption('--max <wei>', 'Max stake in wei', BigInt)
+  .action(async (options) => {
+    try {
+      const opts = program.opts();
+      initWallet(undefined, opts.wallet, opts.passphrase);
+
+      if (!config.contracts.biddingSystem) {
+        console.error(chalk.red('❌ BiddingSystem not configured'));
+        return;
+      }
+
+      const contract = getContractInstance(
+        config.contracts.biddingSystem as Address,
+        BIDDING_SYSTEM_ABI_PARSED
+      );
+
+      console.log(chalk.cyan('Setting stake bounds...'));
+      console.log(chalk.dim('  Min:'), options.min.toString(), 'wei');
+      console.log(chalk.dim('  Max:'), options.max.toString(), 'wei');
+
+      const hash = await contract.write.setStakeBounds([options.min, options.max]);
+      console.log(chalk.cyan('Transaction sent:'), hash);
+      const receipt = await waitForTransactionReceipt(hash);
+      console.log(chalk.green('✅ Stake bounds updated!'));
+      console.log(chalk.cyan('Gas used:'), receipt.gasUsed.toString());
+    } catch (error: unknown) {
+      const err = error as { message?: string };
+      console.error(chalk.red('❌ Error:'), err.message);
+    }
+  });
+
+// Phase 45c O-11: Per-token platform fee
+program
+  .command('set-platform-fee-for-token')
+  .description('Set the per-token platform fee in basis points (owner only, Phase 45c O-11)')
+  .requiredOption('--token <address>', 'Token address (0x0 for global default)')
+  .requiredOption('--bp <number>', 'Fee in basis points (0-1000 = 0-10%)', parseInt)
+  .action(async (options) => {
+    try {
+      const opts = program.opts();
+      initWallet(undefined, opts.wallet, opts.passphrase);
+
+      if (!config.contracts.biddingSystem) {
+        console.error(chalk.red('❌ BiddingSystem not configured'));
+        return;
+      }
+
+      const contract = getContractInstance(
+        config.contracts.biddingSystem as Address,
+        BIDDING_SYSTEM_ABI_PARSED
+      );
+
+      console.log(chalk.cyan('Setting per-token platform fee...'));
+      console.log(chalk.dim('  Token:'), options.token);
+      console.log(chalk.dim('  Fee:'), options.bp, 'bp');
+
+      const hash = await contract.write.setPlatformFeeBPForToken([
+        options.token as Address,
+        BigInt(options.bp),
+      ]);
+      console.log(chalk.cyan('Transaction sent:'), hash);
+      const receipt = await waitForTransactionReceipt(hash);
+      console.log(chalk.green('✅ Platform fee set!'));
+      console.log(chalk.cyan('Gas used:'), receipt.gasUsed.toString());
+    } catch (error: unknown) {
+      const err = error as { message?: string };
+      console.error(chalk.red('❌ Error:'), err.message);
+    }
+  });
+
+// Phase 45c O-12: BidStatus lookup
+program
+  .command('get-bid-status')
+  .description('Get the explicit BidStatus for a (sessionId, bidder) pair (Phase 45c O-12)')
+  .requiredOption('--session <id>', 'Session ID', parseInt)
+  .requiredOption('--bidder <address>', 'Bidder address')
+  .action(async (options) => {
+    try {
+      const opts = program.opts();
+      initWallet(undefined, opts.wallet, opts.passphrase);
+
+      if (!config.contracts.biddingSystem) {
+        console.error(chalk.red('❌ BiddingSystem not configured'));
+        return;
+      }
+
+      const contract = getContractInstance(
+        config.contracts.biddingSystem as Address,
+        BIDDING_SYSTEM_ABI_PARSED
+      );
+
+      const status = Number(await contract.read.getBidStatus([
+        BigInt(options.session),
+        options.bidder as Address,
+      ]));
+      const labels = ['None', 'Pending', 'Revealed', 'Accepted', 'Rejected', 'Withdrawn'];
+      console.log(chalk.cyan('BidStatus:'), status, '(' + (labels[status] || 'Unknown') + ')');
+    } catch (error: unknown) {
+      const err = error as { message?: string };
+      console.error(chalk.red('❌ Error:'), err.message);
+    }
+  });
+
 // ============================================================================
 // Phase 24: Milestone Commands
 // ============================================================================
@@ -4270,6 +4433,227 @@ program
     }
   });
 
+// ============================================================================
+// Phase 45d: Contract Feature Parity commands
+// ============================================================================
+
+program
+  .command('slash-by-governance')
+  .description('Slash an evaluator via the on-chain governance path (Phase 45d)')
+  .requiredOption('--address <address>', 'Evaluator address')
+  .requiredOption('--reason <string>', 'Slash reason')
+  .action(async (options) => {
+    try {
+      initWallet();
+      const abi = parseAbi(['function slashByGovernance(address evaluator, string reason) external']);
+      const commerce = getContractInstance(config.contracts.agenticCommerce, abi);
+      console.log(chalk.cyan('Slashing evaluator...'));
+      const hash = await commerce.write.slashByGovernance([options.address as Address, options.reason]);
+      console.log(chalk.cyan('Transaction sent:'), hash);
+      await waitForTransactionReceipt(hash);
+      console.log(chalk.green('✅ Slash submitted'));
+    } catch (error: unknown) {
+      const err = error as { message?: string };
+      console.error(chalk.red('❌ Error:'), err.message);
+    }
+  });
+
+program
+  .command('set-dispute-window')
+  .description('Set the per-job dispute window (Phase 45d)')
+  .requiredOption('--job <id>', 'Job ID', parseInt)
+  .requiredOption('--seconds <number>', 'Window in seconds', parseInt)
+  .action(async (options) => {
+    try {
+      initWallet();
+      const abi = parseAbi(['function setDisputeWindow(uint256 jobId, uint256 window) external']);
+      const commerce = getContractInstance(config.contracts.agenticCommerce, abi);
+      console.log(chalk.cyan('Setting dispute window...'));
+      const hash = await commerce.write.setDisputeWindow([BigInt(options.job), BigInt(options.seconds)]);
+      console.log(chalk.cyan('Transaction sent:'), hash);
+      await waitForTransactionReceipt(hash);
+      console.log(chalk.green('✅ Dispute window set'));
+    } catch (error: unknown) {
+      const err = error as { message?: string };
+      console.error(chalk.red('❌ Error:'), err.message);
+    }
+  });
+
+program
+  .command('set-non-responsive-slash-bp')
+  .description('Set the per-job non-responsive slash basis points (Phase 45d)')
+  .requiredOption('--job <id>', 'Job ID (0 for global)', parseInt)
+  .requiredOption('--bp <number>', 'Slash BP (0-10000)', parseInt)
+  .action(async (options) => {
+    try {
+      initWallet();
+      const abi = parseAbi(['function setNonResponsiveSlashBP(uint256 jobId, uint256 slashBP) external']);
+      const commerce = getContractInstance(config.contracts.agenticCommerce, abi);
+      console.log(chalk.cyan('Setting slash BP...'));
+      const hash = await commerce.write.setNonResponsiveSlashBP([BigInt(options.job), BigInt(options.bp)]);
+      console.log(chalk.cyan('Transaction sent:'), hash);
+      await waitForTransactionReceipt(hash);
+      console.log(chalk.green('✅ Slash BP set'));
+    } catch (error: unknown) {
+      const err = error as { message?: string };
+      console.error(chalk.red('❌ Error:'), err.message);
+    }
+  });
+
+program
+  .command('set-min-evaluator-stake')
+  .description('Set the minimum evaluator stake (Phase 45d)')
+  .requiredOption('--wei <amount>', 'Minimum stake in wei')
+  .action(async (options) => {
+    try {
+      initWallet();
+      const abi = parseAbi(['function setMinEvaluatorStake(uint256) external']);
+      const commerce = getContractInstance(config.contracts.agenticCommerce, abi);
+      console.log(chalk.cyan('Setting min evaluator stake...'));
+      const hash = await commerce.write.setMinEvaluatorStake([BigInt(options.wei)]);
+      console.log(chalk.cyan('Transaction sent:'), hash);
+      await waitForTransactionReceipt(hash);
+      console.log(chalk.green('✅ Min stake set'));
+    } catch (error: unknown) {
+      const err = error as { message?: string };
+      console.error(chalk.red('❌ Error:'), err.message);
+    }
+  });
+
+const PRICE_ORACLE_ABI = parseAbi([
+  'function setAllowedToken(address token, bool allowed, uint8 decimals) external',
+  'function setTokenPriceFeed(address token, address feed) external',
+]);
+
+program
+  .command('add-allowed-token')
+  .description('Add a token to the AgenticCommerce allowlist (Phase 45d)')
+  .requiredOption('--address <address>', 'Token address')
+  .requiredOption('--decimals <number>', 'Token decimals', parseInt)
+  .option('--stable', 'Mark as stablecoin')
+  .action(async (options) => {
+    try {
+      initWallet();
+      const abi = parseAbi(['function setAllowedToken(address token, bool allowed, uint8 decimals) external']);
+      const commerce = getContractInstance(config.contracts.agenticCommerce, abi);
+      console.log(chalk.cyan('Adding token...'));
+      const hash = await commerce.write.setAllowedToken([options.address as Address, true, options.decimals]);
+      console.log(chalk.cyan('Transaction sent:'), hash);
+      await waitForTransactionReceipt(hash);
+      if (options.stable) {
+        const stableAbi = parseAbi(['function setStablecoin(address token, bool isStable) external']);
+        const commerce2 = getContractInstance(config.contracts.agenticCommerce, stableAbi);
+        const hash2 = await commerce2.write.setStablecoin([options.address as Address, true]);
+        await waitForTransactionReceipt(hash2);
+        console.log(chalk.green('✅ Token added + flagged stablecoin'));
+      } else {
+        console.log(chalk.green('✅ Token added'));
+      }
+    } catch (error: unknown) {
+      const err = error as { message?: string };
+      console.error(chalk.red('❌ Error:'), err.message);
+    }
+  });
+
+program
+  .command('remove-allowed-token')
+  .description('Remove a token from the AgenticCommerce allowlist (Phase 45d)')
+  .requiredOption('--address <address>', 'Token address')
+  .action(async (options) => {
+    try {
+      initWallet();
+      const abi = parseAbi(['function setAllowedToken(address token, bool allowed, uint8 decimals) external']);
+      const commerce = getContractInstance(config.contracts.agenticCommerce, abi);
+      console.log(chalk.cyan('Removing token...'));
+      const hash = await commerce.write.setAllowedToken([options.address as Address, false, 18]);
+      console.log(chalk.cyan('Transaction sent:'), hash);
+      await waitForTransactionReceipt(hash);
+      console.log(chalk.green('✅ Token removed'));
+    } catch (error: unknown) {
+      const err = error as { message?: string };
+      console.error(chalk.red('❌ Error:'), err.message);
+    }
+  });
+
+program
+  .command('set-platform-fee-by-token')
+  .description('Set per-token platform fee in basis points via PriceOracle mapping (Phase 45d)')
+  .requiredOption('--address <address>', 'Token address')
+  .requiredOption('--bp <number>', 'Fee in basis points (0-10000)', parseInt)
+  .action(async (options) => {
+    try {
+      initWallet();
+      const abi = parseAbi(['function setPlatformFeeBPForToken(address token, uint256 basisPoints) external']);
+      const bidding = getContractInstance(config.contracts.biddingSystem, abi);
+      console.log(chalk.cyan('Setting per-token platform fee...'));
+      const hash = await bidding.write.setPlatformFeeBPForToken([options.address as Address, BigInt(options.bp)]);
+      console.log(chalk.cyan('Transaction sent:'), hash);
+      await waitForTransactionReceipt(hash);
+      console.log(chalk.green('✅ Per-token fee set'));
+    } catch (error: unknown) {
+      const err = error as { message?: string };
+      console.error(chalk.red('❌ Error:'), err.message);
+    }
+  });
+
+program
+  .command('set-min-stake')
+  .description('Set the minimum session stake (Phase 45d)')
+  .requiredOption('--wei <amount>', 'Min stake in wei')
+  .action(async (options) => {
+    try {
+      initWallet();
+      const abi = parseAbi(['function setMinStake(uint256) external']);
+      const bidding = getContractInstance(config.contracts.biddingSystem, abi);
+      console.log(chalk.cyan('Setting min stake...'));
+      const hash = await bidding.write.setMinStake([BigInt(options.wei)]);
+      console.log(chalk.cyan('Transaction sent:'), hash);
+      await waitForTransactionReceipt(hash);
+      console.log(chalk.green('✅ Min stake set'));
+    } catch (error: unknown) {
+      const err = error as { message?: string };
+      console.error(chalk.red('❌ Error:'), err.message);
+    }
+  });
+
+program
+  .command('set-max-stake')
+  .description('Set the maximum session stake (Phase 45d)')
+  .requiredOption('--wei <amount>', 'Max stake in wei')
+  .action(async (options) => {
+    try {
+      initWallet();
+      const abi = parseAbi(['function setMaxStake(uint256) external']);
+      const bidding = getContractInstance(config.contracts.biddingSystem, abi);
+      console.log(chalk.cyan('Setting max stake...'));
+      const hash = await bidding.write.setMaxStake([BigInt(options.wei)]);
+      console.log(chalk.cyan('Transaction sent:'), hash);
+      await waitForTransactionReceipt(hash);
+      console.log(chalk.green('✅ Max stake set'));
+    } catch (error: unknown) {
+      const err = error as { message?: string };
+      console.error(chalk.red('❌ Error:'), err.message);
+    }
+  });
+
+program
+  .command('set-min-deadline')
+  .description('Note: deadline min is the contract constant 1 hour. This is a no-op (Phase 45d)')
+  .requiredOption('--seconds <number>', 'Seconds (informational)', parseInt)
+  .action((options) => {
+    console.log(chalk.yellow('Note:'), 'setMinDeadline is not yet available on the contract; deadline min is 1 hour');
+    void options;
+  });
+
+program
+  .command('set-max-deadline')
+  .description('Note: deadline max is the contract constant 30 days. This is a no-op (Phase 45d)')
+  .requiredOption('--seconds <number>', 'Seconds (informational)', parseInt)
+  .action((options) => {
+    console.log(chalk.yellow('Note:'), 'setMaxDeadline is not yet available on the contract; deadline max is 30 days');
+    void options;
+  });
+
 // 🎯 HELP COMMAND
 program
   .command('help')
@@ -4334,6 +4718,15 @@ program
     console.log(chalk.cyan('  get-bid') + '                Get specific bid details');
     console.log(chalk.cyan('  get-session-count') + '      Get total session count');
     console.log(chalk.cyan('  withdraw-bidding-stake') + '  Withdraw your stake');
+    console.log(chalk.cyan('  -- BiddingSystem (Phase 45b) --'));
+    console.log(chalk.cyan('  close-bidding') + '         Permissionlessly close bidding (after deadline)');
+    console.log(chalk.cyan('  slash-no-show') + '         Slash a no-show bidder (5%)');
+    console.log(chalk.cyan('  withdraw-fees <token>') + ' Withdraw platform fees for a token');
+    console.log(chalk.cyan('  -- BiddingSystem (Phase 45c) --'));
+    console.log(chalk.cyan('  sweep-unclaimed-stakes') + ' Sweep un-withdrawn stakes after 30 days (O-9)');
+    console.log(chalk.cyan('  set-stake-bounds') + '      Set min/max stake bounds (O-4)');
+    console.log(chalk.cyan('  set-platform-fee-for-token') + ' Set per-token fee (O-11)');
+    console.log(chalk.cyan('  get-bid-status') + '        Get explicit BidStatus for a bid (O-12)');
     console.log(chalk.cyan('  activate-service') + '       Activate a deactivated service');
     console.log(chalk.cyan('  get-service-counter') + '   Get total service counter');
     console.log(

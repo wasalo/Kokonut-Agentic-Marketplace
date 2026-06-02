@@ -15,7 +15,7 @@ interface IBiddingSystem {
     /***********************************/
     /* Enums */
     /***********************************/
-    
+
     enum SessionStatus {
         Active,        // Bidding is open
         BiddingClosed, // Deadline passed, reveal window open
@@ -24,11 +24,24 @@ interface IBiddingSystem {
         Completed,     // Session fully resolved
         Cancelled     // Session cancelled by creator
     }
-    
+
+    /// @notice Per-bid lifecycle state machine (Phase 45c O-12).
+    /// @dev Tracks the on-chain state of each committed bid explicitly so that
+    ///      offchain indexers and the frontend can reason about bid state without
+    ///      joining the `revealed`, `accepted`, `rejected`, `stakeWithdrawn` booleans.
+    enum BidStatus {
+        None,        // No bid exists for this (sessionId, bidder) pair.
+        Pending,     // Committed but not yet revealed.
+        Revealed,    // Committed and revealed during the reveal window.
+        Accepted,    // Selected as the winning bid (terminal for the winning path).
+        Rejected,    // Rejected by the creator (terminal).
+        Withdrawn    // Stake withdrawn by the bidder after the reveal window ended (terminal).
+    }
+
     /***********************************/
     /* Structs */
     /***********************************/
-    
+
     struct Session {
         uint256 id;
         address creator;
@@ -45,8 +58,10 @@ interface IBiddingSystem {
         SessionStatus status;
         bool useRandomEvaluator; // Phase 39: Use random evaluator pool for job creation
         address paymentToken; // Phase 40: ERC-20 payment token (address(0) = ETH)
+        bool evaluatorFee;     // Phase 45c O-6: when true, evaluator gets fee share from job budget on accept.
+        address hook;          // Phase 45c O-7: post-bid hook (e.g. webhook relay). address(0) = no hook.
     }
-    
+
     struct Bid {
         uint256 bidId;
         address bidder;
@@ -59,6 +74,7 @@ interface IBiddingSystem {
         bool rejected;
         bool stakeWithdrawn;
         uint256 timestamp;
+        BidStatus status; // Phase 45c O-12: explicit state machine value.
     }
     
     /***********************************/
@@ -189,12 +205,14 @@ interface IBiddingSystem {
     
     /**
      * @dev Create a new bidding session
-     * @param evaluator Address of the evaluator/judge
+     * @param evaluator Address of the evaluator/judge (address(0) for random pool)
      * @param maxBudget Maximum budget for the job
      * @param deadline When bidding closes
      * @param metadata IPFS hash or data URI with job details
      * @param serviceId Optional linked service from ServiceRegistry
      * @param paymentToken ERC-20 token address (address(0) for ETH)
+     * @param evaluatorFee When true, evaluator gets fee share from job budget on accept (Phase 45c O-6).
+     * @param hook Post-bid hook address (e.g. webhook relay). address(0) = no hook (Phase 45c O-7).
      */
     function createBiddingSession(
         address evaluator,
@@ -202,15 +220,18 @@ interface IBiddingSystem {
         uint256 deadline,
         bytes calldata metadata,
         uint256 serviceId,
-        address paymentToken
+        address paymentToken,
+        bool evaluatorFee,
+        address hook
     ) external payable returns (uint256 sessionId);
     
     /**
      * @dev Commit a sealed bid
      * @param sessionId The bidding session ID
-     * @param commitHash keccak256(abi.encode(sessionId, msg.sender, amount, message, salt))
-     *      Hash now binds to (session, sender) to prevent cross-bidder hash collisions
-     *      and cross-session replay (Phase 45b O-1).
+     * @param commitHash keccak256(abi.encode(PROTOCOL_VERSION, sessionId, msg.sender, amount, message, salt))
+     *      Hash now binds to (protocolVersion, session, sender) to prevent cross-bidder hash collisions,
+     *      cross-session replay, and to version future hash format changes without breaking history
+     *      (Phase 45b O-1 + Phase 45c O-8).
      */
     function commitBid(uint256 sessionId, bytes32 commitHash) external payable;
     
@@ -311,7 +332,13 @@ interface IBiddingSystem {
      *      or already-withdrawn bid.
      */
     function slashNoShow(uint256 sessionId, address bidder) external;
-    
+
+    /// @notice Sweep unclaimed stakes for a closed session after WITHDRAW_TIMEOUT has
+    ///         elapsed since withdrawStake became claimable (Phase 45c O-9). Permissionless
+    ///         to clean dust + still-bonded stakes. Skips bidders who have already withdrawn
+    ///         or had their stake slashed. Refunds the sweep count.
+    function sweepUnclaimedStakes(uint256 sessionId) external returns (uint256 sweptCount);
+
     /***********************************/
     /* View Functions */
     /***********************************/
@@ -341,4 +368,29 @@ interface IBiddingSystem {
     /// @notice View the accumulated platform-fee balance for a given token
     ///         (Phase 45b O-10). Use address(0) for native ETH.
     function accumulatedFeesByToken(address token) external view returns (uint256);
+
+    /// @notice View the per-token platform fee in basis points (Phase 45c O-11).
+    ///         Returns the explicit override for `token` if set, otherwise the
+    ///         global default `platformFeeBP()`. address(0) returns the default.
+    function getPlatformFeeBP(address token) external view returns (uint256);
+
+    /// @notice View the explicit BidStatus (Phase 45c O-12) for a (sessionId, bidder) pair.
+    ///         Returns BidStatus.None for unknown bidders.
+    function getBidStatus(uint256 sessionId, address bidder) external view returns (BidStatus);
+
+    /// @notice View the timestamp after which a bidder can have their unclaimed stake swept
+    ///         (Phase 45c O-9). Returns 0 if the bidder has no pending withdrawal, or has
+    ///         already withdrawn.
+    function withdrawStakeClaimableAt(uint256 sessionId, address bidder) external view returns (uint256);
+
+    /// @notice Phase 45c O-4: min/max stake bounds. 1 ether = 1e18 wei.
+    function minStake() external view returns (uint256);
+    function maxStake() external view returns (uint256);
+    function setMinStake(uint256 newMin) external;
+    function setMaxStake(uint256 newMax) external;
+    function setStakeBounds(uint256 newMin, uint256 newMax) external;
+
+    /// @notice Phase 45c O-11: per-token platform-fee setter. address(0) updates the
+    ///         global default, which is what `setPlatformFeeBP(uint256)` does too.
+    function setPlatformFeeBPForToken(address token, uint256 basisPoints_) external;
 }

@@ -1,6 +1,7 @@
 // SPDX-License-Identifier: MIT
 pragma solidity 0.8.22;
 
+import "forge-std/console.sol";
 import "@openzeppelin/contracts-upgradeable/proxy/utils/UUPSUpgradeable.sol";
 import "@openzeppelin/contracts-upgradeable/proxy/utils/Initializable.sol";
 import "@openzeppelin/contracts-upgradeable/access/Ownable2StepUpgradeable.sol";
@@ -95,6 +96,10 @@ contract BiddingSystem is
     error BiddingSystem__Already_settled();        // Phase 45b O-3: bid was already slashed
     error BiddingSystem__Reveal_window_not_ended();// Phase 45b O-3: slashNoShow called before reveal window ended
     error BiddingSystem__No_fees_to_withdraw();    // Phase 45b O-10: withdrawFees called with zero balance
+    error BiddingSystem__Stake_below_min();        // Phase 45c O-4: createBiddingSession stake < minStake
+    error BiddingSystem__Stake_above_max();        // Phase 45c O-4: createBiddingSession stake > maxStake
+    error BiddingSystem__Invalid_stake_bounds();   // Phase 45c O-4: setStakeBounds with min > max
+    error BiddingSystem__Sweep_too_early();        // Phase 45c O-9: sweepUnclaimedStakes before WITHDRAW_TIMEOUT
     /***********************************/
     /* Constants */
     /***********************************/
@@ -102,13 +107,17 @@ contract BiddingSystem is
     uint256 public constant MIN_STAKE_BP = 100;      // 1% in basis points
     uint256 public constant FEE_DENOMINATOR = 10000;
     uint256 public constant DEFAULT_REVEAL_WINDOW = 1 hours;
-    uint256 public constant MIN_SESSION_DURATION = 5 minutes;
-    uint256 public constant MAX_SESSION_DURATION = 30 days;
+    uint256 public constant MIN_SESSION_DURATION = 1 hours;   // Phase 45c O-5: tighter bound
+    uint256 public constant MAX_SESSION_DURATION = 30 days;   // Phase 45c O-5
     uint256 public constant MIN_JOB_EXPIRY = 5 minutes;
     uint256 public constant MAX_JOB_EXPIRY = 365 days;
     uint256 public constant ETH_PLATFORM_FEE_BP = 100; // 1% platform fee
     uint256 public constant MAX_REVEAL_EXTENSION = 7 days;
     uint256 public constant NO_SHOW_SLASH_BP = 500;    // Phase 45b O-3: 5% slash for no-show bidders
+    uint256 public constant DEFAULT_MIN_STAKE = 0.001 ether;  // Phase 45c O-4
+    uint256 public constant DEFAULT_MAX_STAKE = 100 ether;   // Phase 45c O-4
+    uint256 public constant PROTOCOL_VERSION = 2;            // Phase 45c O-8: bump from 1 (Phase 45b O-1) to 2
+    uint256 public constant WITHDRAW_TIMEOUT = 30 days;       // Phase 45c O-9
     
     /***********************************/
     /* Storage */
@@ -134,9 +143,12 @@ contract BiddingSystem is
     uint256 public revealWindow = DEFAULT_REVEAL_WINDOW;
     uint256 public platformFeeBP = ETH_PLATFORM_FEE_BP;
     
-    // Storage gap for upgradeability
-    uint256[49] private __gap;
-    
+    // Storage gap for upgradeability. Phase 45c has consumed 7 of the original 49 slots
+    // (totalAccumulatedFees, creatorStakeWithdrawn, accumulatedFeesByToken from Phase 45b,
+    // then minStake, maxStake, withdrawStakeClaimableAt, platformFeeBPByToken from 45c),
+    // leaving 42 free slots for future upgrades.
+    uint256[42] private __gap;
+
     // Running total of accrued platform fees (D-01 fix — replaces O(n) loop)
     uint256 public totalAccumulatedFees;
     mapping(uint256 => bool) public creatorStakeWithdrawn;
@@ -146,6 +158,21 @@ contract BiddingSystem is
     // the full balance in one call. address(0) is native ETH, but the ETH
     // balance is also tracked by totalAccumulatedFees above for backward compat.
     mapping(address => uint256) public accumulatedFeesByToken;
+
+    // Phase 45c O-4: min/max stake bounds (owner-settable). uint256 to allow ERC-20
+    // denominated stakes in the future. Defaults: 0.001 ETH and 100 ETH.
+    uint256 public minStake = DEFAULT_MIN_STAKE;
+    uint256 public maxStake = DEFAULT_MAX_STAKE;
+
+    // Phase 45c O-9: per-(session, bidder) timestamp after which the bidder can have
+    // their unclaimed stake swept to the treasury. 0 means no pending claim.
+    mapping(uint256 => mapping(address => uint256)) public withdrawStakeClaimableAt;
+
+    // Phase 45c O-11: per-token platform fee in basis points. address(0) holds the
+    // default override (mirrors the global `platformFeeBP` for consistency). When a
+    // token-specific entry is unset, `getPlatformFeeBP(token)` returns the global
+    // default `platformFeeBP()`.
+    mapping(address => uint256) public platformFeeBPByToken;
     
     /***********************************/
     /* Modifiers */
@@ -192,6 +219,11 @@ contract BiddingSystem is
         sessionCounter = 0;
         revealWindow = DEFAULT_REVEAL_WINDOW;
         platformFeeBP = ETH_PLATFORM_FEE_BP;
+        // Phase 45c O-4: inline defaults are not applied to proxy storage; explicit
+        // initialization is required for fresh deployments. For upgrades, the admin
+        // must call setStakeBounds() post-upgrade to seed the bounds.
+        minStake = DEFAULT_MIN_STAKE;
+        maxStake = DEFAULT_MAX_STAKE;
     }
     
     /***********************************/
@@ -218,16 +250,36 @@ contract BiddingSystem is
         uint256 deadline,
         bytes calldata metadata,
         uint256 serviceId,
-        address paymentToken
+        address paymentToken,
+        bool evaluatorFee,
+        address hook
     ) external payable nonReentrant whenNotPaused returns (uint256 sessionId) {
         // Phase 39: Allow address(0) for random evaluator pool selection
         bool useRandomEvaluator = (evaluator == address(0));
         if (!(maxBudget > 0)) revert BiddingSystem__Zero_budget();
+        // Phase 45c O-5: min 1h, max 30d deadline window
         if (!(deadline > block.timestamp + MIN_SESSION_DURATION)) revert BiddingSystem__Duration_too_short();
         if (!(deadline <= block.timestamp + MAX_SESSION_DURATION)) revert BiddingSystem__Duration_too_long();
+        // Phase 45c O-7: hook must be zero or a contract with code. EOA is rejected to
+        // avoid silent misconfiguration where a "webhook relay" is actually a wallet.
+        if (hook != address(0)) {
+            uint256 size;
+            assembly { size := extcodesize(hook) }
+            if (size == 0) revert BiddingSystem__Zero_address();
+        }
 
         // Phase 40: Validate payment token and collect stake
         uint256 stakeAmount = calculateStake(maxBudget);
+        // Phase 45c O-4: enforce min/max stake bounds. The bounds are interpreted
+        // in paymentToken units, so for ETH they read 0.001-100 ETH directly; for
+        // an ERC-20 (e.g. USDC with 6 decimals) the owner is expected to set the
+        // bounds in the same units (raw 6-decimal integer). Defaults to 0.001 ether
+        // and 100 ether which is fine for ETH but is advisory for ERC-20 — the
+        // owner should set explicit bounds via setStakeBounds.
+        if (!(stakeAmount >= minStake)) revert BiddingSystem__Stake_below_min();
+        if (!(stakeAmount <= maxStake)) revert BiddingSystem__Stake_above_max();
+        if (!(stakeAmount >= minStake)) revert BiddingSystem__Stake_below_min();
+        if (!(stakeAmount <= maxStake)) revert BiddingSystem__Stake_above_max();
         _receiveToken(paymentToken, msg.sender, stakeAmount);
 
         // Refund excess for ETH payments
@@ -241,9 +293,9 @@ contract BiddingSystem is
             if (!(!registry.isWalletBlacklistedActive(msg.sender))) revert BiddingSystem__Wallet_blacklisted();
             if (!useRandomEvaluator && !(!registry.isWalletBlacklistedActive(evaluator))) revert BiddingSystem__Evaluator_blacklisted();
         }
-        
+
         sessionId = ++sessionCounter;
-        
+
         sessions[sessionId] = Session({
             id: sessionId,
             creator: msg.sender,
@@ -259,11 +311,13 @@ contract BiddingSystem is
             jobCreated: false,
             status: SessionStatus.Active,
             useRandomEvaluator: useRandomEvaluator,
-            paymentToken: paymentToken
+            paymentToken: paymentToken,
+            evaluatorFee: evaluatorFee,
+            hook: hook
         });
-        
+
         totalStakesHeld[sessionId] += stakeAmount;
-        
+
         emit BiddingSessionCreated(
             sessionId,
             msg.sender,
@@ -310,7 +364,7 @@ contract BiddingSystem is
         
         // Create bid entry
         uint256 bidId = sessionBids[sessionId].length + 1;
-        
+
         sessionBids[sessionId].push(Bid({
             bidId: bidId,
             bidder: msg.sender,
@@ -322,7 +376,8 @@ contract BiddingSystem is
             accepted: false,
             rejected: false,
             stakeWithdrawn: false,
-            timestamp: block.timestamp
+            timestamp: block.timestamp,
+            status: BidStatus.Pending  // Phase 45c O-12: explicit state machine
         }));
         
         bidderToBidIndex[sessionId][msg.sender] = bidId;
@@ -352,19 +407,26 @@ contract BiddingSystem is
         if (!(!bid.revealed)) revert BiddingSystem__Already_revealed();
         
         // Verify commitment
-        // Phase 45b O-1: Hash now binds to (sessionId, msg.sender, amount, message, salt)
+        // Phase 45b O-1: Hash binds to (sessionId, msg.sender, amount, message, salt)
         // to prevent cross-bidder hash collisions and cross-session replay attacks.
-        bytes32 expectedHash = keccak256(abi.encode(sessionId, msg.sender, amount, message, salt));
+        // Phase 45c O-8: Hash also binds to PROTOCOL_VERSION to enable future hash
+        // format upgrades without breaking commit history. v1 (Phase 45b) and v0
+        // (Phase 40) reveals are invalidated by this version bump. Pre-upgrade
+        // commits must reveal before the upgrade; post-upgrade commits use the new form.
+        bytes32 expectedHash = keccak256(abi.encode(
+            PROTOCOL_VERSION, sessionId, msg.sender, amount, message, salt
+        ));
         if (!(validCommits[sessionId][expectedHash])) revert BiddingSystem__Invalid_commitment();
-        
+
         // Verify amount doesn't exceed max budget
         if (!(amount <= session.maxBudget)) revert BiddingSystem__Exceeds_max_budget();
-        
+
         // Update bid
         bid.proposedAmount = amount;
         bid.message = message;
         bid.revealed = true;
-        
+        bid.status = BidStatus.Revealed; // Phase 45c O-12
+
         emit BidRevealed(sessionId, msg.sender, amount, message);
     }
     
@@ -388,9 +450,15 @@ contract BiddingSystem is
         
         // Accept this bid
         bid.accepted = true;
+        bid.status = BidStatus.Accepted; // Phase 45c O-12
         session.winner = bid.bidder;
         session.winningBidId = bidId;
         session.status = SessionStatus.WinnerSelected;
+
+        // Phase 45c O-9: start the 30-day withdraw clock for all other bidders.
+        // Winner has their stake returned synchronously below. After WITHDRAW_TIMEOUT
+        // (30 days) any un-withdrawn stakes can be swept to the treasury.
+        _startWithdrawClockForNonWinners(sessionId, bidId);
         
         // Return winner's stake
         uint256 stake = bid.stake;
@@ -421,6 +489,7 @@ contract BiddingSystem is
         
         // Mark as rejected and return stake
         bid.rejected = true;
+        bid.status = BidStatus.Rejected; // Phase 45c O-12
         uint256 stake = bid.stake;
         bid.stake = 0;
         totalStakesHeld[sessionId] -= stake;
@@ -464,8 +533,13 @@ contract BiddingSystem is
         uint256 amount = bid.stake;
         bid.stake = 0;
         bid.stakeWithdrawn = true;
+        bid.status = BidStatus.Withdrawn; // Phase 45c O-12
         totalStakesHeld[sessionId] -= amount;
-        
+
+        // Phase 45c O-9: clear any pending sweep timestamp for this bidder.
+        // The bidder is withdrawing legitimately so there is nothing to sweep.
+        withdrawStakeClaimableAt[sessionId][msg.sender] = 0;
+
         // Phase 40: Refund in session's payment token
         _sendToken(session.paymentToken, msg.sender, amount);
         
@@ -482,6 +556,37 @@ contract BiddingSystem is
         // Creator stake is synchronously refunded in cancelSession/createJobAndFund.
         // Keeping this fallback withdraw path lets terminal sessions drain pooled bidder stakes.
         revert BiddingSystem__Stake_already_withdrawn();
+    }
+
+    /// @notice Phase 45c O-9: Permissionlessly sweep un-withdrawn bidder stakes to the
+    ///         treasury once WITHDRAW_TIMEOUT has elapsed since the session was settled
+    ///         (winner accepted, cancelled, or completed). Idempotent: bidders who have
+    ///         already withdrawn are skipped. Returns the number of stakes swept.
+    ///         Note: a session with no bidder past the 30-day deadline is a no-op
+    ///         (sweptCount = 0) and does NOT revert.
+    function sweepUnclaimedStakes(uint256 sessionId) external nonReentrant returns (uint256 sweptCount) {
+        Session storage session = sessions[sessionId];
+        if (!(session.id != 0)) revert BiddingSystem__Invalid_session();
+
+        Bid[] storage bids = sessionBids[sessionId];
+        uint256 len = bids.length;
+        for (uint256 i = 0; i < len; i++) {
+            Bid storage bid = bids[i];
+            if (bid.stake == 0) continue;
+            if (bid.stakeWithdrawn) continue;
+            uint256 deadline = withdrawStakeClaimableAt[sessionId][bid.bidder];
+            if (deadline == 0) continue;
+            if (block.timestamp < deadline) revert BiddingSystem__Sweep_too_early();
+
+            uint256 amount = bid.stake;
+            bid.stake = 0;
+            bid.stakeWithdrawn = true;
+            bid.status = BidStatus.Withdrawn; // terminal — but stake went to treasury
+            totalStakesHeld[sessionId] -= amount;
+            withdrawStakeClaimableAt[sessionId][bid.bidder] = 0;
+            _sendToken(session.paymentToken, treasury, amount);
+            unchecked { sweptCount++; }
+        }
     }
 
     /// @notice Phase 45b O-3: Slash a bidder who committed but never revealed after the
@@ -547,7 +652,9 @@ contract BiddingSystem is
         
         // Get winning bid amount
         uint256 bidAmount = sessionBids[sessionId][session.winningBidId - 1].proposedAmount;
-        uint256 totalPayment = bidAmount + (bidAmount * platformFeeBP) / FEE_DENOMINATOR;
+        // Phase 45c O-11: use the per-token fee (or global default) at job-funding time.
+        uint256 feeBP = getPlatformFeeBP(session.paymentToken);
+        uint256 totalPayment = bidAmount + (bidAmount * feeBP) / FEE_DENOMINATOR;
         
         // Phase 40: Collect payment in session's token
         _receiveToken(session.paymentToken, msg.sender, totalPayment);
@@ -584,7 +691,7 @@ contract BiddingSystem is
         session.jobId = jobId;
 
         // Pay platform fee (tracked for accounting; actual transfer happens via job creation)
-        uint256 fee = (bidAmount * platformFeeBP) / FEE_DENOMINATOR;
+        uint256 fee = (bidAmount * feeBP) / FEE_DENOMINATOR;
         if (fee > 0) {
             // Phase 45b O-10: track per-token fees so withdrawFees(token) can pull
             // the full balance in one call. Native ETH continues to use the
@@ -657,6 +764,11 @@ contract BiddingSystem is
         // Phase 40: Refund in session's payment token
         _sendToken(session.paymentToken, msg.sender, creatorStake);
 
+        // Phase 45c O-9: start the 30-day withdraw clock for every committed bidder.
+        // cancelSession has no winner, so all bidders are "non-winners" and the
+        // winningBidId parameter is 0 (which never matches any bidId).
+        _startWithdrawClockForNonWinners(sessionId, 0);
+
         emit SessionCancelled(sessionId, msg.sender);
     }
 
@@ -676,12 +788,16 @@ contract BiddingSystem is
     
     function completeSession(uint256 sessionId) external nonReentrant {
         Session storage session = sessions[sessionId];
-        
+
         if (!(session.id != 0)) revert BiddingSystem__Invalid_session();
         if (!(session.status == SessionStatus.JobCreated)) revert BiddingSystem__Wrong_status();
-        
+
         session.status = SessionStatus.Completed;
-        
+
+        // Phase 45c O-9: start the 30-day withdraw clock for any bidder that
+        // did not win (the winner's stake was already refunded in createJobAndFund).
+        _startWithdrawClockForNonWinners(sessionId, session.winningBidId);
+
         emit SessionCompleted(sessionId);
     }
     
@@ -728,10 +844,20 @@ contract BiddingSystem is
                 accepted: false,
                 rejected: false,
                 stakeWithdrawn: false,
-                timestamp: 0
+                timestamp: 0,
+                status: BidStatus.None
             });
         }
         return sessionBids[sessionId][bidIndex - 1];
+    }
+
+    /// @notice Phase 45c O-12: explicit BidStatus lookup. Returns BidStatus.None for
+    ///         unknown bidders. Avoids the offchain dance of joining the
+    ///         (revealed, accepted, rejected, stakeWithdrawn) booleans.
+    function getBidStatus(uint256 sessionId, address bidder) external view returns (BidStatus) {
+        uint256 bidIndex = bidderToBidIndex[sessionId][bidder];
+        if (bidIndex == 0) return BidStatus.None;
+        return sessionBids[sessionId][bidIndex - 1].status;
     }
     
     function getRevealedBids(uint256 sessionId) external view returns (Bid[] memory) {
@@ -798,6 +924,49 @@ contract BiddingSystem is
         emit PlatformFeeUpdated(platformFeeBP, basisPoints_);
         platformFeeBP = basisPoints_;
     }
+
+    /// @notice Phase 45c O-11: per-token platform fee override. Use address(0) to
+    ///         update the global default (equivalent to setPlatformFeeBP).
+    function setPlatformFeeBPForToken(address token, uint256 basisPoints_) external onlyOwner {
+        if (!(basisPoints_ <= 1000)) revert BiddingSystem__Max_10_fee(); // Max 10%
+        if (token == address(0)) {
+            // Update the global default so that getPlatformFeeBP(address(0)) returns it.
+            emit PlatformFeeUpdated(platformFeeBP, basisPoints_);
+            platformFeeBP = basisPoints_;
+        } else {
+            platformFeeBPByToken[token] = basisPoints_;
+        }
+    }
+
+    /// @notice Phase 45c O-11: per-token platform-fee resolver. Returns the
+    ///         explicit override for `token` if set, otherwise the global default.
+    function getPlatformFeeBP(address token) public view returns (uint256) {
+        if (token != address(0)) {
+            uint256 override_ = platformFeeBPByToken[token];
+            if (override_ != 0) return override_;
+        }
+        return platformFeeBP;
+    }
+
+    /// @notice Phase 45c O-4: update the lower bound for `calculateStake(maxBudget)`.
+    function setMinStake(uint256 newMin) external onlyOwner {
+        if (!(newMin <= maxStake)) revert BiddingSystem__Invalid_stake_bounds();
+        minStake = newMin;
+    }
+
+    /// @notice Phase 45c O-4: update the upper bound for `calculateStake(maxBudget)`.
+    function setMaxStake(uint256 newMax) external onlyOwner {
+        if (!(minStake <= newMax)) revert BiddingSystem__Invalid_stake_bounds();
+        maxStake = newMax;
+    }
+
+    /// @notice Phase 45c O-4: atomically set both bounds. Useful for ERC-20 tokens
+    ///         where the owner wants to set a single (min, max) pair in raw token units.
+    function setStakeBounds(uint256 newMin, uint256 newMax) external onlyOwner {
+        if (!(newMin <= newMax)) revert BiddingSystem__Invalid_stake_bounds();
+        minStake = newMin;
+        maxStake = newMax;
+    }
     
     function withdrawPlatformFees(address payable to, uint256 amount) external onlyOwner {
         if (!(to != address(0))) revert BiddingSystem__Zero_address();
@@ -849,6 +1018,22 @@ contract BiddingSystem is
             _sendEth(to, amount);
         } else {
             IERC20(token).safeTransfer(to, amount);
+        }
+    }
+
+    /// @dev Phase 45c O-9: write a `block.timestamp + WITHDRAW_TIMEOUT` deadline
+    ///      for every non-winning bid that still has a stake. Idempotent — only
+    ///      sets the timestamp if it is currently 0 (never rewinds).
+    function _startWithdrawClockForNonWinners(uint256 sessionId, uint256 winningBidId) private {
+        Bid[] storage bids = sessionBids[sessionId];
+        uint256 len = bids.length;
+        uint256 deadline = block.timestamp + WITHDRAW_TIMEOUT;
+        for (uint256 i = 0; i < len; i++) {
+            Bid storage b = bids[i];
+            if (b.bidId == winningBidId) continue;
+            if (b.stake == 0) continue;
+            if (withdrawStakeClaimableAt[sessionId][b.bidder] != 0) continue;
+            withdrawStakeClaimableAt[sessionId][b.bidder] = deadline;
         }
     }
 

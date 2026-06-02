@@ -156,6 +156,59 @@ export function importBidFromEnvelope(envelope: SignedBidEnvelope): void {
   persistSignedEnvelope(envelope);
 }
 
+// ============== Cross-device recovery (Phase 45d) ==============
+
+/// @notice Encode a signed envelope as a portable base64url string for QR codes
+///        or copy-paste. Use decodeEnvelope() to recover the envelope on another device.
+export function exportEnvelope(envelope: SignedBidEnvelope): string {
+  if (typeof window === 'undefined') return '';
+  const json = JSON.stringify(envelope);
+  // base64url encoding (btoa + url-safe substitutions)
+  const b64 = btoa(json).replace(/\+/g, '-').replace(/\//g, '_').replace(/=+$/, '');
+  return b64;
+}
+
+/// @notice Decode a base64url string back into a SignedBidEnvelope. Validates
+///        the address/sessionId match before returning.
+export function decodeEnvelope(
+  encoded: string,
+  expected?: { sessionId?: string; address?: string }
+): SignedBidEnvelope | null {
+  if (typeof window === 'undefined' || !encoded) return null;
+  try {
+    const padded = encoded.replace(/-/g, '+').replace(/_/g, '/');
+    const padLen = (4 - (padded.length % 4)) % 4;
+    const b64 = padded + '='.repeat(padLen);
+    const json = atob(b64);
+    const parsed = JSON.parse(json) as SignedBidEnvelope;
+    if (expected?.sessionId && parsed.sessionId !== expected.sessionId) return null;
+    if (expected?.address && parsed.address.toLowerCase() !== expected.address.toLowerCase()) return null;
+    return parsed;
+  } catch {
+    return null;
+  }
+}
+
+/// @notice Build a mailto: URI for email-based recovery. The envelope is
+///        embedded in the subject (short envelopes only — long ones should
+///        use a QR code or a storage service). Recipients click the link and
+///        are guided to the recovery panel.
+export function buildEmailRecoveryLink(
+  envelope: SignedBidEnvelope,
+  options: { recipient?: string; appOrigin?: string } = {}
+): string {
+  const encoded = exportEnvelope(envelope);
+  const origin = options.appOrigin || (typeof window !== 'undefined' ? window.location.origin : 'https://kokonut.network');
+  const recoveryUrl = `${origin}/bidding/${envelope.sessionId}/recover?envelope=${encoded}`;
+  const subject = encodeURIComponent(`Kokonut Bid Recovery: Session #${envelope.sessionId}`);
+  const body = encodeURIComponent(
+    `Open this link on a device where you want to recover your bid:\n\n${recoveryUrl}\n\n` +
+    `Or paste the envelope into the recovery panel:\n\n${encoded}`
+  );
+  const to = options.recipient ? `&to=${encodeURIComponent(options.recipient)}` : '';
+  return `mailto:?subject=${subject}&body=${body}${to}`;
+}
+
 export function buildEnvelopeFingerprint(envelope: SignedBidEnvelope): `0x${string}` {
   return keccak256(
     stringToHex(
