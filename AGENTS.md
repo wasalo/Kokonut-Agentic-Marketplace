@@ -106,7 +106,6 @@
 >   - **F-CT3 setup file**: new `apps/web/lib/__tests__/setup.ts` — auto-cleanup, mocks for `window.matchMedia`, `navigator.clipboard`, `navigator.vibrate`, `IntersectionObserver`, `ResizeObserver`, `next/navigation`, `next/link`, full `wagmi` surface, and `sonner`.
 >   - **F-CT4 component tests (8 files, 66 tests passing)**: `BidRecoveryPanel.test.tsx` (7), `ActionQueuePanel.test.tsx` (8), `JobLifecycleStepper.test.tsx` (10), `ActiveJobsForService.test.tsx` (7), `MyBidsPanel.test.tsx` (9), `useBiddingSalt.test.ts` (7), `useActionQueue.test.ts` (12), `tokenUtils.unit.test.ts` (6).
 >   - **F-CT5 scripts**: `test:components`, `test:components:watch`, `test:components:ui` in `apps/web/package.json`.
->   - **F-I18N1 next-intl@^3.26.0 installed**: package present for future wiring; `apps/web/lib/i18n.ts` stub re-exports `getLocale`/`getTranslations` and exports `SUPPORTED_LOCALES` / `DEFAULT_LOCALE` / `isLocale` with full wiring instructions in the file header.
 >   - **Build**: `test:components` 66/66 passing; `type-check:strict` / `type-check` / `lint` / `build` clean.
 
 > - **Phase 44c: Detail Page Decomposition + Action Queue + Event Refactor (June 1, 2026) [COMPLETE]**:
