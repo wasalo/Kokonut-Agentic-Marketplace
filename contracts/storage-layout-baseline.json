@@ -428,6 +428,12 @@
             "slot": 63,
             "offset": 0,
             "type": "mapping(uint256=>bool)"
+          },
+          {
+            "label": "accumulatedFeesByToken",
+            "slot": 64,
+            "offset": 0,
+            "type": "mapping(address=>uint256)"
           }
         ]
       }

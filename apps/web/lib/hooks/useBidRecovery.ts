@@ -175,5 +175,14 @@ export function isCommitHashMatch(
   commitHash: `0x${string}`,
   decimals = 18
 ): boolean {
-  return buildBidCommitHash(envelope.amount, envelope.message, envelope.salt as `0x${string}`, decimals) === commitHash;
+  return (
+    buildBidCommitHash(
+      BigInt(envelope.sessionId),
+      envelope.address as `0x${string}`,
+      envelope.amount,
+      envelope.message,
+      envelope.salt as `0x${string}`,
+      decimals
+    ) === commitHash
+  );
 }

@@ -1833,19 +1833,27 @@ class BiddingSystemModule {
     message: string;
     salt?: string;
     paymentToken?: Address;
+    fromAddress?: Address;
   }): Promise<TransactionResult & { salt: string; commitHash: `0x${string}` }> {
     const saltBytes = params.salt
       ? Buffer.from(params.salt.replace(/^0x/, ''), 'hex')
       : (globalThis.crypto?.getRandomValues?.(new Uint8Array(32))
           || new Uint8Array(32).map(() => Math.floor(Math.random() * 256)));
     const salt = `0x${Buffer.from(saltBytes).toString('hex')}` as `0x${string}`;
+    // Phase 45b O-1: hash now binds to (sessionId, msg.sender, amount, message, salt)
+    const fromAddress = (params.fromAddress ?? this.wallet.account?.address) as Address | undefined;
+    if (!fromAddress) {
+      throw new Error('commitBid: fromAddress is required (no wallet account available)');
+    }
     const commitHash = keccak256(encodeAbiParameters(
       [
+        { type: 'uint256' },
+        { type: 'address' },
         { type: 'uint256' },
         { type: 'string' },
         { type: 'bytes32' },
       ],
-      [params.amount, params.message, salt]
+      [params.sessionId, fromAddress, params.amount, params.message, salt]
     ));
     const stake = (params.amount * 100n) / 10000n;
     const isEth = !params.paymentToken || params.paymentToken === '0x0000000000000000000000000000000000000000';
@@ -1934,17 +1942,63 @@ class BiddingSystemModule {
   }
 
   async claimStake(sessionId: bigint): Promise<TransactionResult> {
+    throw new Error(
+      'claimStake has been removed in Phase 45b (O-20). Use withdrawStake for ' +
+      'non-winning bids or acceptBid to claim winner stake (auto-refunded by contract).'
+    );
+  }
+
+  /// @notice Phase 45b O-2: Permissionlessly close bidding once the deadline has passed.
+  async closeBidding(sessionId: bigint): Promise<TransactionResult> {
     const hash = await this.wallet.writeContract({
       address: this.contracts.biddingSystem!,
       abi: BIDDING_SYSTEM_ABI,
-      functionName: 'claimStake',
+      functionName: 'closeBidding',
       args: [sessionId],
     } as any);
-
     return {
       hash,
       wait: () => this.publicClient.waitForTransactionReceipt({ hash }),
     };
+  }
+
+  /// @notice Phase 45b O-3: Slash a no-show bidder (creator only, after reveal window).
+  async slashNoShow(params: { sessionId: bigint; bidder: Address }): Promise<TransactionResult> {
+    const hash = await this.wallet.writeContract({
+      address: this.contracts.biddingSystem!,
+      abi: BIDDING_SYSTEM_ABI,
+      functionName: 'slashNoShow',
+      args: [params.sessionId, params.bidder],
+    } as any);
+    return {
+      hash,
+      wait: () => this.publicClient.waitForTransactionReceipt({ hash }),
+    };
+  }
+
+  /// @notice Phase 45b O-10: Withdraw the full accumulated platform-fee balance for a token.
+  ///         Pass `0x0000…` for native ETH; an ERC-20 address for tokenized fees.
+  async withdrawFees(token: Address): Promise<TransactionResult> {
+    const hash = await this.wallet.writeContract({
+      address: this.contracts.biddingSystem!,
+      abi: BIDDING_SYSTEM_ABI,
+      functionName: 'withdrawFees',
+      args: [token],
+    } as any);
+    return {
+      hash,
+      wait: () => this.publicClient.waitForTransactionReceipt({ hash }),
+    };
+  }
+
+  /// @notice Phase 45b O-10: Read the accumulated platform-fee balance for a token.
+  async getAccumulatedFees(token: Address): Promise<bigint> {
+    return (await this.publicClient.readContract({
+      address: this.contracts.biddingSystem!,
+      abi: BIDDING_SYSTEM_ABI,
+      functionName: 'accumulatedFeesByToken',
+      args: [token],
+    } as any)) as bigint;
   }
 
   async createJobAndFund(params: {

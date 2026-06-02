@@ -140,6 +140,22 @@ interface IBiddingSystem {
     event AdminRegistryUpdated(address indexed oldRegistry, address indexed newRegistry);
     event RevealWindowUpdated(uint256 oldWindow, uint256 newWindow);
     event PlatformFeeUpdated(uint256 oldFeeBP, uint256 newFeeBP);
+
+    /// @notice Emitted when a session is explicitly transitioned to BiddingClosed status (Phase 45b O-2).
+    event BiddingClosed(uint256 indexed sessionId, address indexed caller, uint256 closedAt);
+
+    /// @notice Emitted when a no-show bidder is slashed by the session creator (Phase 45b O-3).
+    /// @param slashAmount Amount sent to the treasury (basis points applied).
+    /// @param refundAmount Remaining stake returned to the bidder.
+    event BidderSlashed(uint256 indexed sessionId, address indexed bidder, uint256 slashAmount, uint256 refundAmount);
+
+    /// @notice Emitted in createJobAndFund when the session evaluator is locked in (Phase 45b O-13).
+    /// @param evaluator The actual evaluator address (address(0) means random pool selection).
+    event EvaluatorFinalized(uint256 indexed sessionId, address indexed evaluator, uint256 finalizedAt);
+
+    /// @notice Emitted when accumulated platform fees for a token are withdrawn (Phase 45b O-10).
+    /// @param token The ERC-20 token (address(0) for native ETH).
+    event FeesWithdrawn(address indexed token, address indexed to, uint256 amount);
     
     /***********************************/
     /* Errors */
@@ -192,7 +208,9 @@ interface IBiddingSystem {
     /**
      * @dev Commit a sealed bid
      * @param sessionId The bidding session ID
-     * @param commitHash keccak256(abi.encode(amount, message, salt))
+     * @param commitHash keccak256(abi.encode(sessionId, msg.sender, amount, message, salt))
+     *      Hash now binds to (session, sender) to prevent cross-bidder hash collisions
+     *      and cross-session replay (Phase 45b O-1).
      */
     function commitBid(uint256 sessionId, bytes32 commitHash) external payable;
     
@@ -266,15 +284,33 @@ interface IBiddingSystem {
      * @param sessionId The bidding session ID
      */
     function cancelSession(uint256 sessionId) external;
-    
+
     function completeSession(uint256 sessionId) external;
-    
+
     /**
      * @dev Extend reveal window if needed
      * @param sessionId The bidding session ID
      * @param additionalSeconds Additional seconds to add
      */
     function extendRevealWindow(uint256 sessionId, uint256 additionalSeconds) external;
+
+    /**
+     * @dev Permissionlessly close bidding once the deadline has passed (Phase 45b O-2).
+     *      Transitions the session from Active to BiddingClosed. Idempotently safe:
+     *      calling on an already-closed session reverts. This makes the BiddingClosed
+     *      state explicit on-chain (it was previously only a latent status inferred
+     *      from the deadline check in onlyAfterDeadline).
+     */
+    function closeBidding(uint256 sessionId) external;
+
+    /**
+     * @dev Slash a no-show bidder after the full reveal window has elapsed (Phase 45b O-3).
+     *      Callable only by the session creator. Slashes NO_SHOW_SLASH_BP (5%) of the
+     *      bidder's stake to the treasury, refunds the remainder. The bid is marked
+     *      rejected so it cannot be accepted later. Cannot slash a revealed, accepted,
+     *      or already-withdrawn bid.
+     */
+    function slashNoShow(uint256 sessionId, address bidder) external;
     
     /***********************************/
     /* View Functions */
@@ -293,5 +329,16 @@ interface IBiddingSystem {
     
     function setCommerce(address commerce_) external;
     function setRevealWindow(uint256 window_) external;
+
+    /// @notice Withdraw accumulated native-ETH platform fees (legacy, kept for backward compat).
     function withdrawPlatformFees(address payable to, uint256 amount) external;
+
+    /// @notice Withdraw the full accumulated platform-fee balance for a given token
+    ///         (Phase 45b O-10). Use address(0) for native ETH. Pulls the entire
+    ///         accumulated balance in one call to the treasury.
+    function withdrawFees(address token) external;
+
+    /// @notice View the accumulated platform-fee balance for a given token
+    ///         (Phase 45b O-10). Use address(0) for native ETH.
+    function accumulatedFeesByToken(address token) external view returns (uint256);
 }

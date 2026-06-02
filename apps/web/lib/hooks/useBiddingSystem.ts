@@ -590,3 +590,112 @@ export function useBiddingCompleteSession() {
     writeError,
   };
 }
+
+// ============ Phase 45b Hooks ============
+
+/// @notice Phase 45b O-2: Permissionlessly close bidding once the deadline has passed.
+export function useCloseBidding() {
+  const { data: hash, isPending, writeContract, error: writeError } = useWriteContract();
+
+  const { isLoading: isConfirming, isSuccess: isConfirmed } = useWaitForTransactionReceipt({
+    hash,
+  });
+
+  function closeBidding(sessionId: bigint) {
+    writeContract({
+      chainId: SEPOLIA_CHAIN_ID,
+      address: BIDDING_SYSTEM_ADDRESS,
+      abi: BIDDING_SYSTEM_ABI,
+      functionName: 'closeBidding',
+      args: [sessionId],
+    });
+  }
+
+  return {
+    closeBidding,
+    hash,
+    isPending,
+    isConfirming,
+    isConfirmed,
+    writeError,
+  };
+}
+
+/// @notice Phase 45b O-3: Slash a no-show bidder (5% to treasury, 95% refund).
+export function useSlashNoShow() {
+  const { data: hash, isPending, writeContract, error: writeError } = useWriteContract();
+
+  const { isLoading: isConfirming, isSuccess: isConfirmed } = useWaitForTransactionReceipt({
+    hash,
+  });
+
+  function slashNoShow(params: { sessionId: bigint; bidder: `0x${string}` }) {
+    writeContract({
+      chainId: SEPOLIA_CHAIN_ID,
+      address: BIDDING_SYSTEM_ADDRESS,
+      abi: BIDDING_SYSTEM_ABI,
+      functionName: 'slashNoShow',
+      args: [params.sessionId, params.bidder],
+    });
+  }
+
+  return {
+    slashNoShow,
+    hash,
+    isPending,
+    isConfirming,
+    isConfirmed,
+    writeError,
+  };
+}
+
+/// @notice Phase 45b O-10: Withdraw the full accumulated platform-fee balance for a token.
+///         Use `0x0000…` for native ETH; ERC-20 address for tokenized fees.
+export function useWithdrawFees() {
+  const { data: hash, isPending, writeContract, error: writeError } = useWriteContract();
+
+  const { isLoading: isConfirming, isSuccess: isConfirmed } = useWaitForTransactionReceipt({
+    hash,
+  });
+
+  function withdrawFees(token: `0x${string}`) {
+    writeContract({
+      chainId: SEPOLIA_CHAIN_ID,
+      address: BIDDING_SYSTEM_ADDRESS,
+      abi: BIDDING_SYSTEM_ABI,
+      functionName: 'withdrawFees',
+      args: [token],
+    });
+  }
+
+  return {
+    withdrawFees,
+    hash,
+    isPending,
+    isConfirming,
+    isConfirmed,
+    writeError,
+  };
+}
+
+/// @notice Phase 45b O-10: Read the accumulated platform-fee balance for a token.
+export function useAccumulatedFeesByToken(token: `0x${string}` | undefined) {
+  const { data, isLoading, error, refetch } = useReadContract({
+    address: BIDDING_SYSTEM_ADDRESS,
+    abi: BIDDING_SYSTEM_ABI,
+    functionName: 'accumulatedFeesByToken',
+    args: token !== undefined ? [token] : undefined,
+    query: {
+      retry: 2,
+      staleTime: 30 * 1000,
+      enabled: token !== undefined,
+    },
+  });
+
+  return {
+    accumulated: (data as bigint | undefined) ?? 0n,
+    isLoading,
+    error,
+    refetch,
+  };
+}

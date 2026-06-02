@@ -235,6 +235,7 @@ export const BIDDING_SYSTEM_ABI = parseAbi([
   'function revealWindow() external view returns (uint256)',
   'function platformFeeBP() external view returns (uint256)',
   'function sessionCounter() external view returns (uint256)',
+  'function accumulatedFeesByToken(address token) external view returns (uint256)',
   'function getSession(uint256 sessionId) external view returns ((uint256 id, address creator, address evaluator, uint256 maxBudget, uint256 deadline, uint256 revealWindowEnd, bytes metadata, uint256 serviceId, uint256 jobId, address winner, uint256 winningBidId, bool jobCreated, uint8 status, bool useRandomEvaluator, address paymentToken))',
   'function getBid(uint256 sessionId, uint256 bidId) external view returns ((uint256 bidId, address bidder, uint256 proposedAmount, uint256 stake, string message, bytes32 commitHash, bool revealed, bool accepted, bool rejected, bool stakeWithdrawn, uint256 timestamp))',
   'function getUserBid(uint256 sessionId, address user) external view returns ((uint256 bidId, address bidder, uint256 proposedAmount, uint256 stake, string message, bytes32 commitHash, bool revealed, bool accepted, bool rejected, bool stakeWithdrawn, uint256 timestamp))',
@@ -253,13 +254,22 @@ export const BIDDING_SYSTEM_ABI = parseAbi([
   'function createJobAndFund(uint256 sessionId, uint256 jobExpiredAt, string description) external payable returns (uint256 jobId)',
   'function cancelSession(uint256 sessionId) external',
   'function extendRevealWindow(uint256 sessionId, uint256 additionalSeconds) external',
+  'function closeBidding(uint256 sessionId) external',
+  'function slashNoShow(uint256 sessionId, address bidder) external',
   'function setCommerce(address commerce_) external',
   'function setRevealWindow(uint256 window_) external',
   'function setPlatformFeeBP(uint256 basisPoints_) external',
   'function setAdminRegistry(address) external',
   'function setTreasury(address) external',
   'function withdrawPlatformFees(address to, uint256 amount) external',
+  'function withdrawFees(address token) external',
   'function upgradeTo(address newImplementation) external',
+
+  // Phase 45b events
+  'event BiddingClosed(uint256 indexed sessionId, address indexed caller, uint256 closedAt)',
+  'event BidderSlashed(uint256 indexed sessionId, address indexed bidder, uint256 slashAmount, uint256 refundAmount)',
+  'event EvaluatorFinalized(uint256 indexed sessionId, address indexed evaluator, uint256 finalizedAt)',
+  'event FeesWithdrawn(address indexed token, address indexed to, uint256 amount)',
 ]);
 
 

@@ -7,7 +7,7 @@ import "@openzeppelin/contracts/proxy/ERC1967/ERC1967Proxy.sol";
 import {BiddingSystem} from "../shared/BiddingSystem.sol";
 import {IBiddingSystem} from "../interfaces/IBiddingSystem.sol";
 import {IAgenticCommerceV9} from "../interfaces/IAgenticCommerceV9.sol";
-import {MockAgenticCommerceV9} from "./TestFixtures.sol";
+import {MockAgenticCommerceV9, MockERC20} from "./TestFixtures.sol";
 
 /**
  * @title BiddingSystemTest
@@ -16,7 +16,8 @@ import {MockAgenticCommerceV9} from "./TestFixtures.sol";
 contract BiddingSystemTest is Test {
     BiddingSystem public bidding;
     MockAgenticCommerceV9 public mockCommerce;
-    
+    MockERC20 public usdc;
+
     address public owner = makeAddr("owner");
     address public treasury = makeAddr("treasury");
     address public creator = makeAddr("creator");
@@ -24,10 +25,10 @@ contract BiddingSystemTest is Test {
     address public bidder1 = makeAddr("bidder1");
     address public bidder2 = makeAddr("bidder2");
     address public bidder3 = makeAddr("bidder3");
-    
+
     uint256 public constant STAKE_BP = 100; // 1%
     uint256 public constant REVEAL_WINDOW = 1 hours;
-    
+
     event BiddingSessionCreated(
         uint256 indexed sessionId,
         address indexed creator,
@@ -36,20 +37,42 @@ contract BiddingSystemTest is Test {
         uint256 deadline,
         uint256 serviceId
     );
-    
+
     event BidCommitted(
         uint256 indexed sessionId,
         address indexed bidder,
         bytes32 commitHash,
         uint256 stakeAmount
     );
+
+    // Phase 45b O-2
+    event BiddingClosed(uint256 indexed sessionId, address indexed caller, uint256 closedAt);
+
+    // Phase 45b O-3
+    event BidderSlashed(
+        uint256 indexed sessionId,
+        address indexed bidder,
+        uint256 slashAmount,
+        uint256 refundAmount
+    );
+
+    // Phase 45b O-13
+    event EvaluatorFinalized(
+        uint256 indexed sessionId,
+        address indexed evaluator,
+        uint256 finalizedAt
+    );
+
+    // Phase 45b O-10
+    event FeesWithdrawn(address indexed token, address indexed to, uint256 amount);
     
     function setUp() public {
         mockCommerce = new MockAgenticCommerceV9();
-        
+        usdc = new MockERC20("USD Coin", "USDC", 6);
+
         // Deploy implementation
         BiddingSystem implementation = new BiddingSystem();
-        
+
         // Encode initialization data
         bytes memory initData = abi.encodeWithSelector(
             BiddingSystem.initialize.selector,
@@ -57,15 +80,15 @@ contract BiddingSystemTest is Test {
             address(mockCommerce),
             treasury
         );
-        
+
         // Deploy proxy
         ERC1967Proxy proxy = new ERC1967Proxy(
             address(implementation),
             initData
         );
-        
+
         bidding = BiddingSystem(payable(proxy));
-        
+
         // Fund test accounts
         deal(bidder1, 100 ether);
         deal(bidder2, 100 ether);
@@ -895,10 +918,29 @@ contract BiddingSystemTest is Test {
     
     function _commitBid(uint256 sessionId, address bidder, uint256 amount, string memory message, bytes32 salt) internal {
         uint256 stake = bidding.calculateStake(10 ether); // Assuming 10 ether max budget
-        bytes32 commitHash = keccak256(abi.encode(amount, message, salt));
-        
+        // Phase 45b O-1: hash now binds to (sessionId, bidder, amount, message, salt)
+        bytes32 commitHash = keccak256(abi.encode(sessionId, bidder, amount, message, salt));
+
         vm.prank(bidder);
         bidding.commitBid{value: stake}(sessionId, commitHash);
+    }
+
+    function _commitUsdcBid(
+        uint256 sessionId,
+        address bidder,
+        uint256 amount,
+        string memory message,
+        bytes32 salt
+    ) internal {
+        uint256 stake = bidding.calculateStake(10 ether); // 1% of 10 ether max budget
+        bytes32 commitHash = keccak256(abi.encode(sessionId, bidder, amount, message, salt));
+
+        // Mint + approve the stake in USDC
+        usdc.mint(bidder, stake);
+        vm.prank(bidder);
+        usdc.approve(address(bidding), stake);
+        vm.prank(bidder);
+        bidding.commitBid(sessionId, commitHash);
     }
     
     function _hexToBytes32(string memory hexString) internal pure returns (bytes32) {
@@ -909,5 +951,493 @@ contract BiddingSystemTest is Test {
             result |= bytes32(b[i + 2] << (31 - i) * 2);
         }
         return result;
+    }
+
+    /***********************************/
+    /* Phase 45b O-1: commit hash binds to (sessionId, msg.sender, amount, message, salt) */
+    /***********************************/
+
+    function testO1_CommitHashBindsToSender() public {
+        // Two different bidders commit the same (amount, message, salt) — both must be valid.
+        // Pre-O-1, the second commit would inherit the first bidder's validCommits entry
+        // and both could reveal the same tuple. Post-O-1 the hash is unique per sender.
+        uint256 sessionId = _createSession(creator, 10 ether, 7 days);
+        uint256 stake = bidding.calculateStake(10 ether);
+        bytes32 salt = bytes32(uint256(0x1234));
+
+        bytes32 hashA = keccak256(abi.encode(sessionId, bidder1, 5 ether, "msg", salt));
+        bytes32 hashB = keccak256(abi.encode(sessionId, bidder2, 5 ether, "msg", salt));
+        assertTrue(hashA != hashB, "O-1: hashes must differ per sender");
+
+        vm.prank(bidder1);
+        bidding.commitBid{value: stake}(sessionId, hashA);
+        vm.prank(bidder2);
+        bidding.commitBid{value: stake}(sessionId, hashB);
+
+        // Both must be validCommits and revealable
+        vm.warp(block.timestamp + 7 days + 30 minutes);
+        vm.prank(bidder1);
+        bidding.revealBid(sessionId, 5 ether, "msg", salt);
+        vm.prank(bidder2);
+        bidding.revealBid(sessionId, 5 ether, "msg", salt);
+
+        IBiddingSystem.Bid memory b1 = bidding.getUserBid(sessionId, bidder1);
+        IBiddingSystem.Bid memory b2 = bidding.getUserBid(sessionId, bidder2);
+        assertEq(b1.proposedAmount, 5 ether);
+        assertEq(b2.proposedAmount, 5 ether);
+    }
+
+    function testO1_CommitHashBindsToSession() public {
+        // Same bidder uses the same (amount, message, salt) across two sessions —
+        // both must be valid (hash includes sessionId).
+        uint256 sessionA = _createSession(creator, 10 ether, 7 days);
+        uint256 sessionB = _createSession(creator, 10 ether, 7 days);
+        uint256 stake = bidding.calculateStake(10 ether);
+        bytes32 salt = bytes32(uint256(0xABCD));
+
+        bytes32 hashA = keccak256(abi.encode(sessionA, bidder1, 5 ether, "msg", salt));
+        bytes32 hashB = keccak256(abi.encode(sessionB, bidder1, 5 ether, "msg", salt));
+        assertTrue(hashA != hashB, "O-1: hashes must differ per session");
+
+        vm.prank(bidder1);
+        bidding.commitBid{value: stake}(sessionA, hashA);
+        vm.prank(bidder1);
+        bidding.commitBid{value: stake}(sessionB, hashB);
+
+        // Reveal in both sessions after their respective deadlines
+        vm.warp(block.timestamp + 7 days + 30 minutes);
+        vm.prank(bidder1);
+        bidding.revealBid(sessionA, 5 ether, "msg", salt);
+        vm.prank(bidder1);
+        bidding.revealBid(sessionB, 5 ether, "msg", salt);
+
+        assertEq(bidding.getUserBid(sessionA, bidder1).proposedAmount, 5 ether);
+        assertEq(bidding.getUserBid(sessionB, bidder1).proposedAmount, 5 ether);
+    }
+
+    function testO1_CrossSessionRevealReverts() public {
+        // The O-1 fix means the hash binds to sessionId. A bidder who commits in
+        // sessionA cannot have their sessionA tuple accepted as the reveal for
+        // sessionB. Concretely: when the bidder reveals in sessionB with the
+        // SAME (amount, message, salt) as their sessionA commit, the contract
+        // computes hashB = keccak256(sessionB, bidder, 5 ether, "msg", salt),
+        // which is NOT in validCommits[sessionB] (only hashA is, for sessionA).
+        // Result: Invalid_commitment.
+        uint256 sessionA = _createSession(creator, 10 ether, 7 days);
+        uint256 sessionB = _createSession(creator, 10 ether, 7 days);
+        bytes32 salt = bytes32(uint256(0xCAFE));
+
+        uint256 stake = bidding.calculateStake(10 ether);
+
+        // Commit in sessionA only (NOT in sessionB). The bidder has no bid in sessionB.
+        bytes32 hashA = keccak256(abi.encode(sessionA, bidder1, 5 ether, "msg", salt));
+        vm.prank(bidder1);
+        bidding.commitBid{value: stake}(sessionA, hashA);
+
+        vm.warp(block.timestamp + 7 days + 30 minutes);
+
+        // The bidder has no bid in sessionB → reverts with No_bid_found.
+        // This proves the O-1 binding: a sessionA hash cannot be cross-replayed
+        // in sessionB because there is no corresponding entry in validCommits[sessionB].
+        vm.prank(bidder1);
+        vm.expectRevert(abi.encodeWithSelector(BiddingSystem.BiddingSystem__No_bid_found.selector));
+        bidding.revealBid(sessionB, 5 ether, "msg", salt);
+
+        // And in sessionA with the WRONG salt, the hash mismatch triggers Invalid_commitment.
+        vm.prank(bidder1);
+        vm.expectRevert(abi.encodeWithSelector(BiddingSystem.BiddingSystem__Invalid_commitment.selector));
+        bidding.revealBid(sessionA, 5 ether, "msg", bytes32(uint256(0xDEAD)));
+    }
+
+    /***********************************/
+    /* Phase 45b O-2: explicit closeBidding + BiddingClosed transitions */
+    /***********************************/
+
+    function testO2_CloseBiddingPermissionless() public {
+        uint256 sessionId = _createSession(creator, 10 ether, 7 days);
+        _commitBid(sessionId, bidder1, 5 ether, "msg", bytes32(uint256(0x1111)));
+
+        // Anyone (not just creator) can call closeBidding after the deadline
+        vm.warp(block.timestamp + 7 days + 1);
+        vm.prank(bidder2); // bidder2, not creator
+        vm.expectEmit(true, true, false, true, address(bidding));
+        emit BiddingClosed(sessionId, bidder2, block.timestamp);
+        bidding.closeBidding(sessionId);
+
+        IBiddingSystem.Session memory session = bidding.getSession(sessionId);
+        assertEq(uint8(session.status), 1); // BiddingClosed
+    }
+
+    function testO2_CloseBiddingRevertBeforeDeadline() public {
+        uint256 sessionId = _createSession(creator, 10 ether, 7 days);
+        _commitBid(sessionId, bidder1, 5 ether, "msg", bytes32(uint256(0x1111)));
+
+        vm.expectRevert(abi.encodeWithSelector(BiddingSystem.BiddingSystem__Deadline_not_passed.selector));
+        bidding.closeBidding(sessionId);
+    }
+
+    function testO2_CloseBiddingRevertAfterClosed() public {
+        uint256 sessionId = _createSession(creator, 10 ether, 7 days);
+        vm.warp(block.timestamp + 7 days + 1);
+        bidding.closeBidding(sessionId);
+
+        // Second call must revert because status is no longer Active
+        vm.expectRevert(abi.encodeWithSelector(BiddingSystem.BiddingSystem__Wrong_session_status.selector));
+        bidding.closeBidding(sessionId);
+    }
+
+    function testO2_CloseBiddingRevertInvalidSession() public {
+        vm.expectRevert(abi.encodeWithSelector(BiddingSystem.BiddingSystem__Invalid_session.selector));
+        bidding.closeBidding(999);
+    }
+
+    function testO2_WithdrawStakeAfterClose() public {
+        // Non-revealing bidder can pull full stake once BiddingClosed AND the
+        // reveal window has fully elapsed.
+        uint256 sessionId = _createSession(creator, 10 ether, 7 days);
+        uint256 stake = bidding.calculateStake(10 ether);
+        _commitBid(sessionId, bidder1, 5 ether, "msg", bytes32(uint256(0x1111)));
+
+        // Warp past deadline AND past the 1h reveal window
+        vm.warp(block.timestamp + 7 days + 2 hours);
+        bidding.closeBidding(sessionId);
+
+        uint256 balanceBefore = bidder1.balance;
+        vm.prank(bidder1);
+        bidding.withdrawStake(sessionId);
+        assertEq(bidder1.balance, balanceBefore + stake);
+    }
+
+    function testO2_CancelSessionAfterClose() public {
+        // Creator can still cancel after closeBidding if no revealed bids and no winner.
+        uint256 sessionId = _createSession(creator, 10 ether, 7 days);
+        _commitBid(sessionId, bidder1, 5 ether, "msg", bytes32(uint256(0x1111)));
+
+        vm.warp(block.timestamp + 7 days + 1);
+        bidding.closeBidding(sessionId);
+
+        // bidder1 never reveals; no reveals = cancelable
+        vm.prank(creator);
+        bidding.cancelSession(sessionId);
+
+        IBiddingSystem.Session memory session = bidding.getSession(sessionId);
+        assertEq(uint8(session.status), 5); // Cancelled
+    }
+
+    /***********************************/
+    /* Phase 45b O-3: slashNoShow for bidders who never reveal */
+    /***********************************/
+
+    function testO3_SlashNoShowOnlyCreator() public {
+        uint256 sessionId = _createSession(creator, 10 ether, 7 days);
+        _commitBid(sessionId, bidder1, 5 ether, "msg", bytes32(uint256(0x1111)));
+
+        vm.warp(block.timestamp + 7 days + 2 hours); // past reveal window
+        vm.prank(bidder2);
+        vm.expectRevert(abi.encodeWithSelector(BiddingSystem.BiddingSystem__Not_session_creator.selector));
+        bidding.slashNoShow(sessionId, bidder1);
+    }
+
+    function testO3_SlashNoShowRevertBeforeRevealWindowEnd() public {
+        uint256 sessionId = _createSession(creator, 10 ether, 7 days);
+        _commitBid(sessionId, bidder1, 5 ether, "msg", bytes32(uint256(0x1111)));
+
+        vm.warp(block.timestamp + 7 days + 30 minutes); // 30 min into reveal window
+        vm.prank(creator);
+        vm.expectRevert(abi.encodeWithSelector(BiddingSystem.BiddingSystem__Reveal_window_not_ended.selector));
+        bidding.slashNoShow(sessionId, bidder1);
+    }
+
+    function testO3_SlashNoShowETH() public {
+        uint256 sessionId = _createSession(creator, 10 ether, 7 days);
+        uint256 stake = bidding.calculateStake(10 ether);
+        _commitBid(sessionId, bidder1, 5 ether, "msg", bytes32(uint256(0x1111)));
+
+        vm.warp(block.timestamp + 7 days + 2 hours);
+        uint256 slashAmount = (stake * 500) / 10000; // 5%
+        uint256 refundAmount = stake - slashAmount;
+
+        uint256 treasuryBefore = treasury.balance;
+        uint256 bidderBefore = bidder1.balance;
+
+        vm.prank(creator);
+        vm.expectEmit(true, true, false, true, address(bidding));
+        emit BidderSlashed(sessionId, bidder1, slashAmount, refundAmount);
+        bidding.slashNoShow(sessionId, bidder1);
+
+        assertEq(treasury.balance, treasuryBefore + slashAmount, "treasury should receive slash");
+        assertEq(bidder1.balance, bidderBefore + refundAmount, "bidder should receive refund");
+
+        IBiddingSystem.Bid memory bid = bidding.getUserBid(sessionId, bidder1);
+        assertEq(bid.stake, 0, "stake should be zeroed");
+        assertTrue(bid.stakeWithdrawn, "stakeWithdrawn should be true");
+        assertTrue(bid.rejected, "rejected should be true");
+    }
+
+    function testO3_SlashNoShowRevertIfRevealed() public {
+        uint256 sessionId = _createSession(creator, 10 ether, 7 days);
+        _commitBid(sessionId, bidder1, 5 ether, "msg", bytes32(uint256(0x1111)));
+
+        vm.warp(block.timestamp + 7 days + 30 minutes);
+        vm.prank(bidder1);
+        bidding.revealBid(sessionId, 5 ether, "msg", bytes32(uint256(0x1111)));
+
+        vm.warp(block.timestamp + 1 hours); // past reveal window end
+        vm.prank(creator);
+        vm.expectRevert(abi.encodeWithSelector(BiddingSystem.BiddingSystem__No_show_not_eligible.selector));
+        bidding.slashNoShow(sessionId, bidder1);
+    }
+
+    function testO3_SlashNoShowRevertDoubleSlash() public {
+        uint256 sessionId = _createSession(creator, 10 ether, 7 days);
+        _commitBid(sessionId, bidder1, 5 ether, "msg", bytes32(uint256(0x1111)));
+
+        vm.warp(block.timestamp + 7 days + 2 hours);
+        vm.prank(creator);
+        bidding.slashNoShow(sessionId, bidder1);
+
+        vm.prank(creator);
+        vm.expectRevert(abi.encodeWithSelector(BiddingSystem.BiddingSystem__Already_settled.selector));
+        bidding.slashNoShow(sessionId, bidder1);
+    }
+
+    function testO3_SlashNoShowRevertNoBid() public {
+        uint256 sessionId = _createSession(creator, 10 ether, 7 days);
+
+        vm.warp(block.timestamp + 7 days + 2 hours);
+        vm.prank(creator);
+        vm.expectRevert(abi.encodeWithSelector(BiddingSystem.BiddingSystem__No_bid_found.selector));
+        bidding.slashNoShow(sessionId, bidder1);
+    }
+
+    function testO3_SlashNoShowUSDC() public {
+        // USDC session: create, USDC commit, slash — verify USDC accounting
+        uint256 maxBudget = 100_000 * 1e6; // 100k USDC
+        uint256 stake = bidding.calculateStake(maxBudget);
+        usdc.mint(creator, stake);
+
+        vm.startPrank(creator);
+        usdc.approve(address(bidding), stake);
+        uint256 sessionId = bidding.createBiddingSession(
+            evaluator,
+            maxBudget,
+            block.timestamp + 7 days,
+            "",
+            0,
+            address(usdc)
+        );
+        vm.stopPrank();
+
+        usdc.mint(bidder1, stake);
+        vm.startPrank(bidder1);
+        usdc.approve(address(bidding), stake);
+        bytes32 hash = keccak256(abi.encode(sessionId, bidder1, 50000 * 1e6, "msg", bytes32(uint256(0x1111))));
+        bidding.commitBid(sessionId, hash);
+        vm.stopPrank();
+
+        vm.warp(block.timestamp + 7 days + 2 hours);
+        uint256 slashAmount = (stake * 500) / 10000;
+        uint256 refundAmount = stake - slashAmount;
+
+        uint256 treasuryBefore = usdc.balanceOf(treasury);
+        uint256 bidderBefore = usdc.balanceOf(bidder1);
+
+        vm.prank(creator);
+        bidding.slashNoShow(sessionId, bidder1);
+
+        assertEq(usdc.balanceOf(treasury), treasuryBefore + slashAmount);
+        assertEq(usdc.balanceOf(bidder1), bidderBefore + refundAmount);
+    }
+
+    /***********************************/
+    /* Phase 45b O-10: per-token fee withdrawal */
+    /***********************************/
+
+    function testO10_AccumulatedFeesByTokenUSDC() public {
+        // Create a USDC-backed session, fund a job, verify fee is tracked per-token
+        uint256 maxBudget = 100_000 * 1e6;
+        uint256 stake = bidding.calculateStake(maxBudget);
+        uint256 bidAmount = 50_000 * 1e6;
+        uint256 fee = (bidAmount * 100) / 10000; // 1% platform fee
+        uint256 totalPayment = bidAmount + fee;
+
+        usdc.mint(creator, stake + totalPayment);
+
+        vm.startPrank(creator);
+        usdc.approve(address(bidding), stake);
+        uint256 sessionId = bidding.createBiddingSession(
+            evaluator,
+            maxBudget,
+            block.timestamp + 7 days,
+            "",
+            0,
+            address(usdc)
+        );
+        vm.stopPrank();
+
+        usdc.mint(bidder1, stake);
+        vm.startPrank(bidder1);
+        usdc.approve(address(bidding), stake);
+        bytes32 hash = keccak256(abi.encode(sessionId, bidder1, bidAmount, "msg", bytes32(uint256(0x1111))));
+        bidding.commitBid(sessionId, hash);
+        vm.stopPrank();
+
+        vm.warp(block.timestamp + 7 days + 30 minutes);
+        vm.prank(bidder1);
+        bidding.revealBid(sessionId, bidAmount, "msg", bytes32(uint256(0x1111)));
+        vm.prank(creator);
+        bidding.acceptBid(sessionId, 1);
+
+        // Approve the total payment (bidAmount + platform fee) for the job funding call
+        vm.startPrank(creator);
+        usdc.approve(address(bidding), totalPayment);
+        bidding.createJobAndFund(
+            sessionId,
+            block.timestamp + 30 days,
+            "Build a dApp"
+        );
+        vm.stopPrank();
+
+        // O-10: ERC-20 fee should be tracked in accumulatedFeesByToken[usdc]
+        assertEq(bidding.accumulatedFeesByToken(address(usdc)), fee);
+        // totalAccumulatedFees (ETH) should remain 0
+        assertEq(bidding.totalAccumulatedFees(), 0);
+    }
+
+    function testO10_WithdrawFeesUSDC() public {
+        // Set up state with USDC fees accumulated, then withdraw
+        testO10_AccumulatedFeesByTokenUSDC();
+
+        uint256 fee = bidding.accumulatedFeesByToken(address(usdc));
+        assertGt(fee, 0, "precondition: USDC fees accumulated");
+
+        uint256 treasuryBefore = usdc.balanceOf(treasury);
+
+        vm.prank(owner);
+        vm.expectEmit(true, true, false, true, address(bidding));
+        emit FeesWithdrawn(address(usdc), treasury, fee);
+        bidding.withdrawFees(address(usdc));
+
+        assertEq(usdc.balanceOf(treasury), treasuryBefore + fee);
+        assertEq(bidding.accumulatedFeesByToken(address(usdc)), 0);
+    }
+
+    function testO10_WithdrawFeesETH() public {
+        // Set up state with ETH fees accumulated via createJobAndFund (ETH path)
+        _createSessionWithWinnerAndFund();
+
+        uint256 fee = bidding.totalAccumulatedFees();
+        assertGt(fee, 0, "precondition: ETH fees accumulated");
+
+        uint256 treasuryBefore = treasury.balance;
+
+        vm.prank(owner);
+        vm.expectEmit(true, true, false, true, address(bidding));
+        emit FeesWithdrawn(address(0), treasury, fee);
+        bidding.withdrawFees(address(0));
+
+        assertEq(treasury.balance, treasuryBefore + fee);
+        assertEq(bidding.totalAccumulatedFees(), 0);
+    }
+
+    function testO10_WithdrawFeesRevertNotOwner() public {
+        vm.prank(bidder1);
+        vm.expectRevert(); // Ownable: caller is not the owner
+        bidding.withdrawFees(address(0));
+    }
+
+    function testO10_WithdrawFeesRevertZeroBalance() public {
+        vm.prank(owner);
+        vm.expectRevert(abi.encodeWithSelector(BiddingSystem.BiddingSystem__No_fees_to_withdraw.selector));
+        bidding.withdrawFees(address(0));
+    }
+
+    function testO10_LegacyWithdrawPlatformFeesStillWorks() public {
+        // Backward compat: owner can still call withdrawPlatformFees for ETH
+        _createSessionWithWinnerAndFund();
+
+        uint256 fee = bidding.totalAccumulatedFees();
+        uint256 treasuryBefore = treasury.balance;
+        vm.prank(owner);
+        bidding.withdrawPlatformFees(payable(treasury), fee);
+        assertEq(treasury.balance, treasuryBefore + fee);
+    }
+
+    /***********************************/
+    /* Phase 45b O-13: EvaluatorFinalized event */
+    /***********************************/
+
+    function testO13_EvaluatorFinalizedEventEmitted() public {
+        uint256 sessionId = _createSession(creator, 10 ether, 7 days);
+        _commitBid(sessionId, bidder1, 5 ether, "msg", bytes32(uint256(0x1111)));
+
+        vm.warp(block.timestamp + 7 days + 30 minutes);
+        vm.prank(bidder1);
+        bidding.revealBid(sessionId, 5 ether, "msg", bytes32(uint256(0x1111)));
+        vm.prank(creator);
+        bidding.acceptBid(sessionId, 1);
+
+        uint256 bidAmount = 5 ether;
+        uint256 fee = (bidAmount * 100) / 10000;
+        uint256 totalPayment = bidAmount + fee;
+
+        vm.expectEmit(true, true, false, true, address(bidding));
+        emit EvaluatorFinalized(sessionId, evaluator, block.timestamp);
+        vm.prank(creator);
+        bidding.createJobAndFund{value: totalPayment}(
+            sessionId,
+            block.timestamp + 30 days,
+            "Build a dApp"
+        );
+    }
+
+    function testO13_EvaluatorFinalizedRandomEvaluator() public {
+        // Random evaluator pool — EvaluatorFinalized should emit with address(0)
+        uint256 maxBudget = 10 ether;
+        uint256 stake = bidding.calculateStake(maxBudget);
+        vm.prank(creator);
+        uint256 sessionId = bidding.createBiddingSession{value: stake}(
+            address(0), // random
+            maxBudget,
+            block.timestamp + 7 days,
+            "",
+            0,
+            address(0)
+        );
+
+        _commitBid(sessionId, bidder1, 5 ether, "msg", bytes32(uint256(0x1111)));
+
+        vm.warp(block.timestamp + 7 days + 30 minutes);
+        vm.prank(bidder1);
+        bidding.revealBid(sessionId, 5 ether, "msg", bytes32(uint256(0x1111)));
+        vm.prank(creator);
+        bidding.acceptBid(sessionId, 1);
+
+        uint256 bidAmount = 5 ether;
+        uint256 fee = (bidAmount * 100) / 10000;
+        uint256 totalPayment = bidAmount + fee;
+
+        vm.expectEmit(true, true, false, true, address(bidding));
+        emit EvaluatorFinalized(sessionId, address(0), block.timestamp);
+        vm.prank(creator);
+        bidding.createJobAndFund{value: totalPayment}(
+            sessionId,
+            block.timestamp + 30 days,
+            "Build a dApp"
+        );
+    }
+
+    /***********************************/
+    /* Phase 45b O-20: claimStake must NOT exist in the contract */
+    /***********************************/
+
+    function testO20_ClaimStakeSelectorNotPresent() public {
+        // claimStake(uint256) is selector 0x2c399d6e. Verify the contract does not
+        // respond to it (the ABI surface must not include it).
+        bytes memory payload = abi.encodeWithSignature("claimStake(uint256)", uint256(1));
+        (bool success, ) = address(bidding).call(payload);
+        // Either revert or fall through to a fallback that returns success=false
+        // (no matching selector means the call returns success=false in Solidity 0.8.x).
+        assertFalse(success, "O-20: claimStake must not be a callable function");
     }
 }

@@ -4,7 +4,12 @@ import { useCallback, useEffect, useState } from 'react';
 import { encodeAbiParameters, keccak256, parseUnits } from 'viem';
 import { copyTextToClipboard, generateSalt } from '@/lib/crypto';
 
+/// @notice Phase 45b O-1: hash now binds to (sessionId, bidder, amount, message, salt).
+///         This is the form the contract computes in revealBid — it must match exactly
+///         or the reveal reverts with BiddingSystem__Invalid_commitment.
 export function buildBidCommitHash(
+  sessionId: bigint,
+  bidder: `0x${string}`,
   amount: string,
   message: string,
   salt: `0x${string}`,
@@ -12,8 +17,14 @@ export function buildBidCommitHash(
 ): `0x${string}` {
   return keccak256(
     encodeAbiParameters(
-      [{ type: 'uint256' }, { type: 'string' }, { type: 'bytes32' }],
-      [parseUnits(amount, decimals), message, salt]
+      [
+        { type: 'uint256' },
+        { type: 'address' },
+        { type: 'uint256' },
+        { type: 'string' },
+        { type: 'bytes32' },
+      ],
+      [sessionId, bidder, parseUnits(amount, decimals), message, salt]
     )
   );
 }

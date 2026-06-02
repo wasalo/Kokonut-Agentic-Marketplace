@@ -5,6 +5,68 @@ All notable changes to the Kokonut Agent Economy Stack are documented in this fi
 The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.0.0/),
 and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0.html).
 
+## [2026-06-01] — Phase 45b: Bidding Safety UUPS Upgrade (O-1/O-2/O-3/O-10/O-13/O-20)
+
+### BiddingSystem Contract
+
+| Change | Detail |
+|--------|--------|
+| **O-1 — Commit hash binding** | `revealBid` hash now `keccak256(abi.encode(sessionId, msg.sender, amount, message, salt))`. Prevents cross-bidder hash collisions and cross-session replay. Pre-upgrade reveals remain valid for any bidder who committed pre-upgrade. |
+| **O-2 — Explicit `closeBidding` + `BiddingClosed` event** | New permissionless `closeBidding(sessionId)` callable by anyone once `block.timestamp >= session.deadline`. Transitions `Active → BiddingClosed` and emits `BiddingClosed(sessionId, caller, closedAt)`. `cancelSession` extended to allow `BiddingClosed`; `withdrawStake` extended to allow `BiddingClosed` (bidders can recover un-revealed stakes). |
+| **O-3 — `slashNoShow` + `BidderSlashed` event** | New `slashNoShow(sessionId, bidder)` creator-only after `revealWindowEnd`. Slashes 5% (`NO_SHOW_SLASH_BP = 500`) of stake to treasury, refunds remainder. Marks bid `stakeWithdrawn = true, rejected = true` to prevent double-actions. Reverts on revealed / accepted / already-settled / zero-stake. New errors: `No_show_not_eligible`, `Already_settled`, `Reveal_window_not_ended`. |
+| **O-10 — Per-token fee accumulator + `withdrawFees`** | New `mapping(address => uint256) public accumulatedFeesByToken` at storage slot 64 (consumed from `__gap`). `createJobAndFund` now increments `accumulatedFeesByToken[paymentToken]` for ERC-20 sessions, `totalAccumulatedFees` for ETH. New `withdrawFees(token)` pulls full balance to treasury in one call. `address(0)` is native ETH. New error: `No_fees_to_withdraw`. |
+| **O-13 — `EvaluatorFinalized` event** | Emitted in `createJobAndFund` at the moment the session transitions to `JobCreated` and the evaluator is locked in. `address(0)` is valid and means random-pool selection. |
+| **O-20 — `claimStake` removed** | Selector `0x...` is no longer present in the deployed bytecode. SDK throws a clear `Error`, CLI command is deleted, the action queue no longer references it. Use `withdrawStake` for non-winning bids or `acceptBid` for the winning bid (auto-refunded by contract). |
+| **Bug fix bundled** | Pre-existing Phase 40 bug: `createJobAndFund` always sent `value: bidAmount` to mock commerce, reverting for ERC-20 sessions. Now only sends ETH when `paymentToken == address(0)`. |
+| **Storage layout** | Only `accumulatedFeesByToken` (mapping) added at slot 64. All existing variables unchanged. `node scripts/check-storage-layout.js` reports 9/9 contracts compatible. |
+| **Tests** | 22 new tests added to `contracts/test/BiddingSystem.t.sol` (79 total in suite). 304/304 forge tests pass (+22 from Phase 45b). |
+
+### Frontend (apps/web)
+
+| Change | Detail |
+|--------|--------|
+| **ABI** | `apps/web/lib/contracts/abis.ts` adds `accumulatedFeesByToken`, `closeBidding`, `slashNoShow`, `withdrawFees` + 4 new events (`BiddingClosed`, `BidderSlashed`, `EvaluatorFinalized`, `FeesWithdrawn`). |
+| **Hooks** | `useBiddingSystem.ts` adds `useCloseBidding`, `useSlashNoShow`, `useWithdrawFees`, `useAccumulatedFeesByToken`. |
+| **Commit hash builder** | `useBiddingSalt.ts` `buildBidCommitHash` now takes `(sessionId, bidder, amount, message, salt, decimals=18)` and encodes 5 fields, matching the on-chain reveal. |
+| **Recovery** | `useBidRecovery.ts` `isCommitHashMatch` updated to use 5-field hash with `envelope.sessionId` and `envelope.address`. |
+| **Session state** | `useBiddingSessionState.ts` exposes `canCloseBidding`, `canSlashNoShow(bidder)`, `handleCloseBidding`, `handleSlashNoShow(bidder)`, `isClosePending`, `isSlashPending`. `canCancelSession` allows `Active || BiddingClosed`. `currentError` aggregates `closeError` and `slashError`. |
+| **Action queue** | `useActionQueue.ts` adds "Close bidding — deadline reached" creator reason (high urgency). |
+| **Detail page** | `apps/web/app/bidding/[id]/page.tsx` adds a "Close bidding (final)" `SessionActionButton` rendered when `canCloseBidding`. The `Clock` icon is imported. |
+| **Test** | `useBiddingSalt.test.ts` rewritten for the 5-field hash. |
+
+### SDK (sdk/typescript)
+
+| Change | Detail |
+|--------|--------|
+| **`commitBid`** | Now requires `fromAddress` (or uses `wallet.account?.address`); 5-field hash. |
+| **`claimStake`** | Throws `Error('claimStake has been removed in Phase 45b (O-20). Use withdrawStake for non-winning bids or acceptBid to claim winner stake (auto-refunded by contract).')`. |
+| **New methods** | `closeBidding`, `slashNoShow({sessionId, bidder})`, `withdrawFees(token)`, `getAccumulatedFees(token)`. |
+
+### CLI (cli/cli.ts)
+
+| Change | Detail |
+|--------|--------|
+| **`BIDDING_SYSTEM_ABI_PARSED`** | Removed `claimStake(uint256)`; added `closeBidding`, `slashNoShow`, `withdrawFees`, `accumulatedFeesByToken`. |
+| **Commands** | Removed `claim-stake`. Added `close-bidding`, `slash-no-show`, `withdraw-fees <token>`. |
+
+### Subgraph (packages/subgraph)
+
+| Change | Detail |
+|--------|--------|
+| **`schema.graphql`** | `BiddingSession` adds `closedAt: BigInt`, `evaluatorFinalizedAt: BigInt`. `Bid` adds `slashAmount: BigInt`, `refundAmount: BigInt`. |
+| **`bidding-system.ts`** | New handlers: `handleBiddingClosed`, `handleBidderSlashed`, `handleEvaluatorFinalized`, `handleFeesWithdrawn`. |
+| **`subgraph.yaml`** | 4 new event handler entries registered. |
+| **`abis/BiddingSystem.json`** | 4 new event ABI entries. |
+
+### Infrastructure
+
+| Change | Detail |
+|--------|--------|
+| **Upgrade script** | `contracts/script/UpgradeBiddingSystem_Phase45b.s.sol` — UUPS upgrade to new implementation. |
+| **Address manifest** | `config/address-manifest.json` version bumped to `2026-06-01-phase-45b`. `biddingSystemImpl` slot to be filled post-deploy. |
+| **Verification** | `type-check:strict` ✓, `type-check` ✓, `lint` ✓, `test:components` 8/8 files 66/66 tests ✓, `forge test` 304/304 ✓, storage layout 9/9 compatible ✓. |
+| **Audit** | Self-audit against ethskills security + audit checklists. Reentrancy, CEI, access control, input validation, SafeERC20, integer math, storage layout safety, and event emission all pass. |
+
 ## [2026-06-01] — Phase 45a: Mobile Bottom-Nav Redesign + E2E Stabilization + Component Test Infrastructure
 
 ### Mobile Bottom-Nav

@@ -1,7 +1,7 @@
 'use client';
 
 import { use, useEffect, type ReactNode } from 'react';
-import { Loader2, CheckCircle, AlertCircle, RefreshCw, Trophy, Wallet } from 'lucide-react';
+import { Loader2, CheckCircle, AlertCircle, RefreshCw, Trophy, Wallet, Clock } from 'lucide-react';
 import { Card } from '@heroui/react';
 import NextLink from 'next/link';
 import { useBiddingSessionState } from '@/lib/hooks/useBiddingSessionState';
@@ -53,6 +53,7 @@ export default function BiddingSessionDetailPage({
     isCancelPending,
     isRevealPending,
     isExtendPending,
+    isClosePending,
     isWithdrawPending,
     isCreatorWithdrawPending,
     isCompletePending,
@@ -67,6 +68,7 @@ export default function BiddingSessionDetailPage({
     canCompleteSession,
     canWithdrawCreatorStake,
     canExtendRevealWindow,
+    canCloseBidding,
     hasVisibleAction,
     actionEmptyMessage,
     setCommitAmount,
@@ -84,6 +86,7 @@ export default function BiddingSessionDetailPage({
     handleRejectBid,
     handleCancelSession,
     handleExtendWindow,
+    handleCloseBidding,
     handleWithdrawStake,
     handleWithdrawCreatorStake,
     handleCompleteSession,
@@ -326,6 +329,17 @@ export default function BiddingSessionDetailPage({
                 isExtendPending={isExtendPending}
                 onSecondsChange={setExtendSeconds}
                 onExtend={handleExtendWindow}
+              />
+            )}
+
+            {canCloseBidding && (
+              <SessionActionButton
+                icon={<Clock className="size-5 text-primary" />}
+                title="Close bidding (final)"
+                description="Mark bidding as closed so revealed bids can be selected or stakes can be withdrawn. This is permissionless once the deadline has passed."
+                isPending={isClosePending}
+                disabled={isClosePending}
+                onClick={handleCloseBidding}
               />
             )}
 

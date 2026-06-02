@@ -28,6 +28,7 @@ const HIGH_URGENCY_REASONS = new Set([
   'Select a winning bid',
   'Reveal your bid',
   'Withdraw stake',
+  'Close bidding — deadline reached',
 ]);
 
 function urgencyFor(reason: string): ActionItem['urgency'] {
@@ -53,6 +54,9 @@ function biddingReasonFor(session: BiddingSession, user: `0x${string}`): string 
 
   if (isCreator && session.status === SessionStatus.Active && nowSec < session.deadline) {
     return 'Your session is accepting bids';
+  }
+  if (isCreator && session.status === SessionStatus.Active && nowSec >= session.deadline) {
+    return 'Close bidding — deadline reached';
   }
   if (isCreator && session.status === SessionStatus.BiddingClosed) {
     return 'Select a winning bid';

@@ -15,6 +15,8 @@ import {
   useBiddingRejectBid,
   useBiddingCompleteSession,
   useBiddingWithdrawCreatorStake,
+  useCloseBidding,
+  useSlashNoShow,
   SessionStatus,
   type BiddingSession,
   type BidInfo,
@@ -85,6 +87,8 @@ export interface UseBiddingSessionStateResult {
   canWithdrawUserStake: boolean;
   canWithdrawCreatorStake: boolean;
   canCompleteSession: boolean;
+  canCloseBidding: boolean;     // Phase 45b O-2
+  canSlashNoShow: (bidder: `0x${string}`) => boolean; // Phase 45b O-3
   hasVisibleAction: boolean;
   actionEmptyMessage: string;
 
@@ -99,6 +103,8 @@ export interface UseBiddingSessionStateResult {
   isCreatorWithdrawPending: boolean;
   isCompletePending: boolean;
   isExtendPending: boolean;
+  isClosePending: boolean;     // Phase 45b O-2
+  isSlashPending: boolean;     // Phase 45b O-3
   isSelectionPhase: boolean;
   txStep: string | null;
   currentError: Error | null;
@@ -112,6 +118,8 @@ export interface UseBiddingSessionStateResult {
   handleWithdrawStake: () => void;
   handleWithdrawCreatorStake: () => void;
   handleCompleteSession: () => void;
+  handleCloseBidding: () => void;                 // Phase 45b O-2
+  handleSlashNoShow: (bidder: `0x${string}`) => void; // Phase 45b O-3
 }
 
 const ZERO_WINNER = '0x0000000000000000000000000000000000000000';
@@ -150,6 +158,9 @@ export function useBiddingSessionState({
   const { rejectBid, isPending: isRejectPending, writeError: rejectError } = useBiddingRejectBid();
   const { completeSession, isPending: isCompletePending, writeError: completeError } = useBiddingCompleteSession();
   const { withdrawCreatorStake, isPending: isCreatorWithdrawPending, error: creatorWithdrawError } = useBiddingWithdrawCreatorStake();
+  // Phase 45b O-2 + O-3
+  const { closeBidding, isPending: isClosePending, writeError: closeError } = useCloseBidding();
+  const { slashNoShow, isPending: isSlashPending, writeError: slashError } = useSlashNoShow();
 
   const { data: ethBalance } = useBalance({ address });
   const { balance: usdcBalance } = useUSDCBalance(address);
@@ -207,7 +218,7 @@ export function useBiddingSessionState({
                       : null;
 
   const currentError = commitWriteError || revealError || acceptError || rejectError || cancelError ||
-    extendError || withdrawError || creatorWithdrawError || completeError;
+    extendError || withdrawError || creatorWithdrawError || completeError || closeError || slashError;
 
   const { ensureUSDCApproval } = useUSDCApproval({
     account: address,
@@ -269,7 +280,7 @@ export function useBiddingSessionState({
   const canReject = isSelectionPhase && Boolean(selectedBid);
   const canCancelSession = Boolean(
     isCreator &&
-      session?.status === SessionStatus.Active &&
+      (session?.status === SessionStatus.Active || session?.status === SessionStatus.BiddingClosed) &&
       session.winner === ZERO_WINNER &&
       !session.jobCreated &&
       revealedBids.length === 0
@@ -283,6 +294,21 @@ export function useBiddingSessionState({
       (session?.status === SessionStatus.Completed || session?.status === SessionStatus.Cancelled)
   );
   const canCompleteSession = Boolean(isCreator && session?.status === SessionStatus.JobCreated);
+  // Phase 45b O-2: anyone can call closeBidding once deadline has passed and status is still Active
+  const canCloseBidding = Boolean(
+    session?.status === SessionStatus.Active && hasDeadlinePassed
+  );
+  // Phase 45b O-3: only the creator can slash no-shows, and only after the full reveal window has ended
+  const revealWindowEnded = Boolean(session && now >= session.revealWindowEnd);
+  const canSlashNoShow = (bidder: `0x${string}`) => Boolean(
+    isCreator &&
+      session &&
+      revealWindowEnded &&
+      session.status !== SessionStatus.Cancelled &&
+      session.status !== SessionStatus.Completed &&
+      session.status !== SessionStatus.JobCreated &&
+      bidder !== ZERO_WINNER
+  );
 
   const hasVisibleAction = Boolean(
     !isConnected ||
@@ -293,7 +319,8 @@ export function useBiddingSessionState({
       canCompleteSession ||
       canWithdrawCreatorStake ||
       canCancelSession ||
-      canExtendRevealWindow
+      canExtendRevealWindow ||
+      canCloseBidding
   );
 
   const actionEmptyMessage = isCreator && isCommitPhase
@@ -314,7 +341,10 @@ export function useBiddingSessionState({
 
     setCommitApprovalPhase('creating');
     persistCommitForReveal();
+    if (!address) return;
     const commitHashValue = buildBidCommitHash(
+      sessionId,
+      address,
       commitAmount,
       commitMessage,
       commitSalt as `0x${string}`,
@@ -329,7 +359,7 @@ export function useBiddingSessionState({
     });
   }, [
     sessionId, commitAmount, commitMessage, commitSalt, stake, session, sessionToken,
-    ensureUSDCApproval, commitBid, persistCommitForReveal,
+    ensureUSDCApproval, commitBid, persistCommitForReveal, address,
   ]);
 
   const handleRevealBid = useCallback(() => {
@@ -377,6 +407,16 @@ export function useBiddingSessionState({
     extendRevealWindow({ sessionId, additionalSeconds: BigInt(extendSeconds) });
   }, [sessionId, extendSeconds, extendRevealWindow]);
 
+  // Phase 45b O-2
+  const handleCloseBidding = useCallback(() => {
+    closeBidding(sessionId);
+  }, [sessionId, closeBidding]);
+
+  // Phase 45b O-3
+  const handleSlashNoShow = useCallback((bidder: `0x${string}`) => {
+    slashNoShow({ sessionId, bidder });
+  }, [sessionId, slashNoShow]);
+
   return {
     address,
     isConnected,
@@ -422,6 +462,8 @@ export function useBiddingSessionState({
     canWithdrawUserStake,
     canWithdrawCreatorStake,
     canCompleteSession,
+    canCloseBidding,
+    canSlashNoShow,
     hasVisibleAction,
     actionEmptyMessage,
     commitApprovalPhase,
@@ -435,6 +477,8 @@ export function useBiddingSessionState({
     isCreatorWithdrawPending,
     isCompletePending,
     isExtendPending,
+    isClosePending,
+    isSlashPending,
     isSelectionPhase,
     txStep,
     currentError,
@@ -447,5 +491,7 @@ export function useBiddingSessionState({
     handleWithdrawStake,
     handleWithdrawCreatorStake,
     handleCompleteSession,
+    handleCloseBidding,
+    handleSlashNoShow,
   };
 }

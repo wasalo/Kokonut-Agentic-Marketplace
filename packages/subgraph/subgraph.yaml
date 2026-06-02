@@ -163,6 +163,14 @@ dataSources:
           handler: handleSessionCompleted
         - event: RevealWindowExtended(indexed uint256,uint256)
           handler: handleRevealWindowExtended
+        - event: BiddingClosed(indexed uint256,indexed address,uint256)
+          handler: handleBiddingClosed
+        - event: BidderSlashed(indexed uint256,indexed address,uint256,uint256)
+          handler: handleBidderSlashed
+        - event: EvaluatorFinalized(indexed uint256,indexed address,uint256)
+          handler: handleEvaluatorFinalized
+        - event: FeesWithdrawn(indexed address,indexed address,uint256)
+          handler: handleFeesWithdrawn
       file: ./src/bidding-system.ts
   - kind: ethereum
     name: AdminRegistry

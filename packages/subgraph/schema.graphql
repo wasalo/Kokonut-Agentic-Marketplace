@@ -137,6 +137,8 @@ type BiddingSession @entity(immutable: false) {
   status: Int!
   useRandomEvaluator: Boolean
   paymentToken: Bytes
+  closedAt: BigInt              # Phase 45b O-2
+  evaluatorFinalizedAt: BigInt  # Phase 45b O-13
   createdAt: BigInt!
   updatedAt: BigInt!
   bids: [Bid!] @derivedFrom(field: "session")
@@ -155,6 +157,8 @@ type Bid @entity(immutable: true) {
   rejected: Boolean!
   stakeWithdrawn: Boolean!
   timestamp: BigInt!
+  slashAmount: BigInt           # Phase 45b O-3
+  refundAmount: BigInt          # Phase 45b O-3
 }
 
 type PlatformStat @entity(immutable: false) {

@@ -11,6 +11,10 @@ import {
   SessionCancelled as SessionCancelledEvent,
   SessionCompleted as SessionCompletedEvent,
   RevealWindowExtended as RevealWindowExtendedEvent,
+  BiddingClosed as BiddingClosedEvent,
+  BidderSlashed as BidderSlashedEvent,
+  EvaluatorFinalized as EvaluatorFinalizedEvent,
+  FeesWithdrawn as FeesWithdrawnEvent,
 } from '../generated/BiddingSystem/BiddingSystem';
 import { BiddingSession, Bid, Activity } from '../generated/schema';
 import { updatePlatformStat } from './helpers';
@@ -219,4 +223,53 @@ export function handleRevealWindowExtended(event: RevealWindowExtendedEvent): vo
   session.revealWindowEnd = event.params.newRevealWindowEnd;
   session.updatedAt = event.block.timestamp;
   session.save();
+}
+
+// Phase 45b O-2: explicit BiddingClosed state transition
+export function handleBiddingClosed(event: BiddingClosedEvent): void {
+  let session = BiddingSession.load(event.params.sessionId.toString());
+  if (!session) return;
+
+  session.status = 1; // BiddingClosed
+  session.closedAt = event.params.closedAt;
+  session.updatedAt = event.block.timestamp;
+  session.save();
+}
+
+// Phase 45b O-3: bidder slashed for not revealing
+export function handleBidderSlashed(event: BidderSlashedEvent): void {
+  let bidId = event.params.sessionId.toString() + '-' + event.params.bidder.toHexString();
+  let bid = Bid.load(bidId);
+  if (bid) {
+    bid.slashAmount = event.params.slashAmount;
+    bid.refundAmount = event.params.refundAmount;
+    bid.stakeWithdrawn = true;
+    bid.rejected = true;
+    bid.save();
+  }
+}
+
+// Phase 45b O-13: evaluator locked in at job creation
+export function handleEvaluatorFinalized(event: EvaluatorFinalizedEvent): void {
+  let session = BiddingSession.load(event.params.sessionId.toString());
+  if (!session) return;
+
+  // address(0) means random-pool selection. Store as-is for downstream indexers.
+  session.evaluator = event.params.evaluator;
+  session.evaluatorFinalizedAt = event.params.finalizedAt;
+  session.updatedAt = event.block.timestamp;
+  session.save();
+}
+
+// Phase 45b O-10: platform fees withdrawn (purely informational for the indexer)
+export function handleFeesWithdrawn(event: FeesWithdrawnEvent): void {
+  createActivity(
+    event.transaction.hash.toHexString() + '-' + event.logIndex.toString(),
+    'BIDDING_FEES_WITHDRAWN',
+    event.params.to as Bytes,
+    event.params.amount,
+    event.block.number,
+    event.block.timestamp,
+    event.transaction.hash
+  );
 }

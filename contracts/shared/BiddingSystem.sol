@@ -91,6 +91,10 @@ contract BiddingSystem is
     error BiddingSystem__Zero_owner();
     error BiddingSystem__Zero_treasury();
     error BiddingSystem__Extension_too_long();
+    error BiddingSystem__No_show_not_eligible();   // Phase 45b O-3: bid is revealed, accepted, or already withdrawn
+    error BiddingSystem__Already_settled();        // Phase 45b O-3: bid was already slashed
+    error BiddingSystem__Reveal_window_not_ended();// Phase 45b O-3: slashNoShow called before reveal window ended
+    error BiddingSystem__No_fees_to_withdraw();    // Phase 45b O-10: withdrawFees called with zero balance
     /***********************************/
     /* Constants */
     /***********************************/
@@ -104,6 +108,7 @@ contract BiddingSystem is
     uint256 public constant MAX_JOB_EXPIRY = 365 days;
     uint256 public constant ETH_PLATFORM_FEE_BP = 100; // 1% platform fee
     uint256 public constant MAX_REVEAL_EXTENSION = 7 days;
+    uint256 public constant NO_SHOW_SLASH_BP = 500;    // Phase 45b O-3: 5% slash for no-show bidders
     
     /***********************************/
     /* Storage */
@@ -135,6 +140,12 @@ contract BiddingSystem is
     // Running total of accrued platform fees (D-01 fix — replaces O(n) loop)
     uint256 public totalAccumulatedFees;
     mapping(uint256 => bool) public creatorStakeWithdrawn;
+
+    // Phase 45b O-10: per-token accumulator for ERC-20 platform fees.
+    // Tracks accumulated fees per paymentToken so withdrawFees(token) can pull
+    // the full balance in one call. address(0) is native ETH, but the ETH
+    // balance is also tracked by totalAccumulatedFees above for backward compat.
+    mapping(address => uint256) public accumulatedFeesByToken;
     
     /***********************************/
     /* Modifiers */
@@ -341,7 +352,9 @@ contract BiddingSystem is
         if (!(!bid.revealed)) revert BiddingSystem__Already_revealed();
         
         // Verify commitment
-        bytes32 expectedHash = keccak256(abi.encode(amount, message, salt));
+        // Phase 45b O-1: Hash now binds to (sessionId, msg.sender, amount, message, salt)
+        // to prevent cross-bidder hash collisions and cross-session replay attacks.
+        bytes32 expectedHash = keccak256(abi.encode(sessionId, msg.sender, amount, message, salt));
         if (!(validCommits[sessionId][expectedHash])) revert BiddingSystem__Invalid_commitment();
         
         // Verify amount doesn't exceed max budget
@@ -424,9 +437,14 @@ contract BiddingSystem is
     
     function withdrawStake(uint256 sessionId) external nonReentrant {
         Session storage session = sessions[sessionId];
-        
+
         if (!(session.id != 0)) revert BiddingSystem__Invalid_session();
-        if (!(session.status == SessionStatus.WinnerSelected || session.status == SessionStatus.Completed || session.status == SessionStatus.Cancelled)) revert BiddingSystem__Session_still_active();
+        // Phase 45b O-2: include BiddingClosed so non-revealing bidders can pull
+        // their stake once the full reveal window has elapsed and the session is
+        // closed. Bidders who never revealed should prefer slashNoShow (which
+        // slashes 5%) — withdrawStake returns the full stake if the bid is
+        // unrevealed and the reveal window has ended.
+        if (!(session.status == SessionStatus.BiddingClosed || session.status == SessionStatus.WinnerSelected || session.status == SessionStatus.Completed || session.status == SessionStatus.Cancelled)) revert BiddingSystem__Session_still_active();
         
         uint256 bidIndex = bidderToBidIndex[sessionId][msg.sender];
         if (!(bidIndex != 0)) revert BiddingSystem__No_bid_found();
@@ -465,6 +483,50 @@ contract BiddingSystem is
         // Keeping this fallback withdraw path lets terminal sessions drain pooled bidder stakes.
         revert BiddingSystem__Stake_already_withdrawn();
     }
+
+    /// @notice Phase 45b O-3: Slash a bidder who committed but never revealed after the
+    ///         full reveal window elapsed. Callable only by the session creator. Slashes
+    ///         NO_SHOW_SLASH_BP (5%) of the bidder's stake to the treasury and refunds
+    ///         the remainder. The bid is marked rejected + stakeWithdrawn so it cannot be
+    ///         accepted or slashed again. Reverts on invalid session, un-ended reveal
+    ///         window, missing bid, revealed/accepted/already-settled bid, or zero stake.
+    function slashNoShow(uint256 sessionId, address bidder) external nonReentrant onlySessionCreator(sessionId) {
+        Session storage session = sessions[sessionId];
+        if (!(session.id != 0)) revert BiddingSystem__Invalid_session();
+        if (!(block.timestamp >= session.revealWindowEnd)) revert BiddingSystem__Reveal_window_not_ended();
+        if (!(bidder != address(0))) revert BiddingSystem__Zero_address();
+
+        uint256 bidIndex = bidderToBidIndex[sessionId][bidder];
+        if (!(bidIndex != 0)) revert BiddingSystem__No_bid_found();
+
+        Bid storage bid = sessionBids[sessionId][bidIndex - 1];
+        if (bid.revealed) revert BiddingSystem__No_show_not_eligible();
+        if (bid.accepted) revert BiddingSystem__Bid_already_accepted();
+        if (bid.rejected) revert BiddingSystem__Already_settled();
+        if (bid.stakeWithdrawn) revert BiddingSystem__Stake_already_withdrawn();
+
+        uint256 totalStake = bid.stake;
+        if (!(totalStake > 0)) revert BiddingSystem__No_stake_to_withdraw();
+
+        uint256 slashAmount = (totalStake * NO_SHOW_SLASH_BP) / FEE_DENOMINATOR;
+        uint256 refundAmount = totalStake - slashAmount;
+
+        // Effects (CEI): zero out the bid and reduce tracked stake before external calls
+        bid.stake = 0;
+        bid.stakeWithdrawn = true;
+        bid.rejected = true;
+        totalStakesHeld[sessionId] -= totalStake;
+
+        // Interactions: slash goes to treasury, remainder refunded to bidder.
+        if (slashAmount > 0) {
+            _sendToken(session.paymentToken, treasury, slashAmount);
+        }
+        if (refundAmount > 0) {
+            _sendToken(session.paymentToken, bidder, refundAmount);
+        }
+
+        emit BidderSlashed(sessionId, bidder, slashAmount, refundAmount);
+    }
     
     /***********************************/
     /* Job Creation & Integration */
@@ -497,8 +559,12 @@ contract BiddingSystem is
         // Create job in AgenticCommerceV9 with budget at creation for the session creator (client)
         // Phase 39: Pass address(0) when useRandomEvaluator is true to trigger random selection
         // Phase 40: Pass session.paymentToken
+        // Phase 45b: Only forward `value: bidAmount` for native ETH sessions. ERC-20 sessions
+        // pull the payment via _receiveToken above and must not send native value (would revert
+        // with OutOfFunds on the downstream call when the BiddingSystem has no ETH balance).
         address jobEvaluator = session.useRandomEvaluator ? address(0) : session.evaluator;
-        jobId = IAgenticCommerceV9(commerce).createJobForClient{value: bidAmount}(
+        uint256 ethValue = session.paymentToken == address(0) ? bidAmount : 0;
+        jobId = IAgenticCommerceV9(commerce).createJobForClient{value: ethValue}(
             msg.sender,           // client (session creator)
             session.winner,       // provider
             bidAmount,            // budget
@@ -516,12 +582,24 @@ contract BiddingSystem is
         
         // Store jobId after external call (depends on return value)
         session.jobId = jobId;
-        
+
         // Pay platform fee (tracked for accounting; actual transfer happens via job creation)
         uint256 fee = (bidAmount * platformFeeBP) / FEE_DENOMINATOR;
         if (fee > 0) {
-            totalAccumulatedFees += fee;
+            // Phase 45b O-10: track per-token fees so withdrawFees(token) can pull
+            // the full balance in one call. Native ETH continues to use the
+            // totalAccumulatedFees counter for backward compat with withdrawPlatformFees.
+            if (session.paymentToken == address(0)) {
+                totalAccumulatedFees += fee;
+            } else {
+                accumulatedFeesByToken[session.paymentToken] += fee;
+            }
         }
+
+        // Phase 45b O-13: emit EvaluatorFinalized at the moment the session transitions
+        // to JobCreated and the evaluator is locked in. address(0) is valid and means
+        // the AgenticCommerce pool will select one at random.
+        emit EvaluatorFinalized(sessionId, jobEvaluator, block.timestamp);
         
         // Return winner's stake
         uint256 winStake = sessionBids[sessionId][session.winningBidId - 1].stake;
@@ -548,12 +626,15 @@ contract BiddingSystem is
     
     function cancelSession(uint256 sessionId) external nonReentrant onlySessionCreator(sessionId) {
         Session storage session = sessions[sessionId];
-        
+
         if (!(session.id != 0)) revert BiddingSystem__Invalid_session();
-        if (!(session.status == SessionStatus.Active)) revert BiddingSystem__Cannot_cancel();
+        // Phase 45b O-2: allow cancellation while status is BiddingClosed too, as
+        // long as no revealed bids and no winner. Lets the creator give up after
+        // the deadline arrives but before reveals.
+        if (!(session.status == SessionStatus.Active || session.status == SessionStatus.BiddingClosed)) revert BiddingSystem__Cannot_cancel();
         if (!(session.winner == address(0))) revert BiddingSystem__Winner_selected();
         if (!(!session.jobCreated)) revert BiddingSystem__Job_created();
-        
+
         // Check if any bids are revealed
         bool hasRevealedBids = false;
         for (uint256 i = 0; i < sessionBids[sessionId].length; i++) {
@@ -563,10 +644,10 @@ contract BiddingSystem is
             }
         }
         if (!(!hasRevealedBids)) revert BiddingSystem__Cannot_cancel_bids_revealed();
-        
+
         // Effects before external call
         session.status = SessionStatus.Cancelled;
-        
+
         // Return creator's session stake
         uint256 creatorStake = calculateStake(session.maxBudget);
         if (creatorStake > 0 && totalStakesHeld[sessionId] >= creatorStake) {
@@ -575,8 +656,22 @@ contract BiddingSystem is
         }
         // Phase 40: Refund in session's payment token
         _sendToken(session.paymentToken, msg.sender, creatorStake);
-        
+
         emit SessionCancelled(sessionId, msg.sender);
+    }
+
+    /// @notice Phase 45b O-2: Permissionlessly close bidding once the deadline has passed.
+    ///         Transitions the session from Active to BiddingClosed and emits BiddingClosed.
+    ///         Reverts if the session is not Active, the deadline has not passed, or the
+    ///         session id is invalid. Anyone (including the creator) can call.
+    function closeBidding(uint256 sessionId) external nonReentrant {
+        Session storage session = sessions[sessionId];
+        if (!(session.id != 0)) revert BiddingSystem__Invalid_session();
+        if (session.status != SessionStatus.Active) revert BiddingSystem__Wrong_session_status();
+        if (!(block.timestamp >= session.deadline)) revert BiddingSystem__Deadline_not_passed();
+
+        session.status = SessionStatus.BiddingClosed;
+        emit BiddingClosed(sessionId, msg.sender, block.timestamp);
     }
     
     function completeSession(uint256 sessionId) external nonReentrant {
@@ -709,6 +804,27 @@ contract BiddingSystem is
         if (!(amount <= totalAccumulatedFees)) revert BiddingSystem__Insufficient_balance();
         totalAccumulatedFees -= amount;
         _sendEth(to, amount);
+    }
+
+    /// @notice Phase 45b O-10: Withdraw the full accumulated platform-fee balance for
+    ///         a given token to the treasury. Use address(0) for native ETH.
+    ///         For ERC-20 tokens the entire `accumulatedFeesByToken[token]` balance is
+    ///         transferred; for ETH the `totalAccumulatedFees` counter is decremented and
+    ///         the equivalent wei balance is sent.
+    function withdrawFees(address token) external onlyOwner nonReentrant {
+        if (token == address(0)) {
+            uint256 amount = totalAccumulatedFees;
+            if (!(amount > 0)) revert BiddingSystem__No_fees_to_withdraw();
+            totalAccumulatedFees = 0;
+            _sendEth(treasury, amount);
+            emit FeesWithdrawn(address(0), treasury, amount);
+        } else {
+            uint256 amount = accumulatedFeesByToken[token];
+            if (!(amount > 0)) revert BiddingSystem__No_fees_to_withdraw();
+            accumulatedFeesByToken[token] = 0;
+            IERC20(token).safeTransfer(treasury, amount);
+            emit FeesWithdrawn(token, treasury, amount);
+        }
     }
     
     /***********************************/

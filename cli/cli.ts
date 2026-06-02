@@ -3027,8 +3027,11 @@ const BIDDING_SYSTEM_ABI_PARSED = parseAbi([
   'function rejectBid(uint256 sessionId, uint256 bidId, string reason) external',
   'function withdrawStake(uint256 sessionId) external',
   'function withdrawCreatorStake(uint256 sessionId) external',
-  'function claimStake(uint256 sessionId) external',
   'function completeSession(uint256 sessionId) external',
+  'function closeBidding(uint256 sessionId) external',
+  'function slashNoShow(uint256 sessionId, address bidder) external',
+  'function withdrawFees(address token) external',
+  'function accumulatedFeesByToken(address token) external view returns (uint256)',
   'function createJobAndFund(uint256 sessionId, uint256 jobExpiredAt, string description) external payable returns (uint256 jobId)',
   'function cancelSession(uint256 sessionId) external',
   'function extendRevealWindow(uint256 sessionId, uint256 additionalSeconds) external',
@@ -3490,8 +3493,8 @@ program
   });
 
 program
-  .command('claim-stake')
-  .description('Claim your stake (winner only)')
+  .command('close-bidding')
+  .description('Permissionlessly close bidding once the deadline has passed (Phase 45b O-2)')
   .requiredOption('--session <id>', 'Session ID', parseInt)
   .action(async options => {
     try {
@@ -3508,14 +3511,85 @@ program
         BIDDING_SYSTEM_ABI_PARSED
       );
 
-      console.log(chalk.cyan('Claiming stake...'));
+      console.log(chalk.cyan('Closing bidding...'));
       console.log(chalk.dim('  Session ID:'), options.session);
 
-      const hash = await contract.write.claimStake([BigInt(options.session)]);
-
+      const hash = await contract.write.closeBidding([BigInt(options.session)]);
       console.log(chalk.cyan('Transaction sent:'), hash);
       await waitForTransactionReceipt(hash);
-      console.log(chalk.green('✅ Stake claimed!'));
+      console.log(chalk.green('✅ Bidding closed!'));
+    } catch (error: unknown) {
+      const err = error as { message?: string };
+      console.error(chalk.red('❌ Error:'), err.message);
+    }
+  });
+
+program
+  .command('slash-no-show')
+  .description('Slash a no-show bidder (creator only, after reveal window ends; Phase 45b O-3)')
+  .requiredOption('--session <id>', 'Session ID', parseInt)
+  .requiredOption('--bidder <address>', 'Bidder address to slash')
+  .action(async options => {
+    try {
+      const opts = program.opts();
+      initWallet(undefined, opts.wallet, opts.passphrase);
+
+      if (!config.contracts.biddingSystem) {
+        console.error(chalk.red('❌ BiddingSystem not configured'));
+        return;
+      }
+
+      const contract = getContractInstance(
+        config.contracts.biddingSystem as Address,
+        BIDDING_SYSTEM_ABI_PARSED
+      );
+
+      console.log(chalk.cyan('Slashing no-show bidder...'));
+      console.log(chalk.dim('  Session ID:'), options.session);
+      console.log(chalk.dim('  Bidder:'), options.bidder);
+
+      const hash = await contract.write.slashNoShow([
+        BigInt(options.session),
+        options.bidder as Address,
+      ]);
+      console.log(chalk.cyan('Transaction sent:'), hash);
+      await waitForTransactionReceipt(hash);
+      console.log(chalk.green('✅ Bidder slashed!'));
+    } catch (error: unknown) {
+      const err = error as { message?: string };
+      console.error(chalk.red('❌ Error:'), err.message);
+    }
+  });
+
+program
+  .command('withdraw-fees')
+  .description('Withdraw the full accumulated platform-fee balance for a token (Phase 45b O-10)')
+  .requiredOption('--token <address>', 'Token address (0x0000… for native ETH)')
+  .action(async options => {
+    try {
+      const opts = program.opts();
+      initWallet(undefined, opts.wallet, opts.passphrase);
+
+      if (!config.contracts.biddingSystem) {
+        console.error(chalk.red('❌ BiddingSystem not configured'));
+        return;
+      }
+
+      const contract = getContractInstance(
+        config.contracts.biddingSystem as Address,
+        BIDDING_SYSTEM_ABI_PARSED
+      );
+
+      const tokenAddr = options.token as Address;
+      const isNative = tokenAddr.toLowerCase() === '0x0000000000000000000000000000000000000000';
+
+      console.log(chalk.cyan('Withdrawing platform fees...'));
+      console.log(chalk.dim('  Token:'), isNative ? 'ETH (native)' : tokenAddr);
+
+      const hash = await contract.write.withdrawFees([tokenAddr]);
+      console.log(chalk.cyan('Transaction sent:'), hash);
+      await waitForTransactionReceipt(hash);
+      console.log(chalk.green('✅ Fees withdrawn!'));
     } catch (error: unknown) {
       const err = error as { message?: string };
       console.error(chalk.red('❌ Error:'), err.message);
