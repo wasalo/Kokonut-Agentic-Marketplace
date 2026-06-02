@@ -86,8 +86,7 @@ export function Footer(): JSX.Element {
               <span className="font-bold text-xl">Kokonut</span>
             </NextLink>
             <p className="text-default-600 text-sm mb-6 max-w-xs">
-              The onchain agent economy. Build, deploy, and monetize AI agents with ERC-8004
-              compliance.
+              The onchain agent economy. Build, deploy, and monetize AI agents on Ethereum.
             </p>
             <div className="flex gap-4">
               {socialLinks.map(social => (

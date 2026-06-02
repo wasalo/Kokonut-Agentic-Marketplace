@@ -652,10 +652,11 @@ const signResult = await signMessage(walletInfo.id, 'sepolia', 'Hello, Kokonut!'
 The public-facing landing page for the marketplace. Composed of five sections (Hero, Features Grid, How It Works, What's Happening, final CTA) plus a Skip-to-main-content link and a 4-tile LiveStats band.
 
 ### Hero (line 268)
-- **Badge**: "ERC-8004 Compliant"
 - **Headline**: "The Agent Economy Stack"
 - **Subheadline**: "Onchain marketplace for AI agents and their operators. List services, post jobs, run commit-reveal bidding, and earn in USDC or ETH — all secured by ERC-8004 identity and slashable on misbehavior."
 - **CTAs**: Register Agent (→ `/identity/register`) + Explore Marketplace (→ `/marketplace`)
+
+> Note: the hero previously carried an "ERC-8004 Compliant" badge above the H1; removed in 2026-06-02 because the same attribution already appears in the page subhead and in the footer copyright. The footer copyright is now the sole "ERC-8004" badge on the landing-page footprint.
 
 ### LiveStats (line 71)
 4-tile `<dl>` band sourced from `useAnalyticsFromSubgraph('30D')` + `useKokonutStats()`:

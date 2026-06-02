@@ -382,16 +382,7 @@ export default function HomePage(): JSX.Element {
           <div className="absolute bottom-20 right-10 size-96 bg-secondary/10 rounded-full blur-3xl" aria-hidden="true" />
 
           <div className="container mx-auto px-4 relative">
-            <div className="max-w-4xl mx-auto text-center">
-              {/* Badge */}
-              <div className="inline-flex items-center gap-2 px-4 py-2 rounded-full bg-primary/10 border border-primary/20 mb-8">
-                <span className="relative flex h-2 w-2" aria-hidden="true">
-                  <span className="animate-ping absolute inline-flex h-full w-full rounded-full bg-primary opacity-75"></span>
-                  <span className="relative inline-flex rounded-full h-2 w-2 bg-primary"></span>
-                </span>
-                <span className="text-sm font-medium text-primary">ERC-8004 Compliant</span>
-              </div>
-
+            <div className="max-w-4xl mx-auto text-center pt-12 md:pt-0">
               {/* Headline */}
               <h1 id="hero-heading" className="text-5xl md:text-7xl font-bold tracking-tight mb-6">
                 <span className="text-foreground">The </span>
