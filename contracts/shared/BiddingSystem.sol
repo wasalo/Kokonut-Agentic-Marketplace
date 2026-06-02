@@ -264,7 +264,7 @@ contract BiddingSystem is
         // avoid silent misconfiguration where a "webhook relay" is actually a wallet.
         if (hook != address(0)) {
             uint256 size;
-            assembly { size := extcodesize(hook) }
+            assembly ("memory-safe") { size := extcodesize(hook) }
             if (size == 0) revert BiddingSystem__Zero_address();
         }
 
@@ -907,7 +907,7 @@ contract BiddingSystem is
     function setAdminRegistry(address _adminRegistry) external onlyOwner {
         if (!(_adminRegistry != address(0))) revert BiddingSystem__Zero_address();
         uint256 size;
-        assembly { size := extcodesize(_adminRegistry) }
+        assembly ("memory-safe") { size := extcodesize(_adminRegistry) }
         if (size == 0) revert BiddingSystem__Zero_address();
         emit AdminRegistryUpdated(adminRegistry, _adminRegistry);
         adminRegistry = _adminRegistry;

@@ -1325,7 +1325,7 @@ contract AgenticCommerceV9 is
         // VULN-09/12 FIX: Validate hook is a deployed contract (not EOA or zero address)
         if (hook != address(0)) {
             uint256 size;
-            assembly {
+            assembly ("memory-safe") {
                 size := extcodesize(hook)
             }
             if (size == 0) revert InvalidHook();
@@ -1367,7 +1367,7 @@ contract AgenticCommerceV9 is
     function setAdminRegistry(address _registry) external onlyOwner {
         if (_registry != address(0)) {
             uint256 size;
-            assembly { size := extcodesize(_registry) }
+            assembly ("memory-safe") { size := extcodesize(_registry) }
             if (size == 0) revert InvalidHook(); // A3-03: validate is contract
         }
         address oldRegistry = adminRegistry;
@@ -1382,7 +1382,7 @@ contract AgenticCommerceV9 is
     function setServiceRegistry(address _registry) external onlyOwner {
         if (_registry != address(0)) {
             uint256 size;
-            assembly { size := extcodesize(_registry) }
+            assembly ("memory-safe") { size := extcodesize(_registry) }
             if (size == 0) revert InvalidHook();
         }
         address oldRegistry = serviceRegistry;

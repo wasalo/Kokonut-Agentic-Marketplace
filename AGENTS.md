@@ -308,11 +308,42 @@ USDC:      0x1c7D4B196Cb0C7B01d743Fbc6116a902379C7238
 | `ServiceRegistryV2` | `0x62E1eeEa1A2Ab987004F35bDA430457Ed6077201` | `0xe2000Ec87D00980EE912F35fefE2D365DA402BCA` | Service listings (UUPS) |
 | `AdminRegistry` | `0xC81C864CEAb6231ad764cf9867e031D8b6dee41d` | `0xE0611728f270172E1627267138BF96BfEF08F731` | Owner-managed registry (UUPS) |
 | `AgenticCommerceV9` | `0x3a1Bc03cC84040A282F6bf238b917D8351499239` | `0x3b8b4A6d3cc93D5081a286aCC7EcD4f01086c928` | Job escrow + payments (UUPS) |
-| `BiddingSystem` | `0x4D7F38C6A9DE5De44A7B789962B7A2B06bFE8fd6` | `0xde7F38E29D3c2dBDff02984BAaB5a658F0acC96a` | Commit-reveal bidding + ERC-20 payment tokens (UUPS) |
+| `BiddingSystem` | `0x4D7F38C6A9DE5De44A7B789962B7A2B06bFE8fd6` | `0xd403bd1c629b9c3bf7f5ea441af142e907733354` | Commit-reveal bidding + ERC-20 payment tokens (Phase 45c: stake bounds, `evaluatorFee`, `hook`, `PROTOCOL_VERSION=2`, per-token platform fee, `BidStatus` enum, 30-day withdraw timeout + `sweepUnclaimedStakes`) (UUPS) |
 | `PriceOracleV2` | `0x29c27a26DD2F80f840cb4D7B5E53b7db3D67143d` | `0x7Bad7cc9754814246814299ca50041a939a244b1` | Chainlink price feeds (UUPS) |
 | `CommitReveal` | `0x85F193670fCb7B0c97D55E70Bf2a950b1065Fb3a` | `0x85ac5fd55de6f19e95bed33991f11659a92dbbd2` | Front-running protection (UUPS) |
 | `SlashManager` | `0x1B8373cDF4f2eD740c3478e0129f0B8494CE4Fa3` | `0x8754Abeba49B6688dA132552b9f183FbC7acdc58` | 3-of-5 multisig slashing (UUPS) |
 | `MilestoneEscrowV2` | `0xc89D63057288092012c5D3cEF66121C1F8449a9f` | `0x8F9Bae14966Af0BceE5c291A764cE3503f9D49F3` | Milestone payments (UUPS) |
+
+### BiddingSystem Phase 45c Live Configuration (Sepolia)
+
+Deployed via `forge script contracts/script/UpgradeBiddingSystem_Phase45c.s.sol --rpc-url sepolia --broadcast --verify` and verified on Etherscan. Address manifest `config/address-manifest.json` version `2026-06-01-phase-45c`.
+
+| Setting | Value | Notes |
+|---------|-------|-------|
+| Implementation | `0xd403bd1c629b9c3bf7f5ea441af142e907733354` | UUPS upgrade from `0xde7F38E29D3c2dBDff02984BAaB5a658F0acC96a` |
+| `PROTOCOL_VERSION` | `2` | Reveal hash is now `keccak256(abi.encode(PROTOCOL_VERSION, sessionId, msg.sender, amount, message, salt))`. v0 (Phase 40) and v1 (Phase 45b) reveals invalidated. |
+| `minStake` | `0.001 ether` (1e15 wei) | Seeded via `setStakeBounds(0.001 ether, 100 ether)` immediately post-upgrade. |
+| `maxStake` | `100 ether` (1e20 wei) | Seeded via `setStakeBounds(0.001 ether, 100 ether)` immediately post-upgrade. |
+| `MIN_SESSION_DURATION` | `1 hour` | Bumped from 5 minutes (O-5). |
+| `MAX_SESSION_DURATION` | `30 days` | Unchanged. |
+| `WITHDRAW_TIMEOUT` | `30 days` | Non-winning bids become sweepable after this. New `sweepUnclaimedStakes(sessionId)` permissionless. |
+| `platformFeeBP` (global) | `0` (per-token) | New per-token `platformFeeBPByToken[token]` resolver via `getPlatformFeeBP(token)`. Default 0 = use global. |
+| `claimStake` | **REMOVED** | Selector no longer present in bytecode. Use `withdrawStake` for non-winners; `acceptBid` auto-refunds the winner. SDK throws clear `Error`, CLI command deleted. |
+| `withdrawCreatorStake` | Always reverts after job creation | Permanent revert guard (Phase 34b) prevents double-withdrawal. |
+| `BidStatus` enum | `None / Pending / Revealed / Accepted / Rejected / Withdrawn` | New field on `Bid`. Replaces v0/v1 boolean flags. `getBidStatus(sessionId, bidder)` view. |
+
+#### Phase 45c storage layout summary
+
+`__gap[49]` (Phase 45b baseline) reduced to `__gap[42]` to absorb 4 new top-level state variables:
+
+| Slot | Variable | Phase |
+|------|----------|-------|
+| 58 | `minStake` | 45c |
+| 59 | `maxStake` | 45c |
+| 60 | `withdrawStakeClaimableAt` (nested mapping) | 45c |
+| 61 | `platformFeeBPByToken` (nested mapping) | 45c |
+
+`Session` and `Bid` structs gained new fields at the **end** (existing fields unchanged). 9/9 storage layouts compatible (verified by `node scripts/check-storage-layout.js`).
 
 ### Official ERC-8004 Registries (Sepolia)
 

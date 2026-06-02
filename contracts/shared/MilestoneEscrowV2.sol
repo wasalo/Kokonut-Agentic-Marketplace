@@ -244,7 +244,7 @@ contract MilestoneEscrowV2 is
         // P7-04 FIX: Validate agenticCommerce is a contract
         if (_agenticCommerce != address(0)) {
             uint256 size;
-            assembly { size := extcodesize(_agenticCommerce) }
+            assembly ("memory-safe") { size := extcodesize(_agenticCommerce) }
             if (size == 0) revert InvalidJob();
         }
 
@@ -267,7 +267,7 @@ contract MilestoneEscrowV2 is
         // A3-04 FIX: Validate is contract
         if (_agenticCommerce != address(0)) {
             uint256 size;
-            assembly { size := extcodesize(_agenticCommerce) }
+            assembly ("memory-safe") { size := extcodesize(_agenticCommerce) }
             if (size == 0) revert InvalidJob();
         }
         emit AgenticCommerceSet(agenticCommerce, _agenticCommerce);

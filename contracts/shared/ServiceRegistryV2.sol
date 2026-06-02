@@ -499,7 +499,7 @@ contract ServiceRegistryV2 is
     function setAdminRegistry(address _adminRegistry) external onlyOwner {
         if (!(_adminRegistry != address(0))) revert ServiceRegistryV2__Invalid_address();
         uint256 size;
-        assembly { size := extcodesize(_adminRegistry) }
+        assembly ("memory-safe") { size := extcodesize(_adminRegistry) }
         if (size == 0) revert ServiceRegistryV2__Invalid_address();
         adminRegistry = _adminRegistry;
         emit DependencyUpdated("adminRegistry", _adminRegistry);
