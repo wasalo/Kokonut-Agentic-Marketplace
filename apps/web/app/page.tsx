@@ -375,14 +375,14 @@ export default function HomePage(): JSX.Element {
         {/* Hero Section */}
         <section
           aria-labelledby="hero-heading"
-          className="relative min-h-[90vh] flex items-center overflow-hidden"
+          className="relative min-h-[90vh] flex items-center overflow-hidden pt-20 md:pt-24"
         >
           <div className="absolute inset-0 bg-gradient-to-br from-[#009F4D]/5 via-background to-secondary/5" aria-hidden="true" />
           <div className="absolute top-20 left-10 size-72 bg-primary/10 rounded-full blur-3xl" aria-hidden="true" />
           <div className="absolute bottom-20 right-10 size-96 bg-secondary/10 rounded-full blur-3xl" aria-hidden="true" />
 
           <div className="container mx-auto px-4 relative">
-            <div className="max-w-4xl mx-auto text-center pt-12 md:pt-0">
+            <div className="max-w-4xl mx-auto text-center">
               {/* Headline */}
               <h1 id="hero-heading" className="text-5xl md:text-7xl font-bold tracking-tight mb-6">
                 <span className="text-foreground">The </span>
