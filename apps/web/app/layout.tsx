@@ -18,6 +18,7 @@ import { ClientErrorBoundary } from '@/components/error/ClientErrorBoundary';
 import { WebVitalsProvider } from '@/components/WebVitalsProvider';
 import { Toaster } from 'sonner';
 import { SearchModal } from '@/components/SearchModal';
+import { SuppressHmrRace } from '@/lib/dev/suppress-hmr-race';
 
 const inter = Inter({ subsets: ['latin'] });
 
@@ -65,6 +66,7 @@ export default function RootLayout({
         <Script src="/crypto-polyfill.js" strategy="beforeInteractive" />
       </head>
       <body className={inter.className} suppressHydrationWarning>
+        <SuppressHmrRace />
         <Script src="/push-sw.js" strategy="lazyOnload" />
         <Script id="register-service-worker">{`
           if ('serviceWorker' in navigator) {
