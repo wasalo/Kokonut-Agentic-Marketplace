@@ -13,10 +13,11 @@ import {
   TrendingUp,
   Activity,
   Clock,
-  Star,
+  Gavel,
 } from 'lucide-react';
 import { useAnalyticsFromSubgraph } from '@/lib/hooks/useAnalyticsFromSubgraph';
 import { useActivityFromSubgraph } from '@/lib/hooks/useActivityFromSubgraph';
+import { useKokonutStats } from '@/lib/hooks/useKokonutStats';
 import { DS } from '@/lib/design-system';
 
 const features = [
@@ -69,13 +70,15 @@ const features = [
 
 function LiveStats() {
   const { data, isLoading } = useAnalyticsFromSubgraph('30D');
+  const { bidding, isLoading: isBiddingLoading } = useKokonutStats();
   const stats = data?.totals;
+  const isStatsLoading = isLoading || isBiddingLoading;
 
   const items = [
     { label: 'Agents', value: stats?.totalAgents ?? 0, icon: Users },
     { label: 'Jobs', value: stats?.totalJobs ?? 0, icon: TrendingUp },
     { label: 'Services', value: stats?.totalServices ?? 0, icon: Shield },
-    { label: 'Reviews', value: stats?.totalReviews ?? 0, icon: Star },
+    { label: 'Bid Sessions', value: bidding?.activeSessions ?? 0, icon: Gavel },
   ];
 
   return (
@@ -88,7 +91,7 @@ function LiveStats() {
           <div className="size-12 mx-auto mb-3 rounded-xl bg-gradient-to-br from-primary to-emerald-400 flex items-center justify-center">
             <item.icon className="size-6 text-white" />
           </div>
-          {isLoading ? (
+          {isStatsLoading ? (
             <div className="h-8 w-16 bg-content3 rounded animate-pulse mx-auto" />
           ) : (
             <div className="text-2xl md:text-3xl font-bold text-foreground">
@@ -133,16 +136,21 @@ function WhatIsHappening() {
     if (type.startsWith('AGENT_')) return Users;
     if (type.startsWith('JOB_')) return TrendingUp;
     if (type.startsWith('SERVICE_')) return Shield;
+    if (type.startsWith('BIDDING_')) return Gavel;
     return Activity;
   };
 
   const activityLabel = (type: string) => {
     if (type.startsWith('AGENT_REGISTERED')) return 'Agent registered';
+    if (type.startsWith('JOB_CREATED_FROM_SESSION')) return 'Job created from winning bid';
     if (type.startsWith('JOB_CREATED')) return 'Job posted';
     if (type.startsWith('JOB_FUNDED')) return 'Job funded';
     if (type.startsWith('JOB_COMPLETED')) return 'Job completed';
     if (type.startsWith('SERVICE_CREATED')) return 'Service listed';
     if (type.startsWith('PAYMENT_RELEASED')) return 'Payment released';
+    if (type === 'BIDDING_SESSION_CREATED') return 'Bidding session opened';
+    if (type === 'BIDDING_CLOSED') return 'Bidding closed';
+    if (type === 'BIDDING_FEES_WITHDRAWN') return 'Bidding fees withdrawn';
     return type.replace(/_/g, ' ').toLowerCase();
   };
 
@@ -203,7 +211,9 @@ function WhatIsHappening() {
                       ? `/marketplace/${activity.targetId}`
                       : activity.type.startsWith('AGENT_')
                         ? `/identity/${activity.targetId}`
-                        : '#'
+                        : activity.type.startsWith('BIDDING_')
+                          ? `/bidding/${activity.targetId}`
+                          : '#'
                 }
                 className="flex items-center gap-4 p-4 bg-content border border-divider rounded-xl hover:border-success/30 hover:shadow-sm transition-all group"
               >
