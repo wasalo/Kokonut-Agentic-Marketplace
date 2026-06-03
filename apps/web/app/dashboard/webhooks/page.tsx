@@ -5,6 +5,7 @@ import { useAccount } from 'wagmi';
 import { Webhook, Plus, Trash2, RefreshCw, Check, X, AlertCircle } from 'lucide-react';
 import { Card } from '@heroui/react';
 import { useWebhooks } from '@/lib/hooks/useWebhooks';
+import { btn } from '@/lib/design-system';
 import type {
   Webhook as WebhookType,
   WebhookEventType,
@@ -24,51 +25,6 @@ const EVENT_OPTIONS: WebhookEventType[] = [
   'payment.received',
   'payment.sent',
 ];
-
-function Button({
-  children,
-  onClick,
-  variant = 'default',
-  size = 'md',
-  disabled = false,
-  loading = false,
-  className = '',
-}: {
-  children: React.ReactNode;
-  onClick?: () => void;
-  variant?: 'default' | 'primary' | 'ghost' | 'danger';
-  size?: 'sm' | 'md' | 'lg';
-  disabled?: boolean;
-  loading?: boolean;
-  className?: string;
-}) {
-  const baseClasses =
-    'inline-flex items-center justify-center gap-2 font-medium rounded-lg transition-colors disabled:opacity-50 disabled:cursor-not-allowed';
-
-  const sizeClasses = {
-    sm: 'px-3 py-1.5 text-xs',
-    md: 'px-4 py-2 text-sm',
-    lg: 'px-6 py-3 text-base',
-  };
-
-  const variantClasses = {
-    default: 'bg-content2 hover:bg-content3 text-foreground border border-divider',
-    primary: 'bg-primary text-white hover:opacity-90',
-    ghost: 'bg-transparent hover:bg-content2 text-foreground',
-    danger: 'bg-danger text-white hover:opacity-90',
-  };
-
-  return (
-    <button type="button"
-      onClick={onClick}
-      disabled={disabled || loading}
-      className={`${baseClasses} ${sizeClasses[size]} ${variantClasses[variant]} ${className}`}
-    >
-      {loading && <RefreshCw className="size-4 animate-spin" />}
-      {children}
-    </button>
-  );
-}
 
 function Chip({
   children,
@@ -146,12 +102,12 @@ function WebhookCard({
             </div>
           </div>
           <div className="flex items-center gap-1">
-            <Button size="sm" variant="ghost" onClick={onTest}>
+            <button type="button" onClick={onTest} className={btn('ghost', 'px-2 py-1 text-xs')}>
               <RefreshCw className="size-4" />
-            </Button>
-            <Button size="sm" variant="ghost" onClick={onDelete}>
+            </button>
+            <button type="button" onClick={onDelete} className={btn('ghost', 'px-2 py-1 text-xs')}>
               <Trash2 className="size-4 text-danger" />
-            </Button>
+            </button>
           </div>
         </div>
 
@@ -227,9 +183,9 @@ function CreateWebhookForm({
         <p className="text-default-600">
           Maximum webhooks reached ({MAX_WEBHOOKS_PER_AGENT}). Delete one to create more.
         </p>
-        <Button variant="ghost" onClick={onCancel} className="mt-4">
+        <button type="button" onClick={onCancel} className={btn('ghost', 'mt-4')}>
           Close
-        </Button>
+        </button>
       </Card>
     );
   }
@@ -239,9 +195,9 @@ function CreateWebhookForm({
       <div className="p-6 space-y-6">
         <div className="flex items-center justify-between">
           <h2 className="text-lg font-semibold">Create Webhook</h2>
-          <Button variant="ghost" size="sm" onClick={onCancel}>
+          <button type="button" onClick={onCancel} className={btn('ghost', 'px-3 py-1.5 text-xs')}>
             Cancel
-          </Button>
+          </button>
         </div>
 
         <div className="space-y-4">
@@ -281,16 +237,17 @@ function CreateWebhookForm({
             </div>
           )}
 
-          <Button
-            variant="primary"
-            className="w-full border-2 border-[#009F4D] text-[#009F4D] hover:bg-[#009F4D]/5 font-semibold"
+          <button
+            type="button"
             onClick={() => {
               void handleSubmit();
             }}
-            loading={isLoading}
+            disabled={isLoading}
+            className={btn('secondary', 'w-full')}
           >
+            {isLoading && <RefreshCw className="size-4 animate-spin" />}
             Create Webhook
-          </Button>
+          </button>
         </div>
       </div>
     </Card>
@@ -384,15 +341,15 @@ export default function WebhooksPage() {
           <Chip>
             {serverWebhooks.length} / {MAX_WEBHOOKS_PER_AGENT} webhooks
           </Chip>
-          <Button
-            variant="primary"
+          <button
+            type="button"
             onClick={() => setShowCreateForm(true)}
             disabled={serverWebhooks.length >= MAX_WEBHOOKS_PER_AGENT}
-            className="bg-gradient-to-r from-[#009F4D] to-[#00c853] text-white font-semibold"
+            className={btn('primary')}
           >
             <Plus className="size-4" />
             Create Webhook
-          </Button>
+          </button>
         </div>
       </div>
 
@@ -432,14 +389,14 @@ export default function WebhooksPage() {
           <p className="text-default-500 mb-6">
             Create your first webhook to receive notifications about platform events.
           </p>
-          <Button 
-            variant="primary" 
+          <button
+            type="button"
             onClick={() => setShowCreateForm(true)}
-            className="bg-gradient-to-r from-[#009F4D] to-[#00c853] text-white font-semibold"
+            className={btn('primary')}
           >
             <Plus className="size-4" />
             Create Webhook
-          </Button>
+          </button>
         </Card>
       ) : (
         <div className="space-y-4">
