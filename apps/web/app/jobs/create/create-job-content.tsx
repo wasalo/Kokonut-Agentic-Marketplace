@@ -28,7 +28,7 @@ import { CreateJobFeeDisplay } from '@/components/jobs/create/CreateJobFeeDispla
 import { CreateJobBudgetSection } from '@/components/jobs/create/CreateJobBudgetSection';
 import { JobPaymentTokenSelector } from '@/components/jobs/create/JobPaymentTokenSelector';
 import { useUSDCApproval } from '@/lib/hooks/useUSDCApproval';
-import { card } from '@/lib/design-system';
+import { card, btn } from '@/lib/design-system';
 
 const MAX_DESCRIPTION_LENGTH = 1000;
 const MIN_EXPIRY_DURATION = 5 * 60 * 1000;
@@ -513,7 +513,7 @@ function CreateJobContent() {
               <button
                 type="submit"
                 disabled={!isConnected || isFormLoading || !isFormValid || isSubmitting || isAtLimit}
-                className="flex-1 inline-flex items-center justify-center gap-2 px-6 py-3 border-2 border-[#009F4D] text-[#009F4D] rounded-lg font-semibold hover:bg-primary/5 transition-colors disabled:opacity-50 disabled:cursor-not-allowed"
+                className={btn('secondary', 'flex-1 px-6 py-3 disabled:opacity-50 disabled:cursor-not-allowed')}
               >
                 {submitPhase === 'checking' ? (
                   <><Loader2 className="size-4 animate-spin" />Checking USDC allowance...</>

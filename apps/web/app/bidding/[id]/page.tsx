@@ -15,7 +15,7 @@ import { BiddingWinnerSelection } from '@/components/bidding/BiddingWinnerSelect
 import { ExtendRevealWindow } from '@/components/bidding/ExtendRevealWindow';
 import { BidRecoveryPanel } from '@/components/bidding/BidRecoveryPanel';
 import { formatAmount } from '@/lib/tokenUtils';
-import { card } from '@/lib/design-system';
+import { card, btn } from '@/lib/design-system';
 import { ErrorDisplay } from '@/components/ErrorDisplay';
 
 export default function BiddingSessionDetailPage({
@@ -376,7 +376,7 @@ function SessionActionButton({
       type="button"
       onClick={onClick}
       disabled={disabled}
-      className="w-full flex items-center justify-between gap-4 p-4 border border-primary/30 rounded-lg hover:bg-primary/5 transition-colors disabled:opacity-50 disabled:cursor-not-allowed"
+      className={btn('ghost', 'w-full border-primary/30 text-primary gap-4 p-4 hover:bg-primary/5 disabled:opacity-50 disabled:cursor-not-allowed')}
     >
       <span className="flex items-center gap-3 text-left min-w-0">
         <span className="shrink-0">{icon}</span>

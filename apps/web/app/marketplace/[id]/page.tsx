@@ -263,7 +263,7 @@ export default function ServiceDetailPage({
                           });
                           setIsEditing(true);
                         }}
-                        className="flex items-center gap-2 px-4 py-2 text-sm text-primary border border-primary/30 rounded-lg hover:bg-primary/5"
+                        className={btn('ghost', 'border-primary/30 text-primary text-sm px-4 py-2 hover:bg-primary/5')}
                       >
                         <Edit className="size-4" />
                         Edit Service
@@ -354,7 +354,7 @@ export default function ServiceDetailPage({
                             }
                           }}
                           disabled={isWithdrawPending}
-                          className="flex items-center gap-2 px-4 py-2 text-sm text-primary border border-primary/30 rounded-lg hover:bg-primary/5 disabled:opacity-50"
+                          className={btn('ghost', 'border-primary/30 text-primary text-sm px-4 py-2 hover:bg-primary/5 disabled:opacity-50')}
                         >
                           {isWithdrawPending ? (
                             <Loader2 className="size-4 animate-spin" />

@@ -411,7 +411,7 @@ export default function HomePage(): JSX.Element {
                 </NextLink>
                 <NextLink
                   href="/marketplace"
-                  className="inline-flex items-center justify-center gap-2 px-8 py-4 text-lg font-semibold border-2 border-primary text-primary rounded-xl hover:bg-primary/5 transition-colors"
+                  className={btn('secondary', 'px-8 py-4 text-lg font-semibold rounded-xl')}
                 >
                   Explore Marketplace
                   <ArrowRight className="size-4" aria-hidden="true" />

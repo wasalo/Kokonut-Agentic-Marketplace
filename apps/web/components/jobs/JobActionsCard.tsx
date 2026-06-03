@@ -19,7 +19,7 @@ import { Address } from '@/components/Address';
 import { ErrorDisplay } from '@/components/ErrorDisplay';
 import { StatusBadge } from '@/components/StatusBadge';
 import { Textarea, Select } from '@/components/ui/Input';
-import { card } from '@/lib/design-system';
+import { card, btn } from '@/lib/design-system';
 import { JobStatus, type Job } from '@/lib/hooks/useJobs';
 import { JobLifecycleStepper, type JobRole } from '@/components/jobs/JobLifecycleStepper';
 import type { Token } from '@/lib/hooks/useTokenConversion';
@@ -205,7 +205,7 @@ export function JobActionsCard({
                 type="button"
                 onClick={() => onShowFulfillmentInputChange(true)}
                 disabled={isSubmitPending || !!txStep}
-                className="w-full flex items-center gap-3 p-4 border border-primary/30 rounded-lg hover:bg-primary/5 transition-colors disabled:opacity-50"
+                className={btn('ghost', 'w-full border-primary/30 text-primary gap-3 p-4 hover:bg-primary/5 disabled:opacity-50')}
               >
                 <Send className="size-5 text-primary" />
                 <div className="text-left">
