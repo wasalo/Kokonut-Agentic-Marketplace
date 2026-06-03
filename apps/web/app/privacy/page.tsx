@@ -3,6 +3,7 @@
 import { useEffect } from 'react';
 import { Shield, Database, Lock, User, Server, Mail, Globe, Bell } from 'lucide-react';
 import { Card } from '@heroui/react';
+import { card } from '@/lib/design-system';
 import Link from 'next/link';
 
 export default function PrivacyPage() {
@@ -31,7 +32,7 @@ export default function PrivacyPage() {
         })}
       </p>
 
-      <Card className="border border-divider">
+      <Card className={card('base')}>
         <div className="p-6 space-y-8 text-default-600">
           {/* Intro */}
           <section>

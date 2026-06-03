@@ -16,6 +16,7 @@ import type { LeaderboardEntry } from '@/lib/hooks/useLeaderboardFromSubgraph';
 import { getTierColor, formatScore, getScoreColor } from '@/lib/healthScore';
 import { StatusBadge } from '@/components/StatusBadge';
 import { Address } from '@/components/Address';
+import { card } from '@/lib/design-system';
 
 interface TierBadgeProps {
   rank: number;
@@ -215,21 +216,21 @@ export default function LeaderboardPage() {
       </div>
 
       <div className="flex flex-col lg:flex-row gap-6 mb-8">
-        <Card className="border border-divider p-6 flex-1">
+        <Card className={card('padded', 'p-6 flex-1')}>
           <div className="flex items-center gap-3 mb-2">
             <Users className="size-5 text-primary" />
             <span className="text-sm text-default-500">Total Kokonut Agents</span>
           </div>
           <p className="text-3xl font-bold">{entries.length}</p>
         </Card>
-        <Card className="border border-divider p-6 flex-1">
+        <Card className={card('padded', 'p-6 flex-1')}>
           <div className="flex items-center gap-3 mb-2">
             <Trophy className="size-5 text-warning" />
             <span className="text-sm text-default-500">On Leaderboard</span>
           </div>
           <p className="text-3xl font-bold">{entries.length}</p>
         </Card>
-        <Card className="border border-divider p-6 flex-1">
+        <Card className={card('padded', 'p-6 flex-1')}>
           <div className="flex items-center gap-3 mb-2">
             <Star className="size-5 text-success" />
             <span className="text-sm text-default-500">Avg. Health Score</span>
@@ -244,7 +245,7 @@ export default function LeaderboardPage() {
         </Card>
       </div>
 
-      <Card className="border border-divider p-4 mb-6">
+      <Card className={card('padded', 'mb-6')}>
         <div className="flex flex-col md:flex-row justify-between items-start md:items-center gap-4">
           <div>
             <h2 className="font-semibold mb-1">Time Period</h2>
@@ -254,7 +255,7 @@ export default function LeaderboardPage() {
         </div>
       </Card>
 
-      <Card className="border border-divider overflow-hidden">
+      <Card className={card('base', 'overflow-hidden')}>
         <div className="p-4 border-b border-divider bg-content2">
           <div className="flex items-center gap-4 text-sm font-medium text-default-500">
             <div className="w-8 text-center">#</div>

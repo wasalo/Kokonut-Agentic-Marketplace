@@ -13,6 +13,7 @@ import { SkillForm } from '@/components/skills/SkillForm';
 import { SkillsList } from '@/components/skills/SkillsList';
 import { SkillsSidebar } from '@/components/skills/SkillsSidebar';
 import { Select } from '@/components/ui/Input';
+import { card } from '@/lib/design-system';
 
 const SKILL_REGISTRY_ADDRESS = getContractAddress(
   process.env.NEXT_PUBLIC_SKILL_REGISTRY_ADDRESS,
@@ -224,7 +225,7 @@ export default function DashboardSkillsPage() {
       </div>
 
       {agents.length > 1 && (
-        <Card className="border border-divider p-4 mb-6">
+        <Card className={card('padded', 'mb-6')}>
           <label htmlFor="agent-selector" className="block text-sm font-medium mb-2">
             Select Agent
           </label>

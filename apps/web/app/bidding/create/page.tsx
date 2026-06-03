@@ -14,6 +14,7 @@ import { TokenPicker, BIDDING_TOKENS, type TokenMeta as TokenPickerMeta } from '
 import { useUSDCBalance } from '@/lib/hooks/useUSDC';
 import { useUSDCApproval } from '@/lib/hooks/useUSDCApproval';
 import { getContractAddress } from '@/lib/contracts/config';
+import { card } from '@/lib/design-system';
 import { showToast } from '@/lib/toast';
 
 // Contract limits (must match BiddingSystem.sol)
@@ -232,7 +233,7 @@ export default function CreateBiddingSessionPage(): JSX.Element {
   if (!isConnected) {
     return (
       <div className="container mx-auto px-4 py-8 max-w-2xl">
-        <Card className="border border-divider p-12 text-center">
+        <Card className={card('padded', 'p-12 text-center')}>
           <AlertCircle className="size-12 mx-auto text-default-300 mb-4" />
           <h3 className="text-lg font-semibold mb-2">Wallet Not Connected</h3>
           <p className="text-default-500 mb-4">
@@ -260,7 +261,7 @@ export default function CreateBiddingSessionPage(): JSX.Element {
 
     return (
       <div className="container mx-auto px-4 py-8 max-w-2xl">
-        <Card className="border border-divider p-6">
+        <Card className={card('padded', 'p-6')}>
           <h2 className="text-xl font-bold mb-4">Confirm Session Creation</h2>
           <div className="space-y-3 mb-6">
             <div className="flex justify-between py-2 border-b border-divider">
@@ -366,7 +367,7 @@ export default function CreateBiddingSessionPage(): JSX.Element {
       </Card>
 
       {/* Form */}
-      <Card className="border border-divider p-6">
+      <Card className={card('padded', 'p-6')}>
         <form onSubmit={handleSubmit} className="space-y-6">
           {/* Payment Token */}
           <div>
@@ -571,7 +572,7 @@ export default function CreateBiddingSessionPage(): JSX.Element {
       </Card>
 
       {/* Info */}
-      <Card className="border border-divider p-4 mt-6">
+      <Card className={card('padded', 'p-4 mt-6')}>
         <h3 className="text-sm font-semibold mb-2">How Bidding Works</h3>
         <ol className="text-sm text-default-500 space-y-2 list-decimal list-inside">
           <li>Create a session with your maximum budget and deadline</li>

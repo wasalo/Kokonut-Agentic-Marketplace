@@ -28,6 +28,7 @@ import { CreateJobFeeDisplay } from '@/components/jobs/create/CreateJobFeeDispla
 import { CreateJobBudgetSection } from '@/components/jobs/create/CreateJobBudgetSection';
 import { JobPaymentTokenSelector } from '@/components/jobs/create/JobPaymentTokenSelector';
 import { useUSDCApproval } from '@/lib/hooks/useUSDCApproval';
+import { card } from '@/lib/design-system';
 
 const MAX_DESCRIPTION_LENGTH = 1000;
 const MIN_EXPIRY_DURATION = 5 * 60 * 1000;
@@ -374,7 +375,7 @@ function CreateJobContent() {
           />
         )}
 
-        <Card className="border border-divider p-6">
+        <Card className={card('padded', 'p-6')}>
           <form onSubmit={handleSubmit} className="space-y-6">
             {!serviceId && (
               <>

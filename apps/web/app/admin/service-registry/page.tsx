@@ -8,7 +8,7 @@ import NextLink from 'next/link';
 import { formatUnits } from 'viem';
 import { CONTRACTS } from '@/lib/wagmi';
 import { SERVICE_REGISTRY_ABI, AGENTIC_COMMERCE_ABI } from '@/lib/contracts/abis';
-import { DS } from '@/lib/design-system';
+import { DS, card } from '@/lib/design-system';
 import { toast } from 'sonner';
 
 const SERVICE_REGISTRY_ADDRESS = CONTRACTS[11155111].serviceRegistry as `0x${string}`;
@@ -101,28 +101,28 @@ export default function ServiceRegistryAdminPage(): JSX.Element {
       </div>
 
       {!isConnected && (
-        <Card className="border border-divider p-6 mb-6 bg-warning/5">
+        <Card className={card('padded', 'p-6 mb-6 bg-warning/5')}>
           <AlertCircle className="size-6 text-warning inline-block mr-2" />
           <span className="text-sm">Connect the owner wallet to manage services.</span>
         </Card>
       )}
 
       <div className="grid grid-cols-1 md:grid-cols-3 gap-4 mb-6">
-        <Card className="border border-divider p-4">
+        <Card className={card('padded')}>
           <p className="text-xs text-default-500">Service Counter</p>
           <p className="text-2xl font-bold">{counter?.toString() ?? '—'}</p>
         </Card>
-        <Card className="border border-divider p-4">
+        <Card className={card('padded')}>
           <p className="text-xs text-default-500">Current Service Registry (AgenticCommerce)</p>
           <p className="font-mono text-sm truncate">{agenticService?.toString() ?? '—'}</p>
         </Card>
-        <Card className="border border-divider p-4">
+        <Card className={card('padded')}>
           <p className="text-xs text-default-500">Treasury</p>
           <p className="font-mono text-sm truncate">—</p>
         </Card>
       </div>
 
-      <Card className="border border-divider p-6 mb-6">
+      <Card className={card('padded', 'p-6 mb-6')}>
         <h2 className="text-lg font-semibold mb-3">Set service registry address</h2>
         <p className="text-sm text-default-500 mb-3">
           Re-point AgenticCommerce → ServiceRegistry. Owner only.
@@ -152,7 +152,7 @@ export default function ServiceRegistryAdminPage(): JSX.Element {
         <span className="text-sm text-default-500 ml-auto">{services.length} services</span>
       </div>
 
-      <Card className="border border-divider">
+      <Card className={card('base')}>
         <div className="overflow-x-auto">
           <table className="w-full text-sm">
             <thead className="bg-content2">

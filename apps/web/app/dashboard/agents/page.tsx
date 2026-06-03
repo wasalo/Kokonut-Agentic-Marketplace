@@ -7,6 +7,7 @@ import { Wallet, Plus, ArrowLeft, ExternalLink, Settings, Package, Star } from '
 import NextLink from 'next/link';
 import { useWalletAgentsFromSubgraph } from '@/lib/hooks';
 import { useProviderServices } from '@/lib/hooks/useServices';
+import { card } from '@/lib/design-system';
 
 import { useAgentReputation } from '@/lib/hooks/useAgentReputation';
 
@@ -36,7 +37,7 @@ function AgentCard({
   const capabilities = agent.metadata?.capabilities || [];
 
   return (
-    <Card className="border border-divider p-4 hover:border-[#009F4D]/30 hover:shadow-sm transition-all">
+    <Card className={card('interactive')}>
       <div className="flex items-center gap-3 mb-3">
         <div className="size-10 rounded-full bg-gradient-to-br from-[#009F4D] to-[#FFCD00] flex items-center justify-center text-white font-semibold">
           #{agent.id}
@@ -116,7 +117,7 @@ function AgentCard({
 
 function AgentCardSkeleton() {
   return (
-    <Card className="border border-divider p-4">
+    <Card className={card('padded')}>
       <div className="flex items-center gap-3 mb-3">
         <Skeleton className="size-10 rounded-full" />
         <div className="flex-1">

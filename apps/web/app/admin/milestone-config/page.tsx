@@ -7,7 +7,7 @@ import { Settings, AlertCircle, Clock, Percent, Info } from 'lucide-react';
 import NextLink from 'next/link';
 import { CONTRACTS } from '@/lib/wagmi';
 import { AGENTIC_COMMERCE_ABI } from '@/lib/contracts/abis';
-import { DS } from '@/lib/design-system';
+import { DS, card } from '@/lib/design-system';
 import { toast } from 'sonner';
 
 const AGENTIC_COMMERCE_ADDRESS = CONTRACTS[11155111].agenticCommerce as `0x${string}`;
@@ -79,13 +79,13 @@ export default function MilestoneConfigAdminPage(): JSX.Element {
       </div>
 
       {!isConnected && (
-        <Card className="border border-divider p-6 mb-6 bg-warning/5">
+        <Card className={card('padded', 'p-6 mb-6 bg-warning/5')}>
           <AlertCircle className="size-6 text-warning inline-block mr-2" />
           <span className="text-sm">Connect the client wallet to update milestone config.</span>
         </Card>
       )}
 
-      <Card className="border border-divider p-6 mb-6">
+      <Card className={card('padded', 'p-6 mb-6')}>
         <div className="flex items-center gap-2 mb-3">
           <Info className="size-5 text-primary" />
           <h2 className="text-lg font-semibold">Default dispute window</h2>
@@ -97,7 +97,7 @@ export default function MilestoneConfigAdminPage(): JSX.Element {
       </Card>
 
       <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
-        <Card className="border border-divider p-6">
+        <Card className={card('padded', 'p-6')}>
           <div className="flex items-center gap-2 mb-3">
             <Clock className="size-5 text-primary" />
             <h2 className="text-lg font-semibold">Set per-job dispute window</h2>
@@ -124,7 +124,7 @@ export default function MilestoneConfigAdminPage(): JSX.Element {
           </Button>
         </Card>
 
-        <Card className="border border-divider p-6">
+        <Card className={card('padded', 'p-6')}>
           <div className="flex items-center gap-2 mb-3">
             <Percent className="size-5 text-primary" />
             <h2 className="text-lg font-semibold">Non-Responsive Slash BP</h2>

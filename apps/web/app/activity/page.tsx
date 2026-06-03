@@ -8,6 +8,7 @@ import { useAccount } from 'wagmi';
 import { useActivityFromSubgraph } from '@/lib/hooks';
 import { StatusBadge } from '@/components/StatusBadge';
 import { Address } from '@/components/Address';
+import { card } from '@/lib/design-system';
 
 const ACTIVITY_ICONS: Record<string, React.ComponentType<{ className?: string }>> = {
   job: Briefcase,
@@ -165,7 +166,7 @@ export default function ActivityPage(): JSX.Element {
       </div>
 
       {/* Filters */}
-      <Card className="border border-divider p-2 mb-6">
+      <Card className={card('padded', 'p-2 mb-6')}>
         <div className="flex items-center gap-2 flex-wrap">
           <Filter className="size-4 text-default-400 ml-2" />
           {FILTERS.map(f => (
@@ -194,7 +195,7 @@ export default function ActivityPage(): JSX.Element {
       </Card>
 
       {/* Activity List */}
-      <Card className="border border-divider">
+      <Card className={card('base')}>
         {isLoading ? (
           <div className="divide-y divide-divider">
             {Array.from({ length: 5 }, (_, i) => (

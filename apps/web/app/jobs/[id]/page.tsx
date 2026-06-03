@@ -3,6 +3,7 @@
 import { use, useEffect, useState } from 'react';
 import { Loader2, AlertCircle } from 'lucide-react';
 import { Card } from '@heroui/react';
+import { card } from '@/lib/design-system';
 import { Breadcrumb } from '@/components/ui/Breadcrumb';
 import { useJobLifecycle, type LlmEvaluationResult } from '@/lib/hooks/useJobLifecycle';
 import { JobStatus } from '@/lib/hooks/useJobs';
@@ -137,7 +138,7 @@ export default function JobDetailPage({
   if (!job || Number(job.id) === 0) {
     return (
       <div className="container mx-auto px-3 md:px-4 py-6 md:py-8">
-        <Card className="max-w-2xl mx-auto border border-divider p-6 md:p-8 text-center">
+        <Card className={card('padded', 'max-w-2xl mx-auto p-6 md:p-8 text-center')}>
           <AlertCircle className="size-10 md:w-12 md:h-12 text-default-400 mx-auto mb-3 md:mb-4" />
           <h2 className="text-lg md:text-xl font-semibold mb-2">Job Not Found</h2>
           <p className="text-default-500 text-sm">This job does not exist.</p>

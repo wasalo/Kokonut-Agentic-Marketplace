@@ -8,7 +8,7 @@ import NextLink from 'next/link';
 import { formatUnits } from 'viem';
 import { CONTRACTS } from '@/lib/wagmi';
 import { AGENTIC_COMMERCE_ABI } from '@/lib/contracts/abis';
-import { DS } from '@/lib/design-system';
+import { DS, card } from '@/lib/design-system';
 import { toast } from 'sonner';
 
 const AGENTIC_COMMERCE_ADDRESS = CONTRACTS[11155111].agenticCommerce as `0x${string}`;
@@ -95,29 +95,29 @@ export default function EvaluatorPoolAdminPage(): JSX.Element {
       </div>
 
       {!isConnected && (
-        <Card className="border border-divider p-6 mb-6 bg-warning/5">
+        <Card className={card('padded', 'p-6 mb-6 bg-warning/5')}>
           <AlertCircle className="size-6 text-warning inline-block mr-2" />
           <span className="text-sm">Connect the owner wallet to manage the pool.</span>
         </Card>
       )}
 
       <div className="grid grid-cols-1 md:grid-cols-3 gap-4 mb-6">
-        <Card className="border border-divider p-4">
+        <Card className={card('padded')}>
           <p className="text-xs text-default-500">Pool Size</p>
           <p className="text-2xl font-bold">{poolSize?.toString() ?? '—'}</p>
         </Card>
-        <Card className="border border-divider p-4">
+        <Card className={card('padded')}>
           <p className="text-xs text-default-500">Min Evaluator Stake</p>
           <p className="text-lg font-mono">{minStake ? formatUnits(minStake, 18) + ' ETH' : '—'}</p>
         </Card>
-        <Card className="border border-divider p-4 flex flex-col justify-center gap-2">
+        <Card className={card('padded', 'flex flex-col justify-center gap-2')}>
           <button onClick={handleCleanup} disabled={!isConnected} className={DS.buttons.secondary}>
             <Trash2 className="size-4 mr-1 inline" /> Cleanup stale (100)
           </button>
         </Card>
       </div>
 
-      <Card className="border border-divider p-6 mb-6">
+      <Card className={card('padded', 'p-6 mb-6')}>
         <h2 className="text-lg font-semibold mb-3">Set minimum evaluator stake</h2>
         <p className="text-sm text-default-500 mb-3">In wei. Owner only.</p>
         <div className="flex gap-2">
@@ -140,7 +140,7 @@ export default function EvaluatorPoolAdminPage(): JSX.Element {
         <span className="text-sm text-default-500 ml-auto">{evaluators.length} evaluators</span>
       </div>
 
-      <Card className="border border-divider">
+      <Card className={card('base')}>
         <div className="overflow-x-auto">
           <table className="w-full text-sm">
             <thead className="bg-content2">

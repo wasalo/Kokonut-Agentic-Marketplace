@@ -3,6 +3,7 @@
 import { useEffect } from 'react';
 import { Code2, ExternalLink } from 'lucide-react';
 import { Card } from '@heroui/react';
+import { card } from '@/lib/design-system';
 import { CONTRACT_ADDRESSES } from '@/lib/contracts/config';
 
 const SEPOLIA_EXPLORER = 'https://sepolia.etherscan.io';
@@ -86,7 +87,7 @@ export default function ContractsPage() {
         <h2 className="text-xl font-semibold mb-4">Kokonut Contracts</h2>
         <div className="space-y-4">
           {contracts.map(contract => (
-            <Card key={contract.address} className="border border-divider">
+            <Card key={contract.address} className={card('base')}>
               <div className="p-4">
                 <div className="flex items-start justify-between gap-4">
                   <div className="flex-1">
@@ -113,7 +114,7 @@ export default function ContractsPage() {
 
       <section className="mb-12">
         <h2 className="text-xl font-semibold mb-4">ERC-8004 Registries</h2>
-        <Card className="border border-divider bg-content2/50">
+        <Card className={card('base', 'bg-content2/50')}>
           <div className="p-4 space-y-4">
             {erc8004Registries.map(registry => (
               <div key={registry.address}>

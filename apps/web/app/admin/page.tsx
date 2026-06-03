@@ -7,7 +7,7 @@ import { Card, Input } from '@heroui/react';
 import { CONTRACTS } from '@/lib/wagmi';
 import { AGENTIC_COMMERCE_ABI } from '@/lib/contracts/abis';
 import { useAdminBlacklist } from '@/lib/hooks/useAdminBlacklist';
-import { DS } from '@/lib/design-system';
+import { DS, card } from '@/lib/design-system';
 import { toast } from 'sonner';
 
 const AGENTIC_COMMERCE_ADDRESS = CONTRACTS[11155111].agenticCommerce as `0x${string}`;
@@ -34,7 +34,7 @@ export default function AdminPage(): JSX.Element {
       </div>
 
       {!isConnected ? (
-        <Card className="border border-divider p-8 text-center">
+        <Card className={card('padded', 'p-8 text-center')}>
           <AlertCircle className="size-12 text-default-400 mx-auto mb-4" />
           <h2 className="text-xl font-semibold mb-2">Wallet Not Connected</h2>
           <p className="text-default-500">Connect your wallet to access the admin dashboard.</p>
@@ -100,7 +100,7 @@ function ContractInfo() {
 
   return (
     <div className="space-y-6 max-w-3xl">
-      <Card className="border border-divider p-6">
+      <Card className={card('padded', 'p-6')}>
         <h2 className="text-lg font-semibold mb-4">Contract Information</h2>
         <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
           <div className="p-4 bg-content2 rounded-lg">
@@ -122,7 +122,7 @@ function ContractInfo() {
         </div>
       </Card>
 
-      <Card className="border border-divider p-6">
+      <Card className={card('padded', 'p-6')}>
         <h2 className="text-lg font-semibold mb-4">Platform Fee Settings</h2>
         <div className="space-y-4">
           <div>
@@ -139,7 +139,7 @@ function ContractInfo() {
         </div>
       </Card>
 
-      <Card className="border border-divider p-6">
+      <Card className={card('padded', 'p-6')}>
         <h2 className="text-lg font-semibold mb-4">Quick Links</h2>
         <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
           <a
@@ -218,7 +218,7 @@ function AgentBlacklist() {
 
   return (
     <div className="space-y-6 max-w-3xl">
-      <Card className="border border-divider p-6">
+      <Card className={card('padded', 'p-6')}>
         <div className="flex items-center gap-3 mb-4">
           <ShieldAlert className="size-5 text-danger" />
           <h2 className="text-lg font-semibold">Agent Blacklist</h2>
@@ -333,7 +333,7 @@ function WalletBlacklist() {
 
   return (
     <div className="space-y-6 max-w-3xl">
-      <Card className="border border-divider p-6">
+      <Card className={card('padded', 'p-6')}>
         <div className="flex items-center gap-3 mb-4">
           <Wallet className="size-5 text-danger" />
           <h2 className="text-lg font-semibold">Wallet Blacklist</h2>

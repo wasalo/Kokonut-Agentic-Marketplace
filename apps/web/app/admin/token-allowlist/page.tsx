@@ -8,7 +8,7 @@ import NextLink from 'next/link';
 import { formatUnits } from 'viem';
 import { CONTRACTS } from '@/lib/wagmi';
 import { AGENTIC_COMMERCE_ABI, PRICE_ORACLE_ABI } from '@/lib/contracts/abis';
-import { DS } from '@/lib/design-system';
+import { DS, card } from '@/lib/design-system';
 import { toast } from 'sonner';
 
 const AGENTIC_COMMERCE_ADDRESS = CONTRACTS[11155111].agenticCommerce as `0x${string}`;
@@ -134,13 +134,13 @@ export default function TokenAllowlistAdminPage(): JSX.Element {
       </div>
 
       {!isConnected && (
-        <Card className="border border-divider p-6 mb-6 bg-warning/5">
+        <Card className={card('padded', 'p-6 mb-6 bg-warning/5')}>
           <AlertCircle className="size-6 text-warning inline-block mr-2" />
           <span className="text-sm">Connect the owner wallet to manage the allowlist.</span>
         </Card>
       )}
 
-      <Card className="border border-divider p-6 mb-6">
+      <Card className={card('padded', 'p-6 mb-6')}>
         <h2 className="text-lg font-semibold mb-3">Add token</h2>
         <div className="grid grid-cols-1 md:grid-cols-3 gap-3 mb-3">
           <input
@@ -170,7 +170,7 @@ export default function TokenAllowlistAdminPage(): JSX.Element {
         </button>
       </Card>
 
-      <Card className="border border-divider p-6 mb-6">
+      <Card className={card('padded', 'p-6 mb-6')}>
         <div className="flex items-center gap-2 mb-3">
           <Link2 className="size-5 text-primary" />
           <h2 className="text-lg font-semibold">Set price feed</h2>
@@ -204,7 +204,7 @@ export default function TokenAllowlistAdminPage(): JSX.Element {
         <span className="text-sm text-default-500 ml-auto">{tokens.length} tokens</span>
       </div>
 
-      <Card className="border border-divider">
+      <Card className={card('base')}>
         <div className="overflow-x-auto">
           <table className="w-full text-sm">
             <thead className="bg-content2">

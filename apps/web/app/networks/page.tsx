@@ -13,6 +13,7 @@ import {
 import { Card, Button } from '@heroui/react';
 import { PRODUCTION_CHAINS, ChainConfig } from '@/lib/chains';
 import { useNetworkStats } from '@/lib/hooks/useNetworkStats';
+import { card } from '@/lib/design-system';
 
 interface NetworkCardProps {
   chain: ChainConfig;
@@ -23,7 +24,7 @@ interface NetworkCardProps {
 function NetworkCard({ chain, stats, isLoading }: NetworkCardProps) {
   return (
     <NextLink href={`/leaderboard`}>
-      <Card className="border border-divider p-6 hover:border-success transition-colors cursor-pointer h-full">
+      <Card className={card('clickable', 'p-6 hover:border-success h-full')}>
         <div className="flex items-start justify-between mb-4">
           <div className="flex items-center gap-3">
             <div
@@ -96,7 +97,7 @@ function LoadingSkeleton() {
   return (
     <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-4">
       {[...Array(12)].map((_, i) => (
-        <Card key={i} className="border border-divider p-6 animate-pulse">
+        <Card key={i} className={card('padded', 'p-6 animate-pulse')}>
           <div className="flex items-start justify-between mb-4">
             <div className="flex items-center gap-3">
               <div className="size-10 rounded-full bg-content2" />
@@ -166,7 +167,7 @@ export default function NetworksPage() {
       </div>
 
       <div className="flex flex-col lg:flex-row gap-6 mb-8">
-        <Card className="border border-divider p-6 flex-1">
+        <Card className={card('padded', 'p-6 flex-1')}>
           <div className="flex items-center gap-3 mb-2">
             <Globe className="size-5 text-primary" />
             <span className="text-sm text-default-500">Networks</span>
@@ -176,14 +177,14 @@ export default function NetworksPage() {
             {PRODUCTION_CHAINS.filter(c => c.isProduction).length} production, {PRODUCTION_CHAINS.filter(c => c.isTestnet).length} testnet
           </p>
         </Card>
-        <Card className="border border-divider p-6 flex-1">
+        <Card className={card('padded', 'p-6 flex-1')}>
           <div className="flex items-center gap-3 mb-2">
             <Users className="size-5 text-success" />
             <span className="text-sm text-default-500">Total Agents</span>
           </div>
           <p className="text-3xl font-bold">{totalAgents.toLocaleString()}</p>
         </Card>
-        <Card className="border border-divider p-6 flex-1">
+        <Card className={card('padded', 'p-6 flex-1')}>
           <div className="flex items-center gap-3 mb-2">
             <MessageSquare className="size-5 text-warning" />
             <span className="text-sm text-default-500">Total Feedbacks</span>
@@ -192,7 +193,7 @@ export default function NetworksPage() {
         </Card>
       </div>
 
-      <Card className="border border-divider p-4 mb-6">
+      <Card className={card('padded', 'mb-6')}>
         <div className="flex items-center gap-4">
           <div className="relative flex-1">
             <Search className="absolute left-3 top-1/2 -translate-y-1/2 h-4 w-4 text-default-400" />
@@ -225,7 +226,7 @@ export default function NetworksPage() {
         </div>
       )}
 
-      <Card className="border border-divider p-6 mt-8">
+      <Card className={card('padded', 'p-6 mt-8')}>
         <h2 className="font-semibold mb-4">About ERC-8004</h2>
         <p className="text-default-500 text-sm mb-4">
           ERC-8004 is a standard for AI agent identity and reputation on Ethereum and EVM-compatible

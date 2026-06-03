@@ -28,6 +28,7 @@ import {
 import { useAnalyticsFromSubgraph, TIME_RANGES, type TimeRange } from '@/lib/hooks';
 import { StatCard } from '@/components/ui/stat-card';
 import { Card } from '@heroui/react';
+import { card } from '@/lib/design-system';
 
 const COLORS = ['#009F4D', '#00c853', '#FFCD00', '#FFB800', '#FF6B6B'];
 
@@ -186,7 +187,7 @@ function AnalyticsContent({
           {/* Charts Grid */}
           <div className="grid grid-cols-1 lg:grid-cols-2 gap-6 mb-8">
             {/* Daily Activity Chart */}
-            <Card className="border border-divider p-6">
+            <Card className={card('padded', 'p-6')}>
               <h3 className="text-lg font-semibold mb-4">Daily Activity</h3>
               <div className="h-64">
                 {isLoading ? (
@@ -224,7 +225,7 @@ function AnalyticsContent({
             </Card>
 
             {/* Volume Chart */}
-            <Card className="border border-divider p-6">
+            <Card className={card('padded', 'p-6')}>
               <h3 className="text-lg font-semibold mb-4">Daily Volume</h3>
               <div className="h-64">
                 {isLoading ? (
@@ -268,7 +269,7 @@ function AnalyticsContent({
           {/* Bottom Row */}
           <div className="grid grid-cols-1 lg:grid-cols-3 gap-6">
             {/* Job Status Distribution */}
-            <Card className="border border-divider p-6">
+            <Card className={card('padded', 'p-6')}>
               <h3 className="text-lg font-semibold mb-4">Job Status Distribution</h3>
               <div className="h-64">
                 {isLoading ? (
@@ -314,7 +315,7 @@ function AnalyticsContent({
             </Card>
 
             {/* Key Metrics */}
-            <Card className="border border-divider p-4 md:p-6 lg:col-span-2">
+            <Card className={card('padded', 'p-4 md:p-6 lg:col-span-2')}>
               <h3 className="text-lg font-semibold mb-3 md:mb-4">Key Metrics</h3>
               <div className="grid grid-cols-1 sm:grid-cols-2 gap-3 md:gap-4">
                 <div className="p-3 md:p-4 bg-content2 rounded-lg">

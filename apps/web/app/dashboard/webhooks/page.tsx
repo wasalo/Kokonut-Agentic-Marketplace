@@ -5,7 +5,7 @@ import { useAccount } from 'wagmi';
 import { Webhook, Plus, Trash2, RefreshCw, Check, X, AlertCircle } from 'lucide-react';
 import { Card } from '@heroui/react';
 import { useWebhooks } from '@/lib/hooks/useWebhooks';
-import { btn } from '@/lib/design-system';
+import { btn, card } from '@/lib/design-system';
 import { Input } from '@/components/ui/Input';
 import type {
   Webhook as WebhookType,
@@ -60,7 +60,7 @@ function WebhookCard({
   onTest: () => void;
 }) {
   return (
-    <Card className="border border-divider">
+    <Card className={card('base')}>
       <div className="p-4">
         <div className="flex items-start justify-between gap-4 mb-4">
           <div className="flex-1 min-w-0">
@@ -154,7 +154,7 @@ function CreateWebhookForm({
 
   if (maxReached) {
     return (
-      <Card className="border border-divider p-6 text-center">
+      <Card className={card('padded', 'p-6 text-center')}>
         <AlertCircle className="size-8 text-warning mx-auto mb-3" />
         <p className="text-default-600">
           Maximum webhooks reached ({MAX_WEBHOOKS_PER_AGENT}). Delete one to create more.
@@ -167,7 +167,7 @@ function CreateWebhookForm({
   }
 
   return (
-    <Card className="border border-divider">
+    <Card className={card('base')}>
       <div className="p-6 space-y-6">
         <div className="flex items-center justify-between">
           <h2 className="text-lg font-semibold">Create Webhook</h2>
@@ -295,7 +295,7 @@ export default function WebhooksPage() {
   if (!isConnected) {
     return (
       <div className="container mx-auto px-4 py-12 max-w-4xl">
-        <Card className="border border-divider p-12 text-center">
+        <Card className={card('padded', 'p-12 text-center')}>
           <Webhook className="size-12 text-default-400 mx-auto mb-4" />
           <h2 className="text-xl font-semibold mb-2">Connect Your Wallet</h2>
           <p className="text-default-500">Connect your wallet to manage your webhooks.</p>
@@ -357,7 +357,7 @@ export default function WebhooksPage() {
           ))}
         </div>
       ) : serverWebhooks.length === 0 && !showCreateForm ? (
-        <Card className="border border-divider p-12 text-center">
+        <Card className={card('padded', 'p-12 text-center')}>
           <Webhook className="size-12 text-default-400 mx-auto mb-4" />
           <h2 className="text-xl font-semibold mb-2">No Webhooks Yet</h2>
           <p className="text-default-500 mb-6">

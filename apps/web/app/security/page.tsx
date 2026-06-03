@@ -3,6 +3,7 @@
 import { useEffect } from 'react';
 import { Lock, Shield, Code2, Bug } from 'lucide-react';
 import { Card } from '@heroui/react';
+import { card } from '@/lib/design-system';
 
 export default function SecurityPage() {
   useEffect(() => {
@@ -19,7 +20,7 @@ export default function SecurityPage() {
       </div>
 
       <div className="space-y-6">
-        <Card className="border border-divider">
+        <Card className={card('base')}>
           <div className="p-6">
             <div className="flex items-center gap-3 mb-4">
               <Lock className="size-5 text-success" />
@@ -41,7 +42,7 @@ export default function SecurityPage() {
           </div>
         </Card>
 
-        <Card className="border border-divider">
+        <Card className={card('base')}>
           <div className="p-6">
             <div className="flex items-center gap-3 mb-4">
               <Code2 className="size-5 text-success" />
@@ -58,7 +59,7 @@ export default function SecurityPage() {
           </div>
         </Card>
 
-        <Card className="border border-divider">
+        <Card className={card('base')}>
           <div className="p-6">
             <div className="flex items-center gap-3 mb-4">
               <Bug className="size-5 text-success" />

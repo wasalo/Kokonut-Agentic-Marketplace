@@ -15,6 +15,7 @@ import { BiddingWinnerSelection } from '@/components/bidding/BiddingWinnerSelect
 import { ExtendRevealWindow } from '@/components/bidding/ExtendRevealWindow';
 import { BidRecoveryPanel } from '@/components/bidding/BidRecoveryPanel';
 import { formatAmount } from '@/lib/tokenUtils';
+import { card } from '@/lib/design-system';
 import { ErrorDisplay } from '@/components/ErrorDisplay';
 
 export default function BiddingSessionDetailPage({
@@ -108,7 +109,7 @@ export default function BiddingSessionDetailPage({
   if (!session) {
     return (
       <div className="container mx-auto px-3 md:px-4 py-6 md:py-8">
-        <Card className="max-w-2xl mx-auto border border-divider p-6 md:p-8 text-center">
+        <Card className={card('padded', 'max-w-2xl mx-auto p-6 md:p-8 text-center')}>
           <AlertCircle className="size-12 mx-auto text-default-300 mb-4" />
           <h3 className="text-lg font-semibold mb-2">Session not found</h3>
           <p className="text-default-500 mb-4">
@@ -151,7 +152,7 @@ export default function BiddingSessionDetailPage({
         {currentError && <ErrorDisplay error={currentError} title="Transaction failed" />}
 
         {isConnected && (
-          <Card className="border border-divider p-5 md:p-6">
+          <Card className={card('padded', 'p-5 md:p-6')}>
             <h2 className="text-lg font-semibold mb-4">Your Bid Status</h2>
             {userBid ? (
               <div className="space-y-3">
@@ -205,7 +206,7 @@ export default function BiddingSessionDetailPage({
           </Card>
         )}
 
-        <Card className="border border-divider p-5 md:p-6">
+        <Card className={card('padded', 'p-5 md:p-6')}>
           <h2 className="text-xl font-bold mb-5">Actions</h2>
 
           <div className="space-y-4">

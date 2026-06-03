@@ -13,6 +13,7 @@ import { useWalletAgentsFromSubgraph } from '@/lib/hooks';
 import { CONTRACT_ADDRESSES, getContractAddress } from '@/lib/contracts/config';
 import { TransactionError } from '@/components/TransactionError';
 import { Input, Textarea } from '@/components/ui/Input';
+import { card } from '@/lib/design-system';
 import { showToast } from '@/lib/toast';
 import { PortfolioForm, type PortfolioItem } from '@/components/PortfolioForm';
 import { useFormSubmit, formatTimeRemaining } from '@/lib/hooks/useDebounce';
@@ -156,7 +157,7 @@ export default function RegisterAgentPage(): JSX.Element {
   if (isConfirmed) {
     return (
       <div className="container mx-auto px-4 py-8">
-        <Card className="max-w-md mx-auto text-center p-6 border border-divider">
+        <Card className={card('padded', 'max-w-md mx-auto text-center p-6')}>
           <div className="mb-4">
             <h2 className="text-xl font-semibold flex items-center justify-center gap-2 text-success">
               <CheckCircle2 className="size-6" />
@@ -218,7 +219,7 @@ export default function RegisterAgentPage(): JSX.Element {
           </Card>
         )}
 
-        <Card className="border border-divider">
+        <Card className={card('base')}>
           <div className="p-6">
             <h2 className="text-lg font-semibold mb-1">Agent Details</h2>
             <p className="text-sm text-default-500 mb-6">

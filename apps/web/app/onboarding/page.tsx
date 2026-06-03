@@ -9,6 +9,7 @@ import { ConnectButton } from '@/components/wallet/ConnectButton';
 import { useWalletAgentsFromSubgraph } from '@/lib/hooks';
 import { useProviderServices } from '@/lib/hooks/useServices';
 import { useJobs } from '@/lib/hooks/useJobs';
+import { card } from '@/lib/design-system';
 
 type StepState = 'complete' | 'active' | 'pending';
 
@@ -135,7 +136,7 @@ export default function OnboardingPage(): JSX.Element {
       {isLoading ? (
         <div className="space-y-4">
           {Array.from({ length: 4 }).map((_, index) => (
-            <Card key={index} className="border border-divider p-4">
+            <Card key={index} className={card('padded')}>
               <div className="flex items-center gap-4">
                 <Skeleton className="h-12 w-12 rounded-full" />
                 <div className="flex-1 space-y-2">
@@ -158,7 +159,7 @@ export default function OnboardingPage(): JSX.Element {
         </div>
       )}
 
-      <Card className="mt-6 p-5 border border-divider">
+      <Card className={card('padded', 'mt-6 p-5')}>
         <div className="flex flex-col sm:flex-row sm:items-center sm:justify-between gap-3">
           <div>
             <h2 className="font-semibold">Continue Working</h2>

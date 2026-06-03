@@ -21,6 +21,7 @@ import {
 import { useMaxBudgetUsd, useMinBudget } from '@/lib/hooks/useMinBudget';
 import { formatAmount, parseAmount, tokenAmountToUsd } from '@/lib/tokenUtils';
 import { SERVICE_BOND_AMOUNT } from '@/lib/contracts/bonds';
+import { card } from '@/lib/design-system';
 import { CreateServiceSteps } from '@/components/marketplace/CreateServiceSteps';
 import { ServiceFormFields } from '@/components/marketplace/ServiceFormFields';
 
@@ -331,7 +332,7 @@ export default function CreateServicePage() {
           Back to Marketplace
         </NextLink>
 
-        <Card className="max-w-2xl mx-auto border border-divider">
+        <Card className={card('base', 'max-w-2xl mx-auto')}>
           <div className="p-6">
             <div className="flex items-center gap-3 mb-6">
               <ShieldCheck className="size-8 text-success" />
@@ -374,7 +375,7 @@ export default function CreateServicePage() {
   // Fallback
   return (
     <div className="container mx-auto px-4 py-8">
-      <Card className="max-w-2xl mx-auto border border-divider p-8 text-center">
+      <Card className={card('padded', 'max-w-2xl mx-auto p-8 text-center')}>
         <div className="size-8 animate-spin border-2 border-success border-t-transparent rounded-full mx-auto mb-4" />
         <p className="text-default-500">Initializing…</p>
       </Card>

@@ -17,6 +17,7 @@ import {
   useSlashManagerOwner,
 } from '@/lib/hooks/useSlashManager';
 import { Input, Textarea } from '@/components/ui/Input';
+import { card } from '@/lib/design-system';
 
 export default function GovernancePage() {
   useEffect(() => {
@@ -115,7 +116,7 @@ export default function GovernancePage() {
 
         {/* Signer Status */}
         {isConnected && (
-          <Card className="border border-divider mb-6 p-4">
+          <Card className={card('padded', 'mb-6 p-4')}>
             <div className="flex items-center gap-3">
               {isUserSigner ? (
                 <>
@@ -265,7 +266,7 @@ export default function GovernancePage() {
         )}
 
         {/* Info */}
-        <Card className="border border-divider p-6">
+        <Card className={card('padded', 'p-6')}>
           <h2 className="text-base font-semibold mb-4">How Slashing Works</h2>
           <div className="space-y-3 text-sm text-default-600">
             <div className="flex items-start gap-2">

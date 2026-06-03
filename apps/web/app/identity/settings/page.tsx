@@ -36,6 +36,7 @@ import { showToast } from '@/lib/toast';
 import { EmailPreferencesForm } from '@/components/EmailPreferencesForm';
 import { PortfolioForm, type PortfolioItem } from '@/components/PortfolioForm';
 import { Input, Select } from '@/components/ui/Input';
+import { card } from '@/lib/design-system';
 
 export default function AgentSettingsPage(): JSX.Element {
   useEffect(() => {
@@ -160,7 +161,7 @@ export default function AgentSettingsPage(): JSX.Element {
   if (!address) {
     return (
       <div className="container mx-auto px-4 py-8">
-        <Card className="max-w-2xl mx-auto border border-divider p-8 text-center">
+        <Card className={card('padded', 'max-w-2xl mx-auto p-8 text-center')}>
           <h2 className="text-xl font-semibold mb-2">Connect Wallet</h2>
           <p className="text-default-500">Please connect your wallet to access settings.</p>
         </Card>
@@ -171,7 +172,7 @@ export default function AgentSettingsPage(): JSX.Element {
   if (isLoadingAgents) {
     return (
       <div className="container mx-auto px-4 py-8">
-        <Card className="max-w-2xl mx-auto border border-divider p-8 text-center">
+        <Card className={card('padded', 'max-w-2xl mx-auto p-8 text-center')}>
           <Loader2 className="size-8 animate-spin mx-auto text-primary mb-4" />
           <p className="text-default-500">Loading your agents…</p>
         </Card>
@@ -182,7 +183,7 @@ export default function AgentSettingsPage(): JSX.Element {
   if (!agentId) {
     return (
       <div className="container mx-auto px-4 py-8">
-        <Card className="max-w-2xl mx-auto border border-divider p-8 text-center">
+        <Card className={card('padded', 'max-w-2xl mx-auto p-8 text-center')}>
           <h2 className="text-xl font-semibold mb-2">No Agent Found</h2>
           <p className="text-default-500 mb-4">You don&apos;t have a registered agent identity.</p>
           <NextLink
@@ -257,7 +258,7 @@ export default function AgentSettingsPage(): JSX.Element {
         </div>
 
         {/* Quick Stats */}
-        <Card className="border border-divider p-6">
+        <Card className={card('padded', 'p-6')}>
           <h2 className="text-lg font-semibold mb-4 flex items-center gap-2">
             <TrendingUp className="size-5 text-primary" />
             Quick Stats
@@ -287,7 +288,7 @@ export default function AgentSettingsPage(): JSX.Element {
         </Card>
 
         {/* Set Custom Metadata */}
-        <Card className="border border-divider p-6">
+        <Card className={card('padded', 'p-6')}>
           <h2 className="text-lg font-semibold mb-4 flex items-center gap-2">
             <Database className="size-5 text-primary" />
             Set Custom Metadata

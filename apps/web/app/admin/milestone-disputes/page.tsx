@@ -8,7 +8,7 @@ import NextLink from 'next/link';
 import { formatUnits } from 'viem';
 import { getContractAddress } from '@/lib/contracts/config';
 import { MILESTONE_ESCROW_ABI } from '@/lib/contracts/abis';
-import { DS } from '@/lib/design-system';
+import { DS, card } from '@/lib/design-system';
 import { toast } from 'sonner';
 
 const MILESTONE_ESCROW_ADDRESS = getContractAddress('MILESTONE_ESCROW') as `0x${string}`;
@@ -133,7 +133,7 @@ export default function MilestoneDisputesAdminPage(): JSX.Element {
       </div>
 
       {!isConnected && (
-        <Card className="border border-divider p-6 mb-6 bg-warning/5">
+        <Card className={card('padded', 'p-6 mb-6 bg-warning/5')}>
           <AlertCircle className="size-6 text-warning inline-block mr-2" />
           <span className="text-sm">Connect the owner wallet to resolve disputes.</span>
         </Card>
@@ -159,7 +159,7 @@ export default function MilestoneDisputesAdminPage(): JSX.Element {
         <span className="text-sm text-default-500 ml-auto">{disputes.length} active</span>
       </div>
 
-      <Card className="border border-divider">
+      <Card className={card('base')}>
         <div className="overflow-x-auto">
           <table className="w-full text-sm">
             <thead className="bg-content2">

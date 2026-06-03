@@ -14,6 +14,7 @@ import { MCPDemoPanel } from '@/components/MCPDemoPanel';
 import NextLink from 'next/link';
 import { useState, useEffect } from 'react';
 import { Card, Button, Chip } from '@heroui/react';
+import { card } from '@/lib/design-system';
 
 const MCP_SERVER_PORT = process.env.NEXT_PUBLIC_MCP_PORT || '3100';
 const MCP_SERVER_URL = process.env.NEXT_PUBLIC_MCP_URL || `http://localhost:${MCP_SERVER_PORT}`;
@@ -114,7 +115,7 @@ export default function IntegrationsPage() {
 
       {activeTab === 'mcp' && (
         <div className="space-y-8">
-          <Card className="border border-divider">
+          <Card className={card('base')}>
             <div className="p-6">
               <div className="flex items-center gap-3 mb-6">
                 <div className="size-10 rounded-lg bg-primary/10 flex items-center justify-center">
@@ -251,7 +252,7 @@ npm start
 
       {activeTab === 'webhooks' && (
         <div className="space-y-8">
-          <Card className="border border-divider">
+          <Card className={card('base')}>
             <div className="p-6">
               <div className="flex items-center gap-3 mb-6">
                 <div className="size-10 rounded-lg bg-secondary/10 flex items-center justify-center">
@@ -383,7 +384,7 @@ npm start
 
       {activeTab === 'email' && (
         <div className="space-y-8">
-          <Card className="border border-divider">
+          <Card className={card('base')}>
             <div className="p-6">
               <div className="flex items-center gap-3 mb-6">
                 <div className="size-10 rounded-lg bg-warning/10 flex items-center justify-center">

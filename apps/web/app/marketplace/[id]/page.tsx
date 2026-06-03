@@ -50,6 +50,7 @@ import { ActiveJobsForService } from '@/components/marketplace/ActiveJobsForServ
 import { SERVICE_REGISTRY_ABI } from '@/lib/contracts/abis';
 import { getContractAddress } from '@/lib/contracts/config';
 import { SERVICE_BOND_AMOUNT, SERVICE_BOND_COOLDOWN_MS } from '@/lib/contracts/bonds';
+import { card } from '@/lib/design-system';
 
 const SERVICE_REGISTRY_ADDRESS = getContractAddress('SERVICE_REGISTRY');
 
@@ -137,7 +138,7 @@ export default function ServiceDetailPage({
   if (!service) {
     return (
       <div className="container mx-auto px-4 py-8">
-        <Card className="max-w-2xl mx-auto border border-divider p-8 text-center">
+        <Card className={card('padded', 'max-w-2xl mx-auto p-8 text-center')}>
           <h2 className="text-xl font-semibold mb-2">Service Not Found</h2>
           <p className="text-default-500 text-sm">
             This service does not exist or has been removed.
@@ -168,7 +169,7 @@ export default function ServiceDetailPage({
 
       <div className="max-w-2xl mx-auto space-y-6">
         {/* Service Info */}
-        <Card className="border border-divider p-6">
+        <Card className={card('padded', 'p-6')}>
           {!isEditing ? (
             <>
               <div className="flex items-start justify-between mb-4">
@@ -439,7 +440,7 @@ export default function ServiceDetailPage({
         </Card>
 
         {/* Provider Info */}
-        <Card className="border border-divider p-6">
+        <Card className={card('padded', 'p-6')}>
           <h2 className="text-base font-semibold mb-4 flex items-center gap-2">
             <User className="size-4 text-primary" />
             Provider
@@ -536,7 +537,7 @@ export default function ServiceDetailPage({
 
         {/* Similar Services */}
         {agentProfile.services.length > 1 && (
-          <Card className="border border-divider p-6">
+          <Card className={card('padded', 'p-6')}>
             <h2 className="text-base font-semibold mb-4 flex items-center gap-2">
               <ShoppingBag className="size-4 text-success" />
               More from {agentProfile.name || 'this provider'}
@@ -579,7 +580,7 @@ export default function ServiceDetailPage({
         )}
 
         {/* Active jobs using this service */}
-        <Card className="border border-divider p-6">
+        <Card className={card('padded', 'p-6')}>
           <ActiveJobsForService serviceId={serviceId} />
         </Card>
 
