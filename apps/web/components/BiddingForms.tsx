@@ -18,6 +18,7 @@ import {
 import { getTransactionError, showToast } from '@/lib/toast';
 import { useFormSubmit, formatTimeRemaining } from '@/lib/hooks/useDebounce';
 import { Address } from '@/components/Address';
+import { StatusBadge } from '@/components/StatusBadge';
 import {
   useTokenPriceConversion,
   USDC_TOKEN,
@@ -465,16 +466,14 @@ export function BidStatusCard({ bid }: { bid: Bid }) {
     <Card className="border border-divider p-4">
       <div className="flex items-center justify-between mb-2">
         <h4 className="font-medium">Your Bid</h4>
-        <span
-          className={`px-2 py-0.5 text-xs rounded-full ${
-            bid.accepted
-              ? 'bg-success/20 text-success'
-              : bid.revealed
-                ? 'bg-primary/20 text-primary'
-                : 'bg-warning/20 text-warning'
-          }`}
-        >
-          {bid.accepted ? 'Accepted' : bid.revealed ? 'Revealed' : 'Committed'}
+        <span>
+          {bid.accepted ? (
+            <StatusBadge status="completed" size="sm" />
+          ) : bid.revealed ? (
+            <StatusBadge status="active" size="sm" />
+          ) : (
+            <StatusBadge status="pending" size="sm" />
+          )}
         </span>
       </div>
 
