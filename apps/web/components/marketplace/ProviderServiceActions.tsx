@@ -12,7 +12,7 @@ import {
   type Service,
 } from '@/lib/hooks/useServices';
 import { getTransactionError, showToast } from '@/lib/toast';
-import { SERVICE_BOND_AMOUNT, SERVICE_BOND_COOLDOWN_MS } from '@/components/marketplace/ServiceBondStatus';
+import { SERVICE_BOND_AMOUNT, SERVICE_BOND_COOLDOWN_MS } from '@/lib/contracts/bonds';
 
 interface ProviderServiceActionsProps {
   service: Service;

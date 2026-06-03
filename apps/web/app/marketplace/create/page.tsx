@@ -20,15 +20,14 @@ import {
 } from '@/lib/hooks/useTokenConversion';
 import { useMaxBudgetUsd, useMinBudget } from '@/lib/hooks/useMinBudget';
 import { formatAmount, parseAmount, tokenAmountToUsd } from '@/lib/tokenUtils';
+import { SERVICE_BOND_AMOUNT } from '@/lib/contracts/bonds';
 import { CreateServiceSteps } from '@/components/marketplace/CreateServiceSteps';
 import { ServiceFormFields } from '@/components/marketplace/ServiceFormFields';
-import { parseEther } from 'viem';
 
 const MAX_SERVICE_NAME_LENGTH = 100;
 const MAX_DESCRIPTION_LENGTH = 500;
 const MAX_METADATA_URI_LENGTH = 2000;
 const ZERO_ADDRESS = '0x0000000000000000000000000000000000000000' as const;
-const SERVICE_BOND_AMOUNT = parseEther('0.01');
 
 interface FormData {
   name: string;

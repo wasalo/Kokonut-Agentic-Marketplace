@@ -42,13 +42,13 @@ import {
   parseAmount,
   tokenAmountToUsd,
 } from '@/lib/tokenUtils';
-import { parseEther } from 'viem';
 import { showToast, getTransactionError } from '@/lib/toast';
 import { Address } from '@/components/Address';
 import { Breadcrumb } from '@/components/ui/Breadcrumb';
 import { ActiveJobsForService } from '@/components/marketplace/ActiveJobsForService';
 import { SERVICE_REGISTRY_ABI } from '@/lib/contracts/abis';
 import { getContractAddress } from '@/lib/contracts/config';
+import { SERVICE_BOND_AMOUNT, SERVICE_BOND_COOLDOWN_MS } from '@/lib/contracts/bonds';
 
 const SERVICE_REGISTRY_ADDRESS = getContractAddress('SERVICE_REGISTRY');
 
@@ -115,8 +115,8 @@ export default function ServiceDetailPage({
   const [paymentAddressInput, setPaymentAddressInput] = useState('');
 
   const isProvider = address && service && address.toLowerCase() === service.provider.toLowerCase();
-  const hasBond = bond >= parseEther('0.01');
-  const cooldownMs = 7 * 24 * 60 * 60 * 1000;
+  const hasBond = bond >= SERVICE_BOND_AMOUNT;
+  const cooldownMs = SERVICE_BOND_COOLDOWN_MS;
   const canWithdrawBond =
     !service?.isActive && hasBond && deactivatedAt > 0 && Date.now() >= deactivatedAt + cooldownMs;
 

@@ -2,11 +2,8 @@
 
 import { Skeleton } from '@heroui/react';
 import { AlertCircle, Clock, Shield, Wallet } from 'lucide-react';
-import { parseEther } from 'viem';
 import { useDeactivatedAt, useGetServiceBond } from '@/lib/hooks/useServices';
-
-export const SERVICE_BOND_AMOUNT = parseEther('0.01');
-export const SERVICE_BOND_COOLDOWN_MS = 7 * 24 * 60 * 60 * 1000;
+import { SERVICE_BOND_AMOUNT, SERVICE_BOND_COOLDOWN_MS } from '@/lib/contracts/bonds';
 
 interface ServiceBondStatusProps {
   serviceId: bigint;
