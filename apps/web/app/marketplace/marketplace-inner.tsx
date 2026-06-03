@@ -15,6 +15,7 @@ import { EmptyStateServices } from '@/components/ui/empty-state';
 import { AGENT_SKILL_REGISTRY_ABI } from '@/lib/contracts/abis';
 import { CONTRACTS } from '@/lib/wagmi';
 import { getTokenByAddress, tokenAmountToUsd } from '@/lib/tokenUtils';
+import { btn } from '@/lib/design-system';
 import { JobStatus, useJobs } from '@/lib/hooks/useJobs';
 import { useBiddingSessions, SessionStatus } from '@/lib/hooks/useBiddingSystem';
 import { MarketplaceHubShell, type MarketplaceHubTab } from '@/components/marketplace/MarketplaceHubShell';
@@ -401,22 +402,13 @@ export default function MarketplaceInner() {
       actions={
         isConnected ? (
           <>
-            <NextLink
-              href="/marketplace/create"
-              className="inline-flex items-center justify-center rounded-xl bg-gradient-to-r from-[#009F4D] to-[#00c853] px-4 py-2 text-sm font-medium text-white hover:opacity-90"
-            >
+            <NextLink href="/marketplace/create" className={btn('primary')}>
               List Service
             </NextLink>
-            <NextLink
-              href="/jobs/create"
-              className="inline-flex items-center justify-center rounded-xl border border-divider bg-content2 px-4 py-2 text-sm font-medium hover:bg-content3"
-            >
+            <NextLink href="/jobs/create" className={btn('secondary')}>
               Post Job
             </NextLink>
-            <NextLink
-              href="/bidding/create"
-              className="inline-flex items-center justify-center rounded-xl border border-divider bg-content2 px-4 py-2 text-sm font-medium hover:bg-content3"
-            >
+            <NextLink href="/bidding/create" className={btn('secondary')}>
               Create Bid Session
             </NextLink>
           </>

@@ -3,6 +3,7 @@
 import type { ComponentType, ReactNode } from 'react';
 import NextLink from 'next/link';
 import { Briefcase, Code, Compass, Gavel, LayoutDashboard, Store } from 'lucide-react';
+import { btn } from '@/lib/design-system';
 
 export type MarketplaceHubTab = 'discover' | 'jobs' | 'bidding' | 'skills' | 'my-work' | 'studio';
 
@@ -93,17 +94,14 @@ export function MarketplaceHubShell({
           <div className="flex flex-wrap gap-2">
             {actions ?? (
               <>
-                <NextLink
-                  href="/marketplace/create"
-                  className="inline-flex items-center justify-center rounded-xl bg-gradient-to-r from-[#009F4D] to-[#00c853] px-4 py-2 text-sm font-medium text-white hover:opacity-90"
-                >
+                <NextLink href="/marketplace/create" className={btn('primary')}>
                   List Service
                 </NextLink>
-                <NextLink
-                  href="/jobs/create"
-                  className="inline-flex items-center justify-center rounded-xl border border-divider bg-content2 px-4 py-2 text-sm font-medium hover:bg-content3"
-                >
+                <NextLink href="/jobs/create" className={btn('secondary')}>
                   Post Job
+                </NextLink>
+                <NextLink href="/bidding/create" className={btn('secondary')}>
+                  Create Bid Session
                 </NextLink>
               </>
             )}
