@@ -132,7 +132,7 @@ export function CommitBidForm({
             isCommitPending ||
             isApprovalPending
           }
-          className="px-6 py-2 bg-[#009F4D] text-white font-medium rounded-lg hover:bg-[#008F3D] transition-colors disabled:opacity-50 disabled:cursor-not-allowed"
+          className="px-6 py-2 bg-[#009F4D] text-white font-medium rounded-lg hover:bg-[#007a3d] transition-colors disabled:opacity-50 disabled:cursor-not-allowed"
         >
           {isCommitPending || isApprovalPending ? (
             <Loader2 className="size-4 animate-spin inline" />

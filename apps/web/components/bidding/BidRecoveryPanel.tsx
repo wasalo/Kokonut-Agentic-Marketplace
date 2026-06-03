@@ -129,7 +129,7 @@ export function BidRecoveryPanel({ sessionId }: BidRecoveryPanelProps) {
               }
             }}
             disabled={!isConnected || recovery.isSigning}
-            className="inline-flex items-center gap-2 px-3 py-1.5 text-xs bg-[#009F4D] text-white rounded-lg hover:bg-[#008F3D] disabled:opacity-50"
+            className="inline-flex items-center gap-2 px-3 py-1.5 text-xs bg-[#009F4D] text-white rounded-lg hover:bg-[#007a3d] disabled:opacity-50"
           >
             {recovery.isSigning ? (
               <Loader2 className="size-3 animate-spin" />
