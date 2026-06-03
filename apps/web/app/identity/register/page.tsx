@@ -6,11 +6,9 @@ import { useRouter } from 'next/navigation';
 import { ArrowLeft, CheckCircle2, Loader2 } from 'lucide-react';
 import NextLink from 'next/link';
 import { Card } from '@heroui/react';
-import { useWriteContract, useWaitForTransactionReceipt } from 'wagmi';
-import { ERC8004_ABI } from '@/lib/8004contracts';
 import { generateAgentMetadata, type AgentMetadata8004 } from '@/lib/metadata';
+
 import { useWalletAgentsFromSubgraph } from '@/lib/hooks';
-import { CONTRACT_ADDRESSES, getContractAddress } from '@/lib/contracts/config';
 import { TransactionError } from '@/components/TransactionError';
 import { Input, Textarea } from '@/components/ui/Input';
 import { card, btn } from '@/lib/design-system';
@@ -18,12 +16,7 @@ import { showToast } from '@/lib/toast';
 import { PortfolioForm, type PortfolioItem } from '@/components/PortfolioForm';
 import { useFormSubmit, formatTimeRemaining } from '@/lib/hooks/useDebounce';
 import { validateStringLength } from '@/lib/hooks/useValidation';
-
-const ERC8004_ADDRESS = getContractAddress(
-  process.env.NEXT_PUBLIC_8004_REGISTRY_ADDRESS,
-  CONTRACT_ADDRESSES.sepolia.erc8004Registry
-);
-const SEPOLIA_CHAIN_ID = 11155111;
+import { useRegisterAgent } from '@/lib/hooks/use8004Identity';
 
 interface FormData {
   name: string;
@@ -97,11 +90,7 @@ export default function RegisterAgentPage(): JSX.Element {
     setFormData(prev => ({ ...prev, portfolio }));
   }, []);
 
-  const { writeContract, data: txHash, isPending, error: txError } = useWriteContract();
-
-  const { isLoading: isConfirming, isSuccess: isConfirmed } = useWaitForTransactionReceipt({
-    hash: txHash,
-  });
+  const { register, isPending, isConfirming, isConfirmed, txHash, error: regError } = useRegisterAgent();
 
   const performSubmit = useCallback(
     (e: React.FormEvent) => {
@@ -126,15 +115,9 @@ export default function RegisterAgentPage(): JSX.Element {
       const agentURI = generateAgentMetadata(metadata);
 
       // Keep Kokonut provenance in metadata without gating marketplace access on it.
-      writeContract({
-        chainId: SEPOLIA_CHAIN_ID,
-        address: ERC8004_ADDRESS,
-        abi: ERC8004_ABI,
-        functionName: 'register',
-        args: [agentURI],
-      });
+      register(agentURI);
     },
-    [isConnected, address, formData, writeContract]
+    [isConnected, address, formData, register]
   );
 
   // Apply form submission debouncing (2 second cooldown)
@@ -149,10 +132,10 @@ export default function RegisterAgentPage(): JSX.Element {
   }, [isConfirmed]);
 
   useEffect(() => {
-    if (txError) {
-      showToast.error('Registration failed', txError.message || 'Please try again.');
+    if (regError) {
+      showToast.error('Registration failed', regError || 'Please try again.');
     }
-  }, [txError]);
+  }, [regError]);
 
   if (isConfirmed) {
     return (
@@ -315,7 +298,7 @@ export default function RegisterAgentPage(): JSX.Element {
                 <p className="text-sm font-mono">{address || 'Connect your wallet'}</p>
               </div>
 
-              <TransactionError error={txError} />
+              <TransactionError error={regError ? new Error(regError) : null} />
 
               <div className="flex gap-4">
                 <button type="submit"
