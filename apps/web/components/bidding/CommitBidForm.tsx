@@ -4,6 +4,7 @@ import { Loader2, CheckCircle, Copy, AlertTriangle } from 'lucide-react';
 import { formatUnits } from 'viem';
 import type { Token } from '@/lib/tokenUtils';
 import { formatAmount } from '@/lib/tokenUtils';
+import { Input, Textarea } from '@/components/ui/Input';
 
 interface CommitBidFormProps {
   commitAmount: string;
@@ -50,32 +51,26 @@ export function CommitBidForm({
         Commit your sealed bid. You will need to reveal it after the deadline.
       </p>
       <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
-        <div>
-          <label htmlFor="commit-amount" className="text-sm font-medium mb-1 block">
-            Amount ({token.symbol})
-          </label>
-          <input
-            id="commit-amount"
-            type="number"
-            value={commitAmount}
-            onChange={e => onAmountChange(e.target.value)}
-            max={maxBudgetInputMax}
-            step={token.symbol === 'ETH' ? '0.001' : '1'}
-            placeholder="0.0"
-            className="w-full px-4 py-2 bg-content1 border border-divider rounded-lg focus:outline-none focus:border-[#009F4D]"
-          />
-        </div>
+        <Input
+          id="commit-amount"
+          type="number"
+          label={`Amount (${token.symbol})`}
+          value={commitAmount}
+          onChange={e => onAmountChange(e.target.value)}
+          max={maxBudgetInputMax}
+          step={token.symbol === 'ETH' ? '0.001' : '1'}
+          placeholder="0.0"
+          variant="subtle"
+        />
         <div className="sm:col-span-2">
-          <label htmlFor="commit-message" className="text-sm font-medium mb-1 block">
-            Why should you win? (optional)
-          </label>
-          <textarea
+          <Textarea
             id="commit-message"
+            label="Why should you win? (optional)"
             value={commitMessage}
             onChange={e => onMessageChange(e.target.value)}
             placeholder="Describe your approach, relevant experience, timeline, or why your bid is the best fit..."
             rows={4}
-            className="w-full px-4 py-2 bg-content1 border border-divider rounded-lg focus:outline-none focus:border-[#009F4D] resize-none"
+            variant="subtle"
           />
         </div>
         <div className="sm:col-span-2 min-w-0">

@@ -2,6 +2,7 @@
 
 import { Loader2, CheckCircle, Copy } from 'lucide-react';
 import type { Token } from '@/lib/tokenUtils';
+import { Input } from '@/components/ui/Input';
 
 interface RevealBidFormProps {
   revealAmount: string;
@@ -71,33 +72,25 @@ export function RevealBidForm({
         </div>
       )}
       <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
-        <div>
-          <label htmlFor="reveal-amount" className="text-sm font-medium mb-1 block">
-            Amount ({token.symbol})
-          </label>
-          <input
-            id="reveal-amount"
-            type="number"
-            value={revealAmount}
-            onChange={e => onAmountChange(e.target.value)}
-            step={token.symbol === 'ETH' ? '0.001' : '1'}
-            placeholder="Same as committed amount"
-            className="w-full px-4 py-2 bg-content1 border border-divider rounded-lg focus:outline-none focus:border-[#009F4D]"
-          />
-        </div>
-        <div>
-          <label htmlFor="reveal-message" className="text-sm font-medium mb-1 block">
-            Message
-          </label>
-          <input
-            id="reveal-message"
-            type="text"
-            value={revealMessage}
-            onChange={e => onMessageChange(e.target.value)}
-            placeholder="Same as committed message"
-            className="w-full px-4 py-2 bg-content1 border border-divider rounded-lg focus:outline-none focus:border-[#009F4D]"
-          />
-        </div>
+        <Input
+          id="reveal-amount"
+          type="number"
+          label={`Amount (${token.symbol})`}
+          value={revealAmount}
+          onChange={e => onAmountChange(e.target.value)}
+          step={token.symbol === 'ETH' ? '0.001' : '1'}
+          placeholder="Same as committed amount"
+          variant="subtle"
+        />
+        <Input
+          id="reveal-message"
+          type="text"
+          label="Message"
+          value={revealMessage}
+          onChange={e => onMessageChange(e.target.value)}
+          placeholder="Same as committed message"
+          variant="subtle"
+        />
       </div>
       <div className="flex justify-end">
         <button

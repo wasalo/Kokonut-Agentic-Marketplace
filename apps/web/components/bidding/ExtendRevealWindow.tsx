@@ -1,6 +1,7 @@
 'use client';
 
 import { Loader2 } from 'lucide-react';
+import { Input } from '@/components/ui/Input';
 
 interface ExtendRevealWindowProps {
   extendSeconds: string;
@@ -21,16 +22,14 @@ export function ExtendRevealWindow({
       <p className="text-sm text-default-500 mt-1 mb-4">Extend the reveal period if providers need more time.</p>
       <div className="flex flex-col sm:flex-row sm:items-end gap-3">
         <div className="flex-1">
-          <label htmlFor="extend-seconds" className="text-sm font-medium mb-1 block">
-            Additional time (seconds)
-          </label>
-          <input
+          <Input
             id="extend-seconds"
             type="number"
+            label="Additional time (seconds)"
             value={extendSeconds}
             onChange={e => onSecondsChange(e.target.value)}
             placeholder="3600"
-            className="w-full px-4 py-2 bg-content1 border border-divider rounded-lg focus:outline-none focus:border-[#009F4D]"
+            variant="subtle"
           />
         </div>
         <button
