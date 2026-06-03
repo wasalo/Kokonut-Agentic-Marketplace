@@ -1,65 +1,42 @@
 'use client';
 
 import { useEffect, useState } from 'react';
-import { useAccount, useReadContract, useWriteContract } from 'wagmi';
+import { useAccount } from 'wagmi';
 import { Card, Input, Button } from '@heroui/react';
 import { Settings, AlertCircle, Clock, Percent, Info } from 'lucide-react';
 import NextLink from 'next/link';
-import { CONTRACTS } from '@/lib/wagmi';
-import { AGENTIC_COMMERCE_ABI } from '@/lib/contracts/abis';
 import { DS, card } from '@/lib/design-system';
 import { toast } from 'sonner';
-
-const AGENTIC_COMMERCE_ADDRESS = CONTRACTS[11155111].agenticCommerce as `0x${string}`;
+import { useDefaultDisputeWindow, useMilestoneConfigAdmin } from '@/lib/hooks/useMilestoneConfig';
 
 export default function MilestoneConfigAdminPage(): JSX.Element {
   useEffect(() => { document.title = 'Milestone Config | Admin | Kokonut'; }, []);
   const { isConnected } = useAccount();
-  const { writeContractAsync } = useWriteContract();
-
-  // V9 keeps DEFAULT_DISPUTE_WINDOW as a constant (7 days). Per-job override is
-  // available via setDisputeWindow(jobId, window). This page displays the
-  // constant and allows per-job overrides via the jobId input.
-  const { data: defaultDisputeWindow } = useReadContract({
-    address: AGENTIC_COMMERCE_ADDRESS,
-    abi: AGENTIC_COMMERCE_ABI,
-    functionName: 'DEFAULT_DISPUTE_WINDOW',
-  });
+  const { defaultWindow: defaultDisputeWindow } = useDefaultDisputeWindow();
+  const { setDisputeWindow, isSettingWindow, setSlashBP, isSettingSlash } = useMilestoneConfigAdmin();
 
   const [overrideJobId, setOverrideJobId] = useState('');
   const [overrideWindow, setOverrideWindow] = useState('');
   const [newSlashBP, setNewSlashBP] = useState('');
 
-  const handleSetDisputeWindow = async () => {
+  const handleSetDisputeWindow = () => {
     if (!overrideJobId || !overrideWindow) return;
     try {
-      const hash = await writeContractAsync({
-        address: AGENTIC_COMMERCE_ADDRESS,
-        abi: AGENTIC_COMMERCE_ABI,
-        functionName: 'setDisputeWindow',
-        args: [BigInt(overrideJobId), BigInt(overrideWindow)],
-      } as any);
-      toast.success(`Dispute window updated: ${hash}`);
+      setDisputeWindow(BigInt(overrideJobId), BigInt(overrideWindow));
       setOverrideJobId('');
       setOverrideWindow('');
     } catch {
-      toast.error('Update failed');
+      toast.error('Invalid numeric value');
     }
   };
 
-  const handleSetSlashBP = async () => {
+  const handleSetSlashBP = () => {
     if (!newSlashBP) return;
     try {
-      const hash = await writeContractAsync({
-        address: AGENTIC_COMMERCE_ADDRESS,
-        abi: AGENTIC_COMMERCE_ABI,
-        functionName: 'setNonResponsiveSlashBP',
-        args: [0n, BigInt(newSlashBP)], // 0 = default for all jobs
-      } as any);
-      toast.success(`Slash BP updated: ${hash}`);
+      setSlashBP(0n, BigInt(newSlashBP)); // 0 = default for all jobs
       setNewSlashBP('');
     } catch {
-      toast.error('Update failed');
+      toast.error('Invalid BP value');
     }
   };
 
@@ -119,7 +96,7 @@ export default function MilestoneConfigAdminPage(): JSX.Element {
             type="number"
             className="mb-3"
           />
-          <Button onClick={handleSetDisputeWindow} isDisabled={!isConnected || !overrideJobId || !overrideWindow} className={DS.buttons.primary}>
+          <Button onClick={handleSetDisputeWindow} isDisabled={!isConnected || !overrideJobId || !overrideWindow || isSettingWindow} className={DS.buttons.primary}>
             Update dispute window
           </Button>
         </Card>
@@ -139,7 +116,7 @@ export default function MilestoneConfigAdminPage(): JSX.Element {
             type="number"
             className="mb-3"
           />
-          <Button onClick={handleSetSlashBP} isDisabled={!isConnected || !newSlashBP} className={DS.buttons.primary}>
+          <Button onClick={handleSetSlashBP} isDisabled={!isConnected || !newSlashBP || isSettingSlash} className={DS.buttons.primary}>
             Update slash BP
           </Button>
         </Card>

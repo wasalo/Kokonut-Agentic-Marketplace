@@ -53,10 +53,35 @@ export function useEvaluatorPoolAdmin() {
     [cleanup]
   );
 
+  const { writeContract: setMin, data: setMinHash } = useWriteContract();
+  const { isLoading: isSettingMin, isSuccess: setMinSuccess } = useWaitForTransactionReceipt({
+    hash: setMinHash,
+  });
+
+  const handleSetMinStake = useCallback(
+    (wei: bigint) => {
+      try {
+        setError(null);
+        setMin({
+          address: AGENTIC_COMMERCE_ADDRESS,
+          abi: AGENTIC_COMMERCE_ABI,
+          functionName: 'setMinEvaluatorStake',
+          args: [wei],
+        });
+      } catch (err) {
+        setError(err instanceof Error ? err.message : 'Failed to set min evaluator stake');
+      }
+    },
+    [setMin]
+  );
+
   return {
     cleanupStaleEvaluators: handleCleanupStale,
     isCleaning,
     cleanupSuccess,
+    setMinEvaluatorStake: handleSetMinStake,
+    isSettingMin,
+    setMinSuccess,
     error,
   };
 }

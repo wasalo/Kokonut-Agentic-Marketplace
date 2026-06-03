@@ -1,7 +1,7 @@
 'use client';
 
 import { useEffect, useState } from 'react';
-import { useAccount, useReadContract, useWriteContract } from 'wagmi';
+import { useAccount, useReadContract } from 'wagmi';
 import { Card, Button } from '@heroui/react';
 import { Store, AlertCircle } from 'lucide-react';
 import NextLink from 'next/link';
@@ -9,7 +9,7 @@ import { formatUnits } from 'viem';
 import { CONTRACTS } from '@/lib/wagmi';
 import { SERVICE_REGISTRY_ABI, AGENTIC_COMMERCE_ABI } from '@/lib/contracts/abis';
 import { DS, card } from '@/lib/design-system';
-import { toast } from 'sonner';
+import { useServiceAdmin } from '@/lib/hooks/useServiceAdmin';
 
 const SERVICE_REGISTRY_ADDRESS = CONTRACTS[11155111].serviceRegistry as `0x${string}`;
 const AGENTIC_COMMERCE_ADDRESS = CONTRACTS[11155111].agenticCommerce as `0x${string}`;
@@ -29,7 +29,7 @@ export default function ServiceRegistryAdminPage(): JSX.Element {
   }, []);
 
   const { isConnected } = useAccount();
-  const { writeContractAsync } = useWriteContract();
+  const { deactivateService, isDeactivating, setServiceRegistry, isSettingRegistry } = useServiceAdmin();
 
   const { data: counter } = useReadContract({
     address: SERVICE_REGISTRY_ADDRESS,
@@ -55,34 +55,14 @@ export default function ServiceRegistryAdminPage(): JSX.Element {
 
   useEffect(() => { void loadServices(); }, []);
 
-  const handlePause = async (serviceId: bigint) => {
-    try {
-      const hash = await writeContractAsync({
-        address: SERVICE_REGISTRY_ADDRESS,
-        abi: SERVICE_REGISTRY_ABI,
-        functionName: 'deactivateService',
-        args: [serviceId],
-      } as any);
-      toast.success(`Service ${serviceId.toString()} paused: ${hash}`);
-      await loadServices();
-    } catch {
-      toast.error('Pause failed');
-    }
+  const handlePause = (serviceId: bigint) => {
+    deactivateService(serviceId);
   };
 
-  const handleSetRegistry = async () => {
+  const handleSetRegistry = () => {
     if (!newServiceRegistry) return;
-    try {
-      const hash = await writeContractAsync({
-        address: AGENTIC_COMMERCE_ADDRESS,
-        abi: AGENTIC_COMMERCE_ABI,
-        functionName: 'setServiceRegistry',
-        args: [newServiceRegistry as `0x${string}`],
-      } as any);
-      toast.success(`Service registry updated: ${hash}`);
-    } catch {
-      toast.error('Update failed');
-    }
+    setServiceRegistry(newServiceRegistry as `0x${string}`);
+    setNewServiceRegistry('');
   };
 
   return (
@@ -134,7 +114,7 @@ export default function ServiceRegistryAdminPage(): JSX.Element {
             placeholder="0x... (ServiceRegistry proxy)"
             className="flex-1 px-3 py-2 bg-content1 border border-divider rounded-lg font-mono text-sm"
           />
-          <Button onClick={handleSetRegistry} isDisabled={!isConnected || !newServiceRegistry} className={DS.buttons.primary}>
+          <Button onClick={handleSetRegistry} isDisabled={!isConnected || !newServiceRegistry || isSettingRegistry} className={DS.buttons.primary}>
             Update
           </Button>
         </div>
@@ -183,7 +163,7 @@ export default function ServiceRegistryAdminPage(): JSX.Element {
                     <td className="p-3 font-mono text-xs">{s.paymentToken === '0x0000000000000000000000000000000000000000' ? 'ETH' : s.paymentToken.slice(0, 8) + '…'}</td>
                     <td className="p-3">{s.active ? 'Active' : 'Paused'}</td>
                     <td className="p-3 text-right">
-                      <Button size="sm" isDisabled={!isConnected || !s.active} onClick={() => handlePause(s.serviceId)}>
+                        <Button size="sm" isDisabled={!isConnected || !s.active || isDeactivating} onClick={() => handlePause(s.serviceId)}>
                         Pause
                       </Button>
                     </td>

@@ -1,17 +1,14 @@
 'use client';
 
 import { useEffect, useState } from 'react';
-import { useAccount, useReadContract, useWriteContract } from 'wagmi';
+import { useAccount } from 'wagmi';
 import { Card, Button, Input } from '@heroui/react';
 import { Users, AlertCircle, RefreshCw, Trash2 } from 'lucide-react';
 import NextLink from 'next/link';
 import { formatUnits } from 'viem';
-import { CONTRACTS } from '@/lib/wagmi';
-import { AGENTIC_COMMERCE_ABI } from '@/lib/contracts/abis';
 import { DS, card } from '@/lib/design-system';
 import { toast } from 'sonner';
-
-const AGENTIC_COMMERCE_ADDRESS = CONTRACTS[11155111].agenticCommerce as `0x${string}`;
+import { useEvaluatorPoolSize, useMinEvaluatorStake, useEvaluatorPoolAdmin } from '@/lib/hooks/useEvaluators';
 
 interface EvaluatorRow {
   address: `0x${string}`;
@@ -22,18 +19,9 @@ interface EvaluatorRow {
 export default function EvaluatorPoolAdminPage(): JSX.Element {
   useEffect(() => { document.title = 'Evaluator Pool | Admin | Kokonut'; }, []);
   const { isConnected } = useAccount();
-  const { writeContractAsync } = useWriteContract();
-
-  const { data: poolSize, refetch: refetchSize } = useReadContract({
-    address: AGENTIC_COMMERCE_ADDRESS,
-    abi: AGENTIC_COMMERCE_ABI,
-    functionName: 'getEvaluatorPoolSize',
-  });
-  const { data: minStake, refetch: refetchMinStake } = useReadContract({
-    address: AGENTIC_COMMERCE_ADDRESS,
-    abi: AGENTIC_COMMERCE_ABI,
-    functionName: 'minEvaluatorStake',
-  });
+  const { size: poolSize } = useEvaluatorPoolSize();
+  const { minStake } = useMinEvaluatorStake();
+  const { cleanupStaleEvaluators, isCleaning, setMinEvaluatorStake, isSettingMin } = useEvaluatorPoolAdmin();
 
   const [evaluators, setEvaluators] = useState<EvaluatorRow[]>([]);
   const [isLoading, setIsLoading] = useState(false);
@@ -47,35 +35,17 @@ export default function EvaluatorPoolAdminPage(): JSX.Element {
 
   useEffect(() => { void loadEvaluators(); }, []);
 
-  const handleCleanup = async () => {
-    try {
-      const hash = await writeContractAsync({
-        address: AGENTIC_COMMERCE_ADDRESS,
-        abi: AGENTIC_COMMERCE_ABI,
-        functionName: 'cleanupStaleEvaluators',
-        args: [100n],
-      } as any);
-      toast.success(`Cleanup tx: ${hash}`);
-      await refetchSize();
-    } catch {
-      toast.error('Cleanup failed');
-    }
+  const handleCleanup = () => {
+    cleanupStaleEvaluators(100n);
   };
 
-  const handleSetMinStake = async () => {
+  const handleSetMinStake = () => {
     if (!newMinStake) return;
     try {
-      const hash = await writeContractAsync({
-        address: AGENTIC_COMMERCE_ADDRESS,
-        abi: AGENTIC_COMMERCE_ABI,
-        functionName: 'setMinEvaluatorStake',
-        args: [BigInt(newMinStake)],
-      } as any);
-      toast.success(`Min stake updated: ${hash}`);
+      setMinEvaluatorStake(BigInt(newMinStake));
       setNewMinStake('');
-      await refetchMinStake();
     } catch {
-      toast.error('Update failed');
+      toast.error('Invalid wei value');
     }
   };
 
@@ -104,14 +74,14 @@ export default function EvaluatorPoolAdminPage(): JSX.Element {
       <div className="grid grid-cols-1 md:grid-cols-3 gap-4 mb-6">
         <Card className={card('padded')}>
           <p className="text-xs text-default-500">Pool Size</p>
-          <p className="text-2xl font-bold">{poolSize?.toString() ?? '—'}</p>
+          <p className="text-2xl font-bold">{poolSize.toString() || '—'}</p>
         </Card>
         <Card className={card('padded')}>
           <p className="text-xs text-default-500">Min Evaluator Stake</p>
           <p className="text-lg font-mono">{minStake ? formatUnits(minStake, 18) + ' ETH' : '—'}</p>
         </Card>
         <Card className={card('padded', 'flex flex-col justify-center gap-2')}>
-          <button onClick={handleCleanup} disabled={!isConnected} className={DS.buttons.secondary}>
+          <button onClick={handleCleanup} disabled={!isConnected || isCleaning} className={DS.buttons.secondary}>
             <Trash2 className="size-4 mr-1 inline" /> Cleanup stale (100)
           </button>
         </Card>
@@ -127,7 +97,7 @@ export default function EvaluatorPoolAdminPage(): JSX.Element {
             placeholder="10000000000000000 (0.01 ETH)"
             className="font-mono"
           />
-        <Button onClick={handleSetMinStake} isDisabled={!isConnected || !newMinStake} className={DS.buttons.primary}>
+        <Button onClick={handleSetMinStake} isDisabled={!isConnected || !newMinStake || isSettingMin} className={DS.buttons.primary}>
           Update
         </Button>
         </div>
