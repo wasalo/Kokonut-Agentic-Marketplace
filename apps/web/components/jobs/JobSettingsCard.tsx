@@ -2,6 +2,7 @@
 
 import { Card } from '@heroui/react';
 import { Settings, Loader2 } from 'lucide-react';
+import { Input } from '@/components/ui/Input';
 import { type Job } from '@/lib/hooks/useJobs';
 
 interface JobSettingsCardProps {
@@ -37,16 +38,16 @@ export function JobSettingsCard({
       </h2>
       <div className="space-y-4">
         <div>
-          <label className="text-sm font-medium">Update Budget ({isUSDC ? 'USDC' : 'ETH'})</label>
+          <Input
+            type="number"
+            label={`Update Budget (${isUSDC ? 'USDC' : 'ETH'})`}
+            step={isUSDC ? '0.01' : '0.0001'}
+            placeholder="New budget amount"
+            value={newBudget}
+            onChange={e => setNewBudget(e.target.value)}
+            className="flex-1 text-sm"
+          />
           <div className="flex gap-2 mt-1">
-            <input
-              type="number"
-              step={isUSDC ? '0.01' : '0.0001'}
-              placeholder="New budget amount"
-              value={newBudget}
-              onChange={e => setNewBudget(e.target.value)}
-              className="flex-1 px-3 py-2 bg-content2 border border-divider rounded-lg focus:outline-none focus:ring-2 focus:ring-primary text-sm"
-            />
             <button type="button"
               onClick={() =>
                 handleAction('Updating budget', () =>

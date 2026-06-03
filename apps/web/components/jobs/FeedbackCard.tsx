@@ -6,6 +6,7 @@ import { CheckCircle2 } from 'lucide-react';
 import { useWriteContract, useWaitForTransactionReceipt } from 'wagmi';
 import { keccak256, toHex } from 'viem';
 import { ERC8004_ABI } from '@/lib/8004contracts';
+import { Textarea } from '@/components/ui/Input';
 
 const ERC8004_REP = process.env.NEXT_PUBLIC_8004_REPUTATION_ADDRESS as `0x${string}`;
 const SEPOLIA_CHAIN_ID = 11155111;
@@ -79,13 +80,12 @@ export function FeedbackCard({ agentId, jobId }: { agentId: bigint; jobId: bigin
           </div>
         </div>
         <div>
-          <label className="text-sm font-medium">Comment</label>
-          <textarea
+          <Textarea
+            label="Comment"
             placeholder="How was the work?"
             value={comment}
             onChange={e => setComment(e.target.value)}
             rows={2}
-            className="w-full mt-1 px-3 py-2 bg-content2 border border-divider rounded-lg focus:outline-none focus:ring-2 focus:ring-success resize-none"
           />
         </div>
         {error && (

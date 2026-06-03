@@ -18,6 +18,7 @@ import {
 import { Address } from '@/components/Address';
 import { ErrorDisplay } from '@/components/ErrorDisplay';
 import { StatusBadge } from '@/components/StatusBadge';
+import { Textarea, Select } from '@/components/ui/Input';
 import { JobStatus, type Job } from '@/lib/hooks/useJobs';
 import { JobLifecycleStepper, type JobRole } from '@/components/jobs/JobLifecycleStepper';
 import type { Token } from '@/lib/hooks/useTokenConversion';
@@ -214,12 +215,11 @@ export function JobActionsCard({
             ) : (
               <div className="space-y-3 p-4 border border-primary/30 rounded-lg">
                 <p className="font-medium">Submit Delivery Description</p>
-                <textarea
+                <Textarea
                   placeholder="Describe what you delivered for this job..."
                   value={fulfillmentText}
                   onChange={event => onFulfillmentTextChange(event.target.value)}
                   rows={4}
-                  className="w-full px-3 py-2 bg-content2 border border-divider rounded-lg focus:outline-none focus:ring-2 focus:ring-primary resize-none text-sm"
                 />
                 <div className="flex gap-2">
                   <button
@@ -385,11 +385,11 @@ export function JobActionsCard({
                 </p>
                 {milestones && milestones.length > 0 && (
                   <div>
-                    <label className="text-xs text-default-600 block mb-1">Milestone to dispute:</label>
-                    <select
+                    <Select
+                      label="Milestone to dispute:"
                       value={disputeMilestoneIndex}
                       onChange={event => onDisputeMilestoneChange(Number(event.target.value))}
-                      className="w-full px-2 py-1.5 text-sm border border-divider rounded-lg bg-background"
+                      className="text-sm"
                     >
                       {milestones.map((milestone, index) => (
                         <option key={index} value={index}>
@@ -397,7 +397,7 @@ export function JobActionsCard({
                           {milestone.description && milestone.description.length > 40 ? '...' : ''}
                         </option>
                       ))}
-                    </select>
+                    </Select>
                   </div>
                 )}
                 <button

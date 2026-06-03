@@ -7,6 +7,7 @@ import { Card } from '@heroui/react';
 import { useEmailStore } from '@/lib/emails/store';
 import type { EmailPreferences } from '@/lib/emails/types';
 import { createOwnerAuthHeaders } from '@/lib/client-auth';
+import { Input } from '@/components/ui/Input';
 
 interface EmailPreferencesFormProps {
   onSuccess?: () => void;
@@ -133,17 +134,14 @@ export function EmailPreferencesForm({ onSuccess }: EmailPreferencesFormProps) {
 
         {enabled && (
           <>
-            <div>
-              <label htmlFor="email-address" className="text-sm font-medium mb-2 block">Email Address</label>
-              <input
-                id="email-address"
-                type="email"
-                placeholder="you@example.com"
-                value={email}
-                onChange={e => setEmail(e.target.value)}
-                className="w-full px-3 py-2 bg-content2 border border-divider rounded-lg focus:outline-none focus:ring-2 focus:ring-primary"
-              />
-            </div>
+            <Input
+              id="email-address"
+              type="email"
+              label="Email Address"
+              placeholder="you@example.com"
+              value={email}
+              onChange={e => setEmail(e.target.value)}
+            />
 
             <div>
               <label htmlFor="notification-frequency" className="text-sm font-medium mb-2 flex items-center gap-2">

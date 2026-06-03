@@ -3,6 +3,7 @@
 import { useState } from 'react';
 import { Plus, X, ExternalLink, Loader2, CheckCircle2 } from 'lucide-react';
 import { Card } from '@heroui/react';
+import { Input, Textarea } from '@/components/ui/Input';
 
 export interface PortfolioItem {
   title: string;
@@ -104,34 +105,30 @@ export function PortfolioForm({ portfolio, onChange, isSaving, saveSuccess }: Po
       {portfolio.length < MAX_PORTFOLIO_ITEMS && (
         <div className="space-y-3">
           <div className="text-sm font-medium text-default-600">Add New Portfolio Item</div>
-          <input
+          <Input
             type="text"
-            placeholder="Title *"
+            label="Title *"
             value={newItem.title}
             onChange={e => setNewItem({ ...newItem, title: e.target.value })}
-            className="w-full px-3 py-2 bg-content2 border border-divider rounded-lg focus:outline-none focus:ring-2 focus:ring-primary text-sm"
           />
-          <textarea
-            placeholder="Description *"
+          <Textarea
+            label="Description *"
             value={newItem.description}
             onChange={e => setNewItem({ ...newItem, description: e.target.value })}
             rows={2}
-            className="w-full px-3 py-2 bg-content2 border border-divider rounded-lg focus:outline-none focus:ring-2 focus:ring-primary text-sm resize-none"
           />
           <div className="grid grid-cols-1 md:grid-cols-2 gap-3">
-            <input
+            <Input
               type="url"
-              placeholder="Link (optional)"
+              label="Link (optional)"
               value={newItem.link}
               onChange={e => setNewItem({ ...newItem, link: e.target.value })}
-              className="w-full px-3 py-2 bg-content2 border border-divider rounded-lg focus:outline-none focus:ring-2 focus:ring-primary text-sm"
             />
-            <input
+            <Input
               type="url"
-              placeholder="Image URL (optional)"
+              label="Image URL (optional)"
               value={newItem.image}
               onChange={e => setNewItem({ ...newItem, image: e.target.value })}
-              className="w-full px-3 py-2 bg-content2 border border-divider rounded-lg focus:outline-none focus:ring-2 focus:ring-primary text-sm"
             />
           </div>
           <button type="button"

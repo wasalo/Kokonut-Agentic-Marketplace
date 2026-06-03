@@ -19,6 +19,7 @@ import { getTransactionError, showToast } from '@/lib/toast';
 import { useFormSubmit, formatTimeRemaining } from '@/lib/hooks/useDebounce';
 import { Address } from '@/components/Address';
 import { StatusBadge } from '@/components/StatusBadge';
+import { Input, Textarea } from '@/components/ui/Input';
 import {
   useTokenPriceConversion,
   USDC_TOKEN,
@@ -149,30 +150,26 @@ export function CommitBidForm({ job, onSuccess }: CommitBidFormProps) {
         </div>
 
         <div className="space-y-2">
-          <label className="text-sm font-medium">Your Bid Amount (ETH)</label>
-          <input
+          <Input
             type="number"
+            label="Your Bid Amount (ETH)"
             step="0.001"
             min="0.001"
             max={(Number(maxBudget) / 1e18).toFixed(3)}
             value={bidAmount}
             onChange={e => setBidAmount(e.target.value)}
             placeholder="0.000"
-            className="w-full px-3 py-2 bg-content2 border border-divider rounded-lg"
+            error={bidAmount && parseFloat(bidAmount) > Number(maxBudget) / 1e18 ? 'Bid exceeds maximum budget' : undefined}
           />
-          {bidAmount && parseFloat(bidAmount) > Number(maxBudget) / 1e18 && (
-            <p className="text-xs text-danger">Bid exceeds maximum budget</p>
-          )}
         </div>
 
         <div className="space-y-2">
-          <label className="text-sm font-medium">Your Message (optional)</label>
-          <textarea
+          <Textarea
+            label="Your Message (optional)"
             value={bidMessage}
             onChange={e => setBidMessage(e.target.value)}
             placeholder="Introduce yourself and explain why you're the best fit…"
             rows={3}
-            className="w-full px-3 py-2 bg-content2 border border-divider rounded-lg resize-none"
           />
         </div>
 
@@ -284,36 +281,34 @@ export function RevealBidForm({ job, onSuccess }: RevealBidFormProps) {
           </div>
 
           <div className="space-y-2">
-            <label className="text-sm font-medium">Bid Amount (ETH)</label>
-            <input
+            <Input
               type="number"
+              label="Bid Amount (ETH)"
               step="0.001"
               value={bidAmount}
               onChange={e => setBidAmount(e.target.value)}
               placeholder="0.000"
-              className="w-full px-3 py-2 bg-content2 border border-divider rounded-lg"
             />
           </div>
 
           <div className="space-y-2">
-            <label className="text-sm font-medium">Salt (from commit)</label>
-            <input
+            <Input
               type="text"
+              label="Salt (from commit)"
               value={salt}
               onChange={e => setSalt(e.target.value)}
               placeholder="0x…"
-              className="w-full px-3 py-2 bg-content2 border border-divider rounded-lg font-mono text-sm"
+              className="font-mono text-sm"
             />
           </div>
 
           <div className="space-y-2">
-            <label className="text-sm font-medium">Message</label>
-            <textarea
+            <Textarea
+              label="Message"
               value={bidMessage}
               onChange={e => setBidMessage(e.target.value)}
               placeholder="Your pitch message…"
               rows={2}
-              className="w-full px-3 py-2 bg-content2 border border-divider rounded-lg resize-none"
             />
           </div>
 

@@ -7,6 +7,7 @@ import { Plus, Loader2, XCircle, Edit3 } from 'lucide-react';
 import { AGENT_SKILL_REGISTRY_ABI } from '@/lib/contracts/abis';
 import { CONTRACT_ADDRESSES, getContractAddress } from '@/lib/contracts/config';
 import { TransactionError } from '@/components/TransactionError';
+import { Input, Textarea } from '@/components/ui/Input';
 
 const SKILL_REGISTRY_ADDRESS = getContractAddress(
   process.env.NEXT_PUBLIC_SKILL_REGISTRY_ADDRESS,
@@ -113,7 +114,7 @@ export function SkillForm({ agentId, initialData, onSuccess, onCancel }: SkillFo
             <label htmlFor="skill-name" className="text-sm font-medium mb-1.5 block">
               Skill Name <span className="text-danger">*</span>
             </label>
-            <input
+            <Input
               id="skill-name"
               type="text"
               placeholder="e.g., Web Development"
@@ -121,14 +122,13 @@ export function SkillForm({ agentId, initialData, onSuccess, onCancel }: SkillFo
               onChange={e => setName(e.target.value)}
               required
               disabled={isSubmitting}
-              className="w-full px-3 py-2 bg-content2 border border-divider rounded-lg focus:outline-none focus:ring-2 focus:ring-success disabled:opacity-50"
             />
           </div>
           <div>
             <label htmlFor="skill-version" className="text-sm font-medium mb-1.5 block">
               Version <span className="text-danger">*</span>
             </label>
-            <input
+            <Input
               id="skill-version"
               type="text"
               placeholder="1.0.0"
@@ -138,7 +138,6 @@ export function SkillForm({ agentId, initialData, onSuccess, onCancel }: SkillFo
               pattern="^\d+\.\d+\.\d+$"
               title="Use semantic versioning (e.g., 1.0.0)"
               disabled={isSubmitting}
-              className="w-full px-3 py-2 bg-content2 border border-divider rounded-lg focus:outline-none focus:ring-2 focus:ring-success disabled:opacity-50"
             />
           </div>
         </div>
@@ -147,14 +146,13 @@ export function SkillForm({ agentId, initialData, onSuccess, onCancel }: SkillFo
           <label htmlFor="skill-description" className="text-sm font-medium mb-1.5 block">
             Description
           </label>
-          <textarea
+          <Textarea
             id="skill-description"
             placeholder="Describe what this skill does…"
             value={description}
             onChange={e => setDescription(e.target.value)}
             rows={3}
             disabled={isSubmitting}
-            className="w-full px-3 py-2 bg-content2 border border-divider rounded-lg focus:outline-none focus:ring-2 focus:ring-success resize-none disabled:opacity-50"
           />
         </div>
 
@@ -162,14 +160,13 @@ export function SkillForm({ agentId, initialData, onSuccess, onCancel }: SkillFo
           <label htmlFor="skill-endpoint" className="text-sm font-medium mb-1.5 block">
             Endpoint URL
           </label>
-          <input
+          <Input
             id="skill-endpoint"
             type="url"
             placeholder="https://api.example.com/skill"
             value={endpoint}
             onChange={e => setEndpoint(e.target.value)}
             disabled={isSubmitting}
-            className="w-full px-3 py-2 bg-content2 border border-divider rounded-lg focus:outline-none focus:ring-2 focus:ring-success disabled:opacity-50"
           />
         </div>
 
@@ -178,14 +175,13 @@ export function SkillForm({ agentId, initialData, onSuccess, onCancel }: SkillFo
             Domains (comma-separated)
             <span className="text-xs text-default-400 ml-2">e.g., defi, nft, ai</span>
           </label>
-          <input
+          <Input
             id="skill-domains"
             type="text"
             placeholder="defi, nft, governance, ai"
             value={domains}
             onChange={e => setDomains(e.target.value)}
             disabled={isSubmitting}
-            className="w-full px-3 py-2 bg-content2 border border-divider rounded-lg focus:outline-none focus:ring-2 focus:ring-success disabled:opacity-50"
           />
         </div>
 

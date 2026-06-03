@@ -19,6 +19,7 @@ import {
   useEnableMilestones,
 } from '@/lib/hooks/useMilestoneEscrow';
 import { ErrorDisplay } from '@/components/ErrorDisplay';
+import { Input } from '@/components/ui/Input';
 import { JobStatus } from '@/lib/hooks/useJobs';
 
 interface MilestoneSectionProps {
@@ -262,28 +263,31 @@ export function MilestoneSection({
         <div className="mb-4 p-4 bg-content2 rounded-lg border border-divider">
           <h3 className="text-sm font-medium mb-3">Add New Milestone</h3>
           <div className="space-y-3">
-            <input
+            <Input
               type="text"
-              placeholder="Description (e.g., Phase 1 completion)"
+              label="Description"
+              placeholder="e.g., Phase 1 completion"
               value={newDescription}
               onChange={(e) => setNewDescription(e.target.value)}
-              className="w-full px-3 py-2 bg-content2 border border-divider rounded-lg focus:outline-none focus:ring-2 focus:ring-success text-sm"
             />
             <div className="flex gap-2">
-              <input
-                type="number"
-                step={tokenDecimals === 18 ? '0.0001' : '0.01'}
-                placeholder={`Amount (${tokenSymbol})`}
-                value={newAmount}
-                onChange={(e) => setNewAmount(e.target.value)}
-                className="flex-1 px-3 py-2 bg-content2 border border-divider rounded-lg focus:outline-none focus:ring-2 focus:ring-success text-sm"
-              />
-              <input
-                type="date"
-                value={newDueDate}
-                onChange={(e) => setNewDueDate(e.target.value)}
-                className="w-40 px-3 py-2 bg-content2 border border-divider rounded-lg focus:outline-none focus:ring-2 focus:ring-success text-sm"
-              />
+              <div className="flex-1">
+                <Input
+                  type="number"
+                  label={`Amount (${tokenSymbol})`}
+                  step={tokenDecimals === 18 ? '0.0001' : '0.01'}
+                  value={newAmount}
+                  onChange={(e) => setNewAmount(e.target.value)}
+                />
+              </div>
+              <div className="w-40">
+                <Input
+                  type="date"
+                  label="Due date"
+                  value={newDueDate}
+                  onChange={(e) => setNewDueDate(e.target.value)}
+                />
+              </div>
             </div>
             <div className="flex gap-2 justify-end">
               <button type="button"
@@ -373,13 +377,15 @@ export function MilestoneSection({
               {isProvider && !milestone.completed && !isTerminal && (
                 <div className="mt-4 pt-4 border-t border-divider">
                   <div className="flex gap-2">
-                    <input
-                      type="text"
-                      placeholder="Proof hash (IPFS or data URI)"
-                      value={proofHash}
-                      onChange={(e) => setProofHash(e.target.value)}
-                      className="flex-1 px-3 py-2 bg-content2 border border-divider rounded-lg focus:outline-none focus:ring-2 focus:ring-success text-sm"
-                    />
+                    <div className="flex-1">
+                      <Input
+                        type="text"
+                        label="Proof hash"
+                        placeholder="IPFS or data URI"
+                        value={proofHash}
+                        onChange={(e) => setProofHash(e.target.value)}
+                      />
+                    </div>
                     <Button
                       size="sm"
                       variant="outline"
