@@ -80,19 +80,23 @@ export const DS = {
     glassInteractive: 'glass-card rounded-xl p-4 md:p-6 glass-card-hover hover:border-[#009F4D]/30 transition-all cursor-pointer',
   },
 
-  /** Status badge colors — used by StatusBadge component */
+  /**
+   * Status badge colors — reconciled with `apps/web/components/StatusBadge.tsx`
+   * (the canonical 30+ callsite component). 10% opacity + semantic text color.
+   * Keep these values in sync with StatusBadge's `statusConfig` table.
+   */
   badges: {
-    open: 'bg-default-500/20 text-default-400',
-    funded: 'bg-primary/20 text-primary',
-    submitted: 'bg-warning/20 text-warning',
-    completed: 'bg-success/20 text-success',
-    rejected: 'bg-danger/20 text-danger',
-    expired: 'bg-default-500/20 text-default-400',
-    active: 'bg-success/20 text-success',
-    inactive: 'bg-default-500/20 text-default-400',
-    pending: 'bg-amber-500/20 text-amber-400',
-    confirmed: 'bg-success/20 text-success',
-    failed: 'bg-danger/20 text-danger',
+    open: 'bg-primary/10 text-primary',
+    funded: 'bg-success/10 text-success',
+    submitted: 'bg-warning/10 text-warning',
+    completed: 'bg-success/10 text-success',
+    rejected: 'bg-danger/10 text-danger',
+    expired: 'bg-danger/10 text-danger',
+    active: 'bg-success/10 text-success',
+    inactive: 'bg-default/10 text-default-500',
+    pending: 'bg-warning/10 text-warning',
+    confirmed: 'bg-success/10 text-success',
+    failed: 'bg-danger/10 text-danger',
   },
 
   /** Typography scale */
