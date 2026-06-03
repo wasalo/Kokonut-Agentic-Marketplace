@@ -8,6 +8,7 @@ import NextLink from 'next/link';
 import { formatUnits } from 'viem';
 import { getContractAddress } from '@/lib/contracts/config';
 import { MILESTONE_ESCROW_ABI } from '@/lib/contracts/abis';
+import { useArbiterCount } from '@/lib/hooks/useMilestoneEscrow';
 import { DS } from '@/lib/design-system';
 
 const MILESTONE_ESCROW_ADDRESS = getContractAddress('MILESTONE_ESCROW') as `0x${string}`;
@@ -28,12 +29,7 @@ export default function ArbiterPoolAdminPage(): JSX.Element {
     functionName: 'getArbiters',
   });
 
-  const { data: arbiterCountData } = useReadContract({
-    address: MILESTONE_ESCROW_ADDRESS,
-    abi: MILESTONE_ESCROW_ABI,
-    functionName: 'getArbiters',
-  });
-  const arbiterCount = Array.isArray(arbiterCountData) ? arbiterCountData.length : 0;
+  const { count: arbiterCount } = useArbiterCount();
 
   const [arbiters, setArbiters] = useState<ArbiterRow[]>([]);
   const [isLoading, setIsLoading] = useState(false);
@@ -70,7 +66,7 @@ export default function ArbiterPoolAdminPage(): JSX.Element {
 
       <Card className="border border-divider p-4 mb-6">
         <p className="text-xs text-default-500">Arbiter count</p>
-        <p className="text-2xl font-bold">{arbiterCount ?? '—'}</p>
+        <p className="text-2xl font-bold">{arbiterCount}</p>
       </Card>
 
       <div className="flex items-center gap-3 mb-4">
