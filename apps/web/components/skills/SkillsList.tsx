@@ -3,7 +3,7 @@
 import { Card } from '@heroui/react';
 import { CheckCircle2, XCircle, Code, Plus, Loader2 } from 'lucide-react';
 import { SkillCard } from './SkillCard';
-import { card } from '@/lib/design-system';
+import { card, btn } from '@/lib/design-system';
 
 interface Skill {
   agentId: bigint;
@@ -99,7 +99,7 @@ export function SkillsList({
           <button
             type="button"
             onClick={onAddSkill}
-            className="inline-flex items-center gap-2 px-5 py-2.5 bg-gradient-to-r from-[#009F4D] to-[#00c853] text-white rounded-lg font-medium hover:opacity-90 transition-opacity"
+            className={btn('primary')}
           >
             <Plus className="size-4" />
             Register First Skill

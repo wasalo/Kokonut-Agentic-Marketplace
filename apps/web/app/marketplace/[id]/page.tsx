@@ -50,7 +50,7 @@ import { ActiveJobsForService } from '@/components/marketplace/ActiveJobsForServ
 import { SERVICE_REGISTRY_ABI } from '@/lib/contracts/abis';
 import { getContractAddress } from '@/lib/contracts/config';
 import { SERVICE_BOND_AMOUNT, SERVICE_BOND_COOLDOWN_MS } from '@/lib/contracts/bonds';
-import { card } from '@/lib/design-system';
+import { card, btn } from '@/lib/design-system';
 
 const SERVICE_REGISTRY_ADDRESS = getContractAddress('SERVICE_REGISTRY');
 
@@ -526,7 +526,7 @@ export default function ServiceDetailPage({
               </div>
               <NextLink
                 href={`/jobs/create?serviceId=${service.id}&provider=${service.provider}`}
-                className="inline-flex items-center gap-2 px-6 py-3 bg-gradient-to-r from-[#009F4D] to-[#00c853] text-white rounded-lg font-medium hover:opacity-90 transition-opacity whitespace-nowrap"
+                className={btn('primary', 'px-6 py-3 whitespace-nowrap')}
               >
                 <ShieldCheck className="size-4" />
                 Purchase Service
@@ -634,7 +634,7 @@ export default function ServiceDetailPage({
                     }
                   }}
                   disabled={isSetPaymentPending}
-                  className="flex-1 px-4 py-2 bg-gradient-to-r from-[#009F4D] to-[#00c853] text-white rounded-lg font-medium hover:opacity-90 disabled:opacity-50"
+                  className={btn('primary', 'flex-1 px-4 py-2 disabled:opacity-50')}
                 >
                   {isSetPaymentPending ? (
                     <span className="flex items-center justify-center gap-2">

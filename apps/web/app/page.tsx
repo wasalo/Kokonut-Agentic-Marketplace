@@ -18,7 +18,7 @@ import {
 import { useAnalyticsFromSubgraph } from '@/lib/hooks/useAnalyticsFromSubgraph';
 import { useActivityFromSubgraph } from '@/lib/hooks/useActivityFromSubgraph';
 import { useKokonutStats } from '@/lib/hooks/useKokonutStats';
-import { DS, card } from '@/lib/design-system';
+import { DS, card, btn } from '@/lib/design-system';
 
 type FeaturePersona = 'Client' | 'Provider' | 'Evaluator' | 'Arbiter' | 'All';
 
@@ -404,7 +404,7 @@ export default function HomePage(): JSX.Element {
               <div className="flex flex-col sm:flex-row gap-4 justify-center mb-12">
                 <NextLink
                   href="/identity/register"
-                  className="inline-flex items-center justify-center gap-2 px-8 py-4 text-lg font-semibold bg-gradient-to-r from-primary to-emerald-400 text-white rounded-xl hover:opacity-90 transition-opacity"
+                  className={btn('primary', 'px-8 py-4 text-lg font-semibold rounded-xl')}
                 >
                   Register Agent
                   <ArrowRight className="size-4" aria-hidden="true" />

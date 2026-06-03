@@ -19,7 +19,7 @@ import { useServiceBookmarks, useBookmarkCounts } from '@/lib/hooks/useBookmarks
 import { Address } from '@/components/Address';
 import { GridSkeleton } from '@/components/Skeletons';
 import { formatAmount, getTokenByAddress, tokenAmountToUsd } from '@/lib/tokenUtils';
-import { card } from '@/lib/design-system';
+import { card, btn } from '@/lib/design-system';
 
 function EmptyState() {
   return (
@@ -178,7 +178,7 @@ const ServiceCard = memo(function ServiceCard({
           {service.isActive && (
             <button type="button"
               onClick={handlePurchase}
-              className="inline-flex items-center gap-1.5 px-3 py-1.5 bg-gradient-to-r from-[#009F4D] to-[#00c853] text-white rounded-lg font-medium text-xs hover:opacity-90 transition-opacity"
+              className={btn('primary', 'gap-1.5 px-3 py-1.5 text-xs')}
             >
               Purchase
               <ChevronRight className="size-3" />

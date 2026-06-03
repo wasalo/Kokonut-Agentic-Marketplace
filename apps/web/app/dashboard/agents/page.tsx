@@ -7,7 +7,7 @@ import { Wallet, Plus, ArrowLeft, ExternalLink, Settings, Package, Star } from '
 import NextLink from 'next/link';
 import { useWalletAgentsFromSubgraph } from '@/lib/hooks';
 import { useProviderServices } from '@/lib/hooks/useServices';
-import { card } from '@/lib/design-system';
+import { card, btn } from '@/lib/design-system';
 
 import { useAgentReputation } from '@/lib/hooks/useAgentReputation';
 
@@ -168,7 +168,7 @@ export default function DashboardAgentsPage() {
           </div>
           <NextLink
             href="/identity/register"
-            className="inline-flex items-center gap-2 px-5 py-2.5 bg-gradient-to-r from-[#009F4D] to-[#00c853] text-white rounded-lg font-medium hover:opacity-90 transition-opacity"
+            className={btn('primary')}
           >
             <Plus className="size-4" />
             Register New Agent
@@ -212,7 +212,7 @@ export default function DashboardAgentsPage() {
           <p className="text-sm text-default-500 mb-6">Register your first agent identity</p>
           <NextLink
             href="/identity/register"
-            className="inline-flex items-center gap-2 px-5 py-2.5 bg-gradient-to-r from-[#009F4D] to-[#00c853] text-white rounded-lg font-medium hover:opacity-90 transition-opacity"
+            className={btn('primary')}
           >
             <Plus className="size-4" />
             Register First Agent

@@ -10,7 +10,7 @@ import {
   type BiddingSession,
 } from '@/lib/hooks/useBiddingSystem';
 import { formatAmount, getTokenByAddress } from '@/lib/tokenUtils';
-import { card } from '@/lib/design-system';
+import { card, btn } from '@/lib/design-system';
 
 interface BiddingSessionCardProps {
   session: BiddingSession;
@@ -58,7 +58,7 @@ export function BiddingSessionCard({ session, isConnected }: BiddingSessionCardP
             {isConnected ? (
               <NextLink
                 href={`/bidding/${sessionIdStr}`}
-                className="inline-flex w-full sm:w-auto items-center justify-center gap-2 px-4 py-2 bg-gradient-to-r from-[#009F4D] to-[#00c853] text-white text-sm font-medium rounded-lg hover:opacity-90 transition-opacity"
+                className={btn('primary', 'w-full sm:w-auto px-4 py-2 text-sm')}
               >
                 View Session
               </NextLink>

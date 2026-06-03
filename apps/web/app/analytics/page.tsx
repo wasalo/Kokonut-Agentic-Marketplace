@@ -28,7 +28,7 @@ import {
 import { useAnalyticsFromSubgraph, TIME_RANGES, type TimeRange } from '@/lib/hooks';
 import { StatCard } from '@/components/ui/stat-card';
 import { Card } from '@heroui/react';
-import { card } from '@/lib/design-system';
+import { card, btn } from '@/lib/design-system';
 
 const COLORS = ['#009F4D', '#00c853', '#FFCD00', '#FFB800', '#FF6B6B'];
 
@@ -145,7 +145,7 @@ function AnalyticsContent({
             onClick={() => {
               void refetch();
             }}
-            className="px-4 py-2 bg-gradient-to-r from-[#009F4D] to-[#00c853] text-white rounded-lg font-medium hover:opacity-90 transition-opacity"
+            className={btn('primary', 'px-4 py-2')}
           >
             Try Again
           </button>

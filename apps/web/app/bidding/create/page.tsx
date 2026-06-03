@@ -14,7 +14,7 @@ import { TokenPicker, BIDDING_TOKENS, type TokenMeta as TokenPickerMeta } from '
 import { useUSDCBalance } from '@/lib/hooks/useUSDC';
 import { useUSDCApproval } from '@/lib/hooks/useUSDCApproval';
 import { getContractAddress } from '@/lib/contracts/config';
-import { card } from '@/lib/design-system';
+import { card, btn } from '@/lib/design-system';
 import { showToast } from '@/lib/toast';
 
 // Contract limits (must match BiddingSystem.sol)
@@ -324,7 +324,7 @@ export default function CreateBiddingSessionPage(): JSX.Element {
               Back
             </Button>
             <Button
-              className="bg-gradient-to-r from-[#009F4D] to-[#00c853] text-white"
+              className={btn('primary')}
               onPress={handleConfirm}
               isDisabled={isBusy}
             >
@@ -557,7 +557,7 @@ export default function CreateBiddingSessionPage(): JSX.Element {
                 !deadlineMinutes ||
                 !hasEnoughBalance
               }
-              className="inline-flex items-center justify-center gap-2 px-5 py-2.5 bg-gradient-to-r from-[#009F4D] to-[#00c853] text-white rounded-lg font-medium hover:opacity-90 transition-opacity disabled:opacity-50"
+              className={btn('primary', 'disabled:opacity-50')}
             >
               {isBusy ? (
                 <Loader2 className="size-5 animate-spin inline" />

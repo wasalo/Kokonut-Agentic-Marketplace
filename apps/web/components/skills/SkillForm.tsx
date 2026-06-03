@@ -8,7 +8,7 @@ import { AGENT_SKILL_REGISTRY_ABI } from '@/lib/contracts/abis';
 import { CONTRACT_ADDRESSES, getContractAddress } from '@/lib/contracts/config';
 import { TransactionError } from '@/components/TransactionError';
 import { Input, Textarea } from '@/components/ui/Input';
-import { card } from '@/lib/design-system';
+import { card, btn } from '@/lib/design-system';
 
 const SKILL_REGISTRY_ADDRESS = getContractAddress(
   process.env.NEXT_PUBLIC_SKILL_REGISTRY_ADDRESS,
@@ -200,7 +200,7 @@ export function SkillForm({ agentId, initialData, onSuccess, onCancel }: SkillFo
           <button
             type="submit"
             disabled={isSubmitting || !name.trim() || !version.trim()}
-            className="flex-1 px-4 py-2.5 bg-gradient-to-r from-[#009F4D] to-[#00c853] text-white rounded-lg font-medium hover:opacity-90 transition-opacity disabled:opacity-50 flex items-center justify-center gap-2"
+            className={btn('primary', 'flex-1 px-4 py-2.5 disabled:opacity-50')}
           >
             {isSubmitting && <Loader2 className="size-4 animate-spin" />}
             {isSubmitting

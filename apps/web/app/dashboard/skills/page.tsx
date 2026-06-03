@@ -13,7 +13,7 @@ import { SkillForm } from '@/components/skills/SkillForm';
 import { SkillsList } from '@/components/skills/SkillsList';
 import { SkillsSidebar } from '@/components/skills/SkillsSidebar';
 import { Select } from '@/components/ui/Input';
-import { card } from '@/lib/design-system';
+import { card, btn } from '@/lib/design-system';
 
 const SKILL_REGISTRY_ADDRESS = getContractAddress(
   process.env.NEXT_PUBLIC_SKILL_REGISTRY_ADDRESS,
@@ -52,7 +52,7 @@ function NoAgentsPrompt() {
       </p>
       <NextLink
         href="/identity/register"
-        className="inline-flex items-center gap-2 px-5 py-2.5 bg-gradient-to-r from-[#009F4D] to-[#00c853] text-white rounded-lg font-medium hover:opacity-90 transition-opacity"
+        className={btn('primary')}
       >
         <Plus className="size-4" />
         Register Agent
@@ -215,7 +215,7 @@ export default function DashboardSkillsPage() {
             <button
               type="button"
               onClick={handleAddSkill}
-              className="inline-flex items-center gap-2 px-5 py-2.5 bg-gradient-to-r from-[#009F4D] to-[#00c853] text-white rounded-lg font-medium hover:opacity-90 transition-opacity"
+              className={btn('primary')}
             >
               <Plus className="size-4" />
               Add Skill

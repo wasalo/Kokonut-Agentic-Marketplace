@@ -8,7 +8,7 @@ import { useAccount } from 'wagmi';
 import { useActivityFromSubgraph } from '@/lib/hooks';
 import { StatusBadge } from '@/components/StatusBadge';
 import { Address } from '@/components/Address';
-import { card } from '@/lib/design-system';
+import { card, btn } from '@/lib/design-system';
 
 const ACTIVITY_ICONS: Record<string, React.ComponentType<{ className?: string }>> = {
   job: Briefcase,
@@ -213,7 +213,7 @@ export default function ActivityPage(): JSX.Element {
               onClick={() => {
                 void refetch();
               }}
-              className="px-4 py-2 bg-gradient-to-r from-[#009F4D] to-[#00c853] text-white rounded-lg font-medium hover:opacity-90 transition-opacity"
+              className={btn('primary', 'px-4 py-2')}
             >
               Try Again
             </button>

@@ -16,7 +16,7 @@ import type { LeaderboardEntry } from '@/lib/hooks/useLeaderboardFromSubgraph';
 import { getTierColor, formatScore, getScoreColor } from '@/lib/healthScore';
 import { StatusBadge } from '@/components/StatusBadge';
 import { Address } from '@/components/Address';
-import { card } from '@/lib/design-system';
+import { card, btn } from '@/lib/design-system';
 
 interface TierBadgeProps {
   rank: number;
@@ -161,7 +161,7 @@ function EmptyState() {
       </p>
       <NextLink
         href="/identity/register"
-        className="inline-flex items-center gap-2 mt-6 px-6 py-3 bg-gradient-to-r from-[#009F4D] to-[#00c853] text-white rounded-lg font-medium hover:opacity-90 transition-opacity"
+        className={btn('primary', 'mt-6 px-6 py-3')}
       >
         Register Agent
       </NextLink>

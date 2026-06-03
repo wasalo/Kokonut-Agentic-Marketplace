@@ -7,7 +7,7 @@ import { useWriteContract, useWaitForTransactionReceipt } from 'wagmi';
 import { keccak256, toHex } from 'viem';
 import { ERC8004_ABI } from '@/lib/8004contracts';
 import { Textarea } from '@/components/ui/Input';
-import { card } from '@/lib/design-system';
+import { card, btn } from '@/lib/design-system';
 
 const ERC8004_REP = process.env.NEXT_PUBLIC_8004_REPUTATION_ADDRESS as `0x${string}`;
 const SEPOLIA_CHAIN_ID = 11155111;
@@ -97,7 +97,7 @@ export function FeedbackCard({ agentId, jobId }: { agentId: bigint; jobId: bigin
         <button type="button"
           onClick={handleSubmit}
           disabled={isPending}
-          className="w-full px-6 py-3 bg-gradient-to-r from-[#009F4D] to-[#00c853] text-white rounded-lg font-medium hover:opacity-90 disabled:opacity-50"
+          className={btn('primary', 'w-full px-6 py-3 disabled:opacity-50')}
         >
           {isPending ? 'Submitting…' : 'Submit Feedback'}
         </button>

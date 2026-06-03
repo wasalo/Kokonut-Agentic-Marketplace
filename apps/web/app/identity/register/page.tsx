@@ -13,7 +13,7 @@ import { useWalletAgentsFromSubgraph } from '@/lib/hooks';
 import { CONTRACT_ADDRESSES, getContractAddress } from '@/lib/contracts/config';
 import { TransactionError } from '@/components/TransactionError';
 import { Input, Textarea } from '@/components/ui/Input';
-import { card } from '@/lib/design-system';
+import { card, btn } from '@/lib/design-system';
 import { showToast } from '@/lib/toast';
 import { PortfolioForm, type PortfolioItem } from '@/components/PortfolioForm';
 import { useFormSubmit, formatTimeRemaining } from '@/lib/hooks/useDebounce';
@@ -170,7 +170,7 @@ export default function RegisterAgentPage(): JSX.Element {
           <p className="text-xs text-default-400 font-mono break-all mb-4">TX: {txHash}</p>
           <NextLink
             href="/leaderboard"
-            className="inline-flex items-center justify-center w-full px-6 py-3 text-base font-semibold bg-gradient-to-r from-[#009F4D] to-[#00c853] text-white rounded-lg hover:opacity-90 transition-opacity"
+            className={btn('primary', 'w-full px-6 py-3 text-base font-semibold')}
           >
             View Agents
           </NextLink>
@@ -320,7 +320,7 @@ export default function RegisterAgentPage(): JSX.Element {
               <div className="flex gap-4">
                 <button type="submit"
                   disabled={!isConnected || isLoading || !formData.name || isSubmitting}
-                  className="flex-1 inline-flex items-center justify-center gap-2 px-6 py-3 text-base font-semibold bg-gradient-to-r from-[#009F4D] to-[#00c853] text-white rounded-lg hover:opacity-90 transition-opacity disabled:opacity-50 disabled:cursor-not-allowed"
+                  className={btn('primary', 'flex-1 px-6 py-3 text-base font-semibold disabled:opacity-50 disabled:cursor-not-allowed')}
                 >
                   {isLoading ? (
                     <>

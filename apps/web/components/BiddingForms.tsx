@@ -20,7 +20,7 @@ import { useFormSubmit, formatTimeRemaining } from '@/lib/hooks/useDebounce';
 import { Address } from '@/components/Address';
 import { StatusBadge } from '@/components/StatusBadge';
 import { Input, Textarea } from '@/components/ui/Input';
-import { card } from '@/lib/design-system';
+import { card, btn } from '@/lib/design-system';
 import {
   useTokenPriceConversion,
   USDC_TOKEN,
@@ -193,7 +193,7 @@ export function CommitBidForm({ job, onSuccess }: CommitBidFormProps) {
         <button type="button"
           onClick={handleSubmit}
           disabled={!isConnected || isLoading || !bidAmount || isSubmitting}
-          className="w-full inline-flex items-center justify-center gap-2 px-6 py-3 bg-gradient-to-r from-[#009F4D] to-[#00c853] text-white rounded-lg font-medium hover:opacity-90 transition-opacity disabled:opacity-50 disabled:cursor-not-allowed"
+          className={btn('primary', 'w-full px-6 py-3 disabled:opacity-50 disabled:cursor-not-allowed')}
         >
           {isLoading ? (
             <>
@@ -322,7 +322,7 @@ export function RevealBidForm({ job, onSuccess }: RevealBidFormProps) {
           <button type="button"
             onClick={handleReveal}
             disabled={!isConnected || isLoading || !bidAmount || !salt}
-            className="w-full inline-flex items-center justify-center gap-2 px-6 py-3 bg-gradient-to-r from-[#009F4D] to-[#00c853] text-white rounded-lg font-medium hover:opacity-90 transition-opacity disabled:opacity-50 disabled:cursor-not-allowed"
+            className={btn('primary', 'w-full px-6 py-3 disabled:opacity-50 disabled:cursor-not-allowed')}
           >
             {isLoading ? (
               <>
@@ -433,7 +433,7 @@ export function AcceptBidForm({ job, bids, onSuccess }: AcceptBidFormProps) {
           <button type="button"
             onClick={handleAccept}
             disabled={!isConnected || address !== job.client || isLoading || selectedBidId === null}
-            className="w-full inline-flex items-center justify-center gap-2 px-6 py-3 bg-gradient-to-r from-[#009F4D] to-[#00c853] text-white rounded-lg font-medium hover:opacity-90 transition-opacity disabled:opacity-50 disabled:cursor-not-allowed"
+            className={btn('primary', 'w-full px-6 py-3 disabled:opacity-50 disabled:cursor-not-allowed')}
           >
             {isLoading ? (
               <>
