@@ -3,6 +3,7 @@
 import { useState, useCallback } from 'react';
 import { Card } from '@heroui/react';
 import { ChevronDown, ChevronRight, Copy, Check, Play, Loader2 } from 'lucide-react';
+import { card } from '@/lib/design-system';
 import {
   MCP_TOOLS,
   MOCK_JOBS,
@@ -290,7 +291,7 @@ export function MCPDemoPanel() {
   }, [selectedTool, parameters]);
 
   return (
-    <Card className="border border-divider p-6">
+    <Card className={card('padded', 'p-6')}>
       <h3 className="text-lg font-semibold mb-6">MCP Interactive Demo</h3>
       <p className="text-sm text-default-500 mb-6">
         Try out MCP tools without connecting your wallet. This demo uses mock data to simulate how

@@ -3,7 +3,7 @@
 import { Card } from '@heroui/react';
 import { CheckCircle2, Loader2, AlertCircle } from 'lucide-react';
 import NextLink from 'next/link';
-import { btn } from '@/lib/design-system';
+import { btn, card } from '@/lib/design-system';
 
 interface CreateServiceStepsProps {
   step: 'done' | 'checking' | 'no-agents';
@@ -26,7 +26,7 @@ export function CreateServiceSteps({
       : null;
     return (
       <div className="container mx-auto px-4 py-8">
-        <Card className="max-w-2xl mx-auto border border-divider p-8 text-center">
+        <Card className={card('padded', 'max-w-2xl mx-auto p-8 text-center')}>
           <CheckCircle2 className="size-16 text-success mx-auto mb-4" aria-hidden="true" />
           <h2 className="text-2xl font-bold mb-2">Service Created!</h2>
           <p className="text-default-500 mb-6">
@@ -61,7 +61,7 @@ export function CreateServiceSteps({
   if (step === 'checking') {
     return (
       <div className="container mx-auto px-4 py-8">
-        <Card className="max-w-2xl mx-auto border border-divider p-8 text-center">
+        <Card className={card('padded', 'max-w-2xl mx-auto p-8 text-center')}>
           <Loader2 className="size-8 animate-spin mx-auto mb-4" />
           <h2 className="text-lg font-semibold">Checking Agent Registration…</h2>
           <p className="text-default-500">Verifying your wallet for agent identity…</p>
@@ -78,7 +78,7 @@ export function CreateServiceSteps({
   if (step === 'no-agents') {
     return (
       <div className="container mx-auto px-4 py-8">
-        <Card className="max-w-2xl mx-auto border border-divider p-8">
+        <Card className={card('padded', 'max-w-2xl mx-auto p-8')}>
           <AlertCircle className="size-12 text-warning mx-auto mb-4" />
           <h2 className="text-xl font-semibold text-center mb-2">No Agents Found</h2>
           <p className="text-default-500 text-center mb-6">

@@ -20,6 +20,7 @@ import {
 } from '@/lib/hooks/useMilestoneEscrow';
 import { ErrorDisplay } from '@/components/ErrorDisplay';
 import { Input } from '@/components/ui/Input';
+import { card } from '@/lib/design-system';
 import { JobStatus } from '@/lib/hooks/useJobs';
 
 interface MilestoneSectionProps {
@@ -142,7 +143,7 @@ export function MilestoneSection({
 
   if (!details?.usesMilestones && !enableConfirmed) {
     return (
-      <Card className="border border-divider p-6">
+      <Card className={card('padded', 'p-6')}>
         <div className="flex items-center gap-3 mb-4">
           <ListChecks className="size-4 text-default-400" />
           <h2 className="text-base font-semibold">Milestones</h2>
@@ -205,7 +206,7 @@ export function MilestoneSection({
   };
 
   return (
-    <Card className="border border-divider p-6">
+    <Card className={card('padded', 'p-6')}>
       <div className="flex items-center justify-between mb-4">
         <div className="flex items-center gap-3">
           <ListChecks className="size-5 text-primary" />

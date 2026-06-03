@@ -7,6 +7,7 @@ import { useWriteContract, useWaitForTransactionReceipt } from 'wagmi';
 import { keccak256, toHex } from 'viem';
 import { ERC8004_ABI } from '@/lib/8004contracts';
 import { Textarea } from '@/components/ui/Input';
+import { card } from '@/lib/design-system';
 
 const ERC8004_REP = process.env.NEXT_PUBLIC_8004_REPUTATION_ADDRESS as `0x${string}`;
 const SEPOLIA_CHAIN_ID = 11155111;
@@ -57,7 +58,7 @@ export function FeedbackCard({ agentId, jobId }: { agentId: bigint; jobId: bigin
   }
 
   return (
-    <Card className="border border-divider p-6">
+    <Card className={card('padded', 'p-6')}>
       <h2 className="text-base font-semibold mb-4">Leave Feedback</h2>
       <p className="text-sm text-default-500 mb-4">
         Rate the provider's work on this job. Your feedback is recorded onchain.

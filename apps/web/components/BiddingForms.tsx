@@ -20,6 +20,7 @@ import { useFormSubmit, formatTimeRemaining } from '@/lib/hooks/useDebounce';
 import { Address } from '@/components/Address';
 import { StatusBadge } from '@/components/StatusBadge';
 import { Input, Textarea } from '@/components/ui/Input';
+import { card } from '@/lib/design-system';
 import {
   useTokenPriceConversion,
   USDC_TOKEN,
@@ -115,7 +116,7 @@ export function CommitBidForm({ job, onSuccess }: CommitBidFormProps) {
   const isLoading = isPending || isConfirming;
 
   return (
-    <Card className="border border-divider p-6">
+    <Card className={card('padded', 'p-6')}>
       <div className="flex items-center gap-2 mb-4">
         <Lock className="size-5 text-primary" />
         <h3 className="font-semibold">Commit Your Bid</h3>
@@ -254,7 +255,7 @@ export function RevealBidForm({ job, onSuccess }: RevealBidFormProps) {
   const canReveal = userBid && userBid.commitHash !== '0x' + '0'.repeat(64) && !userBid.revealed;
 
   return (
-    <Card className="border border-divider p-6">
+    <Card className={card('padded', 'p-6')}>
       <div className="flex items-center gap-2 mb-4">
         <Eye className="size-5 text-success" />
         <h3 className="font-semibold">Reveal Your Bid</h3>
@@ -371,7 +372,7 @@ export function AcceptBidForm({ job, bids, onSuccess }: AcceptBidFormProps) {
   const revealedBids = bids.filter(b => b.revealed && !b.accepted);
 
   return (
-    <Card className="border border-divider p-6">
+    <Card className={card('padded', 'p-6')}>
       <div className="flex items-center gap-2 mb-4">
         <Trophy className="size-5 text-warning" />
         <h3 className="font-semibold">Accept a Bid</h3>
@@ -458,7 +459,7 @@ export function AcceptBidForm({ job, bids, onSuccess }: AcceptBidFormProps) {
 
 export function BidStatusCard({ bid }: { bid: Bid }) {
   return (
-    <Card className="border border-divider p-4">
+    <Card className={card('padded')}>
       <div className="flex items-center justify-between mb-2">
         <h4 className="font-medium">Your Bid</h4>
         <span>

@@ -8,6 +8,7 @@ import { useEmailStore } from '@/lib/emails/store';
 import type { EmailPreferences } from '@/lib/emails/types';
 import { createOwnerAuthHeaders } from '@/lib/client-auth';
 import { Input } from '@/components/ui/Input';
+import { card } from '@/lib/design-system';
 
 interface EmailPreferencesFormProps {
   onSuccess?: () => void;
@@ -95,7 +96,7 @@ export function EmailPreferencesForm({ onSuccess }: EmailPreferencesFormProps) {
 
   if (!isConnected) {
     return (
-      <Card className="border border-divider p-6">
+      <Card className={card('padded', 'p-6')}>
         <div className="text-center text-default-500">
           <Mail className="size-8 mx-auto mb-2 opacity-50" />
           <p>Connect your wallet to manage email preferences</p>
@@ -105,7 +106,7 @@ export function EmailPreferencesForm({ onSuccess }: EmailPreferencesFormProps) {
   }
 
   return (
-    <Card className="border border-divider p-6">
+    <Card className={card('padded', 'p-6')}>
       <h2 className="text-lg font-semibold mb-4 flex items-center gap-2">
         <Mail className="size-5 text-primary" />
         Email Preferences

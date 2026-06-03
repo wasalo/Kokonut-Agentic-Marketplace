@@ -3,6 +3,7 @@
 import { Card, Button } from '@heroui/react';
 import { Search, SlidersHorizontal } from 'lucide-react';
 import { Input, Select } from '@/components/ui/Input';
+import { card } from '@/lib/design-system';
 
 interface BiddingCommandBarProps {
   searchQuery: string;
@@ -28,7 +29,7 @@ export function BiddingCommandBar({
   onSortChange,
 }: BiddingCommandBarProps) {
   return (
-    <Card className="border border-divider p-4 mb-6">
+    <Card className={card('padded', 'mb-6')}>
       <div className="flex items-center justify-between gap-4">
         <div className="flex items-center gap-4 flex-1">
           <div className="flex-1 max-w-md">

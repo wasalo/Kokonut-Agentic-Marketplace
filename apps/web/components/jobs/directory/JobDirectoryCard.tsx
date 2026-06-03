@@ -10,6 +10,7 @@ import { useJobBookmarks, useBookmarkCounts } from '@/lib/hooks/useBookmarks';
 import { useService } from '@/lib/hooks/useServices';
 import type { Job } from '@/lib/hooks/useJobs';
 import { formatAmount, getTokenByAddress } from '@/lib/tokenUtils';
+import { card } from '@/lib/design-system';
 
 export const JobDirectoryCard = memo(function JobDirectoryCard({ job }: { job: Job }) {
   const { service } = useService(job.serviceId ?? 0n);
@@ -32,7 +33,7 @@ export const JobDirectoryCard = memo(function JobDirectoryCard({ job }: { job: J
   };
 
   return (
-    <Card className="border border-divider p-4 hover:border-[#009F4D]/30 hover:shadow-sm transition-all">
+    <Card className={card('interactive')}>
       <div className="flex items-start justify-between gap-4">
         <NextLink href={`/jobs/${jobIdStr}`} className="flex-1 min-w-0">
           <div className="flex items-center gap-2">

@@ -5,10 +5,11 @@ import { Card } from '@heroui/react';
 import { Tag } from 'lucide-react';
 import { StatusBadge } from '@/components/StatusBadge';
 import type { MarketplaceSkill } from '@/lib/hooks/useMarketplaceSkillsDirectory';
+import { card } from '@/lib/design-system';
 
 export function MarketplaceSkillCard({ skill }: { skill: MarketplaceSkill }) {
   return (
-    <Card className="border border-divider p-4 hover:border-success/30 transition-colors">
+    <Card className={card('interactive', 'hover:border-success/30')}>
       <div className="flex items-start justify-between mb-3">
         <div>
           <h3 className="font-semibold text-foreground">{skill.name}</h3>

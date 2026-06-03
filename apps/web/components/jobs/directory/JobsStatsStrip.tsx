@@ -1,6 +1,7 @@
 'use client';
 
 import { Card } from '@heroui/react';
+import { card } from '@/lib/design-system';
 
 interface JobsStatsStripProps {
   stats: {
@@ -22,7 +23,7 @@ export function JobsStatsStrip({ stats }: JobsStatsStripProps) {
   return (
     <div className="grid grid-cols-2 md:grid-cols-4 gap-4 mb-8">
       {items.map(item => (
-        <Card key={item.label} className="border border-divider p-4">
+        <Card key={item.label} className={card('padded')}>
           <div className="text-sm text-default-500">{item.label}</div>
           <div className="text-2xl font-bold">{item.value}</div>
         </Card>

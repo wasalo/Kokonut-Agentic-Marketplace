@@ -7,6 +7,7 @@ import { ProviderServiceActions } from '@/components/marketplace/ProviderService
 import { ServiceBondStatus } from '@/components/marketplace/ServiceBondStatus';
 import type { Service } from '@/lib/hooks/useServices';
 import { formatAmount, getTokenByAddress } from '@/lib/tokenUtils';
+import { card } from '@/lib/design-system';
 
 interface ProviderServiceCardProps {
   service: Service;
@@ -22,7 +23,7 @@ export function ProviderServiceCard({ service, onRefetch }: ProviderServiceCardP
   });
 
   return (
-    <Card className="border border-divider p-4 hover:border-[#009F4D]/30 hover:shadow-sm transition-all">
+    <Card className={card('interactive')}>
       <div className="flex items-start justify-between">
         <div className="flex-1 min-w-0">
           <div className="flex items-center gap-2 flex-wrap">

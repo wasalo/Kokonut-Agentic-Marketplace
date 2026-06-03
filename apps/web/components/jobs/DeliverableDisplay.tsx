@@ -3,6 +3,7 @@
 import { Card } from '@heroui/react';
 import { FileText } from 'lucide-react';
 import { type Job } from '@/lib/hooks/useJobs';
+import { card } from '@/lib/design-system';
 
 interface DeliverableDisplayProps {
   job: Job;
@@ -12,7 +13,7 @@ export function DeliverableDisplay({ job }: DeliverableDisplayProps) {
   if (job.status < 2) return null;
 
   return (
-    <Card className="border border-divider p-4">
+    <Card className={card('padded')}>
       <div className="flex items-center gap-2">
         <FileText className="size-4 text-default-400" />
         <span className="text-sm text-default-500">Deliverable:</span>

@@ -3,6 +3,7 @@
 import { Card } from '@heroui/react';
 import { CheckCircle2, XCircle, Code, Plus, Loader2 } from 'lucide-react';
 import { SkillCard } from './SkillCard';
+import { card } from '@/lib/design-system';
 
 interface Skill {
   agentId: bigint;
@@ -88,7 +89,7 @@ export function SkillsList({
       )}
 
       {!showForm && skills.length === 0 && (
-        <Card className="border border-divider p-8 text-center">
+        <Card className={card('padded', 'p-8 text-center')}>
           <Code className="size-12 text-default-400 mx-auto mb-4" />
           <h3 className="text-lg font-semibold mb-2">No Skills Yet</h3>
           <p className="text-sm text-default-500 mb-6 max-w-md mx-auto">

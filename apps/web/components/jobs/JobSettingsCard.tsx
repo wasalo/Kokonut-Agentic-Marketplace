@@ -3,6 +3,7 @@
 import { Card } from '@heroui/react';
 import { Settings, Loader2 } from 'lucide-react';
 import { Input } from '@/components/ui/Input';
+import { card } from '@/lib/design-system';
 import { type Job } from '@/lib/hooks/useJobs';
 
 interface JobSettingsCardProps {
@@ -31,7 +32,7 @@ export function JobSettingsCard({
   if (job.status !== 0 || !isClient) return null;
 
   return (
-    <Card className="border border-divider p-6">
+    <Card className={card('padded', 'p-6')}>
       <h2 className="text-base font-semibold mb-4 flex items-center gap-2">
         <Settings className="size-4" />
         Job Settings

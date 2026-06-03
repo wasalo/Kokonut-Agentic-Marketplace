@@ -3,6 +3,7 @@
 import { Card, Chip } from '@heroui/react';
 import { Edit3, Trash2 } from 'lucide-react';
 import { StatusBadge } from '@/components/StatusBadge';
+import { card } from '@/lib/design-system';
 
 interface Skill {
   agentId: bigint;
@@ -25,7 +26,7 @@ interface SkillCardProps {
 
 export function SkillCard({ skill, onEdit, onDeactivate }: SkillCardProps) {
   return (
-    <Card className="border border-divider p-4 hover:border-[#009F4D]/30 hover:shadow-sm transition-all">
+    <Card className={card('interactive')}>
       <div className="flex items-start justify-between">
         <div className="flex-1 min-w-0">
           <div className="flex items-center gap-2 flex-wrap">

@@ -3,6 +3,7 @@
 import { Card } from '@heroui/react';
 import { Code } from 'lucide-react';
 import { AgentMetadata8004 } from '@/lib/metadata';
+import { card } from '@/lib/design-system';
 
 interface Agent {
   id: number;
@@ -24,7 +25,7 @@ export function SkillsSidebar({
 }: SkillsSidebarProps) {
   return (
     <div className="space-y-6">
-      <Card className="border border-divider p-6">
+      <Card className={card('padded', 'p-6')}>
         <h3 className="font-semibold mb-4 flex items-center gap-2">
           <Code className="size-5 text-primary" />
           About Skills
@@ -49,7 +50,7 @@ export function SkillsSidebar({
         </ul>
       </Card>
 
-      <Card className="border border-divider p-6">
+      <Card className={card('padded', 'p-6')}>
         <h3 className="font-semibold mb-3">Current Agent</h3>
         <div className="flex items-center gap-3 mb-4">
           <div className="size-10 rounded-full bg-gradient-to-br from-[#009F4D] to-[#FFCD00] flex items-center justify-center text-white font-semibold">

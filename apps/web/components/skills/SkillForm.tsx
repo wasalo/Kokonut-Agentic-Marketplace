@@ -8,6 +8,7 @@ import { AGENT_SKILL_REGISTRY_ABI } from '@/lib/contracts/abis';
 import { CONTRACT_ADDRESSES, getContractAddress } from '@/lib/contracts/config';
 import { TransactionError } from '@/components/TransactionError';
 import { Input, Textarea } from '@/components/ui/Input';
+import { card } from '@/lib/design-system';
 
 const SKILL_REGISTRY_ADDRESS = getContractAddress(
   process.env.NEXT_PUBLIC_SKILL_REGISTRY_ADDRESS,
@@ -89,7 +90,7 @@ export function SkillForm({ agentId, initialData, onSuccess, onCancel }: SkillFo
   const isSubmitting = isPending || isConfirming;
 
   return (
-    <Card className="border border-divider p-6">
+    <Card className={card('padded', 'p-6')}>
       <div className="flex items-center justify-between mb-6">
         <h2 className="text-lg font-semibold flex items-center gap-2">
           {isEditing ? (

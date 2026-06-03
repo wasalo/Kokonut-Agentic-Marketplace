@@ -10,6 +10,7 @@ import { PaymentTokenBadge, SUPPORTED_TOKENS } from '@/components/PaymentTokenSe
 import { useTokenPriceConversion, ETH_TOKEN, USDC_TOKEN } from '@/lib/hooks/useTokenConversion';
 import { useEvaluatorFeeEnabled } from '@/lib/hooks/useJobs';
 import { JobLifecycleStepper, type JobRole } from '@/components/jobs/JobLifecycleStepper';
+import { card } from '@/lib/design-system';
 import type { Job } from '@/lib/types/contracts';
 
 interface Service {
@@ -40,7 +41,7 @@ export function JobHeader({ job, service, isClient, isProvider, isEvaluator }: J
   const { isEvaluatorFeeEnabled } = useEvaluatorFeeEnabled(job?.id);
 
   return (
-    <Card className="border border-divider p-6">
+    <Card className={card('padded', 'p-6')}>
       <div className="flex items-start justify-between mb-4">
         <div>
           <h1 className="text-2xl font-semibold">Job #{job.id.toString()}</h1>

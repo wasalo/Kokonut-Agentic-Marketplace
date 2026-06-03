@@ -6,6 +6,7 @@ import { formatUnits } from 'viem';
 import { ETH_TOKEN, type Token } from '@/lib/hooks/useTokenConversion';
 import { JobStatus, type Job } from '@/lib/hooks/useJobs';
 import { amountToNumber } from '@/lib/tokenUtils';
+import { card } from '@/lib/design-system';
 
 interface JobFundingSectionProps {
   job: Job;
@@ -56,7 +57,7 @@ export function JobFundingSection({
 
   return (
     <>
-      <Card className="border border-divider p-6">
+      <Card className={card('padded', 'p-6')}>
         <div className="flex items-center justify-between">
           <div>
             <div className="flex items-center gap-2">
@@ -91,7 +92,7 @@ export function JobFundingSection({
         </div>
       </Card>
 
-      <Card className="border border-divider p-6">
+      <Card className={card('padded', 'p-6')}>
         <h2 className="text-xl font-bold mb-5">Funding</h2>
         {needsApproval && isUSDC && (
           <div className="p-3 bg-warning/10 border border-warning/20 rounded-lg text-sm text-warning mb-3">

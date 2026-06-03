@@ -2,6 +2,7 @@
 
 import { Card } from '@heroui/react';
 import { Clock, Gavel, Loader2, Users } from 'lucide-react';
+import { card } from '@/lib/design-system';
 
 interface BiddingStatsStripProps {
   totalCount: number;
@@ -45,7 +46,7 @@ export function BiddingStatsStrip({
       {stats.map(stat => {
         const Icon = stat.icon;
         return (
-          <Card key={stat.label} className="border border-divider p-4">
+          <Card key={stat.label} className={card('padded')}>
             <div className="flex items-center gap-3">
               <div className={`p-2 ${stat.bgClassName} rounded-lg`}>
                 <Icon className={`size-5 ${stat.iconClassName}`} />

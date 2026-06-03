@@ -4,6 +4,7 @@ import { useState } from 'react';
 import { Plus, X, ExternalLink, Loader2, CheckCircle2 } from 'lucide-react';
 import { Card } from '@heroui/react';
 import { Input, Textarea } from '@/components/ui/Input';
+import { card } from '@/lib/design-system';
 
 export interface PortfolioItem {
   title: string;
@@ -48,7 +49,7 @@ export function PortfolioForm({ portfolio, onChange, isSaving, saveSuccess }: Po
   };
 
   return (
-    <Card className="border border-divider p-6">
+    <Card className={card('padded', 'p-6')}>
       <div className="flex items-center justify-between mb-4">
         <h2 className="text-lg font-semibold flex items-center gap-2">
           Portfolio

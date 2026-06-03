@@ -19,6 +19,7 @@ import { Address } from '@/components/Address';
 import { ErrorDisplay } from '@/components/ErrorDisplay';
 import { StatusBadge } from '@/components/StatusBadge';
 import { Textarea, Select } from '@/components/ui/Input';
+import { card } from '@/lib/design-system';
 import { JobStatus, type Job } from '@/lib/hooks/useJobs';
 import { JobLifecycleStepper, type JobRole } from '@/components/jobs/JobLifecycleStepper';
 import type { Token } from '@/lib/hooks/useTokenConversion';
@@ -141,7 +142,7 @@ export function JobActionsCard({
   const role: JobRole = isClient ? 'client' : isProvider ? 'provider' : isEvaluator ? 'evaluator' : 'observer';
 
   return (
-    <Card className="border border-divider p-6">
+    <Card className={card('padded', 'p-6')}>
       <h2 className="text-xl font-bold mb-5">Actions</h2>
 
       <div className="mb-5">

@@ -6,6 +6,7 @@ import { Loader2 } from 'lucide-react';
 import { Address } from '@/components/Address';
 import { StatusBadge } from '@/components/StatusBadge';
 import { type Bid, type Job } from '@/lib/hooks/useJobs';
+import { card } from '@/lib/design-system';
 
 const AcceptBidForm = dynamic(() => import('@/components/BiddingForms').then(m => m.AcceptBidForm), {
   loading: () => <div className="animate-pulse h-32 bg-content2 rounded-lg" />,
@@ -22,7 +23,7 @@ interface JobBidListCardProps {
 export function JobBidListCard({ job, bidCount, bids, isLoadingBids, onAccepted }: JobBidListCardProps) {
   return (
     <>
-      <Card className="border border-divider p-6">
+      <Card className={card('padded', 'p-6')}>
         <div className="flex items-center justify-between mb-4">
           <h2 className="text-base font-semibold">Bids Received</h2>
           <span className="px-3 py-1 bg-primary/10 text-primary rounded-full text-sm">

@@ -3,6 +3,7 @@
 import Image from 'next/image';
 import { ExternalLink } from 'lucide-react';
 import { Card } from '@heroui/react';
+import { card } from '@/lib/design-system';
 import type { PortfolioItem } from './PortfolioForm';
 
 interface PortfolioCardProps {
@@ -11,7 +12,7 @@ interface PortfolioCardProps {
 
 export function PortfolioCard({ item }: PortfolioCardProps) {
   return (
-    <Card className="border border-divider p-4 hover:shadow-md transition-shadow">
+    <Card className={card('padded', 'hover:shadow-md transition-shadow')}>
       {item.image && (
         <div className="mb-3 rounded-lg overflow-hidden bg-content2">
           <Image

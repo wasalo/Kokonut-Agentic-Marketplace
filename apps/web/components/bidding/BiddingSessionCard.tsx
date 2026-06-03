@@ -10,6 +10,7 @@ import {
   type BiddingSession,
 } from '@/lib/hooks/useBiddingSystem';
 import { formatAmount, getTokenByAddress } from '@/lib/tokenUtils';
+import { card } from '@/lib/design-system';
 
 interface BiddingSessionCardProps {
   session: BiddingSession;
@@ -27,7 +28,7 @@ export function BiddingSessionCard({ session, isConnected }: BiddingSessionCardP
     : session.evaluator;
 
   return (
-    <Card className="border border-divider p-4 hover:border-[#009F4D]/30 transition-colors">
+    <Card className={card('interactive')}>
       <div className="flex flex-col sm:flex-row sm:items-start sm:justify-between gap-4">
         <NextLink href={`/bidding/${sessionIdStr}`} className="flex-1 min-w-0">
           <div className="flex flex-wrap items-center gap-2">

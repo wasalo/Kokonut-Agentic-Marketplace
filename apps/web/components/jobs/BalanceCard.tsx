@@ -7,6 +7,7 @@ import { useBalance } from 'wagmi';
 import { useUSDCBalance } from '@/lib/hooks/useUSDC';
 import { type Job } from '@/lib/hooks/useJobs';
 import { amountToNumber, getTokenByAddress } from '@/lib/tokenUtils';
+import { card } from '@/lib/design-system';
 
 interface BalanceCardProps {
   job: Job;
@@ -25,7 +26,7 @@ export function BalanceCard({ job, isClient, address }: BalanceCardProps) {
   if (!isClient || job.status !== 0) return null;
 
   return (
-    <Card className="border border-divider p-6">
+    <Card className={card('padded', 'p-6')}>
       <h2 className="text-base font-semibold mb-4">Your Balance</h2>
       <div className="flex items-center gap-3">
         <div className="p-2 bg-primary/10 rounded-lg">

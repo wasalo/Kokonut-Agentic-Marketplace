@@ -8,6 +8,7 @@ import type { Token } from '@/lib/tokenUtils';
 import { formatAmount } from '@/lib/tokenUtils';
 import { Address } from '@/components/Address';
 import { PaymentTokenBadge } from '@/components/PaymentTokenSelector';
+import { card } from '@/lib/design-system';
 
 const SESSION_STATUS_BADGE: Record<SessionStatusType, string> = {
   [SessionStatus.Active]: 'active',
@@ -44,7 +45,7 @@ export function BiddingSessionHeader({ sessionId, session, stake, token }: Biddi
   const hasEvaluator = session.evaluator !== '0x0000000000000000000000000000000000000000';
 
   return (
-    <Card className="border border-divider p-5 md:p-6 overflow-hidden">
+    <Card className={card('padded', 'p-5 md:p-6 overflow-hidden')}>
       <div className="flex flex-col sm:flex-row sm:items-start sm:justify-between gap-4 mb-5">
         <div className="min-w-0">
           <div className="flex flex-wrap items-center gap-2 mb-1">
