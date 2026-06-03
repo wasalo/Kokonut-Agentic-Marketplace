@@ -5,10 +5,10 @@ import { useAccount, useReadContract } from 'wagmi';
 import { Card } from '@heroui/react';
 import { Scale, AlertCircle, RefreshCw } from 'lucide-react';
 import NextLink from 'next/link';
-import { formatUnits } from 'viem';
 import { getContractAddress } from '@/lib/contracts/config';
 import { MILESTONE_ESCROW_ABI } from '@/lib/contracts/abis';
 import { useArbiterCount } from '@/lib/hooks/useMilestoneEscrow';
+import { formatAmount } from '@/lib/tokenUtils';
 import { DS, card } from '@/lib/design-system';
 
 const MILESTONE_ESCROW_ADDRESS = getContractAddress('MILESTONE_ESCROW') as `0x${string}`;
@@ -96,7 +96,7 @@ export default function ArbiterPoolAdminPage(): JSX.Element {
                   <tr key={a.address + a.token} className="border-t border-divider">
                     <td className="p-3 font-mono text-xs">{a.address}</td>
                     <td className="p-3 font-mono text-xs">{a.token === '0x0000000000000000000000000000000000000000' ? 'ETH' : a.token.slice(0, 10) + '…'}</td>
-                    <td className="p-3">{formatUnits(a.stake, 18)}</td>
+                    <td className="p-3">{formatAmount(a.stake, 18)}</td>
                   </tr>
                 ))
               )}

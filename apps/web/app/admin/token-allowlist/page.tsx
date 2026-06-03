@@ -5,10 +5,10 @@ import { useAccount, useReadContracts, useWriteContract } from 'wagmi';
 import { Card } from '@heroui/react';
 import { Coins, AlertCircle, RefreshCw, Trash2, Plus, Link2 } from 'lucide-react';
 import NextLink from 'next/link';
-import { formatUnits } from 'viem';
 import { CONTRACTS } from '@/lib/wagmi';
 import { AGENTIC_COMMERCE_ABI, PRICE_ORACLE_ABI } from '@/lib/contracts/abis';
 import { DS, card } from '@/lib/design-system';
+import { formatAmount } from '@/lib/tokenUtils';
 import { toast } from 'sonner';
 
 const AGENTIC_COMMERCE_ADDRESS = CONTRACTS[11155111].agenticCommerce as `0x${string}`;
@@ -236,8 +236,8 @@ export default function TokenAllowlistAdminPage(): JSX.Element {
                         className="size-4 accent-[#009F4D]"
                       />
                     </td>
-                    <td className="p-3 font-mono text-xs">{t.price > 0n ? formatUnits(t.price, 8) : '—'}</td>
-                    <td className="p-3">{t.minBudget > 0n ? formatUnits(t.minBudget, t.decimals) : '—'}</td>
+                    <td className="p-3 font-mono text-xs">{t.price > 0n ? formatAmount(t.price, 8) : '—'}</td>
+                    <td className="p-3">{t.minBudget > 0n ? formatAmount(t.minBudget, t.decimals) : '—'}</td>
                     <td className="p-3 text-right">
                       <button
                         onClick={() => handleRemoveToken(t.address)}

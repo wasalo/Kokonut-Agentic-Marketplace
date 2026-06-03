@@ -6,7 +6,7 @@ import { useAccount, useBalance, usePublicClient, useWriteContract } from 'wagmi
 import { ArrowLeft, Loader2, AlertCircle, Clock, Shield, Wallet } from 'lucide-react';
 import { Card, Button } from '@heroui/react';
 import NextLink from 'next/link';
-import { parseEther, formatEther, formatUnits, parseUnits, toHex } from 'viem';
+import { toHex } from 'viem';
 import { useCreateBiddingSession } from '@/lib/hooks/useBiddingSystem';
 import { useEvaluatorPoolSize } from '@/lib/hooks/useJobs';
 import { useTokenPriceConversion, ETH_TOKEN, type Token } from '@/lib/hooks/useTokenConversion';
@@ -16,12 +16,13 @@ import { useUSDCApproval } from '@/lib/hooks/useUSDCApproval';
 import { getContractAddress } from '@/lib/contracts/config';
 import { card, btn } from '@/lib/design-system';
 import { showToast } from '@/lib/toast';
+import { formatAmount, parseAmount } from '@/lib/tokenUtils';
 
 // Contract limits (must match BiddingSystem.sol)
 const MIN_DEADLINE_MINUTES = 5;
 const MAX_DEADLINE_DAYS = 30;
 const MAX_DEADLINE_MINUTES = MAX_DEADLINE_DAYS * 24 * 60;
-const GAS_BUFFER_WEI = parseEther('0.01'); // 0.01 ETH buffer for gas
+const GAS_BUFFER_WEI = parseAmount('0.01', 18); // 0.01 ETH buffer for gas
 const MAX_METADATA_LENGTH = 2000;
 const BIDDING_SYSTEM_ADDRESS = getContractAddress('BIDDING_SYSTEM');
 
@@ -77,7 +78,7 @@ export default function CreateBiddingSessionPage(): JSX.Element {
 
   const tokenBalanceFormatted = useMemo(() => {
     if (paymentToken.symbol === 'ETH') {
-      return ethBalance ? Number(formatEther(ethBalance.value)).toFixed(4) : '0';
+      return ethBalance ? Number(formatAmount(ethBalance.value, 18)).toFixed(4) : '0';
     }
     return usdcFormatted !== undefined ? usdcFormatted.toFixed(2) : '0';
   }, [paymentToken, ethBalance, usdcFormatted]);
@@ -86,10 +87,10 @@ export default function CreateBiddingSessionPage(): JSX.Element {
   const budgetUsd = useMemo(() => {
     if (!maxBudget || !ethPriceInUsd) return null;
     try {
-      const budgetUnits = parseUnits(maxBudget, paymentToken.decimals);
+      const budgetUnits = parseAmount(maxBudget, paymentToken.decimals);
       const usdValue = paymentToken.symbol === 'ETH'
-        ? Number(formatEther(budgetUnits)) * ethPriceInUsd
-        : Number(formatUnits(budgetUnits, 6)); // USDC is already in USD
+        ? Number(formatAmount(budgetUnits, 18)) * ethPriceInUsd
+        : Number(formatAmount(budgetUnits, 6)); // USDC is already in USD
       return usdValue;
     } catch {
       return null;
@@ -103,7 +104,7 @@ export default function CreateBiddingSessionPage(): JSX.Element {
   const calculatedStake = useMemo(() => {
     if (!maxBudget) return 0n;
     try {
-      const budgetUnits = parseUnits(maxBudget, paymentToken.decimals);
+      const budgetUnits = parseAmount(maxBudget, paymentToken.decimals);
       return (budgetUnits * 100n) / 10000n;
     } catch {
       return 0n;
@@ -147,7 +148,7 @@ export default function CreateBiddingSessionPage(): JSX.Element {
       newErrors.maxBudget = 'Maximum budget is required';
     } else {
       try {
-        const budgetUnits = parseUnits(maxBudget, paymentToken.decimals);
+        const budgetUnits = parseAmount(maxBudget, paymentToken.decimals);
         if (budgetUnits <= 0n) {
           newErrors.maxBudget = 'Budget must be greater than 0';
         }
@@ -191,11 +192,11 @@ export default function CreateBiddingSessionPage(): JSX.Element {
 
   // Confirm and execute
   const handleConfirm = useCallback(async () => {
-    const budgetUnits = parseUnits(maxBudget, paymentToken.decimals);
+    const budgetUnits = parseAmount(maxBudget, paymentToken.decimals);
     const sid = serviceId ? BigInt(parseInt(serviceId)) : 0n;
 
     if (paymentToken.symbol === 'USDC') {
-      const amountLabel = formatUnits(calculatedStake, paymentToken.decimals);
+      const amountLabel = formatAmount(calculatedStake, paymentToken.decimals);
       const approved = await ensureUSDCApproval(calculatedStake, amountLabel);
       if (!approved) return;
     }
@@ -277,7 +278,7 @@ export default function CreateBiddingSessionPage(): JSX.Element {
             </div>
             <div className="flex justify-between py-2 border-b border-divider">
               <span className="text-default-500">Creator Stake (1%)</span>
-              <span className="font-medium">{paymentToken.symbol === 'ETH' ? Number(formatEther(calculatedStake)).toFixed(6) : formatUnits(calculatedStake, paymentToken.decimals)} {paymentToken.symbol}</span>
+              <span className="font-medium">{paymentToken.symbol === 'ETH' ? Number(formatAmount(calculatedStake, 18)).toFixed(6) : formatAmount(calculatedStake, paymentToken.decimals)} {paymentToken.symbol}</span>
             </div>
             <div className="flex justify-between py-2 border-b border-divider">
               <span className="text-default-500">Deadline</span>
@@ -417,7 +418,7 @@ export default function CreateBiddingSessionPage(): JSX.Element {
               <span className="text-sm font-medium text-[#009F4D]">Creator Stake</span>
             </div>
             <p className="text-2xl font-bold">
-              {maxBudget ? (paymentToken.symbol === 'ETH' ? Number(formatEther(calculatedStake)).toFixed(6) : formatUnits(calculatedStake, paymentToken.decimals)) : '0'} {paymentToken.symbol}
+              {maxBudget ? (paymentToken.symbol === 'ETH' ? Number(formatAmount(calculatedStake, 18)).toFixed(6) : formatAmount(calculatedStake, paymentToken.decimals)) : '0'} {paymentToken.symbol}
             </p>
             <p className="text-xs text-default-400 mt-1">
               1% of max budget, refunded after job creation
@@ -426,8 +427,8 @@ export default function CreateBiddingSessionPage(): JSX.Element {
               <p className="text-danger text-sm mt-2">
                 Insufficient {paymentToken.symbol} balance. You need at least{' '}
                 {paymentToken.symbol === 'ETH'
-                  ? `${Number(formatEther(calculatedStake + GAS_BUFFER_WEI)).toFixed(6)} ETH (stake + gas)`
-                  : `${formatUnits(calculatedStake, paymentToken.decimals)} ${paymentToken.symbol}`
+                  ? `${Number(formatAmount(calculatedStake + GAS_BUFFER_WEI, 18)).toFixed(6)} ETH (stake + gas)`
+                  : `${formatAmount(calculatedStake, paymentToken.decimals)} ${paymentToken.symbol}`
                 }.
               </p>
             )}

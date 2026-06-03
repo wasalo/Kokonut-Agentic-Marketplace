@@ -2,11 +2,10 @@
 
 import { Card } from '@heroui/react';
 import { CircleDot, DollarSign } from 'lucide-react';
-import { formatUnits } from 'viem';
 import { useBalance } from 'wagmi';
 import { useUSDCBalance } from '@/lib/hooks/useUSDC';
 import { type Job } from '@/lib/hooks/useJobs';
-import { amountToNumber, getTokenByAddress } from '@/lib/tokenUtils';
+import { amountToNumber, formatAmount, getTokenByAddress } from '@/lib/tokenUtils';
 import { card } from '@/lib/design-system';
 
 interface BalanceCardProps {
@@ -42,7 +41,7 @@ export function BalanceCard({ job, isClient, address }: BalanceCardProps) {
               ? '…'
               : isUSDC
                 ? `${usdcBalance || '0.00'} USDC`
-                : `${ethBalance ? formatUnits(ethBalance.value, ethBalance.decimals) : '0.00'} ETH`}
+                : `${ethBalance ? formatAmount(ethBalance.value, ethBalance.decimals) : '0.00'} ETH`}
           </p>
           <p className="text-xs text-default-500">
             {isUSDC ? 'Your USDC balance' : 'Your ETH balance'}

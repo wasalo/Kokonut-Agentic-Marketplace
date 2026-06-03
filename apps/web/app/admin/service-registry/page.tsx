@@ -5,11 +5,11 @@ import { useAccount, useReadContract } from 'wagmi';
 import { Card, Button } from '@heroui/react';
 import { Store, AlertCircle } from 'lucide-react';
 import NextLink from 'next/link';
-import { formatUnits } from 'viem';
 import { CONTRACTS } from '@/lib/wagmi';
 import { SERVICE_REGISTRY_ABI, AGENTIC_COMMERCE_ABI } from '@/lib/contracts/abis';
 import { DS, card } from '@/lib/design-system';
 import { useServiceAdmin } from '@/lib/hooks/useServiceAdmin';
+import { formatAmount } from '@/lib/tokenUtils';
 
 const SERVICE_REGISTRY_ADDRESS = CONTRACTS[11155111].serviceRegistry as `0x${string}`;
 const AGENTIC_COMMERCE_ADDRESS = CONTRACTS[11155111].agenticCommerce as `0x${string}`;
@@ -159,7 +159,7 @@ export default function ServiceRegistryAdminPage(): JSX.Element {
                     <td className="p-3">#{s.serviceId.toString()}</td>
                     <td className="p-3 font-mono text-xs">{s.provider.slice(0, 10)}…</td>
                     <td className="p-3">{s.name}</td>
-                    <td className="p-3">{formatUnits(s.price, 18)}</td>
+                    <td className="p-3">{formatAmount(s.price, 18)}</td>
                     <td className="p-3 font-mono text-xs">{s.paymentToken === '0x0000000000000000000000000000000000000000' ? 'ETH' : s.paymentToken.slice(0, 8) + '…'}</td>
                     <td className="p-3">{s.active ? 'Active' : 'Paused'}</td>
                     <td className="p-3 text-right">

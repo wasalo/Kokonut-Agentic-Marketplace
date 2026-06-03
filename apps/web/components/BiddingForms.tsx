@@ -5,7 +5,7 @@ import { useAccount } from 'wagmi';
 import { useWaitForTransactionReceipt } from 'wagmi';
 import { Loader2, AlertTriangle, CheckCircle2, Lock, Eye, Trophy } from 'lucide-react';
 import { Card } from '@heroui/react';
-import { keccak256, encodeAbiParameters, parseEther } from 'viem';
+import { keccak256, encodeAbiParameters } from 'viem';
 import {
   useCommitBid,
   useRevealBid,
@@ -27,7 +27,7 @@ import {
   ETH_TOKEN,
   Token,
 } from '@/lib/hooks/useTokenConversion';
-import { amountToNumber, formatAmount } from '@/lib/tokenUtils';
+import { amountToNumber, formatAmount, parseAmount } from '@/lib/tokenUtils';
 
 const MIN_BUDGET_USDC = 0.01;
 
@@ -70,7 +70,7 @@ export function CommitBidForm({ job, onSuccess }: CommitBidFormProps) {
 
   useEffect(() => {
     if (bidAmount && salt) {
-      const amountEth = parseEther(bidAmount);
+      const amountEth = parseAmount(bidAmount, 18);
       const hash = keccak256(
         encodeAbiParameters(
           [{ type: 'uint256' }, { type: 'string' }, { type: 'bytes32' }],
@@ -246,7 +246,7 @@ export function RevealBidForm({ job, onSuccess }: RevealBidFormProps) {
       return;
     }
 
-    const amountEth = parseEther(bidAmount);
+    const amountEth = parseAmount(bidAmount, 18);
 
     revealBid(job.id, amountEth, bidMessage, salt as `0x${string}`);
   }, [userBid, job.id, bidAmount, bidMessage, salt, revealBid]);

@@ -1,7 +1,6 @@
 'use client';
 
 import { Loader2, CheckCircle, Copy, AlertTriangle } from 'lucide-react';
-import { formatUnits } from 'viem';
 import type { Token } from '@/lib/tokenUtils';
 import { formatAmount } from '@/lib/tokenUtils';
 import { Input, Textarea } from '@/components/ui/Input';
@@ -41,8 +40,8 @@ export function CommitBidForm({
   onCommit,
   onCopySalt,
 }: CommitBidFormProps) {
-  const maxBudgetInputMax = formatUnits(maxBudget, token.decimals);
-  const maxBudgetNumber = Number(formatUnits(maxBudget, token.decimals));
+  const maxBudgetInputMax = formatAmount(maxBudget, token.decimals);
+  const maxBudgetNumber = Number(formatAmount(maxBudget, token.decimals));
   const hasInsufficientBalance = tokenBalance < stake;
 
   return (

@@ -2,7 +2,7 @@
 
 import { useAccount } from 'wagmi';
 import { Gavel, Shield, Loader2 } from 'lucide-react';
-import { formatUnits } from 'viem';
+import { formatAmount } from '@/lib/tokenUtils';
 import {
   useArbiterCount,
   useIsArbiter,
@@ -93,7 +93,7 @@ export function ArbiterSection(): JSX.Element {
             <span className="font-medium text-success">You are a registered arbiter</span>
           </div>
           <p className="text-default-500 text-xs">
-            Stake: {isStakeLoading ? 'Loading…' : `${formatUnits(stake || BigInt(0), TOKEN_DECIMALS)} ${TOKEN_SYMBOL}`}
+            Stake: {isStakeLoading ? 'Loading…' : `${formatAmount(stake || BigInt(0), TOKEN_DECIMALS)} ${TOKEN_SYMBOL}`}
           </p>
           <p className="text-default-500 text-xs">
             Total arbiters: {isCountLoading ? 'Loading…' : arbiterCount}

@@ -3,7 +3,7 @@
 import { Card } from '@heroui/react';
 import NextLink from 'next/link';
 import { Clock, Link } from 'lucide-react';
-import { formatUnits } from 'viem';
+import { formatAmount } from '@/lib/tokenUtils';
 import { StatusBadge, getJobStatusBadgeType } from '@/components/StatusBadge';
 import { Address } from '@/components/Address';
 import { PaymentTokenBadge, SUPPORTED_TOKENS } from '@/components/PaymentTokenSelector';
@@ -32,7 +32,7 @@ export function JobHeader({ job, service, isClient, isProvider, isEvaluator }: J
     ? (SUPPORTED_TOKENS.find(t => t.address.toLowerCase() === job.paymentToken.toLowerCase())?.symbol === 'USDC')
     : true;
   const budgetDecimals = isUSDC ? 6 : 18;
-  const formattedBudget = formatUnits(job.budget, budgetDecimals);
+  const formattedBudget = formatAmount(job.budget, budgetDecimals);
   const token = isUSDC ? USDC_TOKEN : ETH_TOKEN;
   const { formatUsdValue, isLoading: isPriceLoading } = useTokenPriceConversion();
   const usdValue = formatUsdValue(job.budget, token);

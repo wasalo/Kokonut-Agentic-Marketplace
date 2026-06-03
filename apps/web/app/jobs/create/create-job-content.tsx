@@ -2,7 +2,6 @@
 
 import { useState, useCallback, useEffect } from 'react';
 import { useAccount, useWaitForTransactionReceipt, usePublicClient, useWriteContract } from 'wagmi';
-import { formatUnits } from 'viem';
 import { useRouter, useSearchParams } from 'next/navigation';
 import { ArrowLeft, Loader2, ShieldCheck } from 'lucide-react';
 import NextLink from 'next/link';
@@ -70,7 +69,7 @@ function CreateJobContent() {
     paymentToken.decimals
   );
   const minBudgetInToken = minBudgetRaw
-    ? Number(formatUnits(minBudgetRaw, paymentToken.decimals))
+    ? Number(formatAmount(minBudgetRaw, paymentToken.decimals))
     : 0;
 
   useEffect(() => {

@@ -5,10 +5,10 @@ import { useAccount } from 'wagmi';
 import { Card, Button, Input } from '@heroui/react';
 import { Users, AlertCircle, RefreshCw, Trash2 } from 'lucide-react';
 import NextLink from 'next/link';
-import { formatUnits } from 'viem';
 import { DS, card } from '@/lib/design-system';
 import { toast } from 'sonner';
 import { useEvaluatorPoolSize, useMinEvaluatorStake, useEvaluatorPoolAdmin } from '@/lib/hooks/useEvaluators';
+import { formatAmount } from '@/lib/tokenUtils';
 
 interface EvaluatorRow {
   address: `0x${string}`;
@@ -78,7 +78,7 @@ export default function EvaluatorPoolAdminPage(): JSX.Element {
         </Card>
         <Card className={card('padded')}>
           <p className="text-xs text-default-500">Min Evaluator Stake</p>
-          <p className="text-lg font-mono">{minStake ? formatUnits(minStake, 18) + ' ETH' : '—'}</p>
+          <p className="text-lg font-mono">{minStake ? formatAmount(minStake, 18) + ' ETH' : '—'}</p>
         </Card>
         <Card className={card('padded', 'flex flex-col justify-center gap-2')}>
           <button onClick={handleCleanup} disabled={!isConnected || isCleaning} className={DS.buttons.secondary}>
@@ -129,7 +129,7 @@ export default function EvaluatorPoolAdminPage(): JSX.Element {
                 evaluators.map(e => (
                   <tr key={e.address} className="border-t border-divider">
                     <td className="p-3 font-mono text-xs">{e.address}</td>
-                    <td className="p-3">{formatUnits(e.stake, 18)} ETH</td>
+                    <td className="p-3">{formatAmount(e.stake, 18)} ETH</td>
                     <td className="p-3">{e.registeredAt > 0n ? new Date(Number(e.registeredAt) * 1000).toLocaleString() : '—'}</td>
                   </tr>
                 ))

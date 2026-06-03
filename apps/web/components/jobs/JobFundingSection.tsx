@@ -2,10 +2,9 @@
 
 import { Card } from '@heroui/react';
 import { CircleDot, DollarSign, Loader2 } from 'lucide-react';
-import { formatUnits } from 'viem';
 import { ETH_TOKEN, type Token } from '@/lib/hooks/useTokenConversion';
 import { JobStatus, type Job } from '@/lib/hooks/useJobs';
-import { amountToNumber } from '@/lib/tokenUtils';
+import { amountToNumber, formatAmount } from '@/lib/tokenUtils';
 import { card } from '@/lib/design-system';
 
 interface JobFundingSectionProps {
@@ -71,7 +70,7 @@ export function JobFundingSection({
               {usdcBalanceLoading || ethBalanceLoading ? (
                 <span className="animate-pulse">Loading...</span>
               ) : selectedPaymentToken.symbol === 'ETH' ? (
-                `${ethBalance ? formatUnits(ethBalance.value, ethBalance.decimals) : '0.00'} ETH`
+                `${ethBalance ? formatAmount(ethBalance.value, ethBalance.decimals) : '0.00'} ETH`
               ) : (
                 `${usdcBalance || '0.00'} USDC`
               )}
@@ -117,7 +116,7 @@ export function JobFundingSection({
                     : 'Fund Job'}
             </p>
             <p className="text-xs text-default-500">
-              {isUSDC ? `$${formattedBudget} USDC` : `${formatUnits(job.budget, 18)} ETH`} into escrow
+              {isUSDC ? `$${formattedBudget} USDC` : `${formatAmount(job.budget, 18)} ETH`} into escrow
               {!isUSDC && !isPriceLoading && (
                 <span className="ml-1">({formatUsdValue(job.budget, ETH_TOKEN)} USD)</span>
               )}
