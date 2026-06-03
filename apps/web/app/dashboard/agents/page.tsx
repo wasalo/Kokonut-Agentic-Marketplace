@@ -105,7 +105,7 @@ function AgentCard({
         </NextLink>
         <NextLink
           href={`/identity/settings?agentId=${agent.id}`}
-          className="flex items-center gap-1.5 px-3 py-1.5 text-sm bg-primary text-white rounded-lg hover:opacity-90 transition-opacity"
+          className={btn('primary', 'gap-1.5 px-3 py-1.5 text-sm')}
         >
           <Settings className="size-4" />
           Manage

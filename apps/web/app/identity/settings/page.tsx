@@ -36,7 +36,7 @@ import { showToast } from '@/lib/toast';
 import { EmailPreferencesForm } from '@/components/EmailPreferencesForm';
 import { PortfolioForm, type PortfolioItem } from '@/components/PortfolioForm';
 import { Input, Select } from '@/components/ui/Input';
-import { card } from '@/lib/design-system';
+import { card, btn } from '@/lib/design-system';
 
 export default function AgentSettingsPage(): JSX.Element {
   useEffect(() => {
@@ -188,7 +188,7 @@ export default function AgentSettingsPage(): JSX.Element {
           <p className="text-default-500 mb-4">You don&apos;t have a registered agent identity.</p>
           <NextLink
             href="/identity/register"
-            className="inline-flex items-center px-4 py-2 bg-primary text-white rounded-lg"
+            className={btn('primary', 'px-4 py-2')}
           >
             Register Agent
           </NextLink>
@@ -315,7 +315,7 @@ export default function AgentSettingsPage(): JSX.Element {
             </div>
             <button type="submit"
               disabled={isMetaPending}
-              className="flex items-center gap-2 px-4 py-2 bg-primary text-white rounded-lg font-medium hover:opacity-90 disabled:opacity-50"
+              className={btn('primary', 'px-4 py-2 disabled:opacity-50')}
             >
               {isMetaPending ? (
                 <Loader2 className="size-4 animate-spin" />

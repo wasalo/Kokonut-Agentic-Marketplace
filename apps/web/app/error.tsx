@@ -1,6 +1,7 @@
 'use client';
 
 import { useEffect } from 'react';
+import { btn } from '@/lib/design-system';
 
 export default function Error({
   error,
@@ -54,7 +55,7 @@ export default function Error({
         <p className="text-muted-foreground mb-6">{message}</p>
         <button type="button"
           onClick={reset}
-          className="inline-flex items-center justify-center px-6 py-3 bg-primary text-primary-foreground rounded-lg font-medium hover:opacity-90 transition-opacity"
+          className={btn('primary', 'px-6 py-3')}
         >
           Try again
         </button>

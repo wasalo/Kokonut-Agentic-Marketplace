@@ -1,5 +1,6 @@
 import Link from 'next/link';
 import Image from 'next/image';
+import { btn } from '@/lib/design-system';
 
 export default function NotFound(): JSX.Element {
   return (
@@ -19,7 +20,7 @@ export default function NotFound(): JSX.Element {
         </p>
         <Link
           href="/"
-          className="inline-flex items-center justify-center px-6 py-3 bg-primary text-primary-foreground rounded-lg font-medium hover:opacity-90 transition-opacity"
+          className={btn('primary', 'px-6 py-3')}
         >
           Go Home
         </Link>

@@ -17,7 +17,7 @@ import {
   useSlashManagerOwner,
 } from '@/lib/hooks/useSlashManager';
 import { Input, Textarea } from '@/components/ui/Input';
-import { card } from '@/lib/design-system';
+import { card, btn } from '@/lib/design-system';
 
 export default function GovernancePage() {
   useEffect(() => {
@@ -223,7 +223,7 @@ export default function GovernancePage() {
               <button type="button"
                 onClick={handleConfirmProposal}
                 disabled={!confirmProposalId || isConfirmPending || anyPending}
-                className="w-full px-6 py-3 bg-primary text-white rounded-lg font-medium hover:opacity-90 disabled:opacity-50"
+                className={btn('primary', 'w-full px-6 py-3 disabled:opacity-50')}
               >
                 {isConfirmPending ? 'Confirming…' : 'Confirm Proposal'}
               </button>

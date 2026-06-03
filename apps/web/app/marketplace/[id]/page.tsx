@@ -417,7 +417,7 @@ export default function ServiceDetailPage({
               <div className="flex gap-3 pt-2">
                 <button type="submit"
                   disabled={isUpdatePending}
-                  className="flex-1 px-4 py-2 bg-primary text-white rounded-lg font-medium hover:opacity-90 disabled:opacity-50"
+                  className={btn('primary', 'flex-1 px-4 py-2 disabled:opacity-50')}
                 >
                   {isUpdatePending ? (
                     <span className="flex items-center justify-center gap-2">
