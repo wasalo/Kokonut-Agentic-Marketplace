@@ -19,6 +19,7 @@ import { useServiceBookmarks, useBookmarkCounts } from '@/lib/hooks/useBookmarks
 import { Address } from '@/components/Address';
 import { GridSkeleton } from '@/components/Skeletons';
 import { formatAmount, getTokenByAddress, tokenAmountToUsd } from '@/lib/tokenUtils';
+import { card } from '@/lib/design-system';
 
 function EmptyState() {
   return (
@@ -80,7 +81,7 @@ const ServiceCard = memo(function ServiceCard({
   };
 
   return (
-    <Card className="border border-divider hover:border-success transition-colors cursor-pointer h-full">
+    <Card className={card('clickable', 'hover:border-success h-full')}>
       <div className="p-5 flex flex-col h-full">
         {/* Header Row */}
         <div className="flex items-start justify-between mb-2">

@@ -3,6 +3,7 @@
 import { Card } from '@heroui/react';
 import { Address } from '@/components/Address';
 import { Token, formatAmount } from '@/lib/tokenUtils';
+import { card } from '@/lib/design-system';
 
 interface Service {
   name: string;
@@ -24,7 +25,7 @@ export function CreateJobServiceCard({
   formattedServicePrice,
 }: CreateJobServiceCardProps) {
   return (
-    <Card className="border border-divider mb-6 p-5">
+    <Card className={card('padded', 'mb-6 p-5')}>
       <div className="flex items-start justify-between">
         <div>
           <h3 className="font-semibold">{service.name}</h3>

@@ -18,7 +18,7 @@ import {
 import { useAnalyticsFromSubgraph } from '@/lib/hooks/useAnalyticsFromSubgraph';
 import { useActivityFromSubgraph } from '@/lib/hooks/useActivityFromSubgraph';
 import { useKokonutStats } from '@/lib/hooks/useKokonutStats';
-import { DS } from '@/lib/design-system';
+import { DS, card } from '@/lib/design-system';
 
 type FeaturePersona = 'Client' | 'Provider' | 'Evaluator' | 'Arbiter' | 'All';
 
@@ -108,7 +108,7 @@ function LiveStats() {
         <div
           key={item.label}
           aria-label={`${item.label}: ${item.value.toLocaleString()}`}
-          className="text-center bg-content border border-divider rounded-xl p-6"
+          className={card('padded', 'text-center bg-content p-6')}
         >
           <div
             className="size-12 mx-auto mb-3 rounded-xl bg-gradient-to-br from-primary to-emerald-400 flex items-center justify-center"
@@ -262,7 +262,7 @@ function WhatIsHappening() {
                             ? `/bidding/${activity.targetId}`
                             : '#'
                   }
-                  className="flex items-center gap-4 p-4 bg-content border border-divider rounded-xl hover:border-success/30 hover:shadow-sm transition-all group"
+                  className={card('interactive', 'flex items-center gap-4 p-4 bg-content hover:border-success/30 group')}
                 >
                   <div
                     className="size-10 rounded-xl bg-gradient-to-br from-primary to-emerald-400 flex items-center justify-center shrink-0"

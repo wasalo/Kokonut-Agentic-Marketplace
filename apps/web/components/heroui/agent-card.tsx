@@ -8,6 +8,7 @@ import { useRouter } from 'next/navigation';
 import { useAccount } from 'wagmi';
 import { FollowButton } from '@/components/FollowButton';
 import { Address } from '@/components/Address';
+import { card } from '@/lib/design-system';
 
 interface AgentCardProps {
   id: string;
@@ -57,7 +58,7 @@ export const AgentCard = memo(function AgentCard({
       tabIndex={0}
       className="block cursor-pointer"
     >
-      <Card className="hover:shadow-lg transition-shadow border border-divider">
+      <Card className={card('base', 'hover:shadow-lg transition-shadow')}>
         <div className="flex gap-4 p-4">
           <div className="relative shrink-0">
             {agentURI ? (
