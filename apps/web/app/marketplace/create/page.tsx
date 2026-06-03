@@ -2,7 +2,6 @@
 
 import { useState, useCallback, useEffect } from 'react';
 import { useAccount, useBalance, useWaitForTransactionReceipt } from 'wagmi';
-import { useRouter } from 'next/navigation';
 import { ArrowLeft, ShieldCheck } from 'lucide-react';
 import NextLink from 'next/link';
 import { Card } from '@heroui/react';
@@ -81,7 +80,6 @@ export default function CreateServicePage() {
     document.title = 'Create Service | Kokonut Agent Economy';
   }, []);
 
-  const router = useRouter();
   const { isConnected, address } = useAccount();
   const { data: ethBalance } = useBalance({ address });
   const { addLog, isDebugMode } = useDebug();
@@ -97,7 +95,7 @@ export default function CreateServicePage() {
 
   const [step, setStep] = useState<Step>('checking');
   const [lastCreatedServiceId, setLastCreatedServiceId] = useState<bigint | null>(null);
-  const { refetch: refetchServiceCount } = useTotalServiceCount();
+  const { count: cachedServiceCount, refetch: refetchServiceCount } = useTotalServiceCount();
 
   const {
     minBudgetRaw,
@@ -211,16 +209,12 @@ export default function CreateServicePage() {
     if (isServiceConfirmed && step === 'creating') {
       setStep('done');
       showToast.success('Service created!', 'Your service is now live on the marketplace.');
-      refetchServiceCount().then(({ data }) => {
-        const newCount = typeof data === 'bigint' ? data : BigInt(data ?? 0);
-        if (newCount > 0n) {
-          setLastCreatedServiceId(newCount - 1n);
-        }
-      }).catch(() => {
-        /* best-effort; CTA falls back to View Marketplace if id is unavailable */
+      setLastCreatedServiceId(BigInt(cachedServiceCount));
+      refetchServiceCount().catch(() => {
+        /* best-effort; the cached count is the authoritative new service id */
       });
     }
-  }, [isServiceConfirmed, step, refetchServiceCount]);
+  }, [isServiceConfirmed, step, refetchServiceCount, cachedServiceCount]);
 
   useEffect(() => {
     if (serviceError) {
@@ -320,7 +314,6 @@ export default function CreateServicePage() {
         step={step}
         agentsError={agentsError}
         isDebugMode={isDebugMode}
-        onNavigate={(path) => router.push(path)}
         lastCreatedServiceId={lastCreatedServiceId}
       />
     );

@@ -1,14 +1,15 @@
 'use client';
 
-import { Card, Button } from '@heroui/react';
+import { Card } from '@heroui/react';
 import { CheckCircle2, Loader2, AlertCircle } from 'lucide-react';
 import NextLink from 'next/link';
+import { btn } from '@/lib/design-system';
 
 interface CreateServiceStepsProps {
   step: 'done' | 'checking' | 'no-agents';
   agentsError?: Error | null;
   isDebugMode?: boolean;
-  onNavigate: (path: string) => void;
+  onNavigate?: (path: string) => void;
   lastCreatedServiceId?: bigint | null;
 }
 
@@ -16,7 +17,7 @@ export function CreateServiceSteps({
   step,
   agentsError,
   isDebugMode,
-  onNavigate,
+  onNavigate: _onNavigate,
   lastCreatedServiceId,
 }: CreateServiceStepsProps) {
   if (step === 'done') {
@@ -26,34 +27,31 @@ export function CreateServiceSteps({
     return (
       <div className="container mx-auto px-4 py-8">
         <Card className="max-w-2xl mx-auto border border-divider p-8 text-center">
-          <CheckCircle2 className="size-16 text-success mx-auto mb-4" />
+          <CheckCircle2 className="size-16 text-success mx-auto mb-4" aria-hidden="true" />
           <h2 className="text-2xl font-bold mb-2">Service Created!</h2>
           <p className="text-default-500 mb-6">
             Your service has been successfully created and is now visible in the marketplace.
           </p>
-          <div className="flex flex-wrap gap-4 justify-center">
-            {viewServiceHref && (
-              <Button
-                onPress={() => onNavigate(viewServiceHref)}
-                className="bg-gradient-to-r from-[#009F4D] to-[#00c853] text-white font-semibold"
-              >
+          <div className="flex flex-col sm:flex-row gap-3 justify-center">
+            {viewServiceHref ? (
+              <NextLink href={viewServiceHref} className={btn('primary')}>
                 View Service
-              </Button>
+              </NextLink>
+            ) : (
+              <NextLink href="/marketplace" className={btn('primary')}>
+                View Marketplace
+              </NextLink>
             )}
-            <Button
-              variant={viewServiceHref ? 'ghost' : undefined}
-              onPress={() => onNavigate('/marketplace')}
-              className={
-                viewServiceHref
-                  ? undefined
-                  : 'bg-gradient-to-r from-[#009F4D] to-[#00c853] text-white font-semibold'
-              }
-            >
-              View Marketplace
-            </Button>
-            <Button variant="ghost" onPress={() => onNavigate('/dashboard')}>
-              Go to Dashboard
-            </Button>
+            {viewServiceHref && (
+              <>
+                <NextLink href="/marketplace" className={btn('secondary')}>
+                  View Marketplace
+                </NextLink>
+                <NextLink href="/dashboard" className={btn('secondary')}>
+                  Go to Dashboard
+                </NextLink>
+              </>
+            )}
           </div>
         </Card>
       </div>
@@ -88,8 +86,8 @@ export function CreateServiceSteps({
             creating services.
           </p>
           <div className="flex justify-center">
-            <NextLink href="/identity/register">
-              <Button>Register Agent</Button>
+            <NextLink href="/identity/register" className={btn('primary')}>
+              Register Agent
             </NextLink>
           </div>
           {isDebugMode && agentsError && (
