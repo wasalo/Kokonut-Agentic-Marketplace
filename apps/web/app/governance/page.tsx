@@ -16,6 +16,7 @@ import {
   useMaxSlashAmount,
   useSlashManagerOwner,
 } from '@/lib/hooks/useSlashManager';
+import { Input, Textarea } from '@/components/ui/Input';
 
 export default function GovernancePage() {
   useEffect(() => {
@@ -147,52 +148,45 @@ export default function GovernancePage() {
             <form onSubmit={handleCreateProposal} className="space-y-4">
               <div>
                 <label htmlFor="evaluator-addr" className="text-sm font-medium">Evaluator Address</label>
-                <input
+                <Input
                   id="evaluator-addr"
                   type="text"
+                  label="Evaluator Address"
                   placeholder="0x…"
                   value={evaluator}
                   onChange={e => setEvaluator(e.target.value)}
                   required
-                  className="w-full mt-1 px-3 py-2 bg-content2 border border-divider rounded-lg focus:outline-none focus:ring-2 focus:ring-danger"
                 />
               </div>
               <div className="grid grid-cols-1 md:grid-cols-2 gap-3 md:gap-4">
-                <div>
-                  <label htmlFor="target-proposal-id" className="text-sm font-medium">Target Proposal ID</label>
-                  <input
-                    id="target-proposal-id"
-                    type="number"
-                    placeholder="0"
-                    value={targetProposalId}
-                    onChange={e => setTargetProposalId(e.target.value)}
-                    required
-                    className="w-full mt-1 px-3 py-2 bg-content2 border border-divider rounded-lg focus:outline-none focus:ring-2 focus:ring-danger"
-                  />
-                </div>
-                <div>
-                  <label htmlFor="slash-amount" className="text-sm font-medium">Slash Amount (ETH)</label>
-                  <input
-                    id="slash-amount"
-                    type="number"
-                    step="0.01"
-                    max={maxAmountInEth || 100}
-                    value={slashAmount}
-                    onChange={e => setSlashAmount(e.target.value)}
-                    required
-                    className="w-full mt-1 px-3 py-2 bg-content2 border border-divider rounded-lg focus:outline-none focus:ring-2 focus:ring-danger"
-                  />
-                </div>
+                <Input
+                  id="target-proposal-id"
+                  type="number"
+                  label="Target Proposal ID"
+                  placeholder="0"
+                  value={targetProposalId}
+                  onChange={e => setTargetProposalId(e.target.value)}
+                  required
+                />
+                <Input
+                  id="slash-amount"
+                  type="number"
+                  label="Slash Amount (ETH)"
+                  step="0.01"
+                  max={maxAmountInEth || 100}
+                  value={slashAmount}
+                  onChange={e => setSlashAmount(e.target.value)}
+                  required
+                />
               </div>
               <div>
-                <label className="text-sm font-medium">Reason</label>
-                <textarea
+                <Textarea
+                  label="Reason"
                   placeholder="Why this evaluator should be slashed…"
                   value={slashReason}
                   onChange={e => setSlashReason(e.target.value)}
                   rows={2}
                   required
-                  className="w-full mt-1 px-3 py-2 bg-content2 border border-divider rounded-lg focus:outline-none focus:ring-2 focus:ring-danger resize-none"
                 />
               </div>
               {createError && (
@@ -218,16 +212,13 @@ export default function GovernancePage() {
               Confirm Proposal
             </h2>
             <div className="space-y-4">
-              <div>
-                <label className="text-sm font-medium">Proposal ID</label>
-                <input
-                  type="text"
-                  placeholder="0x…"
-                  value={confirmProposalId}
-                  onChange={e => setConfirmProposalId(e.target.value)}
-                  className="w-full mt-1 px-3 py-2 bg-content2 border border-divider rounded-lg focus:outline-none focus:ring-2 focus:ring-primary"
-                />
-              </div>
+              <Input
+                type="text"
+                label="Proposal ID"
+                placeholder="0x…"
+                value={confirmProposalId}
+                onChange={e => setConfirmProposalId(e.target.value)}
+              />
               <button type="button"
                 onClick={handleConfirmProposal}
                 disabled={!confirmProposalId || isConfirmPending || anyPending}
@@ -245,17 +236,14 @@ export default function GovernancePage() {
             <Shield className="size-4" />
             Execute Proposal
           </h2>
-          <div className="space-y-4">
-            <div>
-              <label className="text-sm font-medium">Proposal ID</label>
-              <input
+            <div className="space-y-4">
+              <Input
                 type="text"
+                label="Proposal ID"
                 placeholder="0x…"
                 value={executeProposalId}
                 onChange={e => setExecuteProposalId(e.target.value)}
-                className="w-full mt-1 px-3 py-2 bg-content2 border border-divider rounded-lg focus:outline-none focus:ring-2 focus:ring-success"
               />
-            </div>
             <button type="button"
               onClick={handleExecuteProposal}
               disabled={!executeProposalId || isExecutePending || anyPending}

@@ -45,6 +45,7 @@ import {
 import { showToast, getTransactionError } from '@/lib/toast';
 import { Address } from '@/components/Address';
 import { Breadcrumb } from '@/components/ui/Breadcrumb';
+import { Input, Textarea } from '@/components/ui/Input';
 import { ActiveJobsForService } from '@/components/marketplace/ActiveJobsForService';
 import { SERVICE_REGISTRY_ABI } from '@/lib/contracts/abis';
 import { getContractAddress } from '@/lib/contracts/config';
@@ -385,34 +386,31 @@ export default function ServiceDetailPage({
               className="space-y-4"
             >
               <div>
-                <label className="text-sm font-medium">Service Name</label>
-                <input
+                <Input
                   type="text"
+                  label="Service Name"
                   value={editForm.name}
                   onChange={e => setEditForm({ ...editForm, name: e.target.value })}
                   required
-                  className="w-full mt-1 px-3 py-2 bg-content2 border border-divider rounded-lg focus:outline-none focus:ring-2 focus:ring-primary"
                 />
               </div>
               <div>
-                <label className="text-sm font-medium">Description</label>
-                <textarea
+                <Textarea
+                  label="Description"
                   value={editForm.description}
                   onChange={e => setEditForm({ ...editForm, description: e.target.value })}
                   required
                   rows={3}
-                  className="w-full mt-1 px-3 py-2 bg-content2 border border-divider rounded-lg focus:outline-none focus:ring-2 focus:ring-primary resize-none"
                 />
               </div>
               <div>
-                <label className="text-sm font-medium">Price ({tokenSymbol})</label>
-                <input
+                <Input
                   type="number"
+                  label={`Price (${tokenSymbol})`}
                   step="0.000001"
                   value={editForm.price}
                   onChange={e => setEditForm({ ...editForm, price: e.target.value })}
                   required
-                  className="w-full mt-1 px-3 py-2 bg-content2 border border-divider rounded-lg focus:outline-none focus:ring-2 focus:ring-primary"
                 />
               </div>
               <div className="flex gap-3 pt-2">
@@ -602,13 +600,13 @@ export default function ServiceDetailPage({
                 Specify the address that will receive payments for this service. Defaults to your connected wallet.
               </p>
               <div className="mb-4">
-                <label className="block text-sm font-medium mb-1">Payment Address</label>
-                <input
+                <Input
                   type="text"
+                  label="Payment Address"
                   value={paymentAddressInput}
                   onChange={e => setPaymentAddressInput(e.target.value)}
                   placeholder={service.paymentAddress}
-                  className="w-full px-3 py-2 bg-content2 border border-divider rounded-lg focus:outline-none focus:ring-2 focus:ring-primary text-sm font-mono"
+                  className="text-sm font-mono"
                 />
                 <p className="text-xs text-default-400 mt-1">
                   Current: {service.paymentAddress.slice(0, 6)}...{service.paymentAddress.slice(-4)}

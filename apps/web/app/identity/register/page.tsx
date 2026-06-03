@@ -12,6 +12,7 @@ import { generateAgentMetadata, type AgentMetadata8004 } from '@/lib/metadata';
 import { useWalletAgentsFromSubgraph } from '@/lib/hooks';
 import { CONTRACT_ADDRESSES, getContractAddress } from '@/lib/contracts/config';
 import { TransactionError } from '@/components/TransactionError';
+import { Input, Textarea } from '@/components/ui/Input';
 import { showToast } from '@/lib/toast';
 import { PortfolioForm, type PortfolioItem } from '@/components/PortfolioForm';
 import { useFormSubmit, formatTimeRemaining } from '@/lib/hooks/useDebounce';
@@ -243,78 +244,63 @@ export default function RegisterAgentPage(): JSX.Element {
               </div>
 
               <div className="space-y-2">
-                <label htmlFor="description" className="text-sm font-medium">
-                  Description
-                </label>
-                <textarea
+                <Textarea
                   id="description"
+                  label="Description"
                   placeholder="Describe what your agent does…"
                   value={formData.description}
                   onChange={e => handleFieldChange('description', e.target.value)}
-                  className="flex min-h-[80px] w-full px-3 py-2 bg-content2 border border-divider rounded-lg text-default-700 placeholder:text-default-400 focus:outline-none focus:ring-2 focus:ring-success focus:border-transparent transition-all resize-none"
                   rows={3}
                 />
               </div>
 
               <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
                 <div className="space-y-2">
-                  <label htmlFor="version" className="text-sm font-medium">
-                    Version
-                  </label>
-                  <input
+                  <Input
                     type="text"
                     id="version"
+                    label="Version"
                     placeholder="1.0.0"
                     value={formData.version}
                     onChange={e => handleFieldChange('version', e.target.value)}
-                    className="w-full px-3 py-2 bg-content2 border border-divider rounded-lg text-default-700 placeholder:text-default-400 focus:outline-none focus:ring-2 focus:ring-success focus:border-transparent transition-all"
                   />
                 </div>
                 <div className="space-y-2">
-                  <label htmlFor="endpoint" className="text-sm font-medium">
-                    HTTPS Endpoint
-                  </label>
-                  <input
+                  <Input
                     type="text"
                     id="endpoint"
+                    label="HTTPS Endpoint"
                     placeholder="https://api.example.com"
                     value={formData.endpoint}
                     onChange={e => { handleFieldChange('endpoint', e.target.value); validateEndpoint(e.target.value); }}
                     onBlur={() => validateEndpoint(formData.endpoint)}
-                    className={`w-full px-3 py-2 bg-content2 border rounded-lg text-default-700 placeholder:text-default-400 focus:outline-none focus:ring-2 focus:ring-success focus:border-transparent transition-all ${formErrors.endpoint ? 'border-danger' : 'border-divider'}`}
+                    error={formErrors.endpoint ?? undefined}
                   />
-                  {formErrors.endpoint && <p className="text-xs text-danger mt-1">{formErrors.endpoint}</p>}
                 </div>
               </div>
 
               <div className="space-y-2">
-                <label htmlFor="email" className="text-sm font-medium">
-                  Email (Optional)
-                </label>
-                  <input
-                    type="email"
-                    id="email"
-                    placeholder="agent@example.com"
-                    value={formData.email}
-                    onChange={e => { handleFieldChange('email', e.target.value); validateEmail(e.target.value); }}
-                    onBlur={() => validateEmail(formData.email)}
-                    className={`w-full px-3 py-2 bg-content2 border rounded-lg text-default-700 placeholder:text-default-400 focus:outline-none focus:ring-2 focus:ring-success focus:border-transparent transition-all ${formErrors.email ? 'border-danger' : 'border-divider'}`}
-                  />
-                  {formErrors.email && <p className="text-xs text-danger mt-1">{formErrors.email}</p>}
-                <p className="text-xs text-default-400">Used for notifications and contact</p>
+                <Input
+                  type="email"
+                  id="email"
+                  label="Email (Optional)"
+                  placeholder="agent@example.com"
+                  value={formData.email}
+                  onChange={e => { handleFieldChange('email', e.target.value); validateEmail(e.target.value); }}
+                  onBlur={() => validateEmail(formData.email)}
+                  error={formErrors.email ?? undefined}
+                  helperText="Used for notifications and contact"
+                />
               </div>
 
               <div className="space-y-2">
-                <label htmlFor="capabilities" className="text-sm font-medium">
-                  Capabilities (comma-separated)
-                </label>
-                <input
+                <Input
                   type="text"
                   id="capabilities"
+                  label="Capabilities (comma-separated)"
                   placeholder="trading, swaps, yield farming"
                   value={formData.capabilities}
                   onChange={e => handleFieldChange('capabilities', e.target.value)}
-                  className="w-full px-3 py-2 bg-content2 border border-divider rounded-lg text-default-700 placeholder:text-default-400 focus:outline-none focus:ring-2 focus:ring-success focus:border-transparent transition-all"
                 />
               </div>
 

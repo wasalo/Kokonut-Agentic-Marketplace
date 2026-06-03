@@ -12,6 +12,7 @@ import { ConfirmModal } from '@/components/ConfirmModal';
 import { SkillForm } from '@/components/skills/SkillForm';
 import { SkillsList } from '@/components/skills/SkillsList';
 import { SkillsSidebar } from '@/components/skills/SkillsSidebar';
+import { Select } from '@/components/ui/Input';
 
 const SKILL_REGISTRY_ADDRESS = getContractAddress(
   process.env.NEXT_PUBLIC_SKILL_REGISTRY_ADDRESS,
@@ -227,7 +228,7 @@ export default function DashboardSkillsPage() {
           <label htmlFor="agent-selector" className="block text-sm font-medium mb-2">
             Select Agent
           </label>
-          <select
+          <Select
             id="agent-selector"
             value={selectedAgentId || activeAgent?.id || ''}
             onChange={e => {
@@ -235,14 +236,13 @@ export default function DashboardSkillsPage() {
               setShowForm(false);
               setEditingSkill(null);
             }}
-            className="w-full px-3 py-2 bg-content2 border border-divider rounded-lg focus:outline-none focus:ring-2 focus:ring-success"
           >
             {agents.map(agent => (
               <option key={agent.id} value={agent.id}>
                 Agent #{agent.id} {agent.metadata?.name ? `- ${agent.metadata.name}` : ''}
               </option>
             ))}
-          </select>
+          </Select>
         </Card>
       )}
 

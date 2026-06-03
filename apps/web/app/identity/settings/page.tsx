@@ -35,6 +35,7 @@ import { generateAgentMetadata, decodeAgentMetadata, type AgentMetadata8004 } fr
 import { showToast } from '@/lib/toast';
 import { EmailPreferencesForm } from '@/components/EmailPreferencesForm';
 import { PortfolioForm, type PortfolioItem } from '@/components/PortfolioForm';
+import { Input, Select } from '@/components/ui/Input';
 
 export default function AgentSettingsPage(): JSX.Element {
   useEffect(() => {
@@ -219,17 +220,17 @@ export default function AgentSettingsPage(): JSX.Element {
 
             {agents.length > 1 && (
               <div className="relative">
-                <select
+                <Select
                   value={selectedAgentIndex}
                   onChange={e => setSelectedAgentIndex(Number(e.target.value))}
-                  className="appearance-none bg-content2 border border-divider rounded-lg px-4 py-2 pr-10 text-sm font-medium focus:outline-none focus:ring-2 focus:ring-primary cursor-pointer"
+                  className="appearance-none pr-10 text-sm font-medium"
                 >
                   {agents.map((a, idx) => (
                     <option key={a.id} value={idx}>
                       Agent #{a.id} - {a.name || 'Unnamed'}
                     </option>
                   ))}
-                </select>
+                </Select>
                 <ChevronDown className="absolute right-3 top-1/2 -translate-y-1/2 size-4 text-default-400 pointer-events-none" />
               </div>
             )}
@@ -293,28 +294,23 @@ export default function AgentSettingsPage(): JSX.Element {
           </h2>
           <form onSubmit={handleSetMetadata} className="space-y-4">
             <div className="grid grid-cols-1 md:grid-cols-2 gap-3 md:gap-4">
-              <div>
-                <label className="text-sm font-medium">Key</label>
-                <input
-                  type="text"
-                  placeholder="e.g., email, twitter"
-                  value={metadataKey}
-                  onChange={e => setMetadataKey(e.target.value)}
-                  required
-                  className="w-full mt-1 px-3 py-2 bg-content2 border border-divider rounded-lg focus:outline-none focus:ring-2 focus:ring-primary"
-                />
-              </div>
-              <div>
-                <label className="text-sm font-medium">Value (hex)</label>
-                <input
-                  type="text"
-                  placeholder="0x…"
-                  value={metadataValue}
-                  onChange={e => setMetadataValue(e.target.value)}
-                  required
-                  className="w-full mt-1 px-3 py-2 bg-content2 border border-divider rounded-lg focus:outline-none focus:ring-2 focus:ring-primary font-mono text-sm"
-                />
-              </div>
+              <Input
+                type="text"
+                label="Key"
+                placeholder="e.g., email, twitter"
+                value={metadataKey}
+                onChange={e => setMetadataKey(e.target.value)}
+                required
+              />
+              <Input
+                type="text"
+                label="Value (hex)"
+                placeholder="0x…"
+                value={metadataValue}
+                onChange={e => setMetadataValue(e.target.value)}
+                required
+                className="font-mono text-sm"
+              />
             </div>
             <button type="submit"
               disabled={isMetaPending}

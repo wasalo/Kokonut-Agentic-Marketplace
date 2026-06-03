@@ -6,6 +6,7 @@ import { Webhook, Plus, Trash2, RefreshCw, Check, X, AlertCircle } from 'lucide-
 import { Card } from '@heroui/react';
 import { useWebhooks } from '@/lib/hooks/useWebhooks';
 import { btn } from '@/lib/design-system';
+import { Input } from '@/components/ui/Input';
 import type {
   Webhook as WebhookType,
   WebhookEventType,
@@ -46,31 +47,6 @@ function Chip({
     >
       {children}
     </span>
-  );
-}
-
-function Input({
-  value,
-  onChange,
-  placeholder,
-  description,
-}: {
-  value: string;
-  onChange: (value: string) => void;
-  placeholder?: string;
-  description?: string;
-}) {
-  return (
-    <div className="space-y-1">
-      <input
-        type="text"
-        value={value}
-        onChange={e => onChange(e.target.value)}
-        placeholder={placeholder}
-        className="w-full px-3 py-2 bg-content2 border border-divider rounded-lg text-sm focus:outline-none focus:ring-2 focus:ring-primary/50"
-      />
-      {description && <p className="text-xs text-default-500">{description}</p>}
-    </div>
   );
 }
 
@@ -201,15 +177,13 @@ function CreateWebhookForm({
         </div>
 
         <div className="space-y-4">
-          <div>
-            <label className="text-sm font-medium mb-2 block">Webhook URL</label>
-            <Input
-              placeholder="https://your-server.com/webhook"
-              value={url}
-              onChange={setUrl}
-              description="Must be HTTPS for security"
-            />
-          </div>
+          <Input
+            label="Webhook URL"
+            placeholder="https://your-server.com/webhook"
+            value={url}
+            onChange={e => setUrl(e.target.value)}
+            helperText="Must be HTTPS for security"
+          />
 
           <div>
             <label className="text-sm font-medium mb-2 block">Events to receive</label>
