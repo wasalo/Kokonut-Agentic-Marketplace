@@ -1,5 +1,5 @@
 import { useState, useEffect, useCallback } from 'react';
-import { useWriteContract, useReadContract } from 'wagmi';
+import { useWriteContract, useReadContract, useWaitForTransactionReceipt } from 'wagmi';
 import { parseAbi } from 'viem';
 import { CONTRACT_ADDRESSES } from '@/lib/contracts/config';
 
@@ -8,6 +8,7 @@ const ERC8004_REPUTATION = CONTRACT_ADDRESSES.sepolia.erc8004Reputation;
 const SEPOLIA_CHAIN_ID = 11155111;
 
 const ERC8004_REGISTRY_ABI = parseAbi([
+  'function register(string agentURI) external returns (uint256)',
   'function setAgentURI(uint256 agentId, string newURI) external',
   'function setMetadata(uint256 agentId, string metadataKey, bytes metadataValue) external',
   'function getAgent(uint256 agentId) external view returns (address owner, string agentURI, address agentWallet, bool isActive)',
@@ -18,8 +19,26 @@ const ERC8004_REPUTATION_ABI = parseAbi([
   'function getFeedbackCount(address agent) external view returns (uint256)',
 ]);
 
+export function useRegisterAgent() {
+  const { writeContract, data: hash, isPending, error } = useWriteContract();
+  const { isLoading: isConfirming, isSuccess: isConfirmed } = useWaitForTransactionReceipt({ hash });
+
+  const register = (agentURI: string) => {
+    writeContract({
+      chainId: SEPOLIA_CHAIN_ID,
+      address: ERC8004_REGISTRY,
+      abi: ERC8004_REGISTRY_ABI,
+      functionName: 'register',
+      args: [agentURI],
+    });
+  };
+
+  return { register, hash, isPending, isConfirming, isConfirmed, error };
+}
+
 export function useSetAgentURI() {
   const { writeContract, data: hash, isPending } = useWriteContract();
+  const { isLoading: isConfirming, isSuccess: isConfirmed } = useWaitForTransactionReceipt({ hash });
 
   const setAgentURI = (agentId: bigint, newURI: string) => {
     writeContract({
@@ -31,7 +50,7 @@ export function useSetAgentURI() {
     });
   };
 
-  return { setAgentURI, hash, isPending };
+  return { setAgentURI, hash, isPending, isConfirming, isConfirmed };
 }
 
 export function useSetAgentMetadata() {

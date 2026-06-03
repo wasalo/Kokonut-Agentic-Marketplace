@@ -16,7 +16,7 @@ import { showToast } from '@/lib/toast';
 import { PortfolioForm, type PortfolioItem } from '@/components/PortfolioForm';
 import { useFormSubmit, formatTimeRemaining } from '@/lib/hooks/useDebounce';
 import { validateStringLength } from '@/lib/hooks/useValidation';
-import { useRegisterAgent } from '@/lib/hooks/use8004Identity';
+import { useRegisterAgent } from '@/lib/hooks/useAgentSettings';
 
 interface FormData {
   name: string;
@@ -90,7 +90,7 @@ export default function RegisterAgentPage(): JSX.Element {
     setFormData(prev => ({ ...prev, portfolio }));
   }, []);
 
-  const { register, isPending, isConfirming, isConfirmed, txHash, error: regError } = useRegisterAgent();
+  const { register, isPending, isConfirming, isConfirmed, hash: txHash, error: regError } = useRegisterAgent();
 
   const performSubmit = useCallback(
     (e: React.FormEvent) => {
@@ -133,7 +133,7 @@ export default function RegisterAgentPage(): JSX.Element {
 
   useEffect(() => {
     if (regError) {
-      showToast.error('Registration failed', regError || 'Please try again.');
+      showToast.error('Registration failed', regError?.message || 'Please try again.');
     }
   }, [regError]);
 
@@ -298,7 +298,7 @@ export default function RegisterAgentPage(): JSX.Element {
                 <p className="text-sm font-mono">{address || 'Connect your wallet'}</p>
               </div>
 
-              <TransactionError error={regError ? new Error(regError) : null} />
+              <TransactionError error={regError ? new Error(regError.message) : null} />
 
               <div className="flex gap-4">
                 <button type="submit"
