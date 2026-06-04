@@ -5,15 +5,14 @@ import { useAccount, useReadContract } from 'wagmi';
 import { Card, Button } from '@heroui/react';
 import { Store, AlertCircle } from 'lucide-react';
 import NextLink from 'next/link';
-import { CONTRACTS } from '@/lib/wagmi';
+import { getContractAddress, ZERO_ADDRESS } from '@/lib/contracts/config';
 import { SERVICE_REGISTRY_ABI, AGENTIC_COMMERCE_ABI } from '@/lib/contracts/abis';
 import { DS, card } from '@/lib/design-system';
-import { ZERO_ADDRESS } from '@/lib/contracts/config';
 import { useServiceAdmin } from '@/lib/hooks/useServiceAdmin';
 import { formatAmount } from '@/lib/tokenUtils';
 
-const SERVICE_REGISTRY_ADDRESS = CONTRACTS[11155111].serviceRegistry as `0x${string}`;
-const AGENTIC_COMMERCE_ADDRESS = CONTRACTS[11155111].agenticCommerce as `0x${string}`;
+const SERVICE_REGISTRY_ADDRESS = getContractAddress('SERVICE_REGISTRY');
+const AGENTIC_COMMERCE_ADDRESS = getContractAddress('AGENTIC_COMMERCE');
 
 interface ServiceRow {
   serviceId: bigint;

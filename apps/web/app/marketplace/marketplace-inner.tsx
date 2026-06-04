@@ -13,7 +13,7 @@ import { useTokenPriceConversion } from '@/lib/hooks/useTokenConversion';
 import { useDebounce } from '@/lib/hooks/useDebounce';
 import { EmptyStateServices } from '@/components/ui/empty-state';
 import { AGENT_SKILL_REGISTRY_ABI } from '@/lib/contracts/abis';
-import { CONTRACTS } from '@/lib/wagmi';
+import { getContractAddress } from '@/lib/contracts/config';
 import { getTokenByAddress, tokenAmountToUsd } from '@/lib/tokenUtils';
 import { btn } from '@/lib/design-system';
 import { JobStatus, useJobs } from '@/lib/hooks/useJobs';
@@ -32,7 +32,7 @@ import {
 
 const ITEMS_PER_PAGE = 12;
 const MAX_MARKETPLACE_BATCH = 50;
-const SKILL_REGISTRY_ADDRESS = CONTRACTS[11155111].skillRegistry;
+const SKILL_REGISTRY_ADDRESS = getContractAddress('SKILL_REGISTRY');
 
 const SKILL_DOMAINS = [
   { value: '', label: 'All Skills' },

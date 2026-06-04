@@ -1,7 +1,7 @@
 'use client';
 
 import { useState, useCallback } from 'react';
-import { useWriteContract, useWaitForTransactionReceipt } from 'wagmi';
+import { useWriteContract, useWaitForTransactionReceipt, useAccount } from 'wagmi';
 import { Card } from '@heroui/react';
 import { Plus, Loader2, XCircle, Edit3 } from 'lucide-react';
 import { AGENT_SKILL_REGISTRY_ABI } from '@/lib/contracts/abis';
@@ -14,7 +14,6 @@ const SKILL_REGISTRY_ADDRESS = getContractAddress(
   process.env.NEXT_PUBLIC_SKILL_REGISTRY_ADDRESS,
   CONTRACT_ADDRESSES.sepolia.skillRegistry
 );
-const SEPOLIA_CHAIN_ID = 11155111;
 
 interface Skill {
   agentId: bigint;
@@ -48,6 +47,7 @@ export function SkillForm({ agentId, initialData, onSuccess, onCancel }: SkillFo
   const { isSuccess, isLoading: isConfirming } = useWaitForTransactionReceipt({
     hash: txHash,
   });
+  const { chainId } = useAccount();
 
   const handleSubmit = useCallback(
     (e: React.FormEvent) => {
@@ -63,7 +63,7 @@ export function SkillForm({ agentId, initialData, onSuccess, onCancel }: SkillFo
 
       if (isEditing && initialData?.skillId !== undefined) {
         writeContract({
-          chainId: SEPOLIA_CHAIN_ID,
+          chainId,
           address: SKILL_REGISTRY_ADDRESS,
           abi: AGENT_SKILL_REGISTRY_ABI,
           functionName: 'updateSkill',
@@ -71,7 +71,7 @@ export function SkillForm({ agentId, initialData, onSuccess, onCancel }: SkillFo
         });
       } else {
         writeContract({
-          chainId: SEPOLIA_CHAIN_ID,
+          chainId,
           address: SKILL_REGISTRY_ADDRESS,
           abi: AGENT_SKILL_REGISTRY_ABI,
           functionName: 'registerSkill',
@@ -79,7 +79,7 @@ export function SkillForm({ agentId, initialData, onSuccess, onCancel }: SkillFo
         });
       }
     },
-    [agentId, name, version, description, endpoint, domains, isEditing, initialData, writeContract]
+    [agentId, name, version, description, endpoint, domains, isEditing, initialData, writeContract, chainId]
   );
 
   if (isSuccess) {

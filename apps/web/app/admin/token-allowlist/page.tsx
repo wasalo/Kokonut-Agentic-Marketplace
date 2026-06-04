@@ -5,15 +5,14 @@ import { useAccount, useReadContracts, useWriteContract } from 'wagmi';
 import { Card } from '@heroui/react';
 import { Coins, AlertCircle, RefreshCw, Trash2, Plus, Link2 } from 'lucide-react';
 import NextLink from 'next/link';
-import { CONTRACTS } from '@/lib/wagmi';
+import { getContractAddress, ZERO_ADDRESS } from '@/lib/contracts/config';
 import { AGENTIC_COMMERCE_ABI, PRICE_ORACLE_ABI } from '@/lib/contracts/abis';
 import { DS, card } from '@/lib/design-system';
-import { ZERO_ADDRESS } from '@/lib/contracts/config';
 import { formatAmount } from '@/lib/tokenUtils';
 import { toast } from 'sonner';
 
-const AGENTIC_COMMERCE_ADDRESS = CONTRACTS[11155111].agenticCommerce as `0x${string}`;
-const PRICE_ORACLE_ADDRESS = CONTRACTS[11155111].priceOracle as `0x${string}`;
+const AGENTIC_COMMERCE_ADDRESS = getContractAddress('AGENTIC_COMMERCE');
+const PRICE_ORACLE_ADDRESS = getContractAddress('PRICE_ORACLE');
 
 interface TokenRow {
   address: `0x${string}`;

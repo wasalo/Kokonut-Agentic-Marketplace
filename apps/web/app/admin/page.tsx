@@ -4,13 +4,13 @@ import { useState, useEffect } from 'react';
 import { useAccount, useReadContract } from 'wagmi';
 import { Settings, AlertCircle, ShieldAlert, Wallet, XCircle, Loader } from 'lucide-react';
 import { Card, Input } from '@heroui/react';
-import { CONTRACTS } from '@/lib/wagmi';
+import { getContractAddress } from '@/lib/contracts/config';
 import { AGENTIC_COMMERCE_ABI } from '@/lib/contracts/abis';
 import { useAdminBlacklist } from '@/lib/hooks/useAdminBlacklist';
 import { DS, card } from '@/lib/design-system';
 import { toast } from 'sonner';
 
-const AGENTIC_COMMERCE_ADDRESS = CONTRACTS[11155111].agenticCommerce as `0x${string}`;
+const AGENTIC_COMMERCE_ADDRESS = getContractAddress('AGENTIC_COMMERCE');
 
 
 export default function AdminPage(): JSX.Element {

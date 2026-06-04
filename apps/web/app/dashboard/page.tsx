@@ -17,6 +17,7 @@ import dynamicImport from 'next/dynamic';
 import { useUserJobs } from '@/lib/hooks/useJobs';
 import { JobStatus } from '@/lib/types/contracts';
 import { DS } from '@/lib/design-system';
+import { SEPOLIA_CHAIN_ID } from '@/lib/contracts/config';
 import { ActivityFeed } from '@/components/ActivityFeed';
 import { DashboardCard } from '@/components/ui/DashboardCard';
 
@@ -184,7 +185,7 @@ export default function DashboardPage(): JSX.Element {
     return <WalletConnectPrompt />;
   }
 
-  const isWrongNetwork = chainId !== 11155111;
+  const isWrongNetwork = chainId !== SEPOLIA_CHAIN_ID;
 
   return (
     <div className={`${DS.spacing.page} pb-20 md:pb-0`}>
