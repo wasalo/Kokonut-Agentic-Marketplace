@@ -1,18 +1,18 @@
 'use client';
 
 import { useEffect, useState } from 'react';
-import { useAccount, useReadContracts, useWriteContract } from 'wagmi';
+import { useAccount, useReadContracts } from 'wagmi';
 import { Card } from '@heroui/react';
 import { Coins, AlertCircle, RefreshCw, Trash2, Plus, Link2 } from 'lucide-react';
 import NextLink from 'next/link';
 import { getContractAddress, ZERO_ADDRESS } from '@/lib/contracts/config';
-import { AGENTIC_COMMERCE_ABI, PRICE_ORACLE_ABI } from '@/lib/contracts/abis';
+import { AGENTIC_COMMERCE_ABI } from '@/lib/contracts/abis';
 import { DS, card } from '@/lib/design-system';
 import { formatAmount } from '@/lib/tokenUtils';
+import { useTokenAllowlistAdmin } from '@/lib/hooks/useTokenAllowlistAdmin';
 import { toast } from 'sonner';
 
 const AGENTIC_COMMERCE_ADDRESS = getContractAddress('AGENTIC_COMMERCE');
-const PRICE_ORACLE_ADDRESS = getContractAddress('PRICE_ORACLE');
 
 interface TokenRow {
   address: `0x${string}`;
@@ -25,7 +25,6 @@ interface TokenRow {
 export default function TokenAllowlistAdminPage(): JSX.Element {
   useEffect(() => { document.title = 'Token Allowlist | Admin | Kokonut'; }, []);
   const { isConnected } = useAccount();
-  const { writeContractAsync } = useWriteContract();
 
   const { refetch: refetchAllowed } = useReadContracts({
     contracts: [
@@ -38,6 +37,13 @@ export default function TokenAllowlistAdminPage(): JSX.Element {
     ],
     query: { staleTime: 60_000 },
   });
+
+  const {
+    addAllowedToken,
+    removeAllowedToken,
+    setStablecoin,
+    setPriceFeed,
+  } = useTokenAllowlistAdmin();
 
   const [tokens, setTokens] = useState<TokenRow[]>([]);
   const [isLoading, setIsLoading] = useState(false);
@@ -58,12 +64,7 @@ export default function TokenAllowlistAdminPage(): JSX.Element {
   const handleAddToken = async () => {
     if (!newToken) return;
     try {
-      const hash = await writeContractAsync({
-        address: AGENTIC_COMMERCE_ADDRESS,
-        abi: AGENTIC_COMMERCE_ABI,
-        functionName: 'setAllowedToken',
-        args: [newToken as `0x${string}`, true, parseInt(newTokenDecimals)],
-      } as any);
+      const hash = await addAllowedToken(newToken as `0x${string}`);
       toast.success(`Token added: ${hash}`);
       setNewToken('');
       await refetchAllowed();
@@ -74,12 +75,7 @@ export default function TokenAllowlistAdminPage(): JSX.Element {
 
   const handleRemoveToken = async (token: `0x${string}`) => {
     try {
-      const hash = await writeContractAsync({
-        address: AGENTIC_COMMERCE_ADDRESS,
-        abi: AGENTIC_COMMERCE_ABI,
-        functionName: 'setAllowedToken',
-        args: [token, false, 18],
-      } as any);
+      const hash = await removeAllowedToken(token);
       toast.success(`Token removed: ${hash}`);
       await refetchAllowed();
     } catch {
@@ -89,12 +85,7 @@ export default function TokenAllowlistAdminPage(): JSX.Element {
 
   const handleSetStable = async (token: `0x${string}`, stable: boolean) => {
     try {
-      const hash = await writeContractAsync({
-        address: AGENTIC_COMMERCE_ADDRESS,
-        abi: AGENTIC_COMMERCE_ABI,
-        functionName: 'setStablecoin',
-        args: [token, stable],
-      } as any);
+      const hash = await setStablecoin(token, stable);
       toast.success(`Stablecoin flag updated: ${hash}`);
     } catch {
       toast.error('Update failed');
@@ -104,12 +95,11 @@ export default function TokenAllowlistAdminPage(): JSX.Element {
   const handleSetPriceFeed = async () => {
     if (!newPriceFeedToken || !newPriceFeedAddress) return;
     try {
-      const hash = await writeContractAsync({
-        address: PRICE_ORACLE_ADDRESS,
-        abi: PRICE_ORACLE_ABI,
-        functionName: 'setTokenPriceFeed',
-        args: [newPriceFeedToken as `0x${string}`, newPriceFeedAddress as `0x${string}`],
-      } as any);
+      const hash = await setPriceFeed(
+        newPriceFeedToken as `0x${string}`,
+        newPriceFeedAddress as `0x${string}`,
+        parseInt(newTokenDecimals || '18', 10)
+      );
       toast.success(`Price feed set: ${hash}`);
       setNewPriceFeedToken('');
       setNewPriceFeedAddress('');
