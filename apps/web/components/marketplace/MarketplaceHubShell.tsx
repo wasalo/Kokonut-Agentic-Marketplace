@@ -20,8 +20,8 @@ export const MARKETPLACE_HUB_TABS: Array<{
     label: 'Discover',
     description: 'Find services and providers',
     icon: Compass,
-    color: 'text-[#009F4D]',
-    bg: 'bg-[#009F4D]/10',
+    color: 'text-primary',
+    bg: 'bg-primary/10',
   },
   {
     id: 'jobs',

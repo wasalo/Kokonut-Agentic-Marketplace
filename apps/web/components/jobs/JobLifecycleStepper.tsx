@@ -86,9 +86,9 @@ export function JobLifecycleStepper({
           const isCurrent = activeIndex === index;
           const isActionable = isCurrent && node.actionFor.includes(role);
           const ringClass = isActionable
-            ? 'border-[#009F4D] bg-[#009F4D]/10 ring-2 ring-[#009F4D]/30'
+            ? 'border-primary bg-primary/10 ring-2 ring-primary/30'
             : isCurrent
-              ? 'border-[#009F4D] bg-[#009F4D]/5'
+              ? 'border-primary bg-primary/5'
               : isPast
                 ? 'border-success/40 bg-success/5'
                 : 'border-divider bg-content2/60';
@@ -108,9 +108,9 @@ export function JobLifecycleStepper({
                 <span
                   className={`size-5 rounded-full flex items-center justify-center shrink-0 ${
                     isPast
-                      ? 'bg-[#009F4D] text-white'
+                      ? 'bg-primary text-white'
                       : isCurrent
-                        ? 'bg-[#009F4D]/20 text-[#009F4D]'
+                        ? 'bg-primary/20 text-primary'
                         : 'bg-content3 text-default-400'
                   }`}
                   aria-hidden="true"
@@ -129,7 +129,7 @@ export function JobLifecycleStepper({
                 {node.description}
               </p>
               {isActionable && (
-                <p className="text-[10px] sm:text-xs text-[#009F4D] font-medium mt-1">
+                <p className="text-[10px] sm:text-xs text-primary font-medium mt-1">
                   Action: {node.actionFor.includes('client') ? 'Approve delivery' : node.actionFor.includes('provider') ? 'Submit deliverable' : 'Finalize evaluation'}
                 </p>
               )}

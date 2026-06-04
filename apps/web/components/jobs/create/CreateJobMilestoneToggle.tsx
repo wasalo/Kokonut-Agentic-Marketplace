@@ -12,10 +12,10 @@ export function CreateJobMilestoneToggle({
   onToggle,
 }: CreateJobMilestoneToggleProps) {
   return (
-    <div className="flex items-start gap-4 p-4 bg-primary/5 border border-[#009F4D]/20 rounded-lg">
+    <div className="flex items-start gap-4 p-4 bg-primary/5 border border-primary/20 rounded-lg">
       <div className="flex-1">
         <div className="flex items-center gap-2">
-          <Coins className="size-5 text-[#009F4D]" />
+          <Coins className="size-5 text-primary" />
           <span className="font-medium">Milestone-Based Payment</span>
         </div>
         <p className="text-sm text-default-500 mt-1">

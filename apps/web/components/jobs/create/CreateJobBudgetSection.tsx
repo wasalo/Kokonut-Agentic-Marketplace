@@ -61,7 +61,7 @@ export function CreateJobBudgetSection({
               ? `Min ${formatAmount(minBudgetRaw, paymentToken)}`
               : 'Loading minimum…'
           }
-          className="w-full bg-content2 border border-divider rounded-xl py-3 pl-8 pr-4 text-default-900 focus:outline-none focus:ring-2 focus:ring-[#009F4D] transition-all"
+          className="w-full bg-content2 border border-divider rounded-xl py-3 pl-8 pr-4 text-default-900 focus:outline-none focus:ring-2 focus:ring-primary transition-all"
           required
         />
       </div>
@@ -73,7 +73,7 @@ export function CreateJobBudgetSection({
           : 'Funds are held securely in a smart contract escrow.'}
       </p>
       {useMilestones && (
-        <p className="text-xs text-[#009F4D] bg-primary/10 p-2 rounded mt-2">
+        <p className="text-xs text-primary bg-primary/10 p-2 rounded mt-2">
           💰 Funds will be held in escrow and released per milestone upon completion verification
         </p>
       )}

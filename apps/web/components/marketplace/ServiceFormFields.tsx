@@ -312,7 +312,7 @@ export function ServiceFormFields({
 
       <Button
         type="submit"
-        className="w-full border-2 border-[#009F4D] text-[#009F4D] hover:bg-[#009F4D]/5 font-semibold"
+        className="w-full border-2 border-primary text-primary hover:bg-primary/5 font-semibold"
         isDisabled={!isConnected || isServicePending || isServiceConfirming || !canSubmit || !hasEnoughBondBalance}
       >
         {isServicePending || isServiceConfirming

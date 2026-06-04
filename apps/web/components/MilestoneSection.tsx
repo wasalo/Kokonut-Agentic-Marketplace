@@ -156,7 +156,7 @@ export function MilestoneSection({
             <button type="button"
               onClick={() => enableMilestones(jobId, client as `0x${string}`, provider as `0x${string}`, paymentToken as `0x${string}`, budget)}
               disabled={isEnablePending}
-              className="px-4 py-2 bg-[#009F4D] text-white rounded-lg font-medium hover:opacity-90 disabled:opacity-50 text-sm"
+              className="px-4 py-2 bg-primary text-white rounded-lg font-medium hover:opacity-90 disabled:opacity-50 text-sm"
             >
               {isEnablePending ? 'Enabling…' : 'Enable Milestones'}
             </button>
@@ -305,7 +305,7 @@ export function MilestoneSection({
               <button type="button"
                 onClick={handleAddMilestone}
                 disabled={!newDescription || !newAmount || isAddMilestonePending}
-                className="px-3 py-1.5 bg-[#009F4D] text-white text-sm rounded-lg font-medium hover:opacity-90 disabled:opacity-50"
+                className="px-3 py-1.5 bg-primary text-white text-sm rounded-lg font-medium hover:opacity-90 disabled:opacity-50"
               >
                 {isAddMilestonePending ? 'Adding…' : 'Add Milestone'}
               </button>
@@ -390,7 +390,7 @@ export function MilestoneSection({
                     <Button
                       size="sm"
                       variant="outline"
-                      className="border-[#009F4D] text-[#009F4D]"
+                      className="border-primary text-primary"
                       onPress={() => handleCompleteMilestone(index)}
                       isDisabled={!proofHash || isCompletePending || isTerminal}
                     >

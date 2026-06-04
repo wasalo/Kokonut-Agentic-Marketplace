@@ -7,7 +7,7 @@ const SwaggerUI = dynamic(() => import('swagger-ui-react'), {
   ssr: false,
   loading: () => (
     <div className="flex items-center justify-center min-h-[400px]">
-      <div className="animate-spin rounded-full h-8 w-8 border-b-2 border-[#009F4D]"></div>
+      <div className="animate-spin rounded-full h-8 w-8 border-b-2 border-primary"></div>
       <span className="ml-3 text-default-500">Loading API documentation…</span>
     </div>
   ),
@@ -23,8 +23,8 @@ export default function ApiDocsPage() {
       <Suspense
         fallback={
           <div className="flex items-center justify-center min-h-[400px]">
-            <div className="animate-spin rounded-full h-8 w-8 border-b-2 border-[#009F4D]"></div>
-            <span className="ml-3 text-default-500">Loading API documentation…</span>
+          <div className="animate-spin rounded-full h-8 w-8 border-b-2 border-primary"></div>
+          <span className="ml-3 text-default-500">Loading API documentation…</span>
           </div>
         }
       >

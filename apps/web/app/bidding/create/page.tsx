@@ -240,7 +240,7 @@ export default function CreateBiddingSessionPage(): JSX.Element {
           <p className="text-default-500 mb-4">
             Please connect your wallet to create a bidding session.
           </p>
-          <NextLink href="/marketplace?tab=bidding" className="text-[#009F4D] hover:underline">
+          <NextLink href="/marketplace?tab=bidding" className="text-primary hover:underline">
             Back to Bidding Sessions
           </NextLink>
         </Card>
@@ -268,7 +268,7 @@ export default function CreateBiddingSessionPage(): JSX.Element {
             <div className="flex justify-between py-2 border-b border-divider">
               <span className="text-default-500">Evaluator</span>
               <span className="font-medium flex items-center gap-1">
-                <Shield className="size-4 text-[#009F4D]" />
+                <Shield className="size-4 text-primary" />
                 Random Pool
               </span>
             </div>
@@ -355,11 +355,11 @@ export default function CreateBiddingSessionPage(): JSX.Element {
       </div>
 
       {/* Random Evaluator Info */}
-      <Card className="border border-[#009F4D]/20 bg-[#009F4D]/5 p-4 mb-6">
+      <Card className="border border-primary/20 bg-primary/5 p-4 mb-6">
         <div className="flex items-start gap-3">
-          <Shield className="size-5 text-[#009F4D] mt-0.5" />
+          <Shield className="size-5 text-primary mt-0.5" />
           <div>
-            <p className="text-sm font-medium text-[#009F4D]">Random Evaluator Pool</p>
+            <p className="text-sm font-medium text-primary">Random Evaluator Pool</p>
             <p className="text-xs text-default-500 mt-1">
               After bidding closes and a winner is selected, a random evaluator from the registered pool will be assigned to judge the work. This ensures unbiased evaluation.
             </p>
@@ -395,7 +395,7 @@ export default function CreateBiddingSessionPage(): JSX.Element {
                 value={maxBudget}
                 onChange={e => setMaxBudget(e.target.value)}
                 placeholder="0.0"
-                className={`w-full px-4 py-2 bg-content1 border rounded-lg focus:outline-none focus:ring-2 focus:ring-[#009F4D]/50 ${
+                className={`w-full px-4 py-2 bg-content1 border rounded-lg focus:outline-none focus:ring-2 focus:ring-primary/50 ${
                   errors.maxBudget ? 'border-danger' : 'border-divider'
                 }`}
               />
@@ -413,9 +413,9 @@ export default function CreateBiddingSessionPage(): JSX.Element {
           </div>
 
           {/* Stake Info */}
-          <div className="p-4 bg-[#009F4D]/10 rounded-lg">
+          <div className="p-4 bg-primary/10 rounded-lg">
             <div className="flex items-center gap-2 mb-2">
-              <span className="text-sm font-medium text-[#009F4D]">Creator Stake</span>
+              <span className="text-sm font-medium text-primary">Creator Stake</span>
             </div>
             <p className="text-2xl font-bold">
               {maxBudget ? (paymentToken.symbol === 'ETH' ? Number(formatAmount(calculatedStake, 18)).toFixed(6) : formatAmount(calculatedStake, paymentToken.decimals)) : '0'} {paymentToken.symbol}
@@ -447,8 +447,8 @@ export default function CreateBiddingSessionPage(): JSX.Element {
                   onClick={() => setDeadlineMinutes(String(preset.minutes))}
                   className={`px-3 py-1.5 text-xs rounded-lg border transition-colors ${
                     deadlineMinutes === String(preset.minutes)
-                      ? 'border-[#009F4D] bg-[#009F4D]/10 text-[#009F4D]'
-                      : 'border-divider hover:border-[#009F4D]/30'
+                      ? 'border-primary bg-primary/10 text-primary'
+                      : 'border-divider hover:border-primary/30'
                   }`}
                 >
                   {preset.label}
@@ -464,7 +464,7 @@ export default function CreateBiddingSessionPage(): JSX.Element {
                 placeholder="1440"
                 min={MIN_DEADLINE_MINUTES}
                 max={MAX_DEADLINE_MINUTES}
-                className={`w-full pl-10 pr-4 py-2 bg-content1 border rounded-lg focus:outline-none focus:ring-2 focus:ring-[#009F4D]/50 ${
+                className={`w-full pl-10 pr-4 py-2 bg-content1 border rounded-lg focus:outline-none focus:ring-2 focus:ring-primary/50 ${
                   errors.deadline ? 'border-danger' : 'border-divider'
                 }`}
               />
@@ -484,7 +484,7 @@ export default function CreateBiddingSessionPage(): JSX.Element {
               onChange={e => setServiceId(e.target.value)}
               placeholder="0"
               min="0"
-              className={`w-full px-4 py-2 bg-content1 border rounded-lg focus:outline-none focus:ring-2 focus:ring-[#009F4D]/50 ${
+              className={`w-full px-4 py-2 bg-content1 border rounded-lg focus:outline-none focus:ring-2 focus:ring-primary/50 ${
                 errors.serviceId ? 'border-danger' : 'border-divider'
               }`}
             />
@@ -504,7 +504,7 @@ export default function CreateBiddingSessionPage(): JSX.Element {
               onChange={e => setMetadata(e.target.value.slice(0, MAX_METADATA_LENGTH))}
               placeholder="Describe your project or requirements..."
               rows={4}
-              className={`w-full px-4 py-2 bg-content1 border rounded-lg focus:outline-none focus:ring-2 focus:ring-[#009F4D]/50 resize-none ${
+              className={`w-full px-4 py-2 bg-content1 border rounded-lg focus:outline-none focus:ring-2 focus:ring-primary/50 resize-none ${
                 errors.metadata ? 'border-danger' : 'border-divider'
               }`}
             />
@@ -520,7 +520,7 @@ export default function CreateBiddingSessionPage(): JSX.Element {
               type="checkbox"
               checked={evaluatorFee}
               onChange={e => setEvaluatorFee(e.target.checked)}
-              className="mt-1 size-4 accent-[#009F4D]"
+              className="mt-1 size-4 accent-primary"
             />
             <div>
               <span className="block text-sm font-medium">Evaluator fee share (O-6)</span>
@@ -538,7 +538,7 @@ export default function CreateBiddingSessionPage(): JSX.Element {
               value={hookAddress}
               onChange={e => setHookAddress(e.target.value)}
               placeholder="0x... (contract address, leave blank for none)"
-              className="w-full px-4 py-2 bg-content1 border border-divider rounded-lg focus:outline-none focus:ring-2 focus:ring-[#009F4D]/50 font-mono text-sm"
+              className="w-full px-4 py-2 bg-content1 border border-divider rounded-lg focus:outline-none focus:ring-2 focus:ring-primary/50 font-mono text-sm"
             />
             <p className="text-xs text-default-400 mt-1">
               An optional contract to be notified on bid events (e.g. webhook relay). Must be a deployed contract (no EOAs).

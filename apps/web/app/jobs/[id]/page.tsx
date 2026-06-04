@@ -200,11 +200,11 @@ export default function JobDetailPage({
           )}
 
         {job && job.evaluator === ZERO_ADDRESS && (
-          <Card className="border border-[#009F4D]/20 bg-[#009F4D]/5 p-4">
+          <Card className="border border-primary/20 bg-primary/5 p-4">
             <div className="flex items-start gap-3">
-              <AlertCircle className="size-5 text-[#009F4D] shrink-0 mt-0.5" />
+              <AlertCircle className="size-5 text-primary shrink-0 mt-0.5" />
               <div className="flex-1">
-                <p className="font-medium text-[#009F4D]">Evaluator Pending</p>
+                <p className="font-medium text-primary">Evaluator Pending</p>
                 <p className="text-sm text-default-500 mt-1">
                   This job uses the random evaluator pool. Click below to finalize the evaluator assignment.
                 </p>
@@ -212,7 +212,7 @@ export default function JobDetailPage({
                   type="button"
                   onClick={finalizeRandomEvaluator}
                   disabled={isFinalizeRandomPending}
-                  className="mt-3 inline-flex items-center gap-2 px-4 py-2 bg-[#009F4D] text-white text-sm font-medium rounded-lg hover:opacity-90 transition-opacity disabled:opacity-50"
+                  className="mt-3 inline-flex items-center gap-2 px-4 py-2 bg-primary text-white text-sm font-medium rounded-lg hover:opacity-90 transition-opacity disabled:opacity-50"
                 >
                   {isFinalizeRandomPending ? (
                     <Loader2 className="size-4 animate-spin" />

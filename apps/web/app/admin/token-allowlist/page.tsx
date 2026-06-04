@@ -161,7 +161,7 @@ export default function TokenAllowlistAdminPage(): JSX.Element {
             type="checkbox"
             checked={newTokenStable}
             onChange={e => setNewTokenStable(e.target.checked)}
-            className="size-4 accent-[#009F4D]"
+                        className="size-4 accent-primary"
           />
           <span className="text-sm">Stablecoin</span>
         </label>
@@ -233,7 +233,7 @@ export default function TokenAllowlistAdminPage(): JSX.Element {
                         checked={t.isStablecoin}
                         onChange={e => handleSetStable(t.address, e.target.checked)}
                         disabled={!isConnected}
-                        className="size-4 accent-[#009F4D]"
+            className="size-4 accent-primary"
                       />
                     </td>
                     <td className="p-3 font-mono text-xs">{t.price > 0n ? formatAmount(t.price, 8) : '—'}</td>

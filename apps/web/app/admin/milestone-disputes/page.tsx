@@ -160,7 +160,7 @@ export default function MilestoneDisputesAdminPage(): JSX.Element {
                                 type="checkbox"
                                 checked={releaseToProvider}
                                 onChange={e => setReleaseToProvider(e.target.checked)}
-                                className="size-4 accent-[#009F4D]"
+                                className="size-4 accent-primary"
                               />
                               Release to provider
                             </label>

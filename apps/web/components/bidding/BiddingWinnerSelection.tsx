@@ -59,7 +59,7 @@ export function BiddingWinnerSelection({
                 onClick={() => onSelectBid(bid.bidId)}
                 className={`w-full text-left p-4 rounded-lg border transition-colors ${
                   isSelected
-                    ? 'border-[#009F4D] bg-[#009F4D]/5'
+                    ? 'border-primary bg-primary/5'
                     : 'border-divider hover:bg-content2'
                 }`}
               >
@@ -72,7 +72,7 @@ export function BiddingWinnerSelection({
                     )}
                   </div>
                   <div className="md:text-right">
-                    <p className="font-semibold text-[#009F4D]">
+                    <p className="font-semibold text-primary">
                       {formatAmount(bid.proposedAmount, token, { includeSymbol: true })}
                     </p>
                     <p className="text-xs text-default-500">
@@ -90,7 +90,7 @@ export function BiddingWinnerSelection({
           type="button"
           onClick={onAcceptBid}
           disabled={!selectedBid || selectedBid.accepted || isAcceptPending}
-          className="w-full sm:w-auto px-6 py-2 bg-[#009F4D] text-white font-medium rounded-lg hover:bg-[#007a3d] transition-colors disabled:opacity-50 disabled:cursor-not-allowed"
+          className="w-full sm:w-auto px-6 py-2 bg-primary text-white font-medium rounded-lg hover:bg-[#007a3d] transition-colors disabled:opacity-50 disabled:cursor-not-allowed"
         >
           {isAcceptPending ? (
             <Loader2 className="size-4 animate-spin inline" />

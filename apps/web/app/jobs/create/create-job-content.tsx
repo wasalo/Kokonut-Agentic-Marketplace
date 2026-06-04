@@ -421,7 +421,7 @@ function CreateJobContent() {
             {serviceId ? (
               <div className="flex justify-between items-center bg-content2 p-4 rounded-xl border border-divider">
                 <span className="font-medium text-default-700">Predefined Service Price</span>
-                <span className="text-xl font-bold text-[#009F4D]">
+                <span className="text-xl font-bold text-primary">
                   {service ? formattedServicePrice : 'Loading…'}
                 </span>
               </div>

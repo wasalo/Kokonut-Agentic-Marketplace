@@ -149,9 +149,9 @@ export function BottomNav(): JSX.Element | null {
 
           const baseClass = cn(
             'relative flex flex-col items-center justify-center gap-1 min-h-[56px] py-2 px-1 transition-colors',
-            'focus:outline-none focus-visible:ring-2 focus-visible:ring-[#009F4D] focus-visible:ring-offset-2 focus-visible:ring-offset-background',
+            'focus:outline-none focus-visible:ring-2 focus-visible:ring-primary focus-visible:ring-offset-2 focus-visible:ring-offset-background',
             isActive
-              ? 'text-[#009F4D]'
+              ? 'text-primary'
               : 'text-default-500 hover:text-foreground active:text-foreground'
           );
 
@@ -174,7 +174,7 @@ export function BottomNav(): JSX.Element | null {
                 {showUnreadBadge && (
                   <span
                     aria-hidden="true"
-                    className="absolute -top-1.5 -right-2 min-w-[16px] h-4 px-1 bg-[#009F4D] text-white text-[10px] font-bold rounded-full flex items-center justify-center"
+                    className="absolute -top-1.5 -right-2 min-w-[16px] h-4 px-1 bg-primary text-white text-[10px] font-bold rounded-full flex items-center justify-center"
                   >
                     {unreadCount > 99 ? '99+' : unreadCount}
                   </span>
@@ -186,7 +186,7 @@ export function BottomNav(): JSX.Element | null {
               {isActive && (
                 <span
                   aria-hidden="true"
-                  className="absolute bottom-1 left-1/2 -translate-x-1/2 w-8 h-0.5 rounded-full bg-[#009F4D]"
+                  className="absolute bottom-1 left-1/2 -translate-x-1/2 w-8 h-0.5 rounded-full bg-primary"
                 />
               )}
             </>

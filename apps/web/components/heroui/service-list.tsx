@@ -93,7 +93,7 @@ const ServiceCard = memo(function ServiceCard({
               onClick={handleBookmark}
               className={`p-1 rounded transition-colors ${
                 bookmarked
-                  ? 'text-[#009F4D] hover:bg-[#009F4D]/10'
+                  ? 'text-primary hover:bg-primary/10'
                   : 'text-default-400 hover:text-default-600 hover:bg-default-100'
               }`}
               title={bookmarked ? 'Remove bookmark' : 'Bookmark this service'}

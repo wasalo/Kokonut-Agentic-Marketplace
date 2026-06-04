@@ -22,8 +22,8 @@ export function BiddingStatsStrip({
       label: 'Total Sessions',
       value: totalCount,
       icon: Gavel,
-      iconClassName: 'text-[#009F4D]',
-      bgClassName: 'bg-[#009F4D]/10',
+      iconClassName: 'text-primary',
+      bgClassName: 'bg-primary/10',
     },
     {
       label: 'Active Sessions',

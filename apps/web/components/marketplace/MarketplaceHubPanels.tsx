@@ -350,7 +350,7 @@ export function MyWorkHubPanel({ jobs, user, isLoading }: { jobs: Job[]; user?: 
           onClick={() => switchSubtab('jobs')}
           aria-pressed={subtab === 'jobs'}
           className={`px-4 py-1.5 rounded-full transition-colors ${
-            subtab === 'jobs' ? 'bg-[#009F4D] text-white' : 'text-default-500 hover:text-foreground'
+            subtab === 'jobs' ? 'bg-primary text-white' : 'text-default-500 hover:text-foreground'
           }`}
         >
           Jobs ({attentionJobs.length})
@@ -360,7 +360,7 @@ export function MyWorkHubPanel({ jobs, user, isLoading }: { jobs: Job[]; user?: 
           onClick={() => switchSubtab('bids')}
           aria-pressed={subtab === 'bids'}
           className={`px-4 py-1.5 rounded-full transition-colors ${
-            subtab === 'bids' ? 'bg-[#009F4D] text-white' : 'text-default-500 hover:text-foreground'
+            subtab === 'bids' ? 'bg-primary text-white' : 'text-default-500 hover:text-foreground'
           }`}
         >
           My Bids
@@ -432,7 +432,7 @@ export function MyBidsPanel({ user }: { user: `0x${string}` }) {
             <NextLink
               key={session.id.toString()}
               href={`/bidding/${session.id.toString()}`}
-              className="block p-4 rounded-2xl border border-divider bg-content1/60 hover:border-[#009F4D]/40 transition-colors"
+              className="block p-4 rounded-2xl border border-divider bg-content1/60 hover:border-primary/40 transition-colors"
             >
               <div className="flex items-start justify-between gap-3">
                 <div className="min-w-0">

@@ -59,7 +59,7 @@ export function HeaderBell(): JSX.Element | null {
         {totalCount > 0 && (
           <span
             aria-hidden="true"
-            className="absolute -top-0.5 -right-0.5 min-w-[18px] h-[18px] px-1 flex items-center justify-center rounded-full bg-[#009F4D] text-white text-[10px] font-bold leading-none"
+            className="absolute -top-0.5 -right-0.5 min-w-[18px] h-[18px] px-1 flex items-center justify-center rounded-full bg-primary text-white text-[10px] font-bold leading-none"
           >
             {totalCount > 99 ? '99+' : totalCount}
           </span>
@@ -130,7 +130,7 @@ export function HeaderBell(): JSX.Element | null {
               <NextLink
                 href="/marketplace?tab=my-work"
                 onClick={close}
-                className="text-xs text-[#009F4D] hover:underline"
+                className="text-xs text-primary hover:underline"
               >
                 Open My Work →
               </NextLink>

@@ -45,7 +45,7 @@ export function RevealBidForm({
             <button
               type="button"
               onClick={onCopySalt}
-              className="text-xs text-[#009F4D] hover:underline flex items-center gap-1"
+              className="text-xs text-primary hover:underline flex items-center gap-1"
             >
               {saltCopied ? <CheckCircle className="size-3" /> : <Copy className="size-3" />}
               {saltCopied ? 'Copied!' : 'Copy'}
@@ -97,7 +97,7 @@ export function RevealBidForm({
           type="button"
           onClick={onReveal}
           disabled={!revealAmount || !commitSalt || isRevealPending}
-          className="w-full sm:w-auto px-6 py-2 bg-[#009F4D] text-white font-medium rounded-lg hover:bg-[#007a3d] transition-colors disabled:opacity-50 disabled:cursor-not-allowed"
+          className="w-full sm:w-auto px-6 py-2 bg-primary text-white font-medium rounded-lg hover:bg-[#007a3d] transition-colors disabled:opacity-50 disabled:cursor-not-allowed"
         >
           {isRevealPending ? (
             <Loader2 className="size-4 animate-spin inline" />

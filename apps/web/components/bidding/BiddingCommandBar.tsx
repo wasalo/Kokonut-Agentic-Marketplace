@@ -47,7 +47,7 @@ export function BiddingCommandBar({
             variant="ghost"
             size="sm"
             onPress={onToggleFilters}
-            className={showFilters ? 'bg-[#009F4D]/20' : ''}
+            className={showFilters ? 'bg-primary/20' : ''}
           >
             <SlidersHorizontal className="size-4 mr-1" />
             Filters

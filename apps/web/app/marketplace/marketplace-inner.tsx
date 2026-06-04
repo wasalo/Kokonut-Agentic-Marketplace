@@ -89,7 +89,7 @@ function FilterSection({
             onClick={() => setSkillDomain('')}
             className={`px-3 py-1.5 rounded-full text-xs whitespace-nowrap transition-colors cursor-pointer ${
               skillDomain === ''
-                ? 'bg-[#009F4D] text-white'
+                ? 'bg-primary text-white'
                 : 'bg-content2 text-default-600 hover:bg-content3'
             }`}
           >
@@ -101,7 +101,7 @@ function FilterSection({
               onClick={() => setSkillDomain(skillDomain === domain.value ? '' : domain.value)}
               className={`px-3 py-1.5 rounded-full text-xs whitespace-nowrap transition-colors cursor-pointer ${
                 skillDomain === domain.value
-                  ? 'bg-[#009F4D] text-white'
+                  ? 'bg-primary text-white'
                   : 'bg-content2 text-default-600 hover:bg-content3'
               }`}
             >
@@ -111,7 +111,7 @@ function FilterSection({
         </div>
         <NextLink
           href="/marketplace?tab=skills"
-          className="px-3 py-1.5 rounded-full text-xs text-[#009F4D] hover:bg-content2 transition-colors flex items-center gap-1 cursor-pointer whitespace-nowrap"
+          className="px-3 py-1.5 rounded-full text-xs text-primary hover:bg-content2 transition-colors flex items-center gap-1 cursor-pointer whitespace-nowrap"
         >
           <Code className="size-3" />
           Browse Skills

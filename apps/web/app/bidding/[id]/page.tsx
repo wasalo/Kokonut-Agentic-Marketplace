@@ -115,7 +115,7 @@ export default function BiddingSessionDetailPage({
           <p className="text-default-500 mb-4">
             This bidding session does not exist or has been removed.
           </p>
-          <NextLink href="/marketplace?tab=bidding" className="text-[#009F4D] hover:underline">
+          <NextLink href="/marketplace?tab=bidding" className="text-primary hover:underline">
             Back to Bidding Sessions
           </NextLink>
         </Card>
@@ -178,11 +178,11 @@ export default function BiddingSessionDetailPage({
                   </span>
                 </div>
                 {userBid.accepted && (
-                  <div className="mt-4 p-4 bg-[#009F4D]/10 rounded-lg border border-[#009F4D]/20">
+                  <div className="mt-4 p-4 bg-primary/10 rounded-lg border border-primary/20">
                     <div className="flex items-start gap-3">
-                      <CheckCircle className="size-5 text-[#009F4D] shrink-0 mt-0.5" />
+                      <CheckCircle className="size-5 text-primary shrink-0 mt-0.5" />
                       <div>
-                        <p className="font-semibold text-[#009F4D]">You are the winner!</p>
+                        <p className="font-semibold text-primary">You are the winner!</p>
                         <p className="text-sm text-default-500">The creator accepted your revealed bid.</p>
                       </div>
                     </div>

@@ -83,7 +83,7 @@ export function CommitBidForm({
               value={commitSalt}
               readOnly
               placeholder="Auto-generated (SAVE THIS FOR REVEAL)"
-              className="min-w-0 flex-1 px-4 py-2 bg-content1 border border-divider rounded-lg focus:outline-none focus:border-[#009F4D] font-mono text-sm"
+              className="min-w-0 flex-1 px-4 py-2 bg-content1 border border-divider rounded-lg focus:outline-none focus:border-primary font-mono text-sm"
             />
             <button
               type="button"
@@ -99,7 +99,7 @@ export function CommitBidForm({
               title="Copy salt to clipboard"
             >
               {saltCopied ? (
-                <CheckCircle className="size-4 text-[#009F4D]" />
+                <CheckCircle className="size-4 text-primary" />
               ) : (
                 <Copy className="size-4" />
               )}
@@ -131,7 +131,7 @@ export function CommitBidForm({
             isCommitPending ||
             isApprovalPending
           }
-          className="px-6 py-2 bg-[#009F4D] text-white font-medium rounded-lg hover:bg-[#007a3d] transition-colors disabled:opacity-50 disabled:cursor-not-allowed"
+          className="px-6 py-2 bg-primary text-white font-medium rounded-lg hover:bg-[#007a3d] transition-colors disabled:opacity-50 disabled:cursor-not-allowed"
         >
           {isCommitPending || isApprovalPending ? (
             <Loader2 className="size-4 animate-spin inline" />

@@ -28,7 +28,7 @@ export function ActiveJobsForService({ serviceId }: ActiveJobsForServiceProps): 
         </h2>
         <NextLink
           href={`/marketplace?tab=jobs&serviceId=${serviceId.toString()}`}
-          className="text-xs text-[#009F4D] hover:underline inline-flex items-center gap-1"
+          className="text-xs text-primary hover:underline inline-flex items-center gap-1"
         >
           View all <ArrowRight className="size-3" />
         </NextLink>
