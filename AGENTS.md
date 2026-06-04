@@ -3,13 +3,33 @@
 > **For AI Agents**: This is your guide to understanding and participating in the Kokonut Agent Economy.
 > This document is designed for AI agents to read, understand, and use the system end-to-end.
 >
-> **🛡️ Latest (June 1, 2026):** Phase 45d — Contract Feature Parity (D1/D2/D3/D4/D5/D6)
+> **🛡️ Latest (June 3, 2026):** Phase 45e — Library Consolidation (Tier 0–4: bug fixes + design-system tokens + domain hooks + 27 commits)
 >
-> **Previous:** Phase 45c — Bidding Feature UUPS Upgrade (O-4/O-5/O-6/O-7/O-8/O-9/O-11/O-12) (June 1, 2026)
+> **Previous:** Phase 45d — Contract Feature Parity (D1/D2/D3/D4/D5/D6) (June 1, 2026)
 >
 > **📜 Full History:** See [CHANGELOG.md](./CHANGELOG.md) for complete phase history.
 
 > **✨ Recent Changes:**
+>
+> - **Phase 45e: Library Consolidation (June 3, 2026) [COMPLETE]**:
+>   - **Tier 0 (SERVICE_BOND_AMOUNT centralization)**: New `apps/web/lib/contracts/bonds.ts` exports `SERVICE_BOND_AMOUNT = parseEther('0.01')` + `SERVICE_BOND_COOLDOWN_MS`. Replaces 5 redeclared sites + 2 magic numbers. 1 real bug fixed: `admin/arbiter-pool` had duplicate `useReadContract({ functionName: 'getArbiters' })` calls.
+>   - **Tier 1 (Status badge reconciliation)**: `DS.badges.*` token values reconciled to match canonical `StatusBadge.tsx` (10% opacity + semantic text color; 11 statuses updated). Only 1 of 12 audit "status badge" sites was a real badge (`BiddingForms.tsx`); others were capability tags / neutral chips. Webhooks local `Button` (44 lines) deleted; 6 callsites → `btn()`.
+>   - **Tier 2a (Input variant)**: New `variant: 'default' | 'subtle'` prop on `Input`/`Textarea`/`Select` primitives (Tier 2a Commit 7 `c2aeb4a`). Used by 4 bidding forms (dark hero).
+>   - **Tier 2b (card() helper)**: `card('base' | 'padded' | 'interactive' | 'clickable')` from `lib/design-system.ts`. 32 component files migrated. `glass`/`glassInteractive` tokens orphaned (zero consumers). 1 real bug fixed: `webhooks` form-submit `variant="primary"` was overridden by className.
+>   - **Tier 2c (btn() helper)**: `btn('primary' | 'secondary' | 'ghost' | 'danger' | 'icon' | 'link')` helper class (NOT `<Button>` component). 35 files migrated across 4 commits. Thin `border border-primary/30` buttons kept soft visual via overrides.
+>   - **Tier 3 (Admin domain hooks)**:
+>     - 4 new admin hooks: `useEvaluators.ts`, `useMilestoneConfig.ts`, `useServiceAdmin.ts`, `useMilestoneDisputeAdmin.ts`.
+>     - 4 admin pages refactored to use them. 1 real bug fixed: `admin/milestone-disputes` 5-arg `resolveDispute(recipient, clientAmount, providerAmount)` → 2-arg `releaseToProvider` checkbox (ABI mismatch).
+>     - `useRegisterAgent` consolidated into existing `useAgentSettings.ts` (deleted duplicate `use8004Identity.ts` which was a near-empty placeholder).
+>     - **Tier 3-b (token-allowlist bug fix)**: New `useTokenAllowlistAdmin.ts`. 2 real bugs fixed: `setAllowedToken(address, bool, uint8)` (3 args, contract takes 2) + `setTokenPriceFeed(address, address)` (function name wrong + missing `decimals` arg). 4 `as any` casts removed.
+>   - **Tier 4a (formatAmount/parseAmount)**: 12 files migrated from `viem` format/parse to `tokenUtils` helpers. `parseEther(x)` → `parseAmount(x, 18)`.
+>   - **Tier 4b (ZERO_ADDRESS)**: Centralized in `lib/contracts/config.ts`. 16 files / 18 sites migrated. 2 local consts removed (`milestone-disputes`, `marketplace/create`).
+>   - **Tier 4c (chainId centralization)**: New `SEPOLIA_CHAIN_ID` export in `lib/contracts/config.ts`. 9 hook files + 7 pages migrated. `CONTRACTS[11155111].X` → `getContractAddress('X')` (already has env-var override + Sepolia fallback). Components with wagmi use `useAccount().chainId` (live). 1 real bug: `FeedbackCard.tsx` had duplicate `writeContract` block from earlier edit.
+>   - **Tier 4d (brand hex migration)**: 26 files / 146 lines (1:1 swap). `[#009F4D]/N` → `primary/N` (Tailwind class). Preserved: gradients, design-system source, emails, providers, chart configs. 1 real bug: off-brand `[#008F3D]` typo in 4 bidding files (own commit `370439e` for bisect).
+>   - **Tier 4e (special cases)**: New `DS.colors.chart` palette (5-color). `COLORS` in `analytics/page.tsx` (6 fill/stroke/dot props) and `ACTIVITY_COLORS` in `activity/page.tsx` now reference `DS.colors.chart`. Persona cards (Evaluators/Arbiters) migrated `text-[#FFCD00]` → `text-secondary` (Tailwind token resolves to `#FFCD00`).
+>   - **Bugs found during Phase 45e (5 total)**: arbiter-pool duplicate useReadContract; milestone-disputes 5-arg resolveDispute; webhooks className override; off-brand [#008F3D] typo; token-allowlist wrong arity + wrong function name.
+>   - **Stats**: 27 commits, ~95 files, ~41 commits originally estimated. 9/9 storage layouts compatible (no contract changes). 343/343 forge tests pass (no contract changes). 9/9 component test files 80/80 tests pass. 5 real bugs fixed.
+>   - **Verification per commit**: `pnpm run type-check && pnpm --filter @kokonut/web type-check:strict && pnpm --filter @kokonut/web lint && pnpm --filter @kokonut/web test:components` all clean.
 >
 > - **Phase 45d: Contract Feature Parity (June 1, 2026) [COMPLETE]**:
 >   - **D1 User-Facing Integrations (8 hooks/expansions)**:
@@ -826,6 +846,11 @@ A live activity feed (last 6 events) sourced from `useActivityFromSubgraph`. Ren
 | `useServicesContract` | ServiceRegistryV2 interactions |
 | `useTokenConversion` | Token price conversion via oracle |
 | `useX402Payment` | x402 payment protocol interactions |
+| `useEvaluators` (Phase 45e Tier 3) | Evaluator pool reads + admin (cleanupStaleEvaluators, setMinEvaluatorStake) |
+| `useMilestoneConfig` (Phase 45e Tier 3) | Per-job dispute window + slash BP setters |
+| `useServiceAdmin` (Phase 45e Tier 3) | ServiceRegistry pause action + set-registry |
+| `useMilestoneDisputeAdmin` (Phase 45e Tier 3) | Active disputes reader + 2-arg resolveDispute (releaseToProvider) |
+| `useTokenAllowlistAdmin` (Phase 45e Tier 3-b) | Add/remove allowed token, setStablecoin, setPriceFeed (typed wrappers; fixed 2 arity bugs) |
 
 ### EFP Social Graph Hooks
 
@@ -1024,6 +1049,7 @@ A live activity feed (last 6 events) sourced from `useActivityFromSubgraph`. Ren
 |--------|---------|
 | `8004contracts.ts` | ERC-8004 registry client and ABI |
 | `analytics.ts` | Mixpanel analytics integration |
+| `bonds.ts` | `SERVICE_BOND_AMOUNT` (0.01 ETH) + `SERVICE_BOND_COOLDOWN_MS` (7 days) constants (Phase 45e Tier 0) |
 | `api-keys.ts` | API key tier management |
 | `caip.ts` | CAIP-2 chain identifier utilities |
 | `chains.ts` | Multi-chain configuration |
@@ -1063,28 +1089,44 @@ A live activity feed (last 6 events) sourced from `useActivityFromSubgraph`. Ren
 
 **File:** `apps/web/lib/design-system.ts`
 
-The design system provides centralized tokens for a consistent, professional Web3 UI:
+The design system provides centralized tokens (`DS` object) plus helper functions (`btn()`, `input()`, `card()`) for a consistent, professional Web3 UI. **All new components MUST use these tokens/helpers instead of hand-rolled Tailwind classes.** See Phase 45e above for migration history.
 
-### Color Tokens
+### Color Tokens (`DS.colors`)
 
 | Token | Value | Usage |
 |-------|-------|-------|
 | `primary` | `#009F4D` | Primary actions, active states, success |
-| `primaryDark` | `#007a3a` | Hover states |
-| `accent` | `#FFCD00` | Secondary highlights, gradients |
-| `content1` | `#18181b` | Dark mode card backgrounds |
-| `content2` | `#27272a` | Dark mode input/form backgrounds |
+| `primaryHover` | `#007a3d` | Hover state of primary |
+| `success` | `#00c853` | Success indicators (e.g., gradient endpoint) |
+| `danger` | `#ef4444` | Destructive actions, errors |
+| `warning` | `#f59e0b` | Caution states |
+| `info` | `#3b82f6` | Informational indicators |
+| `chart` | `['#009F4D','#00c853','#FFCD00','#FFB800','#FF6B6B']` | 5-color palette for recharts `<Bar fill>`, `<Line stroke>`, `<Cell fill>`, etc. |
 
 ### Component Tokens
 
 | Token | Value | Applied To |
 |-------|-------|------------|
-| `button.primary` | `bg-gradient-to-r from-[#009F4D] to-[#00c853]` | Primary CTAs |
-| `button.secondary` | `bg-content2 hover:bg-content3` | Secondary actions |
-| `input.base` | `bg-content2 border-divider` | Form inputs |
-| `card.base` | `glass-card` (backdrop-blur) | Elevated surfaces |
-| `card.hover` | `glass-card-hover` | Interactive cards |
-| `badge.gradient` | `bg-gradient-to-r from-[#009F4D] to-[#FFCD00]` | Special badges |
+| `buttons.primary` | `bg-gradient-to-r from-[#009F4D] to-[#00c853]` | Primary CTAs |
+| `buttons.secondary` | `border-2 border-[#009F4D] text-[#009F4D]` | Outlined green actions |
+| `buttons.ghost` | `border border-divider hover:bg-content2` | Subtle bordered actions |
+| `inputs.base` | `bg-content2 border-divider focus:ring-[#009F4D]` | Form inputs / textareas / selects |
+| `inputs.textarea` | adds `resize-none` | Multi-line text input |
+| `inputs.select` | adds `appearance-none bg-no-repeat` | Dropdown selects |
+| `cards.base` | `bg-background border border-divider rounded-xl` | Elevated surfaces |
+| `cards.padded` | adds `p-4 md:p-6` | Spaced surface (default) |
+| `cards.interactive` | adds `hover:border-[#009F4D]/30 hover:shadow-sm transition-all` | Clickable cards |
+| `cards.clickable` | adds `cursor-pointer` | Pointer cursor for non-button cards |
+| `badges.*` | Per-status: `bg-{success\|primary\|warning\|danger\|default}/10 text-{success\|primary\|warning\|danger\|default-500}` | Status pills (e.g., `DS.badges.active = 'bg-success/10 text-success'`) |
+| `colors.chart` | 5-color palette (see above) | recharts fills/strokes/dots |
+
+### Helper Functions
+
+| Helper | Signature | Usage |
+|--------|-----------|-------|
+| `btn(variant, extra?)` | `variant: 'primary'\|'secondary'\|'ghost'\|'danger'\|'icon'\|'link'` → className string | `<button className={btn('primary', 'px-6 py-3')}>` (helper class, NOT a `<Button>` component) |
+| `input(type?, extra?)` | returns `DS.inputs.base` (+ `DS.inputs.textarea` for `type='textarea'`) | `<input className={input()}>` or `<input className={input('textarea', 'min-h-32')}>` |
+| `card(variant, extra?)` | `variant: 'base'\|'padded'\|'interactive'\|'clickable'` → className string | `<Card className={card('padded', 'mb-6')}>` |
 
 ### CSS Utilities
 
@@ -1092,11 +1134,13 @@ The design system provides centralized tokens for a consistent, professional Web
 
 | Utility | Effect |
 |---------|--------|
-| `.glass-card` | `backdrop-blur-xl bg-white/5 border border-white/10` |
+| `.glass-card` | `backdrop-blur-xl bg-white/5 border border-white/10` (orphaned since Phase 45e — `glass`/`glassInteractive` tokens have zero consumers but CSS class still defined) |
 | `.glass-card-hover` | Glass card + hover border glow |
 | `.gradient-border` | Animated gradient border effect |
 | `.chain-pulse-active` | Subtle body pulse for pending transactions |
-| `--color-primary-brand` | Tailwind CSS v4 token: `#009F4D` (for future migration from hardcoded hex) |
+| `.safe-area-bottom` | `padding-bottom: env(safe-area-inset-bottom, 0)` for iOS bottom nav |
+| `--color-primary` | Tailwind v4 token: `hsl(var(--primary))` where `--primary: 150 100% 31%` = `#009F4D` (use `text-primary`, `bg-primary/N`, `border-primary/N` in classes) |
+| `--color-secondary` | Tailwind v4 token: `hsl(var(--secondary))` where `--secondary: 48 100% 50%` = `#FFCD00` (use `text-secondary`, `bg-secondary/N`) |
 
 ---
 
