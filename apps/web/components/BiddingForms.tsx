@@ -28,6 +28,7 @@ import {
   Token,
 } from '@/lib/hooks/useTokenConversion';
 import { amountToNumber, formatAmount, parseAmount } from '@/lib/tokenUtils';
+import { ZERO_ADDRESS } from '@/lib/contracts/config';
 
 const MIN_BUDGET_USDC = 0.01;
 
@@ -43,7 +44,7 @@ export function CommitBidForm({ job, onSuccess }: CommitBidFormProps) {
 
   const maxBudget = job.budget > 0 ? job.budget : BigInt(100_000_000); // fallback
   const stakeAmount = calculateStake(maxBudget);
-  const isEthPayment = job.paymentToken === '0x0000000000000000000000000000000000000000';
+  const isEthPayment = job.paymentToken === ZERO_ADDRESS;
   const paymentToken: Token = isEthPayment ? ETH_TOKEN : USDC_TOKEN;
   const stakeFormatted = typeof stakeAmount === 'bigint' 
     ? formatUsdValue(stakeAmount, paymentToken)

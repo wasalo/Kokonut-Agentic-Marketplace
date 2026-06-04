@@ -8,6 +8,7 @@ import NextLink from 'next/link';
 import { CONTRACTS } from '@/lib/wagmi';
 import { AGENTIC_COMMERCE_ABI, PRICE_ORACLE_ABI } from '@/lib/contracts/abis';
 import { DS, card } from '@/lib/design-system';
+import { ZERO_ADDRESS } from '@/lib/contracts/config';
 import { formatAmount } from '@/lib/tokenUtils';
 import { toast } from 'sonner';
 
@@ -33,7 +34,7 @@ export default function TokenAllowlistAdminPage(): JSX.Element {
         address: AGENTIC_COMMERCE_ADDRESS,
         abi: AGENTIC_COMMERCE_ABI,
         functionName: 'allowedTokens',
-        args: ['0x0000000000000000000000000000000000000000' as `0x${string}`],
+        args: [ZERO_ADDRESS],
       },
     ],
     query: { staleTime: 60_000 },

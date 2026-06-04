@@ -21,6 +21,7 @@ import {
 import { useMaxBudgetUsd, useMinBudget } from '@/lib/hooks/useMinBudget';
 import { formatAmount, parseAmount, tokenAmountToUsd } from '@/lib/tokenUtils';
 import { SERVICE_BOND_AMOUNT } from '@/lib/contracts/bonds';
+import { ZERO_ADDRESS } from '@/lib/contracts/config';
 import { card } from '@/lib/design-system';
 import { CreateServiceSteps } from '@/components/marketplace/CreateServiceSteps';
 import { ServiceFormFields } from '@/components/marketplace/ServiceFormFields';
@@ -28,7 +29,6 @@ import { ServiceFormFields } from '@/components/marketplace/ServiceFormFields';
 const MAX_SERVICE_NAME_LENGTH = 100;
 const MAX_DESCRIPTION_LENGTH = 500;
 const MAX_METADATA_URI_LENGTH = 2000;
-const ZERO_ADDRESS = '0x0000000000000000000000000000000000000000' as const;
 
 interface FormData {
   name: string;

@@ -10,6 +10,7 @@ import {
   type BiddingSession,
 } from '@/lib/hooks/useBiddingSystem';
 import { formatAmount, getTokenByAddress } from '@/lib/tokenUtils';
+import { ZERO_ADDRESS } from '@/lib/contracts/config';
 import { card, btn } from '@/lib/design-system';
 
 interface BiddingSessionCardProps {
@@ -23,7 +24,7 @@ export function BiddingSessionCard({ session, isConnected }: BiddingSessionCardP
   const token = getTokenByAddress(session.paymentToken);
   const BudgetIcon = token.symbol === 'ETH' ? CircleDot : DollarSign;
   const deadlineDate = new Date(Number(session.deadline) * 1000);
-  const evaluatorLabel = session.useRandomEvaluator || session.evaluator === '0x0000000000000000000000000000000000000000'
+  const evaluatorLabel = session.useRandomEvaluator || session.evaluator === ZERO_ADDRESS
     ? 'Random Pool'
     : session.evaluator;
 

@@ -7,6 +7,7 @@ import { Scale, AlertCircle } from 'lucide-react';
 import NextLink from 'next/link';
 import { DS, card } from '@/lib/design-system';
 import { toast } from 'sonner';
+import { ZERO_ADDRESS } from '@/lib/contracts/config';
 import {
   useActiveDisputes,
   useResolveDispute,
@@ -20,8 +21,6 @@ interface DisputeRow extends MilestoneDispute {
   paymentToken: `0x${string}`;
   amount: bigint;
 }
-
-const ZERO_ADDRESS = '0x0000000000000000000000000000000000000000' as `0x${string}`;
 
 export default function MilestoneDisputesAdminPage(): JSX.Element {
   useEffect(() => {

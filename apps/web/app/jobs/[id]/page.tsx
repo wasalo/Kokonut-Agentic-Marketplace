@@ -21,6 +21,7 @@ import { JobActionsCard } from '@/components/jobs/JobActionsCard';
 import { JobBidListCard } from '@/components/jobs/JobBidListCard';
 import { PaymentTokenSetupModal } from '@/components/jobs/PaymentTokenSetupModal';
 import dynamic from 'next/dynamic';
+import { ZERO_ADDRESS } from '@/lib/contracts/config';
 
 const MilestoneSectionDynamic = dynamic(
   () => import('@/components/MilestoneSection').then(m => m.MilestoneSection),
@@ -182,7 +183,7 @@ export default function JobDetailPage({
         />
 
         {job.provider &&
-          job.provider !== '0x0000000000000000000000000000000000000000' &&
+          job.provider !== ZERO_ADDRESS &&
           job.evaluator.toLowerCase() === job.provider.toLowerCase() && (
             <Card className="border border-warning/30 bg-warning/5 p-4">
               <div className="flex items-start gap-3">
@@ -198,7 +199,7 @@ export default function JobDetailPage({
             </Card>
           )}
 
-        {job && job.evaluator === '0x0000000000000000000000000000000000000000' && (
+        {job && job.evaluator === ZERO_ADDRESS && (
           <Card className="border border-[#009F4D]/20 bg-[#009F4D]/5 p-4">
             <div className="flex items-start gap-3">
               <AlertCircle className="size-5 text-[#009F4D] shrink-0 mt-0.5" />

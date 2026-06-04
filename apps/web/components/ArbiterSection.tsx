@@ -14,9 +14,10 @@ import { DashboardCard } from '@/components/ui/DashboardCard';
 import { Button } from '@/components/ui/Button';
 import { StatusBadge } from '@/components/StatusBadge';
 import { ErrorDisplay } from '@/components/ErrorDisplay';
+import { ZERO_ADDRESS } from '@/lib/contracts/config';
 
 const ARBITER_STAKE = 10_000_000_000_000_000n; // 0.01 ETH
-const TOKEN_ADDRESS = '0x0000000000000000000000000000000000000000' as `0x${string}`; // Native ETH
+const TOKEN_ADDRESS: `0x${string}` = ZERO_ADDRESS; // Native ETH
 const TOKEN_SYMBOL = 'ETH';
 const TOKEN_DECIMALS = 18;
 

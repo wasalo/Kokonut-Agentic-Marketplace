@@ -2,6 +2,7 @@ import { describe, it, expect, vi, beforeEach } from 'vitest';
 import { render, screen } from '@testing-library/react';
 import { ActiveJobsForService } from '../marketplace/ActiveJobsForService';
 import { useJobs, type Job } from '@/lib/hooks/useJobs';
+import { ZERO_ADDRESS } from '@/lib/contracts/config';
 
 vi.mock('@/lib/hooks/useJobs', () => ({
   useJobs: vi.fn(),
@@ -23,7 +24,7 @@ function job(overrides: Partial<Job>): Job {
     description: 'Test job',
     deliverable: '0x',
     serviceId: 1n,
-    hook: '0x0000000000000000000000000000000000000000',
+    hook: ZERO_ADDRESS,
     ...overrides,
   };
 }

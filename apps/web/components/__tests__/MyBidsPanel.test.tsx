@@ -4,6 +4,7 @@ import { useRouter, useSearchParams } from 'next/navigation';
 import { MyWorkHubPanel, MyBidsPanel } from '../marketplace/MarketplaceHubPanels';
 import { useMyBids } from '@/lib/hooks/useMyBids';
 import { useBiddingSessions, SessionStatus } from '@/lib/hooks/useBiddingSystem';
+import { ZERO_ADDRESS } from '@/lib/contracts/config';
 import type { Job } from '@/lib/hooks/useJobs';
 
 vi.mock('next/navigation', () => ({
@@ -39,7 +40,7 @@ function job(overrides: Partial<Job>): Job {
     description: 'Test',
     deliverable: '0x',
     serviceId: 0n,
-    hook: '0x0000000000000000000000000000000000000000',
+    hook: ZERO_ADDRESS,
     ...overrides,
   };
 }

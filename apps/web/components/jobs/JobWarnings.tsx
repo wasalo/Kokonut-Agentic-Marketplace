@@ -4,6 +4,7 @@ import { Card } from '@heroui/react';
 import { DollarSign, Link, AlertTriangle } from 'lucide-react';
 import { Address } from '@/components/Address';
 import { card } from '@/lib/design-system';
+import { ZERO_ADDRESS } from '@/lib/contracts/config';
 import { type Job } from '@/lib/hooks/useJobs';
 
 interface JobWarningsProps {
@@ -28,7 +29,7 @@ export function JobWarnings({ job, isClient, isProvider, isEvaluatorFeeEnabled, 
         </Card>
       )}
 
-      {job.hook && job.hook !== '0x0000000000000000000000000000000000000000' && (
+      {job.hook && job.hook !== ZERO_ADDRESS && (
         <Card className={card('padded')}>
           <div className="flex items-center gap-2">
             <Link className="size-4 text-default-400" />

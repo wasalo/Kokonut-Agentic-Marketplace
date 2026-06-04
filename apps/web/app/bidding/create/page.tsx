@@ -13,7 +13,7 @@ import { useTokenPriceConversion, ETH_TOKEN, type Token } from '@/lib/hooks/useT
 import { TokenPicker, BIDDING_TOKENS, type TokenMeta as TokenPickerMeta } from '@/components/TokenPicker';
 import { useUSDCBalance } from '@/lib/hooks/useUSDC';
 import { useUSDCApproval } from '@/lib/hooks/useUSDCApproval';
-import { getContractAddress } from '@/lib/contracts/config';
+import { getContractAddress, ZERO_ADDRESS } from '@/lib/contracts/config';
 import { card, btn } from '@/lib/design-system';
 import { showToast } from '@/lib/toast';
 import { formatAmount, parseAmount } from '@/lib/tokenUtils';
@@ -204,14 +204,14 @@ export default function CreateBiddingSessionPage(): JSX.Element {
     setApprovalPhase('creating');
 
     createSession({
-      evaluator: '0x0000000000000000000000000000000000000000' as `0x${string}`,
+      evaluator: ZERO_ADDRESS,
       maxBudget: budgetUnits,
       deadline: deadlineTimestamp,
       metadata: toHex(metadata.trim()) as `0x${string}`,
       serviceId: sid,
       paymentToken: paymentToken.address,
       evaluatorFee,
-      hook: (hookAddress.trim() || '0x0000000000000000000000000000000000000000') as `0x${string}`,
+      hook: (hookAddress.trim() || ZERO_ADDRESS) as `0x${string}`,
     });
 
     setShowConfirm(false);

@@ -8,6 +8,7 @@ import type { Token } from '@/lib/tokenUtils';
 import { formatAmount } from '@/lib/tokenUtils';
 import { Address } from '@/components/Address';
 import { PaymentTokenBadge } from '@/components/PaymentTokenSelector';
+import { ZERO_ADDRESS } from '@/lib/contracts/config';
 import { card } from '@/lib/design-system';
 
 const SESSION_STATUS_BADGE: Record<SessionStatusType, string> = {
@@ -41,8 +42,8 @@ interface BiddingSessionHeaderProps {
 
 export function BiddingSessionHeader({ sessionId, session, stake, token }: BiddingSessionHeaderProps) {
   const deadlineDate = new Date(Number(session.deadline) * 1000);
-  const hasWinner = session.winner !== '0x0000000000000000000000000000000000000000';
-  const hasEvaluator = session.evaluator !== '0x0000000000000000000000000000000000000000';
+  const hasWinner = session.winner !== ZERO_ADDRESS;
+  const hasEvaluator = session.evaluator !== ZERO_ADDRESS;
 
   return (
     <Card className={card('padded', 'p-5 md:p-6 overflow-hidden')}>

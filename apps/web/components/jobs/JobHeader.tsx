@@ -11,6 +11,7 @@ import { useTokenPriceConversion, ETH_TOKEN, USDC_TOKEN } from '@/lib/hooks/useT
 import { useEvaluatorFeeEnabled } from '@/lib/hooks/useJobs';
 import { JobLifecycleStepper, type JobRole } from '@/components/jobs/JobLifecycleStepper';
 import { card } from '@/lib/design-system';
+import { ZERO_ADDRESS } from '@/lib/contracts/config';
 import type { Job } from '@/lib/types/contracts';
 
 interface Service {
@@ -28,7 +29,7 @@ interface JobHeaderProps {
 
 export function JobHeader({ job, service, isClient, isProvider, isEvaluator }: JobHeaderProps) {
   const role: JobRole = isClient ? 'client' : isProvider ? 'provider' : isEvaluator ? 'evaluator' : 'observer';
-  const isUSDC = job.paymentToken && job.paymentToken.toLowerCase() !== '0x0000000000000000000000000000000000000000'
+  const isUSDC = job.paymentToken && job.paymentToken.toLowerCase() !== ZERO_ADDRESS
     ? (SUPPORTED_TOKENS.find(t => t.address.toLowerCase() === job.paymentToken.toLowerCase())?.symbol === 'USDC')
     : true;
   const budgetDecimals = isUSDC ? 6 : 18;
@@ -93,7 +94,7 @@ export function JobHeader({ job, service, isClient, isProvider, isEvaluator }: J
                 <span className="text-sm text-default-400 ml-2">({usdValue} USD)</span>
               )}
             </p>
-            {job.paymentToken && job.paymentToken !== '0x0000000000000000000000000000000000000000' && (
+            {job.paymentToken && job.paymentToken !== ZERO_ADDRESS && (
               <PaymentTokenBadge
                 token={
                   SUPPORTED_TOKENS.find(t => t.address.toLowerCase() === job.paymentToken.toLowerCase())
@@ -121,7 +122,7 @@ export function JobHeader({ job, service, isClient, isProvider, isEvaluator }: J
         </div>
         <div>
           <p className="text-default-400 uppercase tracking-wide">Provider</p>
-          {job.provider === '0x0000000000000000000000000000000000000000' ? (
+          {job.provider === ZERO_ADDRESS ? (
             <span className="text-default-500 mt-0.5">Open (Bidding)</span>
           ) : (
             <>

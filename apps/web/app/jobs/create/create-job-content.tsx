@@ -28,10 +28,10 @@ import { CreateJobBudgetSection } from '@/components/jobs/create/CreateJobBudget
 import { JobPaymentTokenSelector } from '@/components/jobs/create/JobPaymentTokenSelector';
 import { useUSDCApproval } from '@/lib/hooks/useUSDCApproval';
 import { card, btn } from '@/lib/design-system';
+import { ZERO_ADDRESS } from '@/lib/contracts/config';
 
 const MAX_DESCRIPTION_LENGTH = 1000;
 const MIN_EXPIRY_DURATION = 5 * 60 * 1000;
-const ZERO_ADDRESS = '0x0000000000000000000000000000000000000000' as const;
 
 function CreateJobContent() {
   const router = useRouter();
