@@ -8,7 +8,7 @@ import { useAccount } from 'wagmi';
 import { useActivityFromSubgraph } from '@/lib/hooks';
 import { StatusBadge } from '@/components/StatusBadge';
 import { Address } from '@/components/Address';
-import { card, btn } from '@/lib/design-system';
+import { card, btn, DS } from '@/lib/design-system';
 
 const ACTIVITY_ICONS: Record<string, React.ComponentType<{ className?: string }>> = {
   job: Briefcase,
@@ -17,8 +17,8 @@ const ACTIVITY_ICONS: Record<string, React.ComponentType<{ className?: string }>
 };
 
 const ACTIVITY_COLORS: Record<string, string> = {
-  job: '#009F4D',
-  service: '#FFCD00',
+  job: DS.colors.primary,
+  service: DS.colors.chart[2],
   all: '#666',
 };
 

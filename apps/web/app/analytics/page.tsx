@@ -28,9 +28,9 @@ import {
 import { useAnalyticsFromSubgraph, TIME_RANGES, type TimeRange } from '@/lib/hooks';
 import { StatCard } from '@/components/ui/stat-card';
 import { Card } from '@heroui/react';
-import { card, btn } from '@/lib/design-system';
+import { card, btn, DS } from '@/lib/design-system';
 
-const COLORS = ['#009F4D', '#00c853', '#FFCD00', '#FFB800', '#FF6B6B'];
+const COLORS = DS.colors.chart;
 
 const TIME_RANGE_OPTIONS: { value: TimeRange; label: string }[] = [
   { value: '7D', label: '7D' },
@@ -205,16 +205,16 @@ function AnalyticsContent({
                           borderRadius: '8px',
                         }}
                       />
-                      <Bar dataKey="jobs" fill="#009F4D" radius={[4, 4, 0, 0]} name="Jobs" />
+                      <Bar dataKey="jobs" fill={COLORS[0]} radius={[4, 4, 0, 0]} name="Jobs" />
                       <Bar
                         dataKey="services"
-                        fill="#FFCD00"
+                        fill={COLORS[2]}
                         radius={[4, 4, 0, 0]}
                         name="Services"
                       />
                       <Bar
                         dataKey="proposals"
-                        fill="#00c853"
+                        fill={COLORS[1]}
                         radius={[4, 4, 0, 0]}
                         name="Proposals"
                       />
@@ -246,17 +246,17 @@ function AnalyticsContent({
                       <Line
                         type="monotone"
                         dataKey="volumeUSDC"
-                        stroke="#009F4D"
+                        stroke={COLORS[0]}
                         strokeWidth={2}
-                        dot={{ fill: '#009F4D', r: 4 }}
+                        dot={{ fill: COLORS[0], r: 4 }}
                         name="USDC Volume"
                       />
                       <Line
                         type="monotone"
                         dataKey="volumeETH"
-                        stroke="#FFCD00"
+                        stroke={COLORS[2]}
                         strokeWidth={2}
-                        dot={{ fill: '#FFCD00', r: 4 }}
+                        dot={{ fill: COLORS[2], r: 4 }}
                         name="ETH Volume"
                       />
                     </LineChart>

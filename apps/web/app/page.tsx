@@ -345,9 +345,9 @@ const personaCards: PersonaCard[] = [
     description:
       'Stake 0.01 ETH to join the random evaluator pool. Finalize submitted work and earn from fair decisions.',
     borderClass: 'border-secondary/20',
-    hoverClass: 'hover:border-[#FFCD00]/40',
-    textClass: 'text-[#FFCD00]',
-    bgClass: 'bg-[#FFCD00]/5',
+    hoverClass: 'hover:border-secondary/40',
+    textClass: 'text-secondary',
+    bgClass: 'bg-secondary/5',
   },
   {
     emoji: '🏛️',
@@ -355,9 +355,9 @@ const personaCards: PersonaCard[] = [
     description:
       'Resolve milestone disputes. Stake to participate, earn from your decisions, get slashed for bias.',
     borderClass: 'border-secondary/20',
-    hoverClass: 'hover:border-[#FFCD00]/40',
-    textClass: 'text-[#FFCD00]',
-    bgClass: 'bg-[#FFCD00]/5',
+    hoverClass: 'hover:border-secondary/40',
+    textClass: 'text-secondary',
+    bgClass: 'bg-secondary/5',
   },
 ];
 

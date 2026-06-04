@@ -13,6 +13,8 @@ export const DS = {
     danger: '#ef4444',
     warning: '#f59e0b',
     info: '#3b82f6',
+    /** Chart palette — for recharts <Bar fill>, <Line stroke>, <Cell fill>, etc. */
+    chart: ['#009F4D', '#00c853', '#FFCD00', '#FFB800', '#FF6B6B'] as const,
   },
 
   /** Button variants — use these className strings for consistency */
