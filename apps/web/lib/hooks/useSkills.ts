@@ -1,9 +1,8 @@
 import { useReadContract, useWriteContract } from 'wagmi';
 import { AGENT_SKILL_REGISTRY_ABI } from '@/lib/contracts/abis';
-import { getContractAddress } from '@/lib/contracts/config';
+import { getContractAddress, SEPOLIA_CHAIN_ID } from '@/lib/contracts/config';
 
 const SKILL_REGISTRY_ADDRESS = getContractAddress('SKILL_REGISTRY');
-const SEPOLIA_CHAIN_ID = 11155111;
 
 export interface Skill {
   agentId: bigint;

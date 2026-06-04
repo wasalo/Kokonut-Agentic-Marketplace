@@ -1,12 +1,11 @@
 import { useReadContract, useReadContracts, useWriteContract } from 'wagmi';
 import { useCallback } from 'react';
 import { SERVICE_REGISTRY_ABI } from '@/lib/contracts/abis';
-import { getContractAddress } from '@/lib/contracts/config';
+import { getContractAddress, SEPOLIA_CHAIN_ID } from '@/lib/contracts/config';
 import { SERVICE_BOND_AMOUNT } from '@/lib/contracts/bonds';
 import type { Service } from '@/lib/types/contracts';
 
 const SERVICE_REGISTRY_ADDRESS = getContractAddress('SERVICE_REGISTRY');
-const SEPOLIA_CHAIN_ID = 11155111;
 
 export type { Service };
 

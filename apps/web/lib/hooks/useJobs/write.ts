@@ -1,9 +1,8 @@
 import { useWriteContract } from 'wagmi';
 import { AGENTIC_COMMERCE_ABI, BIDDING_SYSTEM_ABI } from '@/lib/contracts/abis';
-import { getContractAddress } from '@/lib/contracts/config';
+import { getContractAddress, SEPOLIA_CHAIN_ID } from '@/lib/contracts/config';
 
 const AGENTIC_COMMERCE_ADDRESS = getContractAddress('AGENTIC_COMMERCE');
-const SEPOLIA_CHAIN_ID = 11155111;
 
 export function useFundJob() {
   const { writeContract, data, isPending, error, reset } = useWriteContract();

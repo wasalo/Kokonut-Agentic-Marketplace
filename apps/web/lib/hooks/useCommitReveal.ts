@@ -1,11 +1,10 @@
 import { useWriteContract, useReadContract, usePublicClient, useAccount } from 'wagmi';
 import { useEffect, useState, useMemo } from 'react';
 import { parseAbiItem, type Address, type Hash } from 'viem';
-import { getContractAddress } from '@/lib/contracts/config';
+import { getContractAddress, SEPOLIA_CHAIN_ID } from '@/lib/contracts/config';
 import { COMMIT_REVEAL_ABI } from '@/lib/contracts/abis';
 
 const COMMIT_REVEAL_ADDRESS = getContractAddress('COMMIT_REVEAL');
-const SEPOLIA_CHAIN_ID = 11155111;
 
 export type CommitRevealEventKind = 'committed' | 'revealed';
 

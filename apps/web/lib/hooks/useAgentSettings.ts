@@ -1,11 +1,10 @@
 import { useState, useEffect, useCallback } from 'react';
 import { useWriteContract, useReadContract, useWaitForTransactionReceipt } from 'wagmi';
 import { parseAbi } from 'viem';
-import { CONTRACT_ADDRESSES } from '@/lib/contracts/config';
+import { CONTRACT_ADDRESSES, SEPOLIA_CHAIN_ID } from '@/lib/contracts/config';
 
 const ERC8004_REGISTRY = CONTRACT_ADDRESSES.sepolia.erc8004Registry;
 const ERC8004_REPUTATION = CONTRACT_ADDRESSES.sepolia.erc8004Reputation;
-const SEPOLIA_CHAIN_ID = 11155111;
 
 const ERC8004_REGISTRY_ABI = parseAbi([
   'function register(string agentURI) external returns (uint256)',

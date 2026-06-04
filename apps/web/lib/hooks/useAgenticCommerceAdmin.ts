@@ -1,11 +1,10 @@
 'use client';
 
 import { useReadContract, useWriteContract } from 'wagmi';
-import { getContractAddress } from '@/lib/contracts/config';
+import { getContractAddress, SEPOLIA_CHAIN_ID } from '@/lib/contracts/config';
 import { AGENTIC_COMMERCE_ABI } from '@/lib/contracts/abis';
 
 const AGENTIC_COMMERCE_ADDRESS = getContractAddress('AGENTIC_COMMERCE');
-const SEPOLIA_CHAIN_ID = 11155111;
 
 const AGENTIC_COMMERCE_ABI_TYPED = AGENTIC_COMMERCE_ABI as typeof AGENTIC_COMMERCE_ABI &
   readonly (

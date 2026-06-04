@@ -1,9 +1,8 @@
 import { useReadContract, useWriteContract } from 'wagmi';
-import { getContractAddress } from '@/lib/contracts/config';
+import { getContractAddress, SEPOLIA_CHAIN_ID } from '@/lib/contracts/config';
 import { SLASH_MANAGER_ABI } from '@/lib/contracts/abis';
 
 const SLASH_MANAGER_ADDRESS = getContractAddress('SLASH_MANAGER');
-const SEPOLIA_CHAIN_ID = 11155111;
 
 /**
  * Hook to check if an address is a registered signer

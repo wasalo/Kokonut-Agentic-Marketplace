@@ -1,10 +1,9 @@
 import { useReadContract, useWriteContract, useWaitForTransactionReceipt } from 'wagmi';
 import { MILESTONE_ESCROW_ABI } from '@/lib/contracts/abis';
-import { getContractAddress, debugLog } from '@/lib/contracts/config';
+import { getContractAddress, debugLog, SEPOLIA_CHAIN_ID } from '@/lib/contracts/config';
 
 
 const MILESTONE_ESCROW_ADDRESS = getContractAddress('MILESTONE_ESCROW');
-const SEPOLIA_CHAIN_ID = 11155111;
 
 // V2: Arbiter stake/fee are per-token (ERC-20 or native ETH via address(0))
 // Use getArbiterStake/getArbiterFee to check per-token requirements

@@ -1,9 +1,8 @@
 import { useReadContract, useWriteContract } from 'wagmi';
-import { getContractAddress } from '@/lib/contracts/config';
+import { getContractAddress, SEPOLIA_CHAIN_ID } from '@/lib/contracts/config';
 import { ERC20_ABI } from '@/lib/contracts/abis';
 
 const USDC_ADDRESS = getContractAddress('USDC');
-const SEPOLIA_CHAIN_ID = 11155111;
 
 /**
  * Hook to get USDC balance for an address

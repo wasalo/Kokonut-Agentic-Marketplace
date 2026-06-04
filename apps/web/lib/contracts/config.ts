@@ -7,6 +7,9 @@ import { chainIdToCAIP } from '@/lib/caip';
 
 const SEPOLIA_CAIP = chainIdToCAIP(11155111);
 
+// Reusable chain ID constants
+export const SEPOLIA_CHAIN_ID = 11155111 as const;
+
 // Common address constants
 export const ZERO_ADDRESS = '0x0000000000000000000000000000000000000000' as const;
 

@@ -1,11 +1,10 @@
 import { useMemo } from 'react';
 import { useReadContract, useReadContracts, useWriteContract, useWaitForTransactionReceipt } from 'wagmi';
 import { BIDDING_SYSTEM_ABI } from '@/lib/contracts/abis';
-import { getContractAddress, ZERO_ADDRESS } from '@/lib/contracts/config';
+import { getContractAddress, ZERO_ADDRESS, SEPOLIA_CHAIN_ID } from '@/lib/contracts/config';
 import { parseEther } from 'viem';
 
 const BIDDING_SYSTEM_ADDRESS = getContractAddress('BIDDING_SYSTEM');
-const SEPOLIA_CHAIN_ID = 11155111;
 
 export const SessionStatus = {
   Active: 0,
