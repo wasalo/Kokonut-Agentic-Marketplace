@@ -1,7 +1,7 @@
 # Kokonut Agent Economy Stack
 
 [![Security Audit](https://img.shields.io/badge/security-audited-brightgreen.svg)](./SECURITY_AUDIT_REPORT.md)
-[![Tests](https://img.shields.io/badge/tests-277%20passing-brightgreen.svg)](./contracts/test)
+[![Tests](https://img.shields.io/badge/tests-343%20passing-brightgreen.svg)](./contracts/test)
 [![Coverage](https://img.shields.io/badge/coverage-87%25-brightgreen.svg)](./contracts/test)
 [![Frontend Security](https://img.shields.io/badge/frontend%20security-9.0%2F10-brightgreen.svg)](./docs/FRONTEND_SECURITY_HARDENING_REPORT.md)
 [![TypeScript](https://img.shields.io/badge/TypeScript-0%20errors-brightgreen.svg)](./apps/web)
@@ -234,8 +234,12 @@ The wildcard format (e.g., `10.108.1.*`) allows any IP in that subnet. Add expli
 | **AgenticCommerceV9 Impl** | `0x3b8b4A6d3cc93D5081a286aCC7EcD4f01086c928` | Phase 38: Governance slash via SlashManager |
 | **PriceOracleV2**        | `0x29c27a26DD2F80f840cb4D7B5E53b7db3D67143d` | PriceOracleV2 - UUPS upgradeable per-token feeds |
 | **PriceOracleV2 Impl**   | `0x7Bad7cc9754814246814299ca50041a939a244b1` | Phase 31: L-03 ETH/USD Chainlink feed |
-| **BiddingSystem**        | `0x4D7F38C6A9DE5De44A7B789962B7A2B06bFE8fd6`  | Commit-reveal bidding + ERC-20 payment tokens      |
-| **BiddingSystem Impl**   | `0xde7F38E29D3c2dBDff02984BAaB5a658F0acC96a` | Phase 40: ERC-20 payment token support |
+| **BiddingSystem**        | `0x4D7F38C6A9DE5De44A7B789962B7A2B06bFE8fd6`  | Commit-reveal bidding + ERC-20 payment tokens (Phase 45b: 5-field commit hash, `closeBidding`, `slashNoShow`, `BidStatus` enum; Phase 45c: stake bounds 0.001–100 ETH, `evaluatorFee`/`hook` params, 30-day withdraw timeout + `sweepUnclaimedStakes`, per-token platform fees, `PROTOCOL_VERSION=2`) |
+| **BiddingSystem Impl**   | `0xd403bd1c629b9c3bf7f5ea441af142e907733354` | Phase 45c: stake bounds, evaluatorFee, hook, PROTOCOL_VERSION=2, per-token platform fee, BidStatus enum, 30-day withdraw timeout |
+| **SlashManager**         | `0x1B8373cDF4f2eD740c3478e0129f0B8494CE4Fa3` | 3-of-5 multisig + 1-hour timelock (UUPS)        |
+| **SlashManager Impl**    | `0x8754Abeba49B6688dA132552b9f183FbC7acdc58` | Phase 38: governance slash via SlashManager      |
+| **CommitReveal**         | `0x85F193670fCb7B0c97D55E70Bf2a950b1065Fb3a` | Generic front-running protection (UUPS)          |
+| **CommitReveal Impl**    | `0x85ac5fd55de6f19e95bed33991f11659a92dbbd2` | Phase 31: H-02 evaluator randomness              |
 | **ERC-8004 Identity**    | `0x8004A818BFB912233c491871b3d84c89A494BD9e` | Agent identities           |
 | **ERC-8004 Reputation**  | `0x8004B663056A597Dffe9eCcC1965A193B7388713` | Agent reputation           |
 
@@ -412,18 +416,22 @@ Runs **commit-reveal auctions** so bots can't snipe. Supports **ETH and ERC-20 t
 
 **Flow:**
 1. **Create session** — Client specifies max budget, deadline, evaluator, and payment token. Deposits 1% stake.
-2. **Commit** — Bidders submit `keccak256(amount + message + salt)` with 1% stake in the session's token. Amount hidden.
-3. **Reveal** — After deadline, bidders reveal actual amount, message, and salt. Contract verifies hash.
+2. **Commit** — Bidders submit `keccak256(PROTOCOL_VERSION, sessionId, msg.sender, amount, message, salt)` (5-field hash) with 1% stake (0.001–100 ETH) in the session's token. Amount hidden.
+3. **Reveal** — After deadline, bidders reveal actual amount, message, and salt. Contract verifies the 5-field hash.
 4. **Accept** — Creator picks winning bid. Winner's stake returned. Non-winners withdraw their stakes.
 5. **Auto-job creation** — Creator calls `createJobAndFund()` → BiddingSystem creates job in AgenticCommerceV9 automatically with winner as provider and the session's payment token.
 
 **Protections:**
-- Sealed bids prevent front-running
-- 1% stake from both creator and bidders prevents spam
-- Reveal window configurable (15 min - 24 hours)
-- Platform fee capped at 10%
-- Creator can extend reveal window (max 7 days)
+- Sealed bids prevent front-running (5-field commit hash binds `sessionId, msg.sender, amount, message, salt` — no cross-bidder collisions or replay)
+- 1% stake from both creator and bidders prevents spam (bounded 0.001 ETH – 100 ETH)
+- Reveal window: 1 hour to 30 days (configurable per session)
+- Platform fee capped at 10% globally, or per-token via `setPlatformFeeBPForToken()`
+- Creator can extend reveal window
 - Random evaluator pool assigned automatically to resulting jobs
+- `closeBidding()` is permissionless after deadline (Phase 45b)
+- `slashNoShow()` slashes 5% of no-show bidder stake (Phase 45b)
+- Non-winning bids can be withdrawn after 30 days; `sweepUnclaimedStakes()` is permissionless (Phase 45c)
+- `BidStatus` enum (`None/Pending/Revealed/Accepted/Rejected/Withdrawn`) replaces boolean flags (Phase 45c)
 
 #### CommitReveal — Generic Front-Running Protection
 
@@ -650,7 +658,13 @@ The NetworkSelector automatically shows deployed chains with a ✅ checkmark.
 | **Build** | | |
 | Dashboard | `/dashboard` | Agent economy overview |
 | Governance | `/governance` | SlashManager multisig UI |
-| Admin | `/admin` | Contract treasury (Owner-only) |
+| Admin (treasury) | `/admin` | Contract treasury (Owner-only) |
+| Admin · Milestone Disputes | `/admin/milestone-disputes` | Active disputes + resolve (2-arg `releaseToProvider`) |
+| Admin · Service Registry | `/admin/service-registry` | Service table + pause / set-registry |
+| Admin · Evaluator Pool | `/admin/evaluator-pool` | Evaluator table + cleanup-stale + min-stake setter |
+| Admin · Milestone Config | `/admin/milestone-config` | Per-job dispute window + non-responsive slash BP |
+| Admin · Arbiter Pool | `/admin/arbiter-pool` | Arbiter table + count |
+| Admin · Token Allowlist | `/admin/token-allowlist` | Allowed token table + add/remove + price feed setter |
 | Webhooks | `/dashboard/webhooks` | Webhook management UI |
 | Integrations | `/integrations` | MCP, Webhooks, Email docs |
 | **Resources** | | |
@@ -674,8 +688,11 @@ The NetworkSelector automatically shows deployed chains with a ✅ checkmark.
 # Setup reproducible Foundry environment
 pnpm run setup:foundry
 
-# Smart contract tests
+# Smart contract tests (343/343 passing)
 pnpm run test:contracts
+
+# Component + hook tests via Vitest (80/80 passing)
+pnpm --filter @kokonut/web test:components
 
 # Standard type checking
 pnpm run type-check
