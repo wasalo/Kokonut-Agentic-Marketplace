@@ -1,0 +1,357 @@
+=== Toolchain ===
+foundry
+=== Source (with line counts) ===
+     725 contracts/archived/AgentReviewV5.sol
+     199 contracts/interfaces/IAgenticCommerceV6.sol
+     118 contracts/interfaces/IAgenticCommerceV9.sol
+       6 contracts/interfaces/IAgenticCommerceV9_Slash.sol
+     396 contracts/interfaces/IBiddingSystem.sol
+      27 contracts/interfaces/IIdentityRegistry.sol
+      34 contracts/interfaces/IPriceOracleV2.sol
+      27 contracts/proxies/AgenticCommerceProxy.sol
+     599 contracts/shared/AdminRegistry.sol
+     343 contracts/shared/AgentSkillRegistryV2.sol
+     746 contracts/shared/AgenticCommerceV6.sol
+    1487 contracts/shared/AgenticCommerceV9.sol
+    1055 contracts/shared/BiddingSystem.sol
+     225 contracts/shared/CommitReveal.sol
+      37 contracts/shared/IACPHook.sol
+     534 contracts/shared/MilestoneEscrow.sol
+     745 contracts/shared/MilestoneEscrowV2.sol
+     224 contracts/shared/PriceOracle.sol
+     281 contracts/shared/PriceOracleV2.sol
+     558 contracts/shared/ServiceRegistryV2.sol
+     368 contracts/shared/SlashManager.sol
+    8734 total
+=== nSLOC ===
+grep: invalid option -- P
+usage: grep [-abcdDEFGHhIiJLlMmnOopqRSsUVvwXxZz] [-A num] [-B num] [-C[num]]
+	[-e pattern] [-f file] [--binary-files=value] [--color=when]
+	[--context[=num]] [--directories=action] [--label] [--line-buffered]
+	[--null] [pattern] [file ...]
+grep: invalid option -- P
+usage: grep [-abcdDEFGHhIiJLlMmnOopqRSsUVvwXxZz] [-A num] [-B num] [-C[num]]
+	[-e pattern] [-f file] [--binary-files=value] [--color=when]
+	[--context[=num]] [--directories=action] [--label] [--line-buffered]
+	[--null] [pattern] [file ...]
+contracts/archived/AgentReviewV5.sol: 0
+grep: invalid option -- P
+usage: grep [-abcdDEFGHhIiJLlMmnOopqRSsUVvwXxZz] [-A num] [-B num] [-C[num]]
+	[-e pattern] [-f file] [--binary-files=value] [--color=when]
+	[--context[=num]] [--directories=action] [--label] [--line-buffered]
+	[--null] [pattern] [file ...]
+grep: invalid option -- P
+usage: grep [-abcdDEFGHhIiJLlMmnOopqRSsUVvwXxZz] [-A num] [-B num] [-C[num]]
+	[-e pattern] [-f file] [--binary-files=value] [--color=when]
+	[--context[=num]] [--directories=action] [--label] [--line-buffered]
+	[--null] [pattern] [file ...]
+contracts/interfaces/IAgenticCommerceV6.sol: 0
+grep: invalid option -- P
+usage: grep [-abcdDEFGHhIiJLlMmnOopqRSsUVvwXxZz] [-A num] [-B num] [-C[num]]
+	[-e pattern] [-f file] [--binary-files=value] [--color=when]
+	[--context[=num]] [--directories=action] [--label] [--line-buffered]
+	[--null] [pattern] [file ...]
+grep: invalid option -- P
+usage: grep [-abcdDEFGHhIiJLlMmnOopqRSsUVvwXxZz] [-A num] [-B num] [-C[num]]
+	[-e pattern] [-f file] [--binary-files=value] [--color=when]
+	[--context[=num]] [--directories=action] [--label] [--line-buffered]
+	[--null] [pattern] [file ...]
+contracts/interfaces/IAgenticCommerceV9.sol: 0
+grep: invalid option -- P
+usage: grep [-abcdDEFGHhIiJLlMmnOopqRSsUVvwXxZz] [-A num] [-B num] [-C[num]]
+	[-e pattern] [-f file] [--binary-files=value] [--color=when]
+	[--context[=num]] [--directories=action] [--label] [--line-buffered]
+	[--null] [pattern] [file ...]
+grep: invalid option -- P
+usage: grep [-abcdDEFGHhIiJLlMmnOopqRSsUVvwXxZz] [-A num] [-B num] [-C[num]]
+	[-e pattern] [-f file] [--binary-files=value] [--color=when]
+	[--context[=num]] [--directories=action] [--label] [--line-buffered]
+	[--null] [pattern] [file ...]
+contracts/interfaces/IAgenticCommerceV9_Slash.sol: 0
+grep: invalid option -- P
+usage: grep [-abcdDEFGHhIiJLlMmnOopqRSsUVvwXxZz] [-A num] [-B num] [-C[num]]
+	[-e pattern] [-f file] [--binary-files=value] [--color=when]
+	[--context[=num]] [--directories=action] [--label] [--line-buffered]
+	[--null] [pattern] [file ...]
+grep: invalid option -- P
+usage: grep [-abcdDEFGHhIiJLlMmnOopqRSsUVvwXxZz] [-A num] [-B num] [-C[num]]
+	[-e pattern] [-f file] [--binary-files=value] [--color=when]
+	[--context[=num]] [--directories=action] [--label] [--line-buffered]
+	[--null] [pattern] [file ...]
+contracts/interfaces/IBiddingSystem.sol: 0
+grep: invalid option -- P
+usage: grep [-abcdDEFGHhIiJLlMmnOopqRSsUVvwXxZz] [-A num] [-B num] [-C[num]]
+	[-e pattern] [-f file] [--binary-files=value] [--color=when]
+	[--context[=num]] [--directories=action] [--label] [--line-buffered]
+	[--null] [pattern] [file ...]
+grep: invalid option -- P
+usage: grep [-abcdDEFGHhIiJLlMmnOopqRSsUVvwXxZz] [-A num] [-B num] [-C[num]]
+	[-e pattern] [-f file] [--binary-files=value] [--color=when]
+	[--context[=num]] [--directories=action] [--label] [--line-buffered]
+	[--null] [pattern] [file ...]
+contracts/interfaces/IIdentityRegistry.sol: 0
+grep: invalid option -- P
+usage: grep [-abcdDEFGHhIiJLlMmnOopqRSsUVvwXxZz] [-A num] [-B num] [-C[num]]
+	[-e pattern] [-f file] [--binary-files=value] [--color=when]
+	[--context[=num]] [--directories=action] [--label] [--line-buffered]
+	[--null] [pattern] [file ...]
+grep: invalid option -- P
+usage: grep [-abcdDEFGHhIiJLlMmnOopqRSsUVvwXxZz] [-A num] [-B num] [-C[num]]
+	[-e pattern] [-f file] [--binary-files=value] [--color=when]
+	[--context[=num]] [--directories=action] [--label] [--line-buffered]
+	[--null] [pattern] [file ...]
+contracts/interfaces/IPriceOracleV2.sol: 0
+grep: invalid option -- P
+usage: grep [-abcdDEFGHhIiJLlMmnOopqRSsUVvwXxZz] [-A num] [-B num] [-C[num]]
+	[-e pattern] [-f file] [--binary-files=value] [--color=when]
+	[--context[=num]] [--directories=action] [--label] [--line-buffered]
+	[--null] [pattern] [file ...]
+grep: invalid option -- P
+usage: grep [-abcdDEFGHhIiJLlMmnOopqRSsUVvwXxZz] [-A num] [-B num] [-C[num]]
+	[-e pattern] [-f file] [--binary-files=value] [--color=when]
+	[--context[=num]] [--directories=action] [--label] [--line-buffered]
+	[--null] [pattern] [file ...]
+contracts/proxies/AgenticCommerceProxy.sol: 0
+grep: invalid option -- P
+usage: grep [-abcdDEFGHhIiJLlMmnOopqRSsUVvwXxZz] [-A num] [-B num] [-C[num]]
+	[-e pattern] [-f file] [--binary-files=value] [--color=when]
+	[--context[=num]] [--directories=action] [--label] [--line-buffered]
+	[--null] [pattern] [file ...]
+grep: invalid option -- P
+usage: grep [-abcdDEFGHhIiJLlMmnOopqRSsUVvwXxZz] [-A num] [-B num] [-C[num]]
+	[-e pattern] [-f file] [--binary-files=value] [--color=when]
+	[--context[=num]] [--directories=action] [--label] [--line-buffered]
+	[--null] [pattern] [file ...]
+contracts/shared/AdminRegistry.sol: 0
+grep: invalid option -- P
+usage: grep [-abcdDEFGHhIiJLlMmnOopqRSsUVvwXxZz] [-A num] [-B num] [-C[num]]
+	[-e pattern] [-f file] [--binary-files=value] [--color=when]
+	[--context[=num]] [--directories=action] [--label] [--line-buffered]
+	[--null] [pattern] [file ...]
+grep: invalid option -- P
+usage: grep [-abcdDEFGHhIiJLlMmnOopqRSsUVvwXxZz] [-A num] [-B num] [-C[num]]
+	[-e pattern] [-f file] [--binary-files=value] [--color=when]
+	[--context[=num]] [--directories=action] [--label] [--line-buffered]
+	[--null] [pattern] [file ...]
+contracts/shared/AgentSkillRegistryV2.sol: 0
+grep: invalid option -- P
+usage: grep [-abcdDEFGHhIiJLlMmnOopqRSsUVvwXxZz] [-A num] [-B num] [-C[num]]
+	[-e pattern] [-f file] [--binary-files=value] [--color=when]
+	[--context[=num]] [--directories=action] [--label] [--line-buffered]
+	[--null] [pattern] [file ...]
+grep: invalid option -- P
+usage: grep [-abcdDEFGHhIiJLlMmnOopqRSsUVvwXxZz] [-A num] [-B num] [-C[num]]
+	[-e pattern] [-f file] [--binary-files=value] [--color=when]
+	[--context[=num]] [--directories=action] [--label] [--line-buffered]
+	[--null] [pattern] [file ...]
+contracts/shared/AgenticCommerceV6.sol: 0
+grep: invalid option -- P
+usage: grep [-abcdDEFGHhIiJLlMmnOopqRSsUVvwXxZz] [-A num] [-B num] [-C[num]]
+	[-e pattern] [-f file] [--binary-files=value] [--color=when]
+	[--context[=num]] [--directories=action] [--label] [--line-buffered]
+	[--null] [pattern] [file ...]
+grep: invalid option -- P
+usage: grep [-abcdDEFGHhIiJLlMmnOopqRSsUVvwXxZz] [-A num] [-B num] [-C[num]]
+	[-e pattern] [-f file] [--binary-files=value] [--color=when]
+	[--context[=num]] [--directories=action] [--label] [--line-buffered]
+	[--null] [pattern] [file ...]
+contracts/shared/AgenticCommerceV9.sol: 0
+grep: invalid option -- P
+usage: grep [-abcdDEFGHhIiJLlMmnOopqRSsUVvwXxZz] [-A num] [-B num] [-C[num]]
+	[-e pattern] [-f file] [--binary-files=value] [--color=when]
+	[--context[=num]] [--directories=action] [--label] [--line-buffered]
+	[--null] [pattern] [file ...]
+grep: invalid option -- P
+usage: grep [-abcdDEFGHhIiJLlMmnOopqRSsUVvwXxZz] [-A num] [-B num] [-C[num]]
+	[-e pattern] [-f file] [--binary-files=value] [--color=when]
+	[--context[=num]] [--directories=action] [--label] [--line-buffered]
+	[--null] [pattern] [file ...]
+contracts/shared/BiddingSystem.sol: 0
+grep: invalid option -- P
+usage: grep [-abcdDEFGHhIiJLlMmnOopqRSsUVvwXxZz] [-A num] [-B num] [-C[num]]
+	[-e pattern] [-f file] [--binary-files=value] [--color=when]
+	[--context[=num]] [--directories=action] [--label] [--line-buffered]
+	[--null] [pattern] [file ...]
+grep: invalid option -- P
+usage: grep [-abcdDEFGHhIiJLlMmnOopqRSsUVvwXxZz] [-A num] [-B num] [-C[num]]
+	[-e pattern] [-f file] [--binary-files=value] [--color=when]
+	[--context[=num]] [--directories=action] [--label] [--line-buffered]
+	[--null] [pattern] [file ...]
+contracts/shared/CommitReveal.sol: 0
+grep: invalid option -- P
+usage: grep [-abcdDEFGHhIiJLlMmnOopqRSsUVvwXxZz] [-A num] [-B num] [-C[num]]
+	[-e pattern] [-f file] [--binary-files=value] [--color=when]
+	[--context[=num]] [--directories=action] [--label] [--line-buffered]
+	[--null] [pattern] [file ...]
+grep: invalid option -- P
+usage: grep [-abcdDEFGHhIiJLlMmnOopqRSsUVvwXxZz] [-A num] [-B num] [-C[num]]
+	[-e pattern] [-f file] [--binary-files=value] [--color=when]
+	[--context[=num]] [--directories=action] [--label] [--line-buffered]
+	[--null] [pattern] [file ...]
+contracts/shared/IACPHook.sol: 0
+grep: invalid option -- P
+usage: grep [-abcdDEFGHhIiJLlMmnOopqRSsUVvwXxZz] [-A num] [-B num] [-C[num]]
+	[-e pattern] [-f file] [--binary-files=value] [--color=when]
+	[--context[=num]] [--directories=action] [--label] [--line-buffered]
+	[--null] [pattern] [file ...]
+grep: invalid option -- P
+usage: grep [-abcdDEFGHhIiJLlMmnOopqRSsUVvwXxZz] [-A num] [-B num] [-C[num]]
+	[-e pattern] [-f file] [--binary-files=value] [--color=when]
+	[--context[=num]] [--directories=action] [--label] [--line-buffered]
+	[--null] [pattern] [file ...]
+contracts/shared/MilestoneEscrow.sol: 0
+grep: invalid option -- P
+usage: grep [-abcdDEFGHhIiJLlMmnOopqRSsUVvwXxZz] [-A num] [-B num] [-C[num]]
+	[-e pattern] [-f file] [--binary-files=value] [--color=when]
+	[--context[=num]] [--directories=action] [--label] [--line-buffered]
+	[--null] [pattern] [file ...]
+grep: invalid option -- P
+usage: grep [-abcdDEFGHhIiJLlMmnOopqRSsUVvwXxZz] [-A num] [-B num] [-C[num]]
+	[-e pattern] [-f file] [--binary-files=value] [--color=when]
+	[--context[=num]] [--directories=action] [--label] [--line-buffered]
+	[--null] [pattern] [file ...]
+contracts/shared/MilestoneEscrowV2.sol: 0
+grep: invalid option -- P
+usage: grep [-abcdDEFGHhIiJLlMmnOopqRSsUVvwXxZz] [-A num] [-B num] [-C[num]]
+	[-e pattern] [-f file] [--binary-files=value] [--color=when]
+	[--context[=num]] [--directories=action] [--label] [--line-buffered]
+	[--null] [pattern] [file ...]
+grep: invalid option -- P
+usage: grep [-abcdDEFGHhIiJLlMmnOopqRSsUVvwXxZz] [-A num] [-B num] [-C[num]]
+	[-e pattern] [-f file] [--binary-files=value] [--color=when]
+	[--context[=num]] [--directories=action] [--label] [--line-buffered]
+	[--null] [pattern] [file ...]
+contracts/shared/PriceOracle.sol: 0
+grep: invalid option -- P
+usage: grep [-abcdDEFGHhIiJLlMmnOopqRSsUVvwXxZz] [-A num] [-B num] [-C[num]]
+	[-e pattern] [-f file] [--binary-files=value] [--color=when]
+	[--context[=num]] [--directories=action] [--label] [--line-buffered]
+	[--null] [pattern] [file ...]
+grep: invalid option -- P
+usage: grep [-abcdDEFGHhIiJLlMmnOopqRSsUVvwXxZz] [-A num] [-B num] [-C[num]]
+	[-e pattern] [-f file] [--binary-files=value] [--color=when]
+	[--context[=num]] [--directories=action] [--label] [--line-buffered]
+	[--null] [pattern] [file ...]
+contracts/shared/PriceOracleV2.sol: 0
+grep: invalid option -- P
+usage: grep [-abcdDEFGHhIiJLlMmnOopqRSsUVvwXxZz] [-A num] [-B num] [-C[num]]
+	[-e pattern] [-f file] [--binary-files=value] [--color=when]
+	[--context[=num]] [--directories=action] [--label] [--line-buffered]
+	[--null] [pattern] [file ...]
+grep: invalid option -- P
+usage: grep [-abcdDEFGHhIiJLlMmnOopqRSsUVvwXxZz] [-A num] [-B num] [-C[num]]
+	[-e pattern] [-f file] [--binary-files=value] [--color=when]
+	[--context[=num]] [--directories=action] [--label] [--line-buffered]
+	[--null] [pattern] [file ...]
+contracts/shared/ServiceRegistryV2.sol: 0
+grep: invalid option -- P
+usage: grep [-abcdDEFGHhIiJLlMmnOopqRSsUVvwXxZz] [-A num] [-B num] [-C[num]]
+	[-e pattern] [-f file] [--binary-files=value] [--color=when]
+	[--context[=num]] [--directories=action] [--label] [--line-buffered]
+	[--null] [pattern] [file ...]
+grep: invalid option -- P
+usage: grep [-abcdDEFGHhIiJLlMmnOopqRSsUVvwXxZz] [-A num] [-B num] [-C[num]]
+	[-e pattern] [-f file] [--binary-files=value] [--color=when]
+	[--context[=num]] [--directories=action] [--label] [--line-buffered]
+	[--null] [pattern] [file ...]
+contracts/shared/SlashManager.sol: 0
+TOTAL: 0
+=== NatSpec ===
+       0
+=== test_files ===
+      29
+=== test_functions ===
+grep: invalid option -- P
+usage: grep [-abcdDEFGHhIiJLlMmnOopqRSsUVvwXxZz] [-A num] [-B num] [-C[num]]
+	[-e pattern] [-f file] [--binary-files=value] [--color=when]
+	[--context[=num]] [--directories=action] [--label] [--line-buffered]
+	[--null] [pattern] [file ...]
+grep: invalid option -- P
+usage: grep [-abcdDEFGHhIiJLlMmnOopqRSsUVvwXxZz] [-A num] [-B num] [-C[num]]
+	[-e pattern] [-f file] [--binary-files=value] [--color=when]
+	[--context[=num]] [--directories=action] [--label] [--line-buffered]
+	[--null] [pattern] [file ...]
+0
+=== stateless_fuzz ===
+0
+=== foundry_invariant ===
+0
+=== echidna ===
+0:       0
+=== medusa ===
+0:       0
+=== hardhat_fuzz ===
+0
+=== fork ===
+0
+=== certora ===
+       0:       0
+=== halmos ===
+0:       0
+=== hevm ===
+0
+=== docs ===
+README.md
+README.md
+docs/
+=== commit ===
+d2eed84
+=== git_unique_authors ===
+       1
+=== git_contributors ===
+ 176 Wasabi 🥥🌴
+=== git_source_contributors ===
+24964	6189	Wasabi 🥥🌴
+=== git_repo_age ===
+2026-04-11T13:59:02-04:00
+2026-06-03T22:12:07-04:00
+=== git_total_commits ===
+176
+=== git_merge_count ===
+       1
+=== git_hotspots ===
+  17 contracts/shared/BiddingSystem.sol
+  14 contracts/shared/AgenticCommerceV9.sol
+  11 contracts/shared/ServiceRegistryV2.sol
+  10 contracts/test/BiddingSystem.t.sol
+   9 contracts/shared/MilestoneEscrowV2.sol
+   9 contracts/interfaces/IBiddingSystem.sol
+   8 contracts/test/Invariants.t.sol
+   8 contracts/shared/AgentReviewV5.sol
+   7 contracts/test/TestFixtures.sol
+   6 contracts/shared/MilestoneEscrow.sol
+   6 contracts/shared/AdminRegistry.sol
+   5 contracts/test/ServiceRegistryV2.t.sol
+   5 contracts/test/AgenticCommerceV9.t.sol
+   5 contracts/test/AgentReviewV5.t.sol
+   5 contracts/storage-layout-baseline.json
+=== git_recent_30d ===
+2f4feff CI: drop forge coverage gate; mark assembly memory-safe; 45c deploy docs
+f37897e Add admin pages, hooks, SDK & bidding upgrades
+5de7c4b Phase 45b: Bidding safety UUPS upgrade
+8a68b39 Native ETH service listings + marketplace UI updates
+706cc98 Add ERC-20 BiddingSystem + SDK/CLI/Subgraph
+cadb693 Phase 39: Random evaluator pool & UI updates
+a61df55 Remove AgentReviewV5 and refactor SlashManager
+09f3b05 Pin GH Actions, add bond redesign & updates
+264290f Phase 34b: security hardening & storage recovery
+b13ef85 Phase 34: Native currency refactor & dashboard UI
+fd8677b Replace raw addresses, add USD prices
+d219dac feat(deploy): Phase 32 upgrades deployed & verified on Sepolia + docs
+4368799 fix(contracts): Phase 32 multi-audit remediation — reentrancy, zero-checks, weak-prng
+cffaf6b Multi-audit fixes: security, CI, SBOM, deploy gate
+f045baf Add creator stake withdrawal & client-job API
+24eaf44 fix(BiddingSystem): resolve critical design flaws and security issues
+d19167c Fix CI tests; update hooks & web components
+0f51eb5 Add accessibility, dynamic imports, and hook cleanup
+=== git_large_diffs ===
+10181 COMMIT:d682cb3 Wasabi 🥥🌴 Add Swagger UI and OpenAPI endpoint
+4373 COMMIT:ebe8f82 Wasabi 🥥🌴 Phase 29c: V9 Multi-Token Architecture + Dynamic Oracle + Codebase Cleanup
+1825 COMMIT:0f51eb5 Wasabi 🥥🌴 Add accessibility, dynamic imports, and hook cleanup
+1727 COMMIT:a40b67f Wasabi 🥥🌴 Phase 29e: Pashov audit fixes + AdminRegistry UUPS migration + full stack parity + CLI palm onboarding
+1516 COMMIT:a61df55 Wasabi 🥥🌴 Remove AgentReviewV5 and refactor SlashManager
+1405 COMMIT:1aa5270 Wasabi 🥥🌴 Phase 27: Client Review Flow - V7 Contract Upgrade + LLM Evaluation
+1219 COMMIT:71bb8f8 Wasabi 🥥🌴 Security Audit Remediation: Cross-audit fixes from sc-auditor, Quillshield, Cyfrin, and Trail of Bits
+1046 COMMIT:1800900 Wasabi 🥥🌴 feat: Phase 24 - Milestone Payments & Dispute Resolution
+1029 COMMIT:f37897e Wasabi 🥥🌴 Add admin pages, hooks, SDK & bidding upgrades
+941 COMMIT:264290f Wasabi 🥥🌴 Phase 34b: security hardening & storage recovery

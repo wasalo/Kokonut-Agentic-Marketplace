@@ -1,0 +1,39 @@
+{
+  "title": "Kokonut Agent Economy Architecture",
+  "nodes": [
+    {"id": "users", "label": "Marketplace Users", "subtitle": "Client / Provider / Evaluator / Arbiter", "type": "actor", "row": 0},
+    {"id": "multisig", "label": "Multisig", "subtitle": "3-of-5 signers", "type": "actor", "row": 0},
+    {"id": "owner", "label": "Owner", "subtitle": "UUPS upgrade (2-step transfer)", "type": "actor", "row": 0},
+    {"id": "slash", "label": "SlashManager", "subtitle": "3-of-5 + 1h timelock", "type": "protocol", "row": 1},
+    {"id": "bid", "label": "BiddingSystem", "subtitle": "Commit-reveal + 30d sweep", "type": "protocol", "row": 1},
+    {"id": "escrow", "label": "Marketplace Escrow", "subtitle": "V6 / V9 (current: V9)", "type": "protocol", "row": 1},
+    {"id": "milestone", "label": "Milestone Escrow", "subtitle": "V1 / V2 (current: V2)", "type": "protocol", "row": 1},
+    {"id": "service", "label": "ServiceRegistryV2", "subtitle": "Listings + 0.01 ETH bond", "type": "protocol", "row": 1},
+    {"id": "agent", "label": "AgentRegistry", "subtitle": "AdminRegistry / AgentSkillRegistryV2", "type": "protocol", "row": 1},
+    {"id": "oracle", "label": "PriceOracleV2", "subtitle": "Chainlink + per-token feeds", "type": "protocol", "row": 2},
+    {"id": "identity", "label": "ERC-8004 Identity", "subtitle": "IdentityRegistry (ERC-721)", "type": "external", "row": 2},
+    {"id": "tokens", "label": "Tokens", "subtitle": "USDC / Native ETH", "type": "external", "row": 2},
+    {"id": "chainlink", "label": "Chainlink", "subtitle": "ETH/USD + USDC/USD", "type": "external", "row": 3}
+  ],
+  "edges": [
+    {"from": "users", "to": "service", "label": "list / buy"},
+    {"from": "users", "to": "escrow", "label": "create / fund"},
+    {"from": "users", "to": "milestone", "label": "add / release"},
+    {"from": "users", "to": "bid", "label": "commit / reveal"},
+    {"from": "multisig", "to": "slash", "label": "propose / confirm"},
+    {"from": "slash", "to": "escrow", "label": "slashByGovernance"},
+    {"from": "escrow", "to": "milestone", "label": "enableMilestones"},
+    {"from": "agent", "to": "service", "label": "blacklist check"},
+    {"from": "escrow", "to": "oracle", "label": "getMinBudget"},
+    {"from": "bid", "to": "oracle", "label": "getUsdPrice"},
+    {"from": "owner", "to": "escrow", "label": "UUPS upgrade"},
+    {"from": "oracle", "to": "chainlink", "label": "latestRoundData"},
+    {"from": "escrow", "to": "tokens", "label": "transfers"},
+    {"from": "service", "to": "tokens", "label": "bond refund"},
+    {"from": "milestone", "to": "tokens", "label": "milestone release"},
+    {"from": "bid", "to": "tokens", "label": "stake transfers"},
+    {"from": "bid", "to": "escrow", "label": "createJobAndFund"},
+    {"from": "service", "to": "identity", "label": "ownerOf"}
+  ],
+  "groups": []
+}

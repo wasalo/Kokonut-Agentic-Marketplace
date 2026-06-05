@@ -1,0 +1,1214 @@
+{
+  "meta": {
+    "repo": "/Users/alejandro/GitHub/Kokonut-Agentic-Marketplace",
+    "src_dir": "contracts",
+    "generated_at": "2026-06-05T14:10:27.617716+00:00",
+    "git_head": "d2eed84",
+    "git_branch": "develop",
+    "total_commits": 176,
+    "total_source_files": 21,
+    "analysis_time_ms": 3125
+  },
+  "repo_shape": {
+    "classification": "normal_dev",
+    "total_commits": 176,
+    "source_touching_commits": 33,
+    "bulk_import_sha": null,
+    "date_spread_days": 53,
+    "first_commit_date": "2026-04-11",
+    "last_commit_date": "2026-06-03",
+    "signals": [
+      "Date spread: 53 days",
+      "33 commits touch source files out of 176 total"
+    ]
+  },
+  "fix_candidates": [
+    {
+      "sha": "cffaf6b",
+      "full_sha": "cffaf6b4fbc90a4f093bc9b19076dbe94e3711ec",
+      "date": "2026-05-21",
+      "author": "Wasabi \ud83e\udd65\ud83c\udf34",
+      "subject": "Multi-audit fixes: security, CI, SBOM, deploy gate",
+      "score": 20,
+      "reasons": [
+        "explicit security language",
+        "removes runtime guards (+0/-1)",
+        "loosens access control (+0/-1)",
+        "changes token transfer logic",
+        "spans 5 security domains (access_control, fund_flows, oracle_price, signatures, state_machines)",
+        "includes test changes"
+      ],
+      "source_files_touched": [
+        "contracts/interfaces/IAgenticCommerceV9.sol",
+        "contracts/script/DeployBiddingSystem.s.sol",
+        "contracts/script/DeployV9.s.sol",
+        "contracts/shared/AgentReviewV5.sol",
+        "contracts/shared/AgenticCommerceV9.sol",
+        "contracts/shared/BiddingSystem.sol",
+        "contracts/shared/MilestoneEscrowV2.sol"
+      ],
+      "test_changed": true,
+      "lines_changed": 145
+    },
+    {
+      "sha": "71bb8f8",
+      "full_sha": "71bb8f80e2c109b0edd5cba11bfcdf4c6789a8e3",
+      "date": "2026-05-01",
+      "author": "Wasabi \ud83e\udd65\ud83c\udf34",
+      "subject": "Security Audit Remediation: Cross-audit fixes from sc-auditor, Quillshield, Cyfrin, and Trail of Bits",
+      "score": 20,
+      "reasons": [
+        "explicit security language",
+        "removes runtime guards (+138/-239)",
+        "tightens access control (+182/-7)",
+        "changes token transfer logic",
+        "changes signature/auth handling",
+        "changes accounting/balance logic",
+        "spans 5 security domains (access_control, fund_flows, oracle_price, signatures, state_machines)",
+        "large change (>500 source lines)"
+      ],
+      "source_files_touched": [
+        "contracts/script/UpgradeAgentSkillRegistryV2.s.sol",
+        "contracts/script/UpgradeServiceRegistryV2.s.sol",
+        "contracts/shared/AdminRegistry.sol",
+        "contracts/shared/AgentReviewV5.sol",
+        "contracts/shared/AgentSkillRegistryV2.sol",
+        "contracts/shared/AgenticCommerceV6.sol",
+        "contracts/shared/AgenticCommerceV9.sol",
+        "contracts/shared/BiddingSystem.sol",
+        "contracts/shared/CommitReveal.sol",
+        "contracts/shared/IACPHook.sol",
+        "contracts/shared/MilestoneEscrow.sol",
+        "contracts/shared/MilestoneEscrowV2.sol",
+        "contracts/shared/PriceOracle.sol",
+        "contracts/shared/PriceOracleV2.sol",
+        "contracts/shared/ServiceRegistryV2.sol",
+        "contracts/shared/SlashManager.sol"
+      ],
+      "test_changed": false,
+      "lines_changed": 1219
+    },
+    {
+      "sha": "24eaf44",
+      "full_sha": "24eaf4474c70d7d1953fe3be7bb865952662cb15",
+      "date": "2026-05-19",
+      "author": "Wasabi \ud83e\udd65\ud83c\udf34",
+      "subject": "fix(BiddingSystem): resolve critical design flaws and security issues",
+      "score": 19,
+      "reasons": [
+        "explicit security language",
+        "loosens access control (+1/-3)",
+        "changes accounting/balance logic",
+        "spans 3 security domains (access_control, fund_flows, state_machines)",
+        "focused change (2 source files)",
+        "net code removal",
+        "includes test changes"
+      ],
+      "source_files_touched": [
+        "contracts/interfaces/IBiddingSystem.sol",
+        "contracts/shared/BiddingSystem.sol"
+      ],
+      "test_changed": true,
+      "lines_changed": 74
+    },
+    {
+      "sha": "264290f",
+      "full_sha": "264290fe7bb174809b50c0b0f6e7d455f9b9d430",
+      "date": "2026-05-25",
+      "author": "Wasabi \ud83e\udd65\ud83c\udf34",
+      "subject": "Phase 34b: security hardening & storage recovery",
+      "score": 16,
+      "reasons": [
+        "explicit security language",
+        "tightens access control (+3/-1)",
+        "changes token transfer logic",
+        "changes accounting/balance logic",
+        "spans 5 security domains (access_control, fund_flows, oracle_price, signatures, state_machines)",
+        "large change (>500 source lines)",
+        "includes test changes"
+      ],
+      "source_files_touched": [
+        "contracts/script/UpgradeAgentReviewV5_Phase34StakeRewardPatch.s.sol",
+        "contracts/script/UpgradeAgenticCommerceV9_Phase34AuthPatch.s.sol",
+        "contracts/script/UpgradeAgenticCommerceV9_Phase34Recovery.s.sol",
+        "contracts/script/UpgradeBiddingSystem_Phase34CreatorStakePatch.s.sol",
+        "contracts/script/UpgradeMilestoneEscrowV2_Phase34Hotfix.s.sol",
+        "contracts/shared/AgentReviewV5.sol",
+        "contracts/shared/AgenticCommerceV9.sol",
+        "contracts/shared/BiddingSystem.sol",
+        "contracts/shared/MilestoneEscrowV2.sol"
+      ],
+      "test_changed": true,
+      "lines_changed": 544
+    },
+    {
+      "sha": "a40b67f",
+      "full_sha": "a40b67fcc70be6494ddc7bac3e1a0d1ac4965a67",
+      "date": "2026-04-30",
+      "author": "Wasabi \ud83e\udd65\ud83c\udf34",
+      "subject": "Phase 29e: Pashov audit fixes + AdminRegistry UUPS migration + full stack parity + CLI palm onboarding",
+      "score": 15,
+      "reasons": [
+        "bug fix",
+        "removes runtime guards (+13/-19)",
+        "tightens access control (+15/-2)",
+        "changes token transfer logic",
+        "changes accounting/balance logic",
+        "spans 5 security domains (access_control, fund_flows, oracle_price, signatures, state_machines)",
+        "large change (>500 source lines)",
+        "includes test changes"
+      ],
+      "source_files_touched": [
+        "contracts/interfaces/IAgenticCommerceV9.sol",
+        "contracts/interfaces/IBiddingSystem.sol",
+        "contracts/script/DeployAdminRegistry.s.sol",
+        "contracts/script/DeployAdminRegistryUUPS.s.sol",
+        "contracts/script/DeployV9.s.sol",
+        "contracts/script/UpgradeAdminRegistry.s.sol",
+        "contracts/script/UpgradeAgenticCommerceV9.s.sol",
+        "contracts/script/UpgradeMilestoneEscrowV2.s.sol",
+        "contracts/script/UpgradePhase29e.s.sol",
+        "contracts/shared/AdminRegistry.sol",
+        "contracts/shared/AgentReviewV5.sol",
+        "contracts/shared/AgenticCommerceV9.sol",
+        "contracts/shared/BiddingSystem.sol",
+        "contracts/shared/MilestoneEscrowV2.sol",
+        "contracts/shared/ServiceRegistryV2.sol"
+      ],
+      "test_changed": true,
+      "lines_changed": 1679
+    },
+    {
+      "sha": "ad4ed28",
+      "full_sha": "ad4ed286dea44e14ff64638d3cd798f215649e58",
+      "date": "2026-04-20",
+      "author": "Wasabi \ud83e\udd65\ud83c\udf34",
+      "subject": "Phase 26: Circuit Breaker + Mobile Responsiveness + Type Safety",
+      "score": 15,
+      "reasons": [
+        "unclassified",
+        "adds runtime guards (+1/-0)",
+        "tightens access control (+8/-0)",
+        "changes token transfer logic",
+        "changes accounting/balance logic",
+        "spans 3 security domains (access_control, signatures, state_machines)",
+        "focused change (1 source files)",
+        "includes test changes"
+      ],
+      "source_files_touched": [
+        "contracts/shared/AdminRegistry.sol"
+      ],
+      "test_changed": true,
+      "lines_changed": 286
+    },
+    {
+      "sha": "4368799",
+      "full_sha": "436879921385cd2f11a521e6544811d459b19cef",
+      "date": "2026-05-22",
+      "author": "Wasabi \ud83e\udd65\ud83c\udf34",
+      "subject": "fix(contracts): Phase 32 multi-audit remediation \u2014 reentrancy, zero-checks, weak-prng",
+      "score": 14,
+      "reasons": [
+        "explicit security language",
+        "rewrites access control (+2/-2)",
+        "spans 5 security domains (access_control, fund_flows, oracle_price, signatures, state_machines)",
+        "includes test changes"
+      ],
+      "source_files_touched": [
+        "contracts/shared/AdminRegistry.sol",
+        "contracts/shared/AgentReviewV5.sol",
+        "contracts/shared/AgenticCommerceV9.sol",
+        "contracts/shared/BiddingSystem.sol",
+        "contracts/shared/MilestoneEscrow.sol",
+        "contracts/shared/MilestoneEscrowV2.sol"
+      ],
+      "test_changed": true,
+      "lines_changed": 37
+    },
+    {
+      "sha": "1093591",
+      "full_sha": "10935912fc66fefe6a7c63f9d93822c78cced7d6",
+      "date": "2026-04-21",
+      "author": "Wasabi \ud83e\udd65\ud83c\udf34",
+      "subject": "feat(Phase 28): Add Bad Actors Red Team blacklist protection system",
+      "score": 14,
+      "reasons": [
+        "hardening/validation",
+        "adds runtime guards (+16/-0)",
+        "tightens access control (+11/-0)",
+        "changes signature/auth handling",
+        "changes accounting/balance logic",
+        "spans 5 security domains (access_control, fund_flows, oracle_price, signatures, state_machines)"
+      ],
+      "source_files_touched": [
+        "contracts/shared/AdminRegistry.sol",
+        "contracts/shared/AgenticCommerceV7.sol",
+        "contracts/shared/BiddingSystem.sol",
+        "contracts/shared/ServiceRegistryV2.sol"
+      ],
+      "test_changed": false,
+      "lines_changed": 261
+    },
+    {
+      "sha": "2f710ee",
+      "full_sha": "2f710eefa8f0d392565ed1b653c7adbe651a4688",
+      "date": "2026-04-27",
+      "author": "Wasabi \ud83e\udd65\ud83c\udf34",
+      "subject": "fix: job creation validation + UI cleanup + milestone flow",
+      "score": 13,
+      "reasons": [
+        "bug fix",
+        "tightens access control (+2/-0)",
+        "spans 3 security domains (access_control, fund_flows, state_machines)",
+        "focused change (3 source files)",
+        "includes test changes"
+      ],
+      "source_files_touched": [
+        "contracts/script/UpgradeToV7.s.sol",
+        "contracts/shared/AgenticCommerceV7.sol",
+        "contracts/shared/MilestoneEscrow.sol"
+      ],
+      "test_changed": true,
+      "lines_changed": 51
+    },
+    {
+      "sha": "a4e4852",
+      "full_sha": "a4e4852681a582a3dae9a4d5d4930981f246cb02",
+      "date": "2026-04-24",
+      "author": "Wasabi \ud83e\udd65\ud83c\udf34",
+      "subject": "feat: Random Evaluator Pool + Leaderboard Fix",
+      "score": 13,
+      "reasons": [
+        "bug fix",
+        "removes runtime guards (+1/-4)",
+        "spans 4 security domains (access_control, fund_flows, oracle_price, state_machines)",
+        "focused change (3 source files)",
+        "net code removal"
+      ],
+      "source_files_touched": [
+        "contracts/interfaces/IIdentityRegistry.sol",
+        "contracts/script/UpgradeServiceRegistryV2.s.sol",
+        "contracts/shared/ServiceRegistryV2.sol"
+      ],
+      "test_changed": false,
+      "lines_changed": 135
+    }
+  ],
+  "dangerous_area_changes": {
+    "access_control": {
+      "commit_count": 28,
+      "files": [
+        "contracts/shared/AdminRegistry.sol",
+        "contracts/shared/AgentSkillRegistryV2.sol",
+        "contracts/shared/AgenticCommerceV6.sol",
+        "contracts/shared/AgenticCommerceV9.sol",
+        "contracts/shared/BiddingSystem.sol",
+        "contracts/shared/CommitReveal.sol",
+        "contracts/shared/MilestoneEscrow.sol",
+        "contracts/shared/MilestoneEscrowV2.sol",
+        "contracts/shared/PriceOracleV2.sol",
+        "contracts/shared/ServiceRegistryV2.sol",
+        "contracts/shared/SlashManager.sol",
+        "lib/openzeppelin-contracts/certora/harnesses/AccessControlDefaultAdminRulesHarness.sol",
+        "lib/openzeppelin-contracts/certora/harnesses/AccessControlHarness.sol",
+        "lib/openzeppelin-contracts/certora/harnesses/Ownable2StepHarness.sol",
+        "lib/openzeppelin-contracts/certora/harnesses/OwnableHarness.sol",
+        "lib/openzeppelin-contracts/contracts/access/AccessControl.sol",
+        "lib/openzeppelin-contracts/contracts/access/IAccessControl.sol",
+        "lib/openzeppelin-contracts/contracts/access/Ownable.sol",
+        "lib/openzeppelin-contracts/contracts/access/Ownable2Step.sol",
+        "lib/openzeppelin-contracts/contracts/access/extensions/AccessControlDefaultAdminRules.sol",
+        "lib/openzeppelin-contracts/contracts/access/extensions/AccessControlEnumerable.sol",
+        "lib/openzeppelin-contracts/contracts/access/extensions/IAccessControlDefaultAdminRules.sol",
+        "lib/openzeppelin-contracts/contracts/access/extensions/IAccessControlEnumerable.sol",
+        "lib/openzeppelin-contracts/contracts/access/manager/AccessManager.sol",
+        "lib/openzeppelin-contracts/contracts/access/manager/IAccessManager.sol",
+        "lib/openzeppelin-contracts/contracts/governance/Governor.sol",
+        "lib/openzeppelin-contracts/contracts/governance/TimelockController.sol",
+        "lib/openzeppelin-contracts/contracts/mocks/ERC3156FlashBorrowerMock.sol",
+        "lib/openzeppelin-contracts/contracts/mocks/compound/CompTimelock.sol",
+        "lib/openzeppelin-contracts/contracts/mocks/docs/access-control/AccessControlERC20MintBase.sol",
+        "lib/openzeppelin-contracts/contracts/mocks/docs/access-control/AccessControlERC20MintMissing.sol",
+        "lib/openzeppelin-contracts/contracts/mocks/docs/access-control/AccessControlERC20MintOnlyRole.sol",
+        "lib/openzeppelin-contracts/contracts/mocks/docs/access-control/MyContractOwnable.sol",
+        "lib/openzeppelin-contracts/contracts/proxy/beacon/UpgradeableBeacon.sol",
+        "lib/openzeppelin-contracts/contracts/proxy/transparent/ProxyAdmin.sol",
+        "lib/openzeppelin-contracts/contracts/proxy/utils/Initializable.sol",
+        "lib/openzeppelin-contracts/contracts/proxy/utils/UUPSUpgradeable.sol",
+        "lib/openzeppelin-contracts/contracts/token/ERC1155/extensions/ERC1155Pausable.sol",
+        "lib/openzeppelin-contracts/contracts/token/ERC20/extensions/ERC20Pausable.sol",
+        "lib/openzeppelin-contracts/contracts/token/ERC721/extensions/ERC721Pausable.sol"
+      ],
+      "commits": [
+        {
+          "sha": "2f4feff",
+          "date": "2026-06-02",
+          "subject": "CI: drop forge coverage gate; mark assembly memory-safe; 45c deploy docs"
+        },
+        {
+          "sha": "f37897e",
+          "date": "2026-06-02",
+          "subject": "Add admin pages, hooks, SDK & bidding upgrades"
+        },
+        {
+          "sha": "5de7c4b",
+          "date": "2026-06-01",
+          "subject": "Phase 45b: Bidding safety UUPS upgrade"
+        },
+        {
+          "sha": "8a68b39",
+          "date": "2026-06-01",
+          "subject": "Native ETH service listings + marketplace UI updates"
+        },
+        {
+          "sha": "706cc98",
+          "date": "2026-05-30",
+          "subject": "Add ERC-20 BiddingSystem + SDK/CLI/Subgraph"
+        },
+        {
+          "sha": "cadb693",
+          "date": "2026-05-30",
+          "subject": "Phase 39: Random evaluator pool & UI updates"
+        },
+        {
+          "sha": "a61df55",
+          "date": "2026-05-28",
+          "subject": "Remove AgentReviewV5 and refactor SlashManager"
+        },
+        {
+          "sha": "09f3b05",
+          "date": "2026-05-27",
+          "subject": "Pin GH Actions, add bond redesign & updates"
+        },
+        {
+          "sha": "264290f",
+          "date": "2026-05-25",
+          "subject": "Phase 34b: security hardening & storage recovery"
+        },
+        {
+          "sha": "b13ef85",
+          "date": "2026-05-24",
+          "subject": "Phase 34: Native currency refactor & dashboard UI"
+        },
+        {
+          "sha": "4368799",
+          "date": "2026-05-22",
+          "subject": "fix(contracts): Phase 32 multi-audit remediation \u2014 reentrancy, zero-checks, weak"
+        },
+        {
+          "sha": "cffaf6b",
+          "date": "2026-05-21",
+          "subject": "Multi-audit fixes: security, CI, SBOM, deploy gate"
+        },
+        {
+          "sha": "f045baf",
+          "date": "2026-05-19",
+          "subject": "Add creator stake withdrawal & client-job API"
+        },
+        {
+          "sha": "24eaf44",
+          "date": "2026-05-19",
+          "subject": "fix(BiddingSystem): resolve critical design flaws and security issues"
+        },
+        {
+          "sha": "0f51eb5",
+          "date": "2026-05-16",
+          "subject": "Add accessibility, dynamic imports, and hook cleanup"
+        }
+      ],
+      "truncated": true
+    },
+    "fund_flows": {
+      "commit_count": 27,
+      "files": [
+        "contracts/interfaces/IAgenticCommerceV6.sol",
+        "contracts/interfaces/IAgenticCommerceV9.sol",
+        "contracts/interfaces/IBiddingSystem.sol",
+        "contracts/shared/AgenticCommerceV6.sol",
+        "contracts/shared/AgenticCommerceV9.sol",
+        "contracts/shared/BiddingSystem.sol",
+        "contracts/shared/MilestoneEscrow.sol",
+        "contracts/shared/MilestoneEscrowV2.sol",
+        "contracts/shared/ServiceRegistryV2.sol",
+        "lib/openzeppelin-contracts/certora/harnesses/ERC20WrapperHarness.sol",
+        "lib/openzeppelin-contracts/contracts/finance/VestingWallet.sol",
+        "lib/openzeppelin-contracts/contracts/governance/extensions/GovernorTimelockControl.sol",
+        "lib/openzeppelin-contracts/contracts/governance/utils/Votes.sol",
+        "lib/openzeppelin-contracts/contracts/interfaces/IERC1363.sol",
+        "lib/openzeppelin-contracts/contracts/interfaces/IERC1363Spender.sol",
+        "lib/openzeppelin-contracts/contracts/interfaces/IERC4626.sol",
+        "lib/openzeppelin-contracts/contracts/interfaces/IERC777.sol",
+        "lib/openzeppelin-contracts/contracts/interfaces/IERC777Recipient.sol",
+        "lib/openzeppelin-contracts/contracts/interfaces/IERC777Sender.sol",
+        "lib/openzeppelin-contracts/contracts/interfaces/draft-IERC6093.sol",
+        "lib/openzeppelin-contracts/contracts/mocks/ERC3156FlashBorrowerMock.sol",
+        "lib/openzeppelin-contracts/contracts/mocks/docs/ERC4626Fees.sol",
+        "lib/openzeppelin-contracts/contracts/mocks/token/ERC20ApprovalMock.sol",
+        "lib/openzeppelin-contracts/contracts/mocks/token/ERC20ForceApproveMock.sol",
+        "lib/openzeppelin-contracts/contracts/mocks/token/ERC20NoReturnMock.sol",
+        "lib/openzeppelin-contracts/contracts/mocks/token/ERC20ReturnFalseMock.sol",
+        "lib/openzeppelin-contracts/contracts/mocks/token/ERC20VotesLegacyMock.sol",
+        "lib/openzeppelin-contracts/contracts/token/ERC1155/ERC1155.sol",
+        "lib/openzeppelin-contracts/contracts/token/ERC1155/IERC1155.sol",
+        "lib/openzeppelin-contracts/contracts/token/ERC1155/IERC1155Receiver.sol",
+        "lib/openzeppelin-contracts/contracts/token/ERC1155/extensions/ERC1155Burnable.sol",
+        "lib/openzeppelin-contracts/contracts/token/ERC1155/extensions/ERC1155Supply.sol",
+        "lib/openzeppelin-contracts/contracts/token/ERC20/ERC20.sol",
+        "lib/openzeppelin-contracts/contracts/token/ERC20/IERC20.sol",
+        "lib/openzeppelin-contracts/contracts/token/ERC20/extensions/ERC20Burnable.sol",
+        "lib/openzeppelin-contracts/contracts/token/ERC20/extensions/ERC20FlashMint.sol",
+        "lib/openzeppelin-contracts/contracts/token/ERC20/extensions/ERC20Permit.sol",
+        "lib/openzeppelin-contracts/contracts/token/ERC20/extensions/ERC20Votes.sol",
+        "lib/openzeppelin-contracts/contracts/token/ERC20/extensions/ERC20Wrapper.sol",
+        "lib/openzeppelin-contracts/contracts/token/ERC20/extensions/ERC4626.sol",
+        "lib/openzeppelin-contracts/contracts/token/ERC20/extensions/IERC20Permit.sol",
+        "lib/openzeppelin-contracts/contracts/token/ERC20/utils/SafeERC20.sol",
+        "lib/openzeppelin-contracts/contracts/token/ERC721/ERC721.sol",
+        "lib/openzeppelin-contracts/contracts/token/ERC721/IERC721.sol",
+        "lib/openzeppelin-contracts/contracts/token/ERC721/IERC721Receiver.sol",
+        "lib/openzeppelin-contracts/contracts/token/ERC721/extensions/ERC721Burnable.sol",
+        "lib/openzeppelin-contracts/contracts/token/ERC721/extensions/ERC721Enumerable.sol",
+        "lib/openzeppelin-contracts/contracts/token/ERC721/extensions/ERC721Votes.sol",
+        "lib/openzeppelin-contracts/contracts/token/ERC721/extensions/ERC721Wrapper.sol",
+        "lib/openzeppelin-contracts/contracts/token/ERC721/extensions/IERC721Enumerable.sol",
+        "lib/openzeppelin-contracts/contracts/token/ERC721/utils/ERC721Holder.sol",
+        "lib/openzeppelin-contracts/lib/erc4626-tests/ERC4626.prop.sol",
+        "lib/openzeppelin-contracts/lib/erc4626-tests/ERC4626.test.sol"
+      ],
+      "commits": [
+        {
+          "sha": "2f4feff",
+          "date": "2026-06-02",
+          "subject": "CI: drop forge coverage gate; mark assembly memory-safe; 45c deploy docs"
+        },
+        {
+          "sha": "f37897e",
+          "date": "2026-06-02",
+          "subject": "Add admin pages, hooks, SDK & bidding upgrades"
+        },
+        {
+          "sha": "5de7c4b",
+          "date": "2026-06-01",
+          "subject": "Phase 45b: Bidding safety UUPS upgrade"
+        },
+        {
+          "sha": "8a68b39",
+          "date": "2026-06-01",
+          "subject": "Native ETH service listings + marketplace UI updates"
+        },
+        {
+          "sha": "706cc98",
+          "date": "2026-05-30",
+          "subject": "Add ERC-20 BiddingSystem + SDK/CLI/Subgraph"
+        },
+        {
+          "sha": "cadb693",
+          "date": "2026-05-30",
+          "subject": "Phase 39: Random evaluator pool & UI updates"
+        },
+        {
+          "sha": "a61df55",
+          "date": "2026-05-28",
+          "subject": "Remove AgentReviewV5 and refactor SlashManager"
+        },
+        {
+          "sha": "09f3b05",
+          "date": "2026-05-27",
+          "subject": "Pin GH Actions, add bond redesign & updates"
+        },
+        {
+          "sha": "264290f",
+          "date": "2026-05-25",
+          "subject": "Phase 34b: security hardening & storage recovery"
+        },
+        {
+          "sha": "b13ef85",
+          "date": "2026-05-24",
+          "subject": "Phase 34: Native currency refactor & dashboard UI"
+        },
+        {
+          "sha": "4368799",
+          "date": "2026-05-22",
+          "subject": "fix(contracts): Phase 32 multi-audit remediation \u2014 reentrancy, zero-checks, weak"
+        },
+        {
+          "sha": "cffaf6b",
+          "date": "2026-05-21",
+          "subject": "Multi-audit fixes: security, CI, SBOM, deploy gate"
+        },
+        {
+          "sha": "f045baf",
+          "date": "2026-05-19",
+          "subject": "Add creator stake withdrawal & client-job API"
+        },
+        {
+          "sha": "24eaf44",
+          "date": "2026-05-19",
+          "subject": "fix(BiddingSystem): resolve critical design flaws and security issues"
+        },
+        {
+          "sha": "0f51eb5",
+          "date": "2026-05-16",
+          "subject": "Add accessibility, dynamic imports, and hook cleanup"
+        }
+      ],
+      "truncated": true
+    },
+    "oracle_price": {
+      "commit_count": 19,
+      "files": [
+        "contracts/interfaces/IPriceOracleV2.sol",
+        "contracts/shared/AgenticCommerceV9.sol",
+        "contracts/shared/PriceOracle.sol",
+        "contracts/shared/PriceOracleV2.sol",
+        "contracts/shared/ServiceRegistryV2.sol",
+        "lib/openzeppelin-contracts/contracts/interfaces/IERC2981.sol",
+        "lib/openzeppelin-contracts/contracts/interfaces/IERC4626.sol",
+        "lib/openzeppelin-contracts/contracts/token/ERC20/extensions/ERC4626.sol",
+        "lib/openzeppelin-contracts/contracts/token/common/ERC2981.sol"
+      ],
+      "commits": [
+        {
+          "sha": "2f4feff",
+          "date": "2026-06-02",
+          "subject": "CI: drop forge coverage gate; mark assembly memory-safe; 45c deploy docs"
+        },
+        {
+          "sha": "8a68b39",
+          "date": "2026-06-01",
+          "subject": "Native ETH service listings + marketplace UI updates"
+        },
+        {
+          "sha": "a61df55",
+          "date": "2026-05-28",
+          "subject": "Remove AgentReviewV5 and refactor SlashManager"
+        },
+        {
+          "sha": "09f3b05",
+          "date": "2026-05-27",
+          "subject": "Pin GH Actions, add bond redesign & updates"
+        },
+        {
+          "sha": "264290f",
+          "date": "2026-05-25",
+          "subject": "Phase 34b: security hardening & storage recovery"
+        },
+        {
+          "sha": "b13ef85",
+          "date": "2026-05-24",
+          "subject": "Phase 34: Native currency refactor & dashboard UI"
+        },
+        {
+          "sha": "4368799",
+          "date": "2026-05-22",
+          "subject": "fix(contracts): Phase 32 multi-audit remediation \u2014 reentrancy, zero-checks, weak"
+        },
+        {
+          "sha": "cffaf6b",
+          "date": "2026-05-21",
+          "subject": "Multi-audit fixes: security, CI, SBOM, deploy gate"
+        },
+        {
+          "sha": "f045baf",
+          "date": "2026-05-19",
+          "subject": "Add creator stake withdrawal & client-job API"
+        },
+        {
+          "sha": "0f51eb5",
+          "date": "2026-05-16",
+          "subject": "Add accessibility, dynamic imports, and hook cleanup"
+        },
+        {
+          "sha": "6ece914",
+          "date": "2026-05-02",
+          "subject": "Fix CI pipeline: suppress Solidity warnings, update fuzz tests for custom errors"
+        },
+        {
+          "sha": "71bb8f8",
+          "date": "2026-05-01",
+          "subject": "Security Audit Remediation: Cross-audit fixes from sc-auditor, Quillshield, Cyfr"
+        },
+        {
+          "sha": "6d4aa6f",
+          "date": "2026-05-01",
+          "subject": "fix(contracts): remove __UUPSUpgradeable_init() for OZ v5 compatibility"
+        },
+        {
+          "sha": "a40b67f",
+          "date": "2026-04-30",
+          "subject": "Phase 29e: Pashov audit fixes + AdminRegistry UUPS migration + full stack parity"
+        },
+        {
+          "sha": "ebe8f82",
+          "date": "2026-04-29",
+          "subject": "Phase 29c: V9 Multi-Token Architecture + Dynamic Oracle + Codebase Cleanup"
+        }
+      ],
+      "truncated": true
+    },
+    "signatures": {
+      "commit_count": 17,
+      "files": [
+        "contracts/shared/AdminRegistry.sol",
+        "contracts/shared/AgenticCommerceV9.sol",
+        "contracts/shared/PriceOracleV2.sol",
+        "contracts/shared/SlashManager.sol",
+        "lib/openzeppelin-contracts/contracts/access/AccessControl.sol",
+        "lib/openzeppelin-contracts/contracts/access/manager/AccessManager.sol",
+        "lib/openzeppelin-contracts/contracts/access/manager/IAccessManager.sol",
+        "lib/openzeppelin-contracts/contracts/governance/Governor.sol",
+        "lib/openzeppelin-contracts/contracts/governance/IGovernor.sol",
+        "lib/openzeppelin-contracts/contracts/governance/extensions/GovernorTimelockAccess.sol",
+        "lib/openzeppelin-contracts/contracts/governance/utils/IVotes.sol",
+        "lib/openzeppelin-contracts/contracts/governance/utils/Votes.sol",
+        "lib/openzeppelin-contracts/contracts/interfaces/IERC1271.sol",
+        "lib/openzeppelin-contracts/contracts/interfaces/IERC5267.sol",
+        "lib/openzeppelin-contracts/contracts/metatx/ERC2771Forwarder.sol",
+        "lib/openzeppelin-contracts/contracts/mocks/EIP712Verifier.sol",
+        "lib/openzeppelin-contracts/contracts/mocks/ERC1271WalletMock.sol",
+        "lib/openzeppelin-contracts/contracts/mocks/Stateless.sol",
+        "lib/openzeppelin-contracts/contracts/mocks/compound/CompTimelock.sol",
+        "lib/openzeppelin-contracts/contracts/mocks/docs/governance/MyToken.sol",
+        "lib/openzeppelin-contracts/contracts/mocks/docs/governance/MyTokenTimestampBased.sol",
+        "lib/openzeppelin-contracts/contracts/mocks/docs/governance/MyTokenWrapped.sol",
+        "lib/openzeppelin-contracts/contracts/mocks/token/ERC20VotesLegacyMock.sol",
+        "lib/openzeppelin-contracts/contracts/mocks/token/ERC721ConsecutiveMock.sol",
+        "lib/openzeppelin-contracts/contracts/token/ERC20/extensions/ERC20Permit.sol",
+        "lib/openzeppelin-contracts/contracts/token/ERC20/extensions/ERC20Votes.sol",
+        "lib/openzeppelin-contracts/contracts/token/ERC20/extensions/IERC20Permit.sol",
+        "lib/openzeppelin-contracts/contracts/token/ERC721/ERC721.sol",
+        "lib/openzeppelin-contracts/contracts/utils/Nonces.sol",
+        "lib/openzeppelin-contracts/contracts/utils/cryptography/ECDSA.sol",
+        "lib/openzeppelin-contracts/contracts/utils/cryptography/EIP712.sol",
+        "lib/openzeppelin-contracts/contracts/utils/cryptography/MessageHashUtils.sol",
+        "lib/openzeppelin-contracts/contracts/utils/cryptography/SignatureChecker.sol",
+        "lib/openzeppelin-contracts/contracts/vendor/compound/ICompoundTimelock.sol"
+      ],
+      "commits": [
+        {
+          "sha": "2f4feff",
+          "date": "2026-06-02",
+          "subject": "CI: drop forge coverage gate; mark assembly memory-safe; 45c deploy docs"
+        },
+        {
+          "sha": "a61df55",
+          "date": "2026-05-28",
+          "subject": "Remove AgentReviewV5 and refactor SlashManager"
+        },
+        {
+          "sha": "09f3b05",
+          "date": "2026-05-27",
+          "subject": "Pin GH Actions, add bond redesign & updates"
+        },
+        {
+          "sha": "264290f",
+          "date": "2026-05-25",
+          "subject": "Phase 34b: security hardening & storage recovery"
+        },
+        {
+          "sha": "b13ef85",
+          "date": "2026-05-24",
+          "subject": "Phase 34: Native currency refactor & dashboard UI"
+        },
+        {
+          "sha": "4368799",
+          "date": "2026-05-22",
+          "subject": "fix(contracts): Phase 32 multi-audit remediation \u2014 reentrancy, zero-checks, weak"
+        },
+        {
+          "sha": "cffaf6b",
+          "date": "2026-05-21",
+          "subject": "Multi-audit fixes: security, CI, SBOM, deploy gate"
+        },
+        {
+          "sha": "f045baf",
+          "date": "2026-05-19",
+          "subject": "Add creator stake withdrawal & client-job API"
+        },
+        {
+          "sha": "0f51eb5",
+          "date": "2026-05-16",
+          "subject": "Add accessibility, dynamic imports, and hook cleanup"
+        },
+        {
+          "sha": "6ece914",
+          "date": "2026-05-02",
+          "subject": "Fix CI pipeline: suppress Solidity warnings, update fuzz tests for custom errors"
+        },
+        {
+          "sha": "71bb8f8",
+          "date": "2026-05-01",
+          "subject": "Security Audit Remediation: Cross-audit fixes from sc-auditor, Quillshield, Cyfr"
+        },
+        {
+          "sha": "6d4aa6f",
+          "date": "2026-05-01",
+          "subject": "fix(contracts): remove __UUPSUpgradeable_init() for OZ v5 compatibility"
+        },
+        {
+          "sha": "a40b67f",
+          "date": "2026-04-30",
+          "subject": "Phase 29e: Pashov audit fixes + AdminRegistry UUPS migration + full stack parity"
+        },
+        {
+          "sha": "ebe8f82",
+          "date": "2026-04-29",
+          "subject": "Phase 29c: V9 Multi-Token Architecture + Dynamic Oracle + Codebase Cleanup"
+        },
+        {
+          "sha": "1093591",
+          "date": "2026-04-21",
+          "subject": "feat(Phase 28): Add Bad Actors Red Team blacklist protection system"
+        }
+      ],
+      "truncated": true
+    },
+    "state_machines": {
+      "commit_count": 28,
+      "files": [
+        "contracts/interfaces/IAgenticCommerceV9.sol",
+        "contracts/interfaces/IBiddingSystem.sol",
+        "contracts/interfaces/IIdentityRegistry.sol",
+        "contracts/shared/AdminRegistry.sol",
+        "contracts/shared/AgentSkillRegistryV2.sol",
+        "contracts/shared/AgenticCommerceV6.sol",
+        "contracts/shared/AgenticCommerceV9.sol",
+        "contracts/shared/BiddingSystem.sol",
+        "contracts/shared/MilestoneEscrow.sol",
+        "contracts/shared/MilestoneEscrowV2.sol",
+        "contracts/shared/ServiceRegistryV2.sol",
+        "contracts/shared/SlashManager.sol",
+        "lib/openzeppelin-contracts/certora/harnesses/PausableHarness.sol",
+        "lib/openzeppelin-contracts/contracts/governance/Governor.sol",
+        "lib/openzeppelin-contracts/contracts/governance/TimelockController.sol",
+        "lib/openzeppelin-contracts/contracts/governance/extensions/GovernorTimelockCompound.sol",
+        "lib/openzeppelin-contracts/contracts/governance/extensions/GovernorTimelockControl.sol",
+        "lib/openzeppelin-contracts/contracts/mocks/PausableMock.sol",
+        "lib/openzeppelin-contracts/contracts/token/ERC1155/extensions/ERC1155Pausable.sol",
+        "lib/openzeppelin-contracts/contracts/token/ERC20/extensions/ERC20Pausable.sol",
+        "lib/openzeppelin-contracts/contracts/token/ERC721/extensions/ERC721Pausable.sol",
+        "lib/openzeppelin-contracts/contracts/utils/Pausable.sol",
+        "lib/openzeppelin-contracts/contracts/utils/ReentrancyGuard.sol",
+        "lib/openzeppelin-contracts/contracts/utils/types/Time.sol"
+      ],
+      "commits": [
+        {
+          "sha": "2f4feff",
+          "date": "2026-06-02",
+          "subject": "CI: drop forge coverage gate; mark assembly memory-safe; 45c deploy docs"
+        },
+        {
+          "sha": "f37897e",
+          "date": "2026-06-02",
+          "subject": "Add admin pages, hooks, SDK & bidding upgrades"
+        },
+        {
+          "sha": "5de7c4b",
+          "date": "2026-06-01",
+          "subject": "Phase 45b: Bidding safety UUPS upgrade"
+        },
+        {
+          "sha": "8a68b39",
+          "date": "2026-06-01",
+          "subject": "Native ETH service listings + marketplace UI updates"
+        },
+        {
+          "sha": "706cc98",
+          "date": "2026-05-30",
+          "subject": "Add ERC-20 BiddingSystem + SDK/CLI/Subgraph"
+        },
+        {
+          "sha": "cadb693",
+          "date": "2026-05-30",
+          "subject": "Phase 39: Random evaluator pool & UI updates"
+        },
+        {
+          "sha": "a61df55",
+          "date": "2026-05-28",
+          "subject": "Remove AgentReviewV5 and refactor SlashManager"
+        },
+        {
+          "sha": "09f3b05",
+          "date": "2026-05-27",
+          "subject": "Pin GH Actions, add bond redesign & updates"
+        },
+        {
+          "sha": "264290f",
+          "date": "2026-05-25",
+          "subject": "Phase 34b: security hardening & storage recovery"
+        },
+        {
+          "sha": "b13ef85",
+          "date": "2026-05-24",
+          "subject": "Phase 34: Native currency refactor & dashboard UI"
+        },
+        {
+          "sha": "4368799",
+          "date": "2026-05-22",
+          "subject": "fix(contracts): Phase 32 multi-audit remediation \u2014 reentrancy, zero-checks, weak"
+        },
+        {
+          "sha": "cffaf6b",
+          "date": "2026-05-21",
+          "subject": "Multi-audit fixes: security, CI, SBOM, deploy gate"
+        },
+        {
+          "sha": "f045baf",
+          "date": "2026-05-19",
+          "subject": "Add creator stake withdrawal & client-job API"
+        },
+        {
+          "sha": "24eaf44",
+          "date": "2026-05-19",
+          "subject": "fix(BiddingSystem): resolve critical design flaws and security issues"
+        },
+        {
+          "sha": "0f51eb5",
+          "date": "2026-05-16",
+          "subject": "Add accessibility, dynamic imports, and hook cleanup"
+        }
+      ],
+      "truncated": true
+    }
+  },
+  "late_changes": {
+    "window_days": 30,
+    "cutoff_date": "2026-05-04",
+    "latest_commit_date": "2026-06-03",
+    "late_commits": [
+      {
+        "sha": "2f4feff",
+        "date": "2026-06-02",
+        "author": "Wasabi \ud83e\udd65\ud83c\udf34",
+        "subject": "CI: drop forge coverage gate; mark assembly memory-safe; 45c deploy docs",
+        "source_files": [
+          "contracts/shared/AgenticCommerceV9.sol",
+          "contracts/shared/BiddingSystem.sol",
+          "contracts/shared/MilestoneEscrowV2.sol",
+          "contracts/shared/ServiceRegistryV2.sol"
+        ],
+        "test_changed": false,
+        "lines_changed": 16
+      },
+      {
+        "sha": "f37897e",
+        "date": "2026-06-02",
+        "author": "Wasabi \ud83e\udd65\ud83c\udf34",
+        "subject": "Add admin pages, hooks, SDK & bidding upgrades",
+        "source_files": [
+          "contracts/interfaces/IBiddingSystem.sol",
+          "contracts/script/UpgradeBiddingSystem_Phase45c.s.sol",
+          "contracts/shared/BiddingSystem.sol"
+        ],
+        "test_changed": true,
+        "lines_changed": 404
+      },
+      {
+        "sha": "5de7c4b",
+        "date": "2026-06-01",
+        "author": "Wasabi \ud83e\udd65\ud83c\udf34",
+        "subject": "Phase 45b: Bidding safety UUPS upgrade",
+        "source_files": [
+          "contracts/interfaces/IBiddingSystem.sol",
+          "contracts/script/UpgradeBiddingSystem_Phase45b.s.sol",
+          "contracts/shared/BiddingSystem.sol"
+        ],
+        "test_changed": true,
+        "lines_changed": 264
+      },
+      {
+        "sha": "8a68b39",
+        "date": "2026-06-01",
+        "author": "Wasabi \ud83e\udd65\ud83c\udf34",
+        "subject": "Native ETH service listings + marketplace UI updates",
+        "source_files": [
+          "contracts/script/UpgradeServiceRegistryV2_NativePaymentServices.s.sol",
+          "contracts/shared/ServiceRegistryV2.sol"
+        ],
+        "test_changed": true,
+        "lines_changed": 68
+      },
+      {
+        "sha": "706cc98",
+        "date": "2026-05-30",
+        "author": "Wasabi \ud83e\udd65\ud83c\udf34",
+        "subject": "Add ERC-20 BiddingSystem + SDK/CLI/Subgraph",
+        "source_files": [
+          "contracts/interfaces/IBiddingSystem.sol",
+          "contracts/script/UpgradeBiddingSystem_Phase40.s.sol",
+          "contracts/shared/BiddingSystem.sol"
+        ],
+        "test_changed": true,
+        "lines_changed": 147
+      },
+      {
+        "sha": "cadb693",
+        "date": "2026-05-30",
+        "author": "Wasabi \ud83e\udd65\ud83c\udf34",
+        "subject": "Phase 39: Random evaluator pool & UI updates",
+        "source_files": [
+          "contracts/interfaces/IBiddingSystem.sol",
+          "contracts/script/UpgradeBiddingSystem_Phase39.s.sol",
+          "contracts/shared/BiddingSystem.sol"
+        ],
+        "test_changed": true,
+        "lines_changed": 61
+      },
+      {
+        "sha": "a61df55",
+        "date": "2026-05-28",
+        "author": "Wasabi \ud83e\udd65\ud83c\udf34",
+        "subject": "Remove AgentReviewV5 and refactor SlashManager",
+        "source_files": [
+          "contracts/{shared => archived}/AgentReviewV5.sol",
+          "contracts/interfaces/IAgenticCommerceV9_Slash.sol",
+          "contracts/script/UpgradeAgentReviewV5.s.sol",
+          "contracts/script/UpgradeAgentReviewV5_Phase34StakeRewardPatch.s.sol",
+          "contracts/script/UpgradeAgenticCommerceV9_Phase38.s.sol",
+          "contracts/script/UpgradeAllPhase4.s.sol",
+          "contracts/script/UpgradePhase29e.s.sol",
+          "contracts/script/UpgradePhase32.s.sol",
+          "contracts/script/UpgradeSlashManager_Phase38.s.sol",
+          "contracts/shared/AgenticCommerceV9.sol"
+        ],
+        "test_changed": true,
+        "lines_changed": 227
+      },
+      {
+        "sha": "09f3b05",
+        "date": "2026-05-27",
+        "author": "Wasabi \ud83e\udd65\ud83c\udf34",
+        "subject": "Pin GH Actions, add bond redesign & updates",
+        "source_files": [
+          "contracts/script/UpgradeAgenticCommerceV9_RemoveAutoBondRefund.s.sol",
+          "contracts/script/UpgradeServiceRegistryV2_BondWithdrawal.s.sol",
+          "contracts/shared/AgenticCommerceV9.sol",
+          "contracts/shared/ServiceRegistryV2.sol"
+        ],
+        "test_changed": true,
+        "lines_changed": 196
+      },
+      {
+        "sha": "264290f",
+        "date": "2026-05-25",
+        "author": "Wasabi \ud83e\udd65\ud83c\udf34",
+        "subject": "Phase 34b: security hardening & storage recovery",
+        "source_files": [
+          "contracts/script/UpgradeAgentReviewV5_Phase34StakeRewardPatch.s.sol",
+          "contracts/script/UpgradeAgenticCommerceV9_Phase34AuthPatch.s.sol",
+          "contracts/script/UpgradeAgenticCommerceV9_Phase34Recovery.s.sol",
+          "contracts/script/UpgradeBiddingSystem_Phase34CreatorStakePatch.s.sol",
+          "contracts/script/UpgradeMilestoneEscrowV2_Phase34Hotfix.s.sol",
+          "contracts/shared/AgentReviewV5.sol",
+          "contracts/shared/AgenticCommerceV9.sol",
+          "contracts/shared/BiddingSystem.sol",
+          "contracts/shared/MilestoneEscrowV2.sol"
+        ],
+        "test_changed": true,
+        "lines_changed": 544
+      },
+      {
+        "sha": "b13ef85",
+        "date": "2026-05-24",
+        "author": "Wasabi \ud83e\udd65\ud83c\udf34",
+        "subject": "Phase 34: Native currency refactor & dashboard UI",
+        "source_files": [
+          "contracts/script/UpgradeAgenticCommerceV9_Phase34.s.sol",
+          "contracts/script/UpgradeMilestoneEscrowV2_Phase34.s.sol",
+          "contracts/shared/AgenticCommerceV9.sol",
+          "contracts/shared/MilestoneEscrowV2.sol"
+        ],
+        "test_changed": false,
+        "lines_changed": 226
+      },
+      {
+        "sha": "d219dac",
+        "date": "2026-05-22",
+        "author": "Wasabi \ud83e\udd65\ud83c\udf34",
+        "subject": "feat(deploy): Phase 32 upgrades deployed & verified on Sepolia + docs",
+        "source_files": [
+          "contracts/script/UpgradePhase32.s.sol"
+        ],
+        "test_changed": false,
+        "lines_changed": 129
+      },
+      {
+        "sha": "4368799",
+        "date": "2026-05-22",
+        "author": "Wasabi \ud83e\udd65\ud83c\udf34",
+        "subject": "fix(contracts): Phase 32 multi-audit remediation \u2014 reentrancy, zero-checks, weak",
+        "source_files": [
+          "contracts/shared/AdminRegistry.sol",
+          "contracts/shared/AgentReviewV5.sol",
+          "contracts/shared/AgenticCommerceV9.sol",
+          "contracts/shared/BiddingSystem.sol",
+          "contracts/shared/MilestoneEscrow.sol",
+          "contracts/shared/MilestoneEscrowV2.sol"
+        ],
+        "test_changed": true,
+        "lines_changed": 37
+      },
+      {
+        "sha": "cffaf6b",
+        "date": "2026-05-21",
+        "author": "Wasabi \ud83e\udd65\ud83c\udf34",
+        "subject": "Multi-audit fixes: security, CI, SBOM, deploy gate",
+        "source_files": [
+          "contracts/interfaces/IAgenticCommerceV9.sol",
+          "contracts/script/DeployBiddingSystem.s.sol",
+          "contracts/script/DeployV9.s.sol",
+          "contracts/shared/AgentReviewV5.sol",
+          "contracts/shared/AgenticCommerceV9.sol",
+          "contracts/shared/BiddingSystem.sol",
+          "contracts/shared/MilestoneEscrowV2.sol"
+        ],
+        "test_changed": true,
+        "lines_changed": 145
+      },
+      {
+        "sha": "f045baf",
+        "date": "2026-05-19",
+        "author": "Wasabi \ud83e\udd65\ud83c\udf34",
+        "subject": "Add creator stake withdrawal & client-job API",
+        "source_files": [
+          "contracts/interfaces/IAgenticCommerceV9.sol",
+          "contracts/interfaces/IBiddingSystem.sol",
+          "contracts/shared/AgenticCommerceV9.sol",
+          "contracts/shared/BiddingSystem.sol",
+          "contracts/shared/ServiceRegistryV2.sol"
+        ],
+        "test_changed": true,
+        "lines_changed": 169
+      },
+      {
+        "sha": "24eaf44",
+        "date": "2026-05-19",
+        "author": "Wasabi \ud83e\udd65\ud83c\udf34",
+        "subject": "fix(BiddingSystem): resolve critical design flaws and security issues",
+        "source_files": [
+          "contracts/interfaces/IBiddingSystem.sol",
+          "contracts/shared/BiddingSystem.sol"
+        ],
+        "test_changed": true,
+        "lines_changed": 74
+      },
+      {
+        "sha": "0f51eb5",
+        "date": "2026-05-16",
+        "author": "Wasabi \ud83e\udd65\ud83c\udf34",
+        "subject": "Add accessibility, dynamic imports, and hook cleanup",
+        "source_files": [
+          "contracts/interfaces/IBiddingSystem.sol",
+          "contracts/script/UpgradeAgentReviewV5.s.sol",
+          "contracts/script/UpgradeAgenticCommerceV9.s.sol",
+          "contracts/script/UpgradeAllPhase4.s.sol",
+          "contracts/script/UpgradeBiddingSystem.s.sol",
+          "contracts/script/UpgradeServiceRegistryV2.s.sol",
+          "contracts/shared/AgentReviewV5.sol",
+          "contracts/shared/AgenticCommerceV9.sol",
+          "contracts/shared/BiddingSystem.sol",
+          "contracts/shared/ServiceRegistryV2.sol"
+        ],
+        "test_changed": true,
+        "lines_changed": 210
+      }
+    ],
+    "source_without_test_count": 3,
+    "total_late_source_commits": 16
+  },
+  "forked_deps": {
+    "detected_libs": [
+      {
+        "name": "openzeppelin-contracts",
+        "path": "lib/openzeppelin-contracts",
+        "known_upstream": "OpenZeppelin",
+        "is_submodule": true,
+        "is_internalized": false,
+        "sol_file_count": 321,
+        "pragma_versions": [
+          ">=0.4.22 <0.9.0",
+          ">=0.4.24",
+          ">=0.4.24 <0.7.0",
+          ">=0.4.25",
+          ">=0.5.0",
+          ">=0.6.0 <0.7.0",
+          ">=0.6.0 <0.9.0",
+          ">=0.6.2",
+          ">=0.6.2 <0.9.0",
+          ">=0.7.0 <0.9.0",
+          ">=0.8.0 <0.9.0",
+          "^0.4.9",
+          "^0.5.0",
+          "^0.8.19",
+          "^0.8.20",
+          "^0.8.9"
+        ],
+        "notes": [
+          "Pragma '>=0.4.22 <0.9.0' differs from expected upstream versions",
+          "Pragma '>=0.4.24' differs from expected upstream versions",
+          "Pragma '>=0.4.24 <0.7.0' differs from expected upstream versions",
+          "Pragma '>=0.4.25' differs from expected upstream versions",
+          "Pragma '>=0.5.0' differs from expected upstream versions",
+          "Pragma '>=0.6.0 <0.7.0' differs from expected upstream versions",
+          "Pragma '>=0.6.0 <0.9.0' differs from expected upstream versions",
+          "Pragma '>=0.6.2' differs from expected upstream versions",
+          "Pragma '>=0.6.2 <0.9.0' differs from expected upstream versions",
+          "Pragma '>=0.7.0 <0.9.0' differs from expected upstream versions",
+          "Pragma '^0.4.9' differs from expected upstream versions",
+          "Pragma '^0.5.0' differs from expected upstream versions"
+        ]
+      },
+      {
+        "name": "openzeppelin-contracts-upgradeable",
+        "path": "lib/openzeppelin-contracts-upgradeable",
+        "known_upstream": "OpenZeppelin",
+        "is_submodule": true,
+        "is_internalized": false,
+        "sol_file_count": 259,
+        "pragma_versions": [
+          ">=0.7 <0.9",
+          "^0.8.20",
+          "^0.8.21",
+          "^0.8.22",
+          "^0.8.24",
+          "^0.8.26",
+          "^0.8.27"
+        ],
+        "notes": [
+          "Pragma '>=0.7 <0.9' differs from expected upstream versions"
+        ]
+      }
+    ],
+    "removed_submodules": []
+  },
+  "tech_debt": {
+    "total_count": 1,
+    "items": [
+      {
+        "file": "contracts/shared/PriceOracle.sol",
+        "line": 153,
+        "type": "TODO",
+        "text": "Replace with actual Chainlink feeds for mainnet",
+        "blame_author": "Wasabi \ud83e\udd65\ud83c\udf34",
+        "blame_date": "2026-05-02"
+      }
+    ],
+    "files_with_debt": 1,
+    "capped": false
+  },
+  "dev_patterns": {
+    "test_co_change_rate": 0.697,
+    "fix_without_test_rate": 0.3,
+    "avg_commit_size": 551.8,
+    "avg_commit_size_note": null,
+    "single_developer_pct": 1.0,
+    "top_contributor": "Wasabi \ud83e\udd65\ud83c\udf34",
+    "contributor_breakdown": [
+      {
+        "author": "Wasabi \ud83e\udd65\ud83c\udf34",
+        "lines_added": 14804,
+        "pct": 1.0
+      }
+    ]
+  }
+}
