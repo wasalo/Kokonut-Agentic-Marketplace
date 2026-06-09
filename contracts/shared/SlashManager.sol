@@ -241,16 +241,24 @@ contract SlashManager is ReentrancyGuard, Ownable2StepUpgradeable, UUPSUpgradeab
 
         proposal.executed = true;
 
+        uint256 stake = IAgenticCommerceV9_Slash(commerce).evaluatorStakes(proposal.evaluator);
+        uint256 slashAmount = proposal.amount;
+        uint256 defaultCap = (stake * DEFAULT_SLASH_BP) / FEE_DENOMINATOR;
+        if (slashAmount > defaultCap) slashAmount = defaultCap;
+        if (slashAmount > MAX_SLASH_AMOUNT) slashAmount = MAX_SLASH_AMOUNT;
+        if (slashAmount > stake) slashAmount = stake;
+
         // Call AgenticCommerce to perform the slash
         IAgenticCommerceV9_Slash(commerce).slashByGovernance(
             proposal.evaluator,
+            slashAmount,
             proposal.reason
         );
 
         // Clear the direct lookup
         activeSlashByEvaluator[proposal.evaluator][proposal.proposalId] = bytes32(0);
 
-        emit ProposalExecuted(proposalHash, proposal.evaluator, proposal.amount);
+        emit ProposalExecuted(proposalHash, proposal.evaluator, slashAmount);
     }
 
     /**
@@ -266,7 +274,7 @@ contract SlashManager is ReentrancyGuard, Ownable2StepUpgradeable, UUPSUpgradeab
             SlashProposal storage proposal = proposals[proposalHash];
             
             if (!proposal.executed) {
-                if (!(block.timestamp <= proposal.createdAt + MAX_PROPOSAL_AGE)) revert SlashManager__Proposal_too_old();
+                if (block.timestamp > proposal.createdAt + MAX_PROPOSAL_AGE) return false;
                 return true;
             }
         }

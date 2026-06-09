@@ -1237,12 +1237,12 @@ class CommerceModule {
 
   // ============ Phase 45d: Governance + config setters ============
 
-  async slashByGovernance(evaluator: Address, reason: string): Promise<TransactionResult> {
+  async slashByGovernance(evaluator: Address, slashAmount: bigint, reason: string): Promise<TransactionResult> {
     const hash = await this.wallet.writeContract({
       address: this.contracts.agenticCommerce,
       abi: AGENTIC_COMMERCE_ABI,
       functionName: 'slashByGovernance',
-      args: [evaluator, reason],
+      args: [evaluator, slashAmount, reason],
     } as any);
     return { hash, wait: () => this.publicClient.waitForTransactionReceipt({ hash }) };
   }

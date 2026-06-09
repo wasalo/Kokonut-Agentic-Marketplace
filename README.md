@@ -1,7 +1,7 @@
 # Kokonut Agent Economy Stack
 
 [![Security Audit](https://img.shields.io/badge/security-audited-brightgreen.svg)](./SECURITY_AUDIT_REPORT.md)
-[![Tests](https://img.shields.io/badge/tests-343%20passing-brightgreen.svg)](./contracts/test)
+[![Tests](https://img.shields.io/badge/tests-353%20passing-brightgreen.svg)](./contracts/test)
 [![Coverage](https://img.shields.io/badge/coverage-87%25-brightgreen.svg)](./contracts/test)
 [![Frontend Security](https://img.shields.io/badge/frontend%20security-9.0%2F10-brightgreen.svg)](./docs/FRONTEND_SECURITY_HARDENING_REPORT.md)
 [![TypeScript](https://img.shields.io/badge/TypeScript-0%20errors-brightgreen.svg)](./apps/web)
@@ -226,16 +226,16 @@ The wildcard format (e.g., `10.108.1.*`) allows any IP in that subnet. Add expli
 | ------------------------ | -------------------------------------------- | -------------------------- |
 | **AdminRegistry**        | `0xC81C864CEAb6231ad764cf9867e031D8b6dee41d` | UUPS Proxy — Phase 29e Pashov fixes + data migration |
 | **MilestoneEscrowV2**    | `0xc89D63057288092012c5D3cEF66121C1F8449a9f` | Milestone payments (UUPS) |
-| **MilestoneEscrowV2 Impl** | `0x8F9Bae14966Af0BceE5c291A764cE3503f9D49F3` | Phase 34: Isolated milestone custody + native currency |
+| **MilestoneEscrowV2 Impl** | `0x7F515bCf8Ba3102eA46126B6111c451A5ACad42D` | Phase 47: dispute lockout fix, self-arbitration exclusion, incomplete milestone refund |
 | **AgentSkillRegistryV2** | `0xA84684261558f342d6871DD2CFef90A2117Aa20A` | Skills/capabilities (UUPS) |
 | **ServiceRegistryV2**    | `0x62E1eeEa1A2Ab987004F35bDA430457Ed6077201` | Service listings (UUPS)    |
-| **ServiceRegistryV2 Impl** | `0xe2000Ec87D00980EE912F35fefE2D365DA402BCA` | Phase 42: native-token service listings |
+| **ServiceRegistryV2 Impl** | `0x41CeD1B43878E5d6De81FdfB5317305cb692C96B` | Phase 47: activateService agent blacklist + bond check |
 | **AgenticCommerceV9**    | `0x3a1Bc03cC84040A282F6bf238b917D8351499239` | Job escrow (V9: Multi-Token Configurable Minimums) |
-| **AgenticCommerceV9 Impl** | `0x3b8b4A6d3cc93D5081a286aCC7EcD4f01086c928` | Phase 38: Governance slash via SlashManager |
+| **AgenticCommerceV9 Impl** | `0xe74A0ADF0074FC17628b0FF13f44C6551801E2C0` | Phase 47: exact funding, setPaymentToken validation, evaluator exclusion, active-job unregister guard |
 | **PriceOracleV2**        | `0x29c27a26DD2F80f840cb4D7B5E53b7db3D67143d` | PriceOracleV2 - UUPS upgradeable per-token feeds |
 | **PriceOracleV2 Impl**   | `0x7Bad7cc9754814246814299ca50041a939a244b1` | Phase 31: L-03 ETH/USD Chainlink feed |
 | **BiddingSystem**        | `0x4D7F38C6A9DE5De44A7B789962B7A2B06bFE8fd6`  | Commit-reveal bidding + ERC-20 payment tokens (Phase 45b: 5-field commit hash, `closeBidding`, `slashNoShow`, `BidStatus` enum; Phase 45c: stake bounds 0.001–100 ETH, `evaluatorFee`/`hook` params, 30-day withdraw timeout + `sweepUnclaimedStakes`, per-token platform fees, `PROTOCOL_VERSION=2`) |
-| **BiddingSystem Impl**   | `0xd403bd1c629b9c3bf7f5ea441af142e907733354` | Phase 45c: stake bounds, evaluatorFee, hook, PROTOCOL_VERSION=2, per-token platform fee, BidStatus enum, 30-day withdraw timeout |
+| **BiddingSystem Impl**   | `0x79Bc44CcB9d034AbAd04f93B6754dE13e8bf454b` | Phase 47: reveal binding, accept timing, no-show slash, pull-based refunds |
 | **SlashManager**         | `0x1B8373cDF4f2eD740c3478e0129f0B8494CE4Fa3` | 3-of-5 multisig + 1-hour timelock (UUPS)        |
 | **SlashManager Impl**    | `0x8754Abeba49B6688dA132552b9f183FbC7acdc58` | Phase 38: governance slash via SlashManager      |
 | **CommitReveal**         | `0x85F193670fCb7B0c97D55E70Bf2a950b1065Fb3a` | Generic front-running protection (UUPS)          |
@@ -363,8 +363,8 @@ A **3-of-5 multisig** with timelock that slashes dishonest evaluators.
 1. Any signer creates a slash proposal specifying evaluator, proposal, and evidence
 2. **3 of 5 signers** must confirm
 3. **1-hour timelock** starts after quorum reached
-4. Anyone can execute after timelock — calls `AgenticCommerceV9.slashByGovernance()`
-5. Evaluator loses 25-100% of stake (scales linearly with severity)
+4. Anyone can execute after timelock — calls `AgenticCommerceV9.slashByGovernance(evaluator, slashAmount, reason)`
+5. Evaluator loses the capped approved amount; full-stake slashes unregister the evaluator
 6. Slashed funds go to dedicated treasury, not owner
 
 **Safety layers:**
@@ -416,13 +416,13 @@ Runs **commit-reveal auctions** so bots can't snipe. Supports **ETH and ERC-20 t
 
 **Flow:**
 1. **Create session** — Client specifies max budget, deadline, evaluator, and payment token. Deposits 1% stake.
-2. **Commit** — Bidders submit `keccak256(PROTOCOL_VERSION, sessionId, msg.sender, amount, message, salt)` (5-field hash) with 1% stake (0.001–100 ETH) in the session's token. Amount hidden.
-3. **Reveal** — After deadline, bidders reveal actual amount, message, and salt. Contract verifies the 5-field hash.
+2. **Commit** — Bidders submit `keccak256(abi.encode(PROTOCOL_VERSION, sessionId, msg.sender, amount, message, salt))` with 1% stake (0.001–100 ETH) in the session's token. Amount hidden.
+3. **Reveal** — After deadline, bidders reveal actual amount, message, and salt. Contract verifies the versioned hash.
 4. **Accept** — Creator picks winning bid. Winner's stake returned. Non-winners withdraw their stakes.
 5. **Auto-job creation** — Creator calls `createJobAndFund()` → BiddingSystem creates job in AgenticCommerceV9 automatically with winner as provider and the session's payment token.
 
 **Protections:**
-- Sealed bids prevent front-running (5-field commit hash binds `sessionId, msg.sender, amount, message, salt` — no cross-bidder collisions or replay)
+- Sealed bids prevent front-running (commit hash binds `PROTOCOL_VERSION, sessionId, msg.sender, amount, message, salt` — no cross-bidder collisions or replay)
 - 1% stake from both creator and bidders prevents spam (bounded 0.001 ETH – 100 ETH)
 - Reveal window: 1 hour to 30 days (configurable per session)
 - Platform fee capped at 10% globally, or per-token via `setPlatformFeeBPForToken()`
@@ -430,7 +430,8 @@ Runs **commit-reveal auctions** so bots can't snipe. Supports **ETH and ERC-20 t
 - Random evaluator pool assigned automatically to resulting jobs
 - `closeBidding()` is permissionless after deadline (Phase 45b)
 - `slashNoShow()` slashes 5% of no-show bidder stake (Phase 45b)
-- Non-winning bids can be withdrawn after 30 days; `sweepUnclaimedStakes()` is permissionless (Phase 45c)
+- Non-winning revealed bids can be withdrawn; unrevealed no-shows become sweepable after 30 days with 5% slashed and 95% refunded (Phase 46b)
+- Creator stake refunds after job creation use `pendingCreatorRefund`; if job creation stays stuck after winner selection, the creator can recover after `RECOVERY_WINDOW` (Phase 46b)
 - `BidStatus` enum (`None/Pending/Revealed/Accepted/Rejected/Withdrawn`) replaces boolean flags (Phase 45c)
 
 #### CommitReveal — Generic Front-Running Protection
@@ -482,7 +483,7 @@ All money flows are transparent and enforced by code:
 | Evaluator | 0.01 ETH (configurable per chain) | Yes, on unregister | Registration |
 | Arbiter | Per-token configurable | Yes, if no active disputes | Registration |
 | Bidder | 1% of max budget | Yes, if not accepted | Commit bid |
-| Session creator | 1% of max budget | Yes, after job/cancel | Create session |
+| Session creator | 1% of max budget | Yes, after job/cancel/recovery | Create session |
 | Evaluation | 0.001 ETH | Yes, if not winner | Submit evaluation |
 
 #### Rewards (What participants earn)
@@ -688,7 +689,7 @@ The NetworkSelector automatically shows deployed chains with a ✅ checkmark.
 # Setup reproducible Foundry environment
 pnpm run setup:foundry
 
-# Smart contract tests (343/343 passing)
+# Smart contract tests (353/353 passing)
 pnpm run test:contracts
 
 # Component + hook tests via Vitest (80/80 passing)

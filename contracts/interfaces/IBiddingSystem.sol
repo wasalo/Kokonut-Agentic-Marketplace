@@ -172,6 +172,9 @@ interface IBiddingSystem {
     /// @notice Emitted when accumulated platform fees for a token are withdrawn (Phase 45b O-10).
     /// @param token The ERC-20 token (address(0) for native ETH).
     event FeesWithdrawn(address indexed token, address indexed to, uint256 amount);
+    event CreatorStakeRefundPending(uint256 indexed sessionId, address indexed creator, uint256 amount);
+    event CreatorStakeWithdrawn(uint256 indexed sessionId, address indexed creator, uint256 amount);
+    event ExcessPaymentRefunded(address indexed token, address indexed payer, uint256 amount);
     
     /***********************************/
     /* Errors */
@@ -279,6 +282,14 @@ interface IBiddingSystem {
      * @param sessionId The bidding session ID
      */
     function withdrawCreatorStake(uint256 sessionId) external;
+
+    /**
+     * @dev Phase 47: Withdraw a pending bid refund recorded by acceptBid, rejectBid,
+     *      or createJobAndFund. Pull-based so reverting ETH receivers cannot DoS
+     *      session state transitions.
+     * @param sessionId The bidding session ID
+     */
+    function withdrawBidRefund(uint256 sessionId) external;
     
     /***********************************/
     /* Job Creation & Integration */
@@ -382,6 +393,9 @@ interface IBiddingSystem {
     ///         (Phase 45c O-9). Returns 0 if the bidder has no pending withdrawal, or has
     ///         already withdrawn.
     function withdrawStakeClaimableAt(uint256 sessionId, address bidder) external view returns (uint256);
+
+    /// @notice Phase 47: View the pending pull-based bid refund for a bidder in a session.
+    function pendingBidRefund(uint256 sessionId, address bidder) external view returns (uint256);
 
     /// @notice Phase 45c O-4: min/max stake bounds. 1 ether = 1e18 wei.
     function minStake() external view returns (uint256);

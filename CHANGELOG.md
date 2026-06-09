@@ -5,6 +5,90 @@ All notable changes to the Kokonut Agent Economy Stack are documented in this fi
 The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.0.0/),
 and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0.html).
 
+## [2026-06-08] — Phase 47: Pashov Audit Remediation (8 Live Findings)
+
+### Contracts
+
+| # | Finding | Contract | Fix |
+|---|---------|----------|-----|
+| 1 | `revealBid` only checked `validCommits` map, not `bid.commitHash` | **BiddingSystem** | Added `bid.commitHash != expectedHash` revert with `BidAlreadyRevealed()` |
+| 2 | `acceptBid` allowed winner selection before `revealWindowEnd` | **BiddingSystem** | Added `block.timestamp < session.revealWindowEnd` revert with `BidAlreadyAccepted()` |
+| 3 | `withdrawStake` refunded full stake for unrevealed bids (no slash) | **BiddingSystem** | Added 5% no-show slash for `Pending` bids (95% refund to bidder, 5% to treasury) |
+| 4 | `_createJob` with `fundNow` marked job `Funded` at full `budget` while only pulling `fundAmount` | **AgenticCommerceV9** | Added `fundAmount != budget` revert when `fundNow == true` (`WrongAmountFunded()`) |
+| 5 | `setPaymentToken` changed token without revalidating `budget` | **AgenticCommerceV9** | Added `budget != 0` revert before token change (`WrongStatus()`) |
+| 6 | `activateService` only checked wallet blacklist, not agent blacklist; allowed reactivation with zero bond | **ServiceRegistryV2** | Added agent blacklist check + `_serviceBonds[serviceId] != 0` revert (`ServiceRegistryV2__Agent_blacklisted()`, `ServiceRegistryV2__No_bond()`) |
+| 7 | Milestone dispute lockout, self-arbitration, and incomplete milestone left funds locked | **MilestoneEscrowV2** | Cleared `flaggedAt` in `resolveDispute`; excluded client/provider from arbiter selection; refunds client regardless of completion |
+| 8 | Random evaluator selection didn't exclude provider/client/blacklisted; evaluators could unregister while active | **AgenticCommerceV9** | Added exclusion loop in `_selectRandomEvaluator`; added active-job guard in `unregisterAsEvaluator` (`EvaluatorHasActiveJob()`) |
+
+#### Pull-Based Refund Architecture (BiddingSystem)
+To prevent DoS by reverting ETH receivers during `acceptBid`/`rejectBid`/`createJobAndFund`:
+- New `pendingBidRefund[sessionId][bidder]` mapping (appended at end, storage-safe).
+- `acceptBid`, `rejectBid`, and `createJobAndFund` record refunds instead of sending synchronously.
+- New `withdrawBidRefund(uint256)` function for bidders to claim.
+- Updated `IBiddingSystem.sol` with `withdrawBidRefund` and `pendingBidRefund`.
+
+#### New Errors
+- `BidAlreadyRevealed()` — `revealBid` when commit hash mismatch
+- `BidAlreadyAccepted()` — `acceptBid` before reveal window ends
+- `WrongAmountFunded()` — `_createJob` when `fundNow && fundAmount != budget`
+- `EvaluatorHasActiveJob()` — `unregisterAsEvaluator` while assigned to active job
+- `ServiceRegistryV2__Agent_blacklisted()` — `activateService` when agent is blacklisted
+- `ServiceRegistryV2__No_bond()` — `activateService` when bond was withdrawn
+- `NoEligibleArbiter()` — `flagDispute` when only client/provider in arbiter pool
+
+#### Deployed & Verified (Sepolia)
+
+| Contract | Proxy | Phase 47 Implementation | Status |
+|----------|-------|------------------------|--------|
+| `BiddingSystem` | `0x4D7F38C6A9DE5De44A7B789962B7A2B06bFE8fd6` | `0x79Bc44CcB9d034AbAd04f93B6754dE13e8bf454b` | ✅ Verified |
+| `AgenticCommerceV9` | `0x3a1Bc03cC84040A282F6bf238b917D8351499239` | `0xe74A0ADF0074FC17628b0FF13f44C6551801E2C0` | ✅ Verified |
+| `ServiceRegistryV2` | `0x62E1eeEa1A2Ab987004F35bDA430457Ed6077201` | `0x41CeD1B43878E5d6De81FdfB5317305cb692C96B` | ✅ Verified |
+| `MilestoneEscrowV2` | `0xc89D63057288092012c5D3cEF66121C1F8449a9f` | `0x7F515bCf8Ba3102eA46126B6111c451A5ACad42D` | ✅ Verified |
+
+### Upgrade Scripts
+
+| Script | Purpose |
+|--------|---------|
+| `UpgradeBiddingSystem_Phase47.s.sol` | UUPS upgrade + verify |
+| `UpgradeAgenticCommerceV9_Phase47.s.sol` | UUPS upgrade + verify |
+| `UpgradeServiceRegistryV2_Phase47.s.sol` | UUPS upgrade + verify |
+| `UpgradeMilestoneEscrowV2_Phase47.s.sol` | UUPS upgrade + verify |
+
+### Verification
+
+- `forge test` 353/353 ✓
+- `node scripts/check-storage-layout.js` 9/9 compatible ✓ (baseline regenerated for new `pendingBidRefund`)
+- `pnpm run type-check && pnpm --filter @kokonut/web type-check:strict && pnpm --filter @kokonut/web lint && pnpm --filter @kokonut/web test:components && pnpm --filter @kokonut/web build` ✓ (80/80 component tests)
+
+---
+
+## [2026-06-08] — Phase 46a/46b: Pashov Audit Remediation
+
+### Contracts
+
+| Change | Detail |
+|--------|--------|
+| **BiddingSystem ERC-20 funding** | `createJobAndFund` now grants AgenticCommerceV9 an exact temporary ERC-20 allowance for the winning bid amount, then clears it after downstream job creation. Mock commerce now enforces allowance + `transferFrom` in tests. |
+| **BiddingSystem creator recovery** | Creator stake refund after job creation moved to `pendingCreatorRefund` pull accounting. `winnerSelectedAt` + `RECOVERY_WINDOW` let creators recover stake if downstream job creation remains stuck after bid acceptance. |
+| **BiddingSystem no-show sweep** | `sweepUnclaimedStakes` now skips revealed bids and only penalizes unrevealed no-shows after timeout, sending 5% to treasury and refunding 95% to the bidder. |
+| **SlashManager partial slashing** | `executeSlash` now forwards a capped partial amount to V9 instead of only emitting the proposal amount. Caps apply by proposal amount, current evaluator stake, `DEFAULT_SLASH_BP`, and `MAX_SLASH_AMOUNT`. |
+| **AgenticCommerceV9 partial slashing** | `slashByGovernance(address,uint256,string)` supports partial stake slashes; evaluators stay registered after partial slashes and unregister only when fully slashed. Invalid oracle prices now revert during max-budget checks. |
+| **AgentSkillRegistryV2 domain lookup** | `findSkillsByDomain` now uses the same `abi.encode(domain)` hashing as registration/update indexing. |
+
+### SDK / CLI / Scripts
+
+| Change | Detail |
+|--------|--------|
+| **SDK** | `slashByGovernance(evaluator, slashAmount, reason)` updated with the 3-arg ABI. |
+| **CLI** | `slash-by-governance` now requires `--amount <wei>` and calls the 3-arg function. |
+| **Upgrade scripts** | Added Phase 46 UUPS scripts for AgentSkillRegistryV2, AgenticCommerceV9, SlashManager, and BiddingSystem. |
+
+### Verification
+
+- `forge test` 353/353 ✓
+- `node scripts/check-storage-layout.js` 9/9 compatible ✓
+- `pnpm run type-check && pnpm --filter @kokonut/web type-check:strict && pnpm --filter @kokonut/web lint && pnpm --filter @kokonut/web test:components && pnpm --filter @kokonut/web build` ✓ (80/80 component tests)
+
 ## [2026-06-01] — Phase 45d: Contract Feature Parity (D1/D2/D3/D4/D5/D6)
 
 ### Frontend (apps/web)
@@ -27,7 +111,7 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 | Change | Detail |
 |--------|--------|
-| **CommerceModule** | `slashByGovernance(address, reason)`, `setDisputeWindow(jobId, window)`, `setNonResponsiveSlashBP(jobId, bp)`, `setMinEvaluatorStake(wei)`, `setPriceOracle(addr)`, `setServiceRegistry(addr)`, `setAdminRegistry(addr)`, `getTokenAmountForUsd(token, usd6d)`. |
+| **CommerceModule** | `slashByGovernance(address, amount, reason)`, `setDisputeWindow(jobId, window)`, `setNonResponsiveSlashBP(jobId, bp)`, `setMinEvaluatorStake(wei)`, `setPriceOracle(addr)`, `setServiceRegistry(addr)`, `setAdminRegistry(addr)`, `getTokenAmountForUsd(token, usd6d)`. |
 | **MilestoneModule** | `setDisputeWindow`, `setNonResponsiveSlashBP`, `setAgenticCommerce`. |
 | **BiddingSystemModule** | `setMinDeadline` / `setMaxDeadline` (stubs throwing — constants 1h/30d). |
 | **PriceOracleModule** | `setAllowedToken`, `removeAllowedToken`, `setTokenPriceFeed` (newly writable — required injecting wallet into the constructor). |
@@ -37,7 +121,7 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 | Change | Detail |
 |--------|--------|
-| **11 new commands** | `slash-by-governance --address <addr> --reason <str>`, `set-dispute-window --job <id> --seconds <n>`, `set-non-responsive-slash-bp --job <id> --bp <n>`, `set-min-evaluator-stake --wei <n>`, `add-allowed-token --address <addr> --decimals <n> [--stable]`, `remove-allowed-token --address <addr>`, `set-platform-fee-by-token --address <addr> --bp <n>`, `set-min-stake --wei <n>`, `set-max-stake --wei <n>`, `set-min-deadline --seconds <n>`, `set-max-deadline --seconds <n>`. |
+| **11 new commands** | `slash-by-governance --address <addr> --amount <wei> --reason <str>`, `set-dispute-window --job <id> --seconds <n>`, `set-non-responsive-slash-bp --job <id> --bp <n>`, `set-min-evaluator-stake --wei <n>`, `add-allowed-token --address <addr> --decimals <n> [--stable]`, `remove-allowed-token --address <addr>`, `set-platform-fee-by-token --address <addr> --bp <n>`, `set-min-stake --wei <n>`, `set-max-stake --wei <n>`, `set-min-deadline --seconds <n>`, `set-max-deadline --seconds <n>`. |
 
 ### Subgraph (packages/subgraph)
 

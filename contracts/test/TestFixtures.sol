@@ -2,6 +2,7 @@
 pragma solidity ^0.8.20;
 
 import "forge-std/Test.sol";
+import {IERC20} from "@openzeppelin/contracts/token/ERC20/IERC20.sol";
 import {AgenticCommerceV9} from "../shared/AgenticCommerceV9.sol";
 import {ServiceRegistryV2} from "../shared/ServiceRegistryV2.sol";
 import {ERC1967Proxy} from "@openzeppelin/contracts/proxy/ERC1967/ERC1967Proxy.sol";
@@ -395,7 +396,7 @@ contract MockAgenticCommerceV9 {
         address client,
         address provider,
         uint256 budget,
-        address, /* paymentToken */
+        address paymentToken,
         uint256, /* serviceId */
         uint256 expiredAt,
         string calldata,
@@ -403,9 +404,21 @@ contract MockAgenticCommerceV9 {
         address, /* hook */
         bool, /* evaluatorFee */
         bool, /* clientReview_ */
-        bool, /* fundNow */
-        uint256 /* fundAmount */
+        bool fundNow,
+        uint256 fundAmount
     ) external payable returns (uint256 jobId) {
+        bool funded = msg.value > 0;
+        if (fundNow && fundAmount > 0) {
+            if (paymentToken == address(0)) {
+                require(msg.value >= fundAmount, "Insufficient ETH");
+                funded = true;
+            } else {
+                require(IERC20(paymentToken).allowance(msg.sender, address(this)) >= fundAmount, "Insufficient allowance");
+                require(IERC20(paymentToken).transferFrom(msg.sender, address(this), fundAmount), "Transfer failed");
+                funded = true;
+            }
+        }
+
         jobId = ++jobCounter;
         jobs[jobId] = MockJob({
             id: jobId,
@@ -414,7 +427,7 @@ contract MockAgenticCommerceV9 {
             evaluator: evaluator,
             budget: budget,
             expiredAt: expiredAt,
-            funded: msg.value > 0
+            funded: funded
         });
 
         emit JobCreated(jobId, client, provider, evaluator, expiredAt);

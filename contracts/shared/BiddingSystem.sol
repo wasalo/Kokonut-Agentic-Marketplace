@@ -100,6 +100,7 @@ contract BiddingSystem is
     error BiddingSystem__Stake_above_max();        // Phase 45c O-4: createBiddingSession stake > maxStake
     error BiddingSystem__Invalid_stake_bounds();   // Phase 45c O-4: setStakeBounds with min > max
     error BiddingSystem__Sweep_too_early();        // Phase 45c O-9: sweepUnclaimedStakes before WITHDRAW_TIMEOUT
+    error BiddingSystem__Recovery_window_active(); // Phase 46b: creator recovery before recovery window
     /***********************************/
     /* Constants */
     /***********************************/
@@ -118,6 +119,7 @@ contract BiddingSystem is
     uint256 public constant DEFAULT_MAX_STAKE = 100 ether;   // Phase 45c O-4
     uint256 public constant PROTOCOL_VERSION = 2;            // Phase 45c O-8: bump from 1 (Phase 45b O-1) to 2
     uint256 public constant WITHDRAW_TIMEOUT = 30 days;       // Phase 45c O-9
+    uint256 public constant RECOVERY_WINDOW = 7 days;         // Phase 46b: creator clawback if job creation stays stuck
     
     /***********************************/
     /* Storage */
@@ -142,12 +144,18 @@ contract BiddingSystem is
     // Configuration
     uint256 public revealWindow = DEFAULT_REVEAL_WINDOW;
     uint256 public platformFeeBP = ETH_PLATFORM_FEE_BP;
+
+    // Phase 46b: creator-side recovery state. winnerSelectedAt starts the recovery
+    // window if downstream job creation remains stuck; pendingCreatorRefund uses a
+    // pull pattern so smart-contract creators cannot DoS createJobAndFund refunds.
+    mapping(uint256 => uint256) public winnerSelectedAt;
+    mapping(uint256 => uint256) public pendingCreatorRefund;
     
-    // Storage gap for upgradeability. Phase 45c has consumed 7 of the original 49 slots
+    // Storage gap for upgradeability. Phase 46b has consumed 9 of the original 49 slots
     // (totalAccumulatedFees, creatorStakeWithdrawn, accumulatedFeesByToken from Phase 45b,
-    // then minStake, maxStake, withdrawStakeClaimableAt, platformFeeBPByToken from 45c),
-    // leaving 42 free slots for future upgrades.
-    uint256[42] private __gap;
+    // minStake, maxStake, withdrawStakeClaimableAt, platformFeeBPByToken from 45c,
+    // then winnerSelectedAt and pendingCreatorRefund from 46b), leaving 40 free slots.
+    uint256[40] private __gap;
 
     // Running total of accrued platform fees (D-01 fix — replaces O(n) loop)
     uint256 public totalAccumulatedFees;
@@ -173,7 +181,11 @@ contract BiddingSystem is
     // token-specific entry is unset, `getPlatformFeeBP(token)` returns the global
     // default `platformFeeBP()`.
     mapping(address => uint256) public platformFeeBPByToken;
-    
+
+    // Phase 47: pull-based bid refunds so reverting ETH receivers cannot DoS
+    // acceptBid / rejectBid / createJobAndFund state transitions.
+    mapping(uint256 => mapping(address => uint256)) public pendingBidRefund;
+
     /***********************************/
     /* Modifiers */
     /***********************************/
@@ -416,6 +428,7 @@ contract BiddingSystem is
         bytes32 expectedHash = keccak256(abi.encode(
             PROTOCOL_VERSION, sessionId, msg.sender, amount, message, salt
         ));
+        if (bid.commitHash != expectedHash) revert BiddingSystem__Invalid_commitment();
         if (!(validCommits[sessionId][expectedHash])) revert BiddingSystem__Invalid_commitment();
 
         // Verify amount doesn't exceed max budget
@@ -447,27 +460,27 @@ contract BiddingSystem is
         Bid storage bid = sessionBids[sessionId][bidId - 1];
         if (!(bid.revealed)) revert BiddingSystem__Bid_not_revealed();
         if (!(!bid.accepted)) revert BiddingSystem__Bid_already_accepted();
-        
+        if (block.timestamp < session.revealWindowEnd) revert BiddingSystem__Reveal_window_still_open();
+
         // Accept this bid
         bid.accepted = true;
         bid.status = BidStatus.Accepted; // Phase 45c O-12
         session.winner = bid.bidder;
         session.winningBidId = bidId;
         session.status = SessionStatus.WinnerSelected;
+        winnerSelectedAt[sessionId] = block.timestamp;
 
         // Phase 45c O-9: start the 30-day withdraw clock for all other bidders.
         // Winner has their stake returned synchronously below. After WITHDRAW_TIMEOUT
         // (30 days) any un-withdrawn stakes can be swept to the treasury.
         _startWithdrawClockForNonWinners(sessionId, bidId);
         
-        // Return winner's stake
+        // Return winner's stake via pull-based refund (Phase 47)
         uint256 stake = bid.stake;
         bid.stake = 0;
         totalStakesHeld[sessionId] -= stake;
-        
-        // Phase 40: Refund in session's payment token
-        _sendToken(session.paymentToken, bid.bidder, stake);
-        
+        pendingBidRefund[sessionId][bid.bidder] += stake;
+
         emit BidAccepted(sessionId, bid.bidder, bid.proposedAmount, bidId);
         emit StakeClaimed(sessionId, bid.bidder, stake);
     }
@@ -487,15 +500,13 @@ contract BiddingSystem is
         if (!(!bid.accepted)) revert BiddingSystem__Bid_already_accepted();
         if (!(bid.rejected == false)) revert BiddingSystem__Bid_already_accepted();
         
-        // Mark as rejected and return stake
+        // Mark as rejected and record pull-based refund (Phase 47)
         bid.rejected = true;
         bid.status = BidStatus.Rejected; // Phase 45c O-12
         uint256 stake = bid.stake;
         bid.stake = 0;
         totalStakesHeld[sessionId] -= stake;
-        
-        // Phase 40: Refund in session's payment token
-        _sendToken(session.paymentToken, bid.bidder, stake);
+        pendingBidRefund[sessionId][bid.bidder] += stake;
         
         emit BidRejected(sessionId, bidId, bid.bidder, reason);
     }
@@ -504,6 +515,23 @@ contract BiddingSystem is
     /* Stake Management (Pull Pattern) */
     /***********************************/
     
+    /**
+     * @notice Phase 47: Withdraw a pending bid refund recorded by acceptBid,
+     *         rejectBid, or createJobAndFund. Pull-based so reverting ETH
+     *         receivers cannot block session state transitions.
+     */
+    function withdrawBidRefund(uint256 sessionId) external nonReentrant {
+        Session storage session = sessions[sessionId];
+        if (!(session.id != 0)) revert BiddingSystem__Invalid_session();
+
+        uint256 amount = pendingBidRefund[sessionId][msg.sender];
+        if (!(amount > 0)) revert BiddingSystem__No_stake_to_withdraw();
+        pendingBidRefund[sessionId][msg.sender] = 0;
+
+        _sendToken(session.paymentToken, msg.sender, amount);
+        emit StakeWithdrawn(sessionId, msg.sender, amount);
+    }
+
     function withdrawStake(uint256 sessionId) external nonReentrant {
         Session storage session = sessions[sessionId];
 
@@ -529,7 +557,7 @@ contract BiddingSystem is
         if (session.status == SessionStatus.Active || session.status == SessionStatus.BiddingClosed) {
             if (!(block.timestamp >= session.revealWindowEnd)) revert BiddingSystem__Reveal_window_still_open();
         }
-        
+
         uint256 amount = bid.stake;
         bid.stake = 0;
         bid.stakeWithdrawn = true;
@@ -537,12 +565,26 @@ contract BiddingSystem is
         totalStakesHeld[sessionId] -= amount;
 
         // Phase 45c O-9: clear any pending sweep timestamp for this bidder.
-        // The bidder is withdrawing legitimately so there is nothing to sweep.
         withdrawStakeClaimableAt[sessionId][msg.sender] = 0;
+
+        // Phase 47: unrevealed bids are treated as no-shows and slashed 5%
+        if (!bid.revealed) {
+            uint256 slashAmount = (amount * NO_SHOW_SLASH_BP) / FEE_DENOMINATOR;
+            uint256 refundAmount = amount - slashAmount;
+            bid.rejected = true;
+            if (slashAmount > 0) {
+                _sendToken(session.paymentToken, treasury, slashAmount);
+            }
+            if (refundAmount > 0) {
+                _sendToken(session.paymentToken, msg.sender, refundAmount);
+            }
+            emit StakeWithdrawn(sessionId, msg.sender, refundAmount);
+            return;
+        }
 
         // Phase 40: Refund in session's payment token
         _sendToken(session.paymentToken, msg.sender, amount);
-        
+
         emit StakeWithdrawn(sessionId, msg.sender, amount);
     }
     
@@ -553,9 +595,31 @@ contract BiddingSystem is
         Session storage session = sessions[sessionId];
         if (!(session.id != 0)) revert BiddingSystem__Invalid_session();
 
-        // Creator stake is synchronously refunded in cancelSession/createJobAndFund.
-        // Keeping this fallback withdraw path lets terminal sessions drain pooled bidder stakes.
-        revert BiddingSystem__Stake_already_withdrawn();
+        uint256 pendingRefund = pendingCreatorRefund[sessionId];
+        if (pendingRefund > 0) {
+            pendingCreatorRefund[sessionId] = 0;
+            _sendToken(session.paymentToken, msg.sender, pendingRefund);
+            emit CreatorStakeWithdrawn(sessionId, msg.sender, pendingRefund);
+            return;
+        }
+
+        if (!(session.status == SessionStatus.WinnerSelected)) revert BiddingSystem__Stake_already_withdrawn();
+        if (session.jobCreated) revert BiddingSystem__Job_created();
+        uint256 selectedAt = winnerSelectedAt[sessionId];
+        if (!(selectedAt > 0 && block.timestamp >= selectedAt + RECOVERY_WINDOW)) revert BiddingSystem__Recovery_window_active();
+        if (creatorStakeWithdrawn[sessionId]) revert BiddingSystem__Stake_already_withdrawn();
+
+        uint256 creatorStake = calculateStake(session.maxBudget);
+        if (!(creatorStake > 0 && totalStakesHeld[sessionId] >= creatorStake)) revert BiddingSystem__No_stake_to_withdraw();
+
+        creatorStakeWithdrawn[sessionId] = true;
+        totalStakesHeld[sessionId] -= creatorStake;
+        session.status = SessionStatus.Cancelled;
+        winnerSelectedAt[sessionId] = 0;
+
+        _sendToken(session.paymentToken, msg.sender, creatorStake);
+        emit CreatorStakeWithdrawn(sessionId, msg.sender, creatorStake);
+        emit SessionCancelled(sessionId, msg.sender);
     }
 
     /// @notice Phase 45c O-9: Permissionlessly sweep un-withdrawn bidder stakes to the
@@ -576,15 +640,23 @@ contract BiddingSystem is
             if (bid.stakeWithdrawn) continue;
             uint256 deadline = withdrawStakeClaimableAt[sessionId][bid.bidder];
             if (deadline == 0) continue;
+            if (bid.revealed) continue;
             if (block.timestamp < deadline) revert BiddingSystem__Sweep_too_early();
 
             uint256 amount = bid.stake;
+            uint256 slashAmount = (amount * NO_SHOW_SLASH_BP) / FEE_DENOMINATOR;
+            uint256 refundAmount = amount - slashAmount;
             bid.stake = 0;
             bid.stakeWithdrawn = true;
-            bid.status = BidStatus.Withdrawn; // terminal — but stake went to treasury
+            bid.status = BidStatus.Withdrawn;
             totalStakesHeld[sessionId] -= amount;
             withdrawStakeClaimableAt[sessionId][bid.bidder] = 0;
-            _sendToken(session.paymentToken, treasury, amount);
+            if (slashAmount > 0) {
+                _sendToken(session.paymentToken, treasury, slashAmount);
+            }
+            if (refundAmount > 0) {
+                _sendToken(session.paymentToken, bid.bidder, refundAmount);
+            }
             unchecked { sweptCount++; }
         }
     }
@@ -658,6 +730,9 @@ contract BiddingSystem is
         
         // Phase 40: Collect payment in session's token
         _receiveToken(session.paymentToken, msg.sender, totalPayment);
+        if (session.paymentToken == address(0)) {
+            _refundExcess(session.paymentToken, msg.sender, msg.value, totalPayment);
+        }
         
         // Set guard flags BEFORE external call to prevent reentrancy
         session.jobCreated = true;
@@ -670,6 +745,9 @@ contract BiddingSystem is
         // pull the payment via _receiveToken above and must not send native value (would revert
         // with OutOfFunds on the downstream call when the BiddingSystem has no ETH balance).
         address jobEvaluator = session.useRandomEvaluator ? address(0) : session.evaluator;
+        if (session.paymentToken != address(0)) {
+            IERC20(session.paymentToken).forceApprove(commerce, bidAmount);
+        }
         uint256 ethValue = session.paymentToken == address(0) ? bidAmount : 0;
         jobId = IAgenticCommerceV9(commerce).createJobForClient{value: ethValue}(
             msg.sender,           // client (session creator)
@@ -686,6 +764,9 @@ contract BiddingSystem is
             true,                 // fundNow: yes
             bidAmount             // fundAmount
         );
+        if (session.paymentToken != address(0)) {
+            IERC20(session.paymentToken).forceApprove(commerce, 0);
+        }
         
         // Store jobId after external call (depends on return value)
         session.jobId = jobId;
@@ -708,12 +789,12 @@ contract BiddingSystem is
         // the AgenticCommerce pool will select one at random.
         emit EvaluatorFinalized(sessionId, jobEvaluator, block.timestamp);
         
-        // Return winner's stake
+        // Return winner's stake via pull-based refund (Phase 47)
         uint256 winStake = sessionBids[sessionId][session.winningBidId - 1].stake;
         if (winStake > 0) {
             sessionBids[sessionId][session.winningBidId - 1].stake = 0;
             totalStakesHeld[sessionId] -= winStake;
-            _sendToken(session.paymentToken, session.winner, winStake);
+            pendingBidRefund[sessionId][session.winner] += winStake;
         }
 
         // Return creator's session stake
@@ -721,7 +802,8 @@ contract BiddingSystem is
         if (creatorStake > 0 && totalStakesHeld[sessionId] >= creatorStake) {
             creatorStakeWithdrawn[sessionId] = true;
             totalStakesHeld[sessionId] -= creatorStake;
-            _sendToken(session.paymentToken, session.creator, creatorStake);
+            pendingCreatorRefund[sessionId] += creatorStake;
+            emit CreatorStakeRefundPending(sessionId, session.creator, creatorStake);
         }
         
         emit JobCreatedFromSession(sessionId, jobId, session.winner, bidAmount);
@@ -1050,6 +1132,7 @@ contract BiddingSystem is
         uint256 excess = received - required;
         if (excess > 0) {
             _sendToken(token, from, excess);
+            emit ExcessPaymentRefunded(token, from, excess);
         }
     }
 }

@@ -319,7 +319,7 @@ contract AgentSkillRegistryV2 is
      * After: O(1) - direct mapping lookup
      */
     function findSkillsByDomain(string calldata domain) external view override returns (uint256[] memory) {
-        bytes32 domainKey = keccak256(abi.encodePacked(domain));
+        bytes32 domainKey = keccak256(abi.encode(domain));
         uint256[] storage skillIds = _domainToSkills[domainKey];
         
         // Filter to only active skills

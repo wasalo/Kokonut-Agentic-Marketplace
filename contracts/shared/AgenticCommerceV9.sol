@@ -127,6 +127,7 @@ contract AgenticCommerceV9 is
     error InvalidPrice();
     error EvaluatorAlreadyRegistered();
     error EvaluatorNotRegistered();
+    error EvaluatorHasActiveJob();
     error NoEvaluatorsAvailable();
     error InsufficientEvaluatorStake();
     error EvaluatorNotRevealed();
@@ -148,6 +149,7 @@ contract AgenticCommerceV9 is
     error RefundFailed();
     error StakeRefundFailed();
     error StakeTransferFailed();
+    error InvalidSlashAmount();
 
     /***********************************/
     /* Modifiers */
@@ -226,11 +228,11 @@ contract AgenticCommerceV9 is
             budgetInUsd = budget / (10 ** (decimals - 6));
         } else if (token == address(0)) {
             int256 ethPrice = priceOracle.getUsdPriceOfToken(address(0));
-            if (ethPrice <= 0) return;
+            if (ethPrice <= 0) revert InvalidPrice();
             budgetInUsd = (budget * uint256(ethPrice)) / (10 ** decimals) / 100;
         } else {
             int256 tokenPrice = priceOracle.getUsdPriceOfToken(token);
-            if (tokenPrice <= 0) return;
+            if (tokenPrice <= 0) revert InvalidPrice();
             budgetInUsd = (budget * uint256(tokenPrice)) / (10 ** decimals) / 100;
         }
 
@@ -514,6 +516,7 @@ contract AgenticCommerceV9 is
         if (fundNow) {
             uint256 amountToFund = fundAmount > 0 ? fundAmount : budget;
             if (amountToFund == 0) revert ZeroBudget();
+            if (amountToFund != budget) revert BudgetMismatch(amountToFund, budget);
             
             if (paymentToken == address(0)) {
                 // Native ETH
@@ -663,6 +666,7 @@ contract AgenticCommerceV9 is
         Job storage job = jobs[jobId];
         if (job.id == 0) revert InvalidJob();
         if (job.status != JobStatus.Open) revert WrongStatus();
+        if (job.budget != 0) revert WrongStatus(); // Phase 47: reset budget to 0 before changing token
 
         address oldToken = address(job.paymentToken);
         job.paymentToken = IERC20(paymentToken);
@@ -1093,6 +1097,14 @@ contract AgenticCommerceV9 is
     function unregisterAsEvaluator() external {
         if (!isRegisteredEvaluator[msg.sender]) revert EvaluatorNotRegistered();
 
+        // Phase 47: prevent unregistering while assigned to an active job
+        for (uint256 i = 1; i <= jobCounter; i++) {
+            Job storage job = jobs[i];
+            if (job.evaluator == msg.sender && (job.status == JobStatus.Funded || job.status == JobStatus.Submitted || job.status == JobStatus.PendingClientApproval)) {
+                revert EvaluatorHasActiveJob();
+            }
+        }
+
         // Remove from pool
         for (uint256 i = 0; i < evaluatorPool.length; i++) {
             if (evaluatorPool[i] == msg.sender) {
@@ -1159,34 +1171,40 @@ contract AgenticCommerceV9 is
 
     /**
      * @dev Governance-based evaluator slashing, callable only by SlashManager multisig.
-     * Performs the same action as slashEvaluatorStake but gated by SlashManager instead of owner.
+     * Supports partial slashing. The evaluator remains registered if any stake remains.
      * @param evaluator Address of the evaluator to slash.
+     * @param slashAmount Amount of evaluator stake to slash.
      * @param reason Reason for slashing.
      */
-    function slashByGovernance(address evaluator, string calldata reason) external nonReentrant {
+    function slashByGovernance(address evaluator, uint256 slashAmount, string calldata reason) external nonReentrant {
         if (msg.sender != slashManager) revert OnlySlashManager();
         if (!isRegisteredEvaluator[evaluator]) revert EvaluatorNotRegistered();
 
         uint256 stake = evaluatorStakes[evaluator];
         if (stake == 0) revert InsufficientEvaluatorStake();
+        if (slashAmount == 0 || slashAmount > stake) revert InvalidSlashAmount();
 
-        for (uint256 i = 0; i < evaluatorPool.length; i++) {
-            if (evaluatorPool[i] == evaluator) {
-                evaluatorPool[i] = evaluatorPool[evaluatorPool.length - 1];
-                evaluatorPool.pop();
-                break;
+        uint256 remainingStake = stake - slashAmount;
+        evaluatorStakes[evaluator] = remainingStake;
+
+        if (remainingStake == 0) {
+            for (uint256 i = 0; i < evaluatorPool.length; i++) {
+                if (evaluatorPool[i] == evaluator) {
+                    evaluatorPool[i] = evaluatorPool[evaluatorPool.length - 1];
+                    evaluatorPool.pop();
+                    break;
+                }
             }
+
+            isRegisteredEvaluator[evaluator] = false;
         }
 
-        isRegisteredEvaluator[evaluator] = false;
-        evaluatorStakes[evaluator] = 0;
-
         if (platformTreasury != address(0)) {
-            (bool success, ) = payable(platformTreasury).call{value: stake}("");
+            (bool success, ) = payable(platformTreasury).call{value: slashAmount}("");
             if (!success) revert StakeTransferFailed();
         }
 
-        emit EvaluatorSlashed(evaluator, stake, reason);
+        emit EvaluatorSlashed(evaluator, slashAmount, reason);
     }
 
     /**
@@ -1246,21 +1264,29 @@ contract AgenticCommerceV9 is
         uint256 poolLength = evaluatorPool.length;
         if (poolLength == 0) revert NoEvaluatorsAvailable();
 
+        Job storage job = jobs[jobId];
         uint256 randomIndex = uint256(keccak256(abi.encodePacked(
             entropy,
             jobId,
             poolLength
         ))) % poolLength;
 
-        evaluator = evaluatorPool[randomIndex];
-        if (!isRegisteredEvaluator[evaluator]) {
-            for (uint256 i = 0; i < poolLength; i++) {
-                if (isRegisteredEvaluator[evaluatorPool[i]]) {
-                    return evaluatorPool[i];
+        // Phase 47: skip provider, client, unregistered, and blacklisted evaluators
+        for (uint256 offset = 0; offset < poolLength; offset++) {
+            uint256 idx = (randomIndex + offset) % poolLength;
+            address candidate = evaluatorPool[idx];
+            if (!isRegisteredEvaluator[candidate]) continue;
+            if (candidate == job.provider || candidate == job.client) continue;
+            if (adminRegistry != address(0)) {
+                try AdminRegistry(adminRegistry).isWalletBlacklistedActive(candidate) returns (bool blacklisted) {
+                    if (blacklisted) continue;
+                } catch {
+                    // fail open to prevent DOS
                 }
             }
-            revert NoActiveEvaluators();
+            return candidate;
         }
+        revert NoActiveEvaluators();
     }
     
     /**

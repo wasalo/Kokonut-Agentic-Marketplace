@@ -4441,14 +4441,15 @@ program
   .command('slash-by-governance')
   .description('Slash an evaluator via the on-chain governance path (Phase 45d)')
   .requiredOption('--address <address>', 'Evaluator address')
+  .requiredOption('--amount <wei>', 'Slash amount in wei')
   .requiredOption('--reason <string>', 'Slash reason')
   .action(async (options) => {
     try {
       initWallet();
-      const abi = parseAbi(['function slashByGovernance(address evaluator, string reason) external']);
+      const abi = parseAbi(['function slashByGovernance(address evaluator, uint256 slashAmount, string reason) external']);
       const commerce = getContractInstance(config.contracts.agenticCommerce, abi);
       console.log(chalk.cyan('Slashing evaluator...'));
-      const hash = await commerce.write.slashByGovernance([options.address as Address, options.reason]);
+      const hash = await commerce.write.slashByGovernance([options.address as Address, BigInt(options.amount), options.reason]);
       console.log(chalk.cyan('Transaction sent:'), hash);
       await waitForTransactionReceipt(hash);
       console.log(chalk.green('✅ Slash submitted'));

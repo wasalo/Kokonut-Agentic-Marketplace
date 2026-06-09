@@ -328,11 +328,14 @@ contract ServiceRegistryV2 is
         if (!(_services[serviceId].provider == msg.sender)) revert ServiceRegistryV2__Not_owner();
         if (!(!_services[serviceId].isActive)) revert ServiceRegistryV2__Already_active();
 
-        // Bad Actor: Re-check blacklist on reactivation
+        // Bad Actor: Re-check blacklist on reactivation (Phase 47: also check agent blacklist and bond)
         if (adminRegistry != address(0)) {
             AdminRegistry registry = AdminRegistry(adminRegistry);
+            uint256 agentId = _services[serviceId].agentId;
+            if (!(!registry.isAgentBlacklistedActive(agentId))) revert ServiceRegistryV2__Agent_blacklisted();
             if (!(!registry.isWalletBlacklistedActive(msg.sender))) revert ServiceRegistryV2__Wallet_blacklisted();
         }
+        if (_serviceBonds[serviceId] == 0) revert ServiceRegistryV2__No_bond();
 
         _services[serviceId].isActive = true;
         

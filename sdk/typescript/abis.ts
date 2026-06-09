@@ -59,6 +59,7 @@ export const AGENTIC_COMMERCE_ABI = parseAbi([
   'function setNonResponsiveSlashBP(uint256 jobId, uint256 slashBP) external',
   'function approveByClient(uint256 jobId) external',
   'function finalizeByEvaluator(uint256 jobId, bytes32 reason) external',
+  'function slashByGovernance(address evaluator, uint256 slashAmount, string calldata reason) external',
   'function setPaymentToken(uint256 jobId, address paymentToken) external',
   'function getMinBudget(address token, uint8 decimals) external view returns (uint256)',
   'function setMinBudgetUsd(uint256 newMin) external',

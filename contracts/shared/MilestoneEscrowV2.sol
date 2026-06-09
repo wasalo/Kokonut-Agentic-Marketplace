@@ -137,6 +137,7 @@ contract MilestoneEscrowV2 is
     error MilestoneDueDatePassed();
     error OnlyArbiterCanRelease();
     error NotRegisteredArbiter();
+    error NoEligibleArbiter();
     error ArbiterAlreadyRegistered();
     error InsufficientArbiterStake();
     error InsufficientArbiterFee();
@@ -480,7 +481,23 @@ contract MilestoneEscrowV2 is
         ))) % arbiterPool.length;
         
         address assignedArbiter = arbiterPool[randomIndex];
-        
+
+        // Phase 47: exclude job parties from arbiter selection
+        if (assignedArbiter == jm.client || assignedArbiter == jm.provider) {
+            uint256 poolLen = arbiterPool.length;
+            bool found = false;
+            for (uint256 i = 1; i < poolLen; i++) {
+                uint256 idx = (randomIndex + i) % poolLen;
+                address candidate = arbiterPool[idx];
+                if (candidate != jm.client && candidate != jm.provider) {
+                    assignedArbiter = candidate;
+                    found = true;
+                    break;
+                }
+            }
+            if (!found) revert NoEligibleArbiter();
+        }
+
         // Effects: Write state before external call
         disputes[jobId] = Dispute({
             jobId: jobId,
@@ -551,20 +568,18 @@ contract MilestoneEscrowV2 is
                 _safeTransfer(jm.paymentToken, jm.provider, jm.milestones[mi].amount);
                 emit MilestoneReleased(jobId, mi, jm.milestones[mi].amount);
             } else {
-                // Only refund completed milestones to client
-                if (jm.milestones[mi].completed) {
-                    jm.milestones[mi].released = true;
-                    _spendMilestoneBalance(jobId, jm.milestones[mi].amount);
-                    _safeTransfer(jm.paymentToken, jm.client, jm.milestones[mi].amount);
-                    emit MilestoneReleased(jobId, mi, jm.milestones[mi].amount);
-                } else {
-                    emit MilestoneNotReleased(jobId, mi, "Milestone not completed");
-                }
+                // Phase 47: refund client regardless of completion status
+                jm.milestones[mi].released = true;
+                _spendMilestoneBalance(jobId, jm.milestones[mi].amount);
+                _safeTransfer(jm.paymentToken, jm.client, jm.milestones[mi].amount);
+                emit MilestoneReleased(jobId, mi, jm.milestones[mi].amount);
             }
         }
 
         // Remove from activeDisputeIds immediately (swap-and-pop)
         _removeActiveDispute(jobId);
+        // Phase 47: clear dispute lock so future disputes on the same job are possible
+        disputes[jobId].flaggedAt = 0;
 
         // E4-06 FIX: Ensure contract holds enough payment token before transfer
         uint256 arbiterFee = dispute.feePaid;

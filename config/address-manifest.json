@@ -1,5 +1,5 @@
 {
-  "version": "2026-06-01-phase-45c",
+  "version": "2026-06-08-phase-47",
   "defaultNetwork": "sepolia",
   "networks": {
     "sepolia": {
@@ -16,13 +16,14 @@
         "skillRegistry": "0xA84684261558f342d6871DD2CFef90A2117Aa20A",
         "skillRegistryImpl": "0xbf7283c4d141ca991dae6c91d29a255e7caff48d",
         "serviceRegistry": "0x62E1eeEa1A2Ab987004F35bDA430457Ed6077201",
-        "serviceRegistryImpl": "0xe2000Ec87D00980EE912F35fefE2D365DA402BCA",
+        "serviceRegistryImpl": "0x41CeD1B43878E5d6De81FdfB5317305cb692C96B",
+        "_comment_serviceRegistryImpl_47": "Phase 47 deployed 2026-06-08: activateService agent blacklist + bond check",
         "agenticCommerce": "0x3a1Bc03cC84040A282F6bf238b917D8351499239",
-        "agenticCommerceImpl": "0x3b8b4A6d3cc93D5081a286aCC7EcD4f01086c928",
+        "agenticCommerceImpl": "0xe74A0ADF0074FC17628b0FF13f44C6551801E2C0",
+        "_comment_agenticCommerceImpl_47": "Phase 47 deployed 2026-06-08: exact funding, setPaymentToken validation, evaluator exclusion, active-job unregister guard",
         "biddingSystem": "0x4D7F38C6A9DE5De44A7B789962B7A2B06bFE8fd6",
-        "biddingSystemImpl": "0xd403bd1c629b9c3bf7f5ea441af142e907733354",
-        "_comment_biddingSystemImpl_45b": "Phase 45b upgrade done; superseded by 45c impl",
-        "_comment_biddingSystemImpl_45c": "Phase 45c deployed 2026-06-01: BiddingSystem V11 (O-4..O-12). stakeBounds seeded: min=0.001 ETH, max=100 ETH",
+        "biddingSystemImpl": "0x79Bc44CcB9d034AbAd04f93B6754dE13e8bf454b",
+        "_comment_biddingSystemImpl_47": "Phase 47 deployed 2026-06-08: Pashov audit remediation — reveal binding, accept timing, no-show slash, pull-based refunds",
         "priceOracle": "0x29c27a26DD2F80f840cb4D7B5E53b7db3D67143d",
         "priceOracleImpl": "0x7Bad7cc9754814246814299ca50041a939a244b1",
         "commitReveal": "0x85F193670fCb7B0c97D55E70Bf2a950b1065Fb3a",
@@ -30,7 +31,8 @@
         "slashManager": "0x1B8373cDF4f2eD740c3478e0129f0B8494CE4Fa3",
         "slashManagerImpl": "0x8754Abeba49B6688dA132552b9f183FbC7acdc58",
         "milestoneEscrow": "0xc89D63057288092012c5D3cEF66121C1F8449a9f",
-        "milestoneEscrowImpl": "0x8F9Bae14966Af0BceE5c291A764cE3503f9D49F3",
+        "milestoneEscrowImpl": "0x7F515bCf8Ba3102eA46126B6111c451A5ACad42D",
+        "_comment_milestoneEscrowImpl_47": "Phase 47 deployed 2026-06-08: dispute lockout fix, self-arbitration exclusion, incomplete milestone refund",
         "adminRegistry": "0xC81C864CEAb6231ad764cf9867e031D8b6dee41d",
         "adminRegistryImpl": "0xE0611728f270172E1627267138BF96BfEF08F731",
         "usdc": "0x1c7D4B196Cb0C7B01d743Fbc6116a902379C7238"

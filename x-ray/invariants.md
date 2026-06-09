@@ -1,6 +1,6 @@
 # Invariant Map
 
-> Kokonut Agent Economy | 36 guards | 22 inferred | 4 not enforced on-chain
+> Kokonut Agent Economy | 38 guards | 26 inferred | 1 not enforced on-chain
 
 ---
 
@@ -116,6 +116,12 @@ Per-call preconditions. Heading IDs below (`G-N`) are anchor targets from x-ray.
 #### G-36
 `require(answer > 0)` · `PriceOracleV2.sol:L__getChainlinkPrice` · prevents zero/negative price
 
+#### G-37
+`selectedAt > 0 && block.timestamp >= selectedAt + RECOVERY_WINDOW` · `BiddingSystem.sol:L575-L576` · prevents creator stake recovery from a selected winning bid before the 7-day stuck-session recovery window has elapsed
+
+#### G-38
+`ethPrice > 0 && tokenPrice > 0` · `AgenticCommerceV9.sol:L230-L234` · prevents invalid oracle prices from passing V9 max-budget checks during token/USD conversion
+
 ---
 
 ## 2. Inferred Invariants (Single-Contract)
@@ -164,9 +170,9 @@ Inferred invariants are derived from structural analysis of the source code.
 
 `Conservation` · On-chain: **Yes**
 
-> `accumulatedFeesByToken[token]` equals sum of platform fees collected for that token across all jobs.
+> `accumulatedFeesByToken[token]` equals sum of platform fees collected for that token across all BiddingSystem-created jobs.
 
-**Derivation** — Δ-pair: `BiddingSystem.sol` `createJobAndFund():L_createJobAndFund` (`+= platformFee`) ↔ `withdrawFees(token):L_withdrawFees` (`= 0` on withdrawal). *Phase 45b addition.*
+**Derivation** — Δ-pair: `BiddingSystem.sol` `createJobAndFund():L_createJobAndFund` (`+= platformFee`) ↔ `withdrawFees(token):L_withdrawFees` (`= 0` on withdrawal). *Phase 45b addition; Phase 46b keeps creator stake refund separate in `pendingCreatorRefund`.*
 
 **If violated** — Treasury under-claims or over-claims accumulated fees.
 
@@ -188,9 +194,9 @@ Inferred invariants are derived from structural analysis of the source code.
 
 `StateMachine` · On-chain: **Yes**
 
-> A `Bid` transitions through at most None → Pending → Revealed → {Accepted, Rejected, Withdrawn}. The `BidStatus` enum (Phase 45c) replaces v0/v1 boolean flags.
+> A `Bid` transitions through at most None → Pending → Revealed → {Accepted, Rejected, Withdrawn}; unrevealed no-show bids can move Pending → Withdrawn through slash paths. The `BidStatus` enum (Phase 45c) replaces v0/v1 boolean flags.
 
-**Derivation** — edge: `BiddingSystem.sol` `commitBid():L_commit` (None → Pending) → `revealBid():L_reveal` (Pending → Revealed) → `acceptBid():L_accept` (Revealed → Accepted) | `rejectBid():L_reject` (Revealed → Rejected) | `withdrawStake()/slashNoShow():L_withdraw` (Revealed → Withdrawn). Each transition is one-shot.
+**Derivation** — edge: `BiddingSystem.sol` `commitBid():L_commit` (None → Pending) → `revealBid():L_reveal` (Pending → Revealed) → `acceptBid():L_accept` (Revealed → Accepted) | `rejectBid():L_reject` (Revealed → Rejected) | `withdrawStake()/slashNoShow()/sweepUnclaimedStakes():L_withdraw` (Revealed/Pending → Withdrawn). Each transition is one-shot.
 
 **If violated** — Bid retargeting after acceptance; or accepting an already-withdrawn bid.
 
@@ -328,6 +334,30 @@ Inferred invariants are derived from structural analysis of the source code.
 
 ---
 
+#### I-18
+
+`Conservation` · On-chain: **Yes**
+
+> For every BiddingSystem session, creator stake is either locked, pending as `pendingCreatorRefund[sessionId]`, returned through `withdrawCreatorStake`, or recoverable only after `winnerSelectedAt + RECOVERY_WINDOW` if job creation remains stuck.
+
+**Derivation** — Δ-pair: `BiddingSystem.sol` `createBiddingSession():L_create` (creator stake deposited) ↔ `createJobAndFund():L772-L773` (`pendingCreatorRefund += creatorStake`) ↔ `withdrawCreatorStake():L565-L585` (pending refund withdrawal or stuck-session recovery). Phase 46b moved creator refund to pull accounting to avoid smart-contract creator DoS.
+
+**If violated** — Creator stake double-withdrawal, permanent creator-stake lock, or premature clawback before the selected winner has a fair job-creation window.
+
+---
+
+#### I-19
+
+`Semantic` · On-chain: **Yes**
+
+> `sweepUnclaimedStakes(sessionId)` slashes only unrevealed no-show bids; revealed bids are skipped and remain withdrawable by the bidder.
+
+**Derivation** — semantic branch: `BiddingSystem.sol` `sweepUnclaimedStakes():L598-L626` checks claimable stake, skips revealed bids, computes `slashAmount = amount * NO_SHOW_SLASH_BP / FEE_DENOMINATOR`, sends 5% to treasury and 95% to bidder, and marks only swept no-shows Withdrawn.
+
+**If violated** — Revealed non-winning bidders lose stake despite satisfying reveal obligations; or no-show bidders avoid the intended 5% slash.
+
+---
+
 ## 3. Inferred Invariants (Cross-Contract)
 
 Trust assumptions that span contract boundaries.
@@ -358,7 +388,7 @@ On-chain: **Yes**
 
 **Callee side** — `SlashManager.sol` `setCommerce():L_setCommerce` (L157-161) — owner-only setter; but the address is not validated to equal AgenticCommerceV9.
 
-**If violated** — Owner of SlashManager sets `commerce` to a non-Commerce address, locking out future slashing; or to a malicious contract that calls `slashByGovernance` with crafted args (currently no args, so low risk).
+**If violated** — Owner of SlashManager sets `commerce` to a non-Commerce address, locking out future slashing; or to a malicious contract that calls `slashByGovernance` with crafted partial-slash args.
 
 ---
 
@@ -404,6 +434,34 @@ On-chain: **Yes**
 
 ---
 
+#### X-6
+
+On-chain: **Yes**
+
+> `SlashManager.executeSlash` and `AgenticCommerceV9.slashByGovernance` must agree on the Phase 46b 3-argument ABI: `(address evaluator, uint256 slashAmount, string reason)`.
+
+**Caller side** — `SlashManager.sol:L245-L261` caps `slashAmount` by proposal amount, current stake, `DEFAULT_SLASH_BP`, and `MAX_SLASH_AMOUNT`, then calls `slashByGovernance(evaluator, slashAmount, reason)`.
+
+**Callee side** — `AgenticCommerceV9.sol:L1168-L1196` validates caller via `onlySlashManager`, rejects zero/over-stake amounts, deducts exactly `slashAmount`, unregisters only if remaining stake is zero, and sends the slash to treasury.
+
+**If violated** — Slash execution reverts due ABI mismatch, over-slashes relative to proposal/stake, or unregisters evaluators after a partial slash.
+
+---
+
+#### X-7
+
+On-chain: **Yes**
+
+> `BiddingSystem.createJobAndFund` must fund AgenticCommerceV9 with the selected bid amount while leaving only the intended platform fee and pending creator refund in BiddingSystem.
+
+**Caller side** — `BiddingSystem.sol:L679-L774` receives ETH/ERC-20 payment, gives AgenticCommerceV9 an exact temporary ERC-20 allowance for ERC-20 sessions, calls `createJobForClient`, accumulates platform fees, records `pendingCreatorRefund`, and refunds native ETH excess.
+
+**Callee side** — `AgenticCommerceV9.createJobForClient` requires the BiddingSystem authorization and pulls ERC-20 funding from the caller for ERC-20 paths; native paths receive `msg.value`.
+
+**If violated** — ERC-20 job creation fails despite bidder payment, allowance remains after job creation, or BiddingSystem becomes insolvent against pending creator refunds / accumulated fees.
+
+---
+
 ## 4. Economic Invariants
 
 Higher-order properties derived from combinations of §2 and §3 invariants.
@@ -426,9 +484,9 @@ On-chain: **Yes**
 
 On-chain: **Yes**
 
-> The protocol's solvency equals: `Σ jobs.budget (Funded/Submitted) + Σ milestoneEscrowBalance[jobId] + Σ serviceBonds + Σ accumulatedFeesByToken + Σ arbiterStakes == contract balance`.
+> The protocol's solvency equals: `Σ jobs.budget (Funded/Submitted) + Σ milestoneEscrowBalance[jobId] + Σ serviceBonds + Σ accumulatedFeesByToken + Σ pendingCreatorRefund + Σ arbiterStakes == contract balance`.
 
-**Follows from** — `I-1` + `I-2` + `I-3` + `I-4` + `I-12`.
+**Follows from** — `I-1` + `I-2` + `I-3` + `I-4` + `I-12` + `I-18`.
 
 **If violated** — Insolvency at the protocol level; some user class cannot withdraw.
 

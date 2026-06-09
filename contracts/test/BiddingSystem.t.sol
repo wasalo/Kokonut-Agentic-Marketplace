@@ -422,13 +422,21 @@ contract BiddingSystemTest is Test {
         vm.prank(bidder3);
         bidding.revealBid(sessionId, 4 ether, "Proposal 3", bytes32(uint256(0x3333)));
         
+        // Warp past reveal window
+        vm.warp(block.timestamp + 1 hours + 1);
+        
         // Creator accepts bidder1's bid (5 ETH)
         vm.prank(creator);
         bidding.acceptBid(sessionId, 1);
         
         IBiddingSystem.Bid memory bid = bidding.getBid(sessionId, 1);
         assertTrue(bid.accepted);
-        assertEq(bidder1.balance, 100 ether - stake + stake); // Stake returned
+        
+        // Winner must withdraw pending refund (Phase 47 pull-based)
+        uint256 bidder1BalanceBefore = bidder1.balance;
+        vm.prank(bidder1);
+        bidding.withdrawBidRefund(sessionId);
+        assertEq(bidder1.balance, bidder1BalanceBefore + stake); // Stake returned
     }
     
     function testAcceptBidRevertNotCreator() public {
@@ -475,13 +483,14 @@ contract BiddingSystemTest is Test {
         vm.prank(bidder2);
         bidding.revealBid(sessionId, 6 ether, "Proposal", bytes32(uint256(0x2222)));
         
+        // Warp past reveal window
+        vm.warp(block.timestamp + 1 hours + 1);
+        
         // Creator accepts bidder1
         vm.prank(creator);
         bidding.acceptBid(sessionId, 1);
         
-        // Bidder2 should be able to withdraw after reveal window
-        vm.warp(block.timestamp + REVEAL_WINDOW + 1);
-        
+        // Bidder2 can withdraw immediately (WinnerSelected status)
         uint256 balanceBefore = bidder2.balance;
         vm.prank(bidder2);
         bidding.withdrawStake(sessionId);
@@ -522,6 +531,9 @@ contract BiddingSystemTest is Test {
         vm.prank(bidder2);
         bidding.revealBid(sessionId, 6 ether, "Proposal", bytes32(uint256(0x2222)));
         
+        // Warp past reveal window
+        vm.warp(block.timestamp + 1 hours + 1);
+        
         // Creator accepts bidder1
         vm.prank(creator);
         bidding.acceptBid(sessionId, 1);
@@ -549,6 +561,9 @@ contract BiddingSystemTest is Test {
         vm.prank(bidder1);
         bidding.revealBid(sessionId, bidAmount, "Great work", bytes32(uint256(0x1111)));
         
+        // Warp past reveal window
+        vm.warp(block.timestamp + 1 hours + 1);
+        
         vm.prank(creator);
         bidding.acceptBid(sessionId, 1);
         
@@ -570,8 +585,9 @@ contract BiddingSystemTest is Test {
         assertEq(uint8(session.status), 3); // JobCreated
     }
 
-    function testWithdrawCreatorStakeRevertsAfterJobCreation() public {
+    function testWithdrawCreatorStakeClaimsPendingAfterJobCreation() public {
         uint256 sessionId = _createSession(creator, 10 ether, 7 days);
+        uint256 creatorStake = bidding.calculateStake(10 ether);
         uint256 bidAmount = 5 ether;
         uint256 platformFee = (bidAmount * 100) / 10000;
 
@@ -580,6 +596,9 @@ contract BiddingSystemTest is Test {
         vm.warp(block.timestamp + 7 days + 30 minutes);
         vm.prank(bidder1);
         bidding.revealBid(sessionId, bidAmount, "Great work", bytes32(uint256(0x1111)));
+
+        // Warp past reveal window
+        vm.warp(block.timestamp + 1 hours + 1);
 
         vm.prank(creator);
         bidding.acceptBid(sessionId, 1);
@@ -591,9 +610,91 @@ contract BiddingSystemTest is Test {
             "Build a dApp"
         );
 
+        assertEq(bidding.pendingCreatorRefund(sessionId), creatorStake);
+
+        uint256 balanceBefore = creator.balance;
+        vm.prank(creator);
+        bidding.withdrawCreatorStake(sessionId);
+        assertEq(creator.balance, balanceBefore + creatorStake);
+        assertEq(bidding.pendingCreatorRefund(sessionId), 0);
+
         vm.prank(creator);
         vm.expectRevert(abi.encodeWithSelector(BiddingSystem.BiddingSystem__Stake_already_withdrawn.selector));
         bidding.withdrawCreatorStake(sessionId);
+    }
+
+    function testWithdrawCreatorStakeAfterDownstreamCreateJobRevert() public {
+        uint256 sessionId = _createSession(creator, 10 ether, 7 days);
+        uint256 creatorStake = bidding.calculateStake(10 ether);
+        uint256 bidAmount = 5 ether;
+        uint256 platformFee = (bidAmount * 100) / 10000;
+
+        _commitBid(sessionId, bidder1, bidAmount, "Great work", bytes32(uint256(0x1111)));
+
+        vm.warp(block.timestamp + 7 days + 30 minutes);
+        vm.prank(bidder1);
+        bidding.revealBid(sessionId, bidAmount, "Great work", bytes32(uint256(0x1111)));
+
+        // Warp past reveal window
+        vm.warp(block.timestamp + 1 hours + 1);
+
+        vm.prank(creator);
+        bidding.acceptBid(sessionId, 1);
+
+        MockRevertingCommerce revertingCommerce = new MockRevertingCommerce();
+        vm.prank(owner);
+        bidding.setCommerce(address(revertingCommerce));
+
+        vm.prank(creator);
+        vm.expectRevert(bytes("downstream revert"));
+        bidding.createJobAndFund{value: bidAmount + platformFee}(
+            sessionId,
+            block.timestamp + 30 days,
+            "Build a dApp"
+        );
+
+        vm.prank(creator);
+        vm.expectRevert(abi.encodeWithSelector(BiddingSystem.BiddingSystem__Recovery_window_active.selector));
+        bidding.withdrawCreatorStake(sessionId);
+
+        vm.warp(block.timestamp + bidding.RECOVERY_WINDOW());
+
+        uint256 balanceBefore = creator.balance;
+        vm.prank(creator);
+        bidding.withdrawCreatorStake(sessionId);
+
+        assertEq(creator.balance, balanceBefore + creatorStake);
+        assertEq(uint8(bidding.getSession(sessionId).status), 5); // Cancelled
+    }
+
+    function testCreateJobAndFundRefundsExcessEth() public {
+        uint256 sessionId = _createSession(creator, 10 ether, 7 days);
+        uint256 creatorStake = bidding.calculateStake(10 ether);
+        uint256 bidAmount = 5 ether;
+        uint256 platformFee = (bidAmount * 100) / 10000;
+
+        _commitBid(sessionId, bidder1, bidAmount, "Great work", bytes32(uint256(0x1111)));
+
+        vm.warp(block.timestamp + 7 days + 30 minutes);
+        vm.prank(bidder1);
+        bidding.revealBid(sessionId, bidAmount, "Great work", bytes32(uint256(0x1111)));
+
+        // Warp past reveal window
+        vm.warp(block.timestamp + 1 hours + 1);
+
+        vm.prank(creator);
+        bidding.acceptBid(sessionId, 1);
+
+        uint256 totalPayment = bidAmount + platformFee;
+        vm.prank(creator);
+        bidding.createJobAndFund{value: totalPayment + 1 ether}(
+            sessionId,
+            block.timestamp + 30 days,
+            "Build a dApp"
+        );
+
+        assertEq(creator.balance, 100 ether - creatorStake - totalPayment);
+        assertEq(bidding.pendingCreatorRefund(sessionId), creatorStake);
     }
     
     function testCreateJobAndFundRevertNoWinner() public {
@@ -643,7 +744,10 @@ contract BiddingSystemTest is Test {
         uint256 bidderBalanceBefore = bidder1.balance;
         vm.prank(bidder1);
         bidding.withdrawStake(sessionId);
-        assertEq(bidder1.balance, bidderBalanceBefore + stake);
+        // Phase 47: unrevealed bid withdrawal is slashed 5%
+        uint256 slashAmount = (stake * bidding.NO_SHOW_SLASH_BP()) / bidding.FEE_DENOMINATOR();
+        uint256 refundAmount = stake - slashAmount;
+        assertEq(bidder1.balance, bidderBalanceBefore + refundAmount);
     }
      
     function testCancelSessionRevertAfterReveal() public {
@@ -684,6 +788,10 @@ contract BiddingSystemTest is Test {
         uint256 balanceBefore = bidder1.balance;
         vm.prank(creator);
         bidding.rejectBid(sessionId, 1, "Not suitable");
+        
+        // Bidder must withdraw pending refund (Phase 47 pull-based)
+        vm.prank(bidder1);
+        bidding.withdrawBidRefund(sessionId);
         
         // Bidder should get their stake back
         assertEq(bidder1.balance, balanceBefore + stake);
@@ -734,14 +842,21 @@ contract BiddingSystemTest is Test {
         vm.prank(creator);
         bidding.rejectBid(sessionId, 2, "Not suitable");
         
-        // Bidder2's stake should be returned immediately in rejectBid
+        // Bidder2 must withdraw pending refund (Phase 47 pull-based)
+        vm.prank(bidder2);
+        bidding.withdrawBidRefund(sessionId);
+        
+        // Bidder2's stake should be returned
         assertEq(bidder2.balance, bidder2BalanceBefore + stake);
+        
+        // Warp past reveal window before acceptBid
+        vm.warp(block.timestamp + 1 hours + 1);
         
         // Creator accepts bidder1 (session moves to WinnerSelected)
         vm.prank(creator);
         bidding.acceptBid(sessionId, 1);
         
-        // Bidder2 cannot withdraw since stake is already 0 (returned in rejectBid)
+        // Bidder2 cannot withdraw since stake is already 0 (returned via withdrawBidRefund)
         vm.prank(bidder2);
         vm.expectRevert(abi.encodeWithSelector(BiddingSystem.BiddingSystem__No_stake_to_withdraw.selector));
         bidding.withdrawStake(sessionId);
@@ -761,6 +876,9 @@ contract BiddingSystemTest is Test {
         vm.warp(block.timestamp + 7 days + 30 minutes);
         vm.prank(bidder1);
         bidding.revealBid(sessionId, bidAmount, "Great work", bytes32(uint256(0x1111)));
+        
+        // Warp past reveal window
+        vm.warp(block.timestamp + 1 hours + 1);
         
         vm.prank(creator);
         bidding.acceptBid(sessionId, 1);
@@ -876,6 +994,10 @@ contract BiddingSystemTest is Test {
         vm.warp(block.timestamp + 7 days + 30 minutes);
         vm.prank(bidder1);
         bidding.revealBid(sessionId, 5 ether, "Great work", bytes32(uint256(0x1111)));
+        
+        // Warp past reveal window
+        vm.warp(block.timestamp + 1 hours + 1);
+        
         vm.prank(creator);
         bidding.acceptBid(sessionId, 1);
         uint256 totalPayment = 5 ether + (5 ether * 100) / 10000;
@@ -1113,7 +1235,10 @@ contract BiddingSystemTest is Test {
         uint256 balanceBefore = bidder1.balance;
         vm.prank(bidder1);
         bidding.withdrawStake(sessionId);
-        assertEq(bidder1.balance, balanceBefore + stake);
+        // Phase 47: unrevealed bid withdrawal is slashed 5%
+        uint256 slashAmount = (stake * bidding.NO_SHOW_SLASH_BP()) / bidding.FEE_DENOMINATOR();
+        uint256 refundAmount = stake - slashAmount;
+        assertEq(bidder1.balance, balanceBefore + refundAmount);
     }
 
     function testO2_CancelSessionAfterClose() public {
@@ -1305,6 +1430,10 @@ contract BiddingSystemTest is Test {
         vm.warp(block.timestamp + 7 days + 30 minutes);
         vm.prank(bidder1);
         bidding.revealBid(sessionId, bidAmount, "msg", bytes32(uint256(0x1111)));
+        
+        // Warp past reveal window
+        vm.warp(block.timestamp + 1 hours + 1);
+        
         vm.prank(creator);
         bidding.acceptBid(sessionId, 1);
 
@@ -1394,6 +1523,10 @@ contract BiddingSystemTest is Test {
         vm.warp(block.timestamp + 7 days + 30 minutes);
         vm.prank(bidder1);
         bidding.revealBid(sessionId, 5 ether, "msg", bytes32(uint256(0x1111)));
+        
+        // Warp past reveal window
+        vm.warp(block.timestamp + 1 hours + 1);
+        
         vm.prank(creator);
         bidding.acceptBid(sessionId, 1);
 
@@ -1432,6 +1565,10 @@ contract BiddingSystemTest is Test {
         vm.warp(block.timestamp + 7 days + 30 minutes);
         vm.prank(bidder1);
         bidding.revealBid(sessionId, 5 ether, "msg", bytes32(uint256(0x1111)));
+        
+        // Warp past reveal window
+        vm.warp(block.timestamp + 1 hours + 1);
+        
         vm.prank(creator);
         bidding.acceptBid(sessionId, 1);
 
@@ -1707,6 +1844,9 @@ contract BiddingSystemTest is Test {
         vm.prank(bidder2);
         bidding.revealBid(sessionId, 6 ether, "msg2", bytes32(uint256(0x2222)));
 
+        // Warp past reveal window
+        vm.warp(block.timestamp + 1 hours + 1);
+        
         uint256 acceptTime = block.timestamp;
         vm.prank(creator);
         bidding.acceptBid(sessionId, 1); // bidder1 wins
@@ -1742,6 +1882,10 @@ contract BiddingSystemTest is Test {
         bidding.revealBid(sessionId, 5 ether, "msg1", bytes32(uint256(0x1111)));
         vm.prank(bidder2);
         bidding.revealBid(sessionId, 6 ether, "msg2", bytes32(uint256(0x2222)));
+        
+        // Warp past reveal window
+        vm.warp(block.timestamp + 1 hours + 1);
+        
         vm.prank(creator);
         bidding.acceptBid(sessionId, 1); // bidder1 wins
 
@@ -1764,8 +1908,10 @@ contract BiddingSystemTest is Test {
         vm.warp(block.timestamp + 7 days + 30 minutes);
         vm.prank(bidder1);
         bidding.revealBid(sessionId, 5 ether, "msg1", bytes32(uint256(0x1111)));
-        vm.prank(bidder2);
-        bidding.revealBid(sessionId, 6 ether, "msg2", bytes32(uint256(0x2222)));
+        
+        // Warp past reveal window
+        vm.warp(block.timestamp + 1 hours + 1);
+        
         vm.prank(creator);
         bidding.acceptBid(sessionId, 1);
 
@@ -1776,7 +1922,41 @@ contract BiddingSystemTest is Test {
         bidding.sweepUnclaimedStakes(sessionId);
     }
 
-    function testO9_Sweep_AfterTimeoutSendsToTreasury() public {
+    function testO9_Sweep_AfterTimeoutSlashesNoShowAndRefundsRemainder() public {
+        uint256 sessionId = _createSession(creator, 10 ether, 7 days);
+        _commitBid(sessionId, bidder1, 5 ether, "msg1", bytes32(uint256(0x1111)));
+        _commitBid(sessionId, bidder2, 6 ether, "msg2", bytes32(uint256(0x2222)));
+
+        vm.warp(block.timestamp + 7 days + 30 minutes);
+        vm.prank(bidder1);
+        bidding.revealBid(sessionId, 5 ether, "msg1", bytes32(uint256(0x1111)));
+        
+        // Warp past reveal window
+        vm.warp(block.timestamp + 1 hours + 1);
+        
+        vm.prank(creator);
+        bidding.acceptBid(sessionId, 1);
+
+        // Bidder2 never withdraws. Wait 30 days.
+        vm.warp(block.timestamp + 30 days + 1);
+
+        uint256 stake2 = bidding.calculateStake(10 ether);
+        uint256 slashAmount = (stake2 * bidding.NO_SHOW_SLASH_BP()) / bidding.FEE_DENOMINATOR();
+        uint256 refundAmount = stake2 - slashAmount;
+        uint256 treasuryBefore = treasury.balance;
+        uint256 bidder2Before = bidder2.balance;
+
+        vm.prank(bidder3);
+        uint256 swept = bidding.sweepUnclaimedStakes(sessionId);
+
+        assertEq(swept, 1, "O-9: should sweep 1 un-withdrawn bid");
+        assertEq(treasury.balance, treasuryBefore + slashAmount, "O-9: treasury should receive 5% slash");
+        assertEq(bidder2.balance, bidder2Before + refundAmount, "O-9: bidder should receive remainder");
+        assertEq(bidding.getUserBid(sessionId, bidder2).stake, 0, "O-9: stake should be zeroed");
+        assertTrue(bidding.getUserBid(sessionId, bidder2).stakeWithdrawn, "O-9: stakeWithdrawn should be true");
+    }
+
+    function testO9_Sweep_SkipsRevealedBid() public {
         uint256 sessionId = _createSession(creator, 10 ether, 7 days);
         _commitBid(sessionId, bidder1, 5 ether, "msg1", bytes32(uint256(0x1111)));
         _commitBid(sessionId, bidder2, 6 ether, "msg2", bytes32(uint256(0x2222)));
@@ -1786,22 +1966,20 @@ contract BiddingSystemTest is Test {
         bidding.revealBid(sessionId, 5 ether, "msg1", bytes32(uint256(0x1111)));
         vm.prank(bidder2);
         bidding.revealBid(sessionId, 6 ether, "msg2", bytes32(uint256(0x2222)));
+        
+        // Warp past reveal window
+        vm.warp(block.timestamp + 1 hours + 1);
+        
         vm.prank(creator);
         bidding.acceptBid(sessionId, 1);
 
-        // Bidder2 never withdraws. Wait 30 days.
         vm.warp(block.timestamp + 30 days + 1);
-
-        uint256 stake2 = bidding.calculateStake(10 ether);
-        uint256 treasuryBefore = treasury.balance;
-
         vm.prank(bidder3);
         uint256 swept = bidding.sweepUnclaimedStakes(sessionId);
 
-        assertEq(swept, 1, "O-9: should sweep 1 un-withdrawn bid");
-        assertEq(treasury.balance, treasuryBefore + stake2, "O-9: treasury should receive stake2");
-        assertEq(bidding.getUserBid(sessionId, bidder2).stake, 0, "O-9: stake should be zeroed");
-        assertTrue(bidding.getUserBid(sessionId, bidder2).stakeWithdrawn, "O-9: stakeWithdrawn should be true");
+        assertEq(swept, 0);
+        assertEq(uint256(bidding.getBidStatus(sessionId, bidder2)), 2, "revealed bid remains Revealed");
+        assertEq(bidding.getUserBid(sessionId, bidder2).stake, bidding.calculateStake(10 ether));
     }
 
     function testO9_Sweep_NoOpWhenNothingClaimable() public {
@@ -1885,6 +2063,10 @@ contract BiddingSystemTest is Test {
         vm.warp(block.timestamp + 7 days + 30 minutes);
         vm.prank(bidder1);
         bidding.revealBid(sessionId, 50_000 * 1e6, "msg", bytes32(uint256(0x1111)));
+        
+        // Warp past reveal window
+        vm.warp(block.timestamp + 1 hours + 1);
+        
         vm.prank(creator);
         bidding.acceptBid(sessionId, 1);
 
@@ -1899,6 +2081,10 @@ contract BiddingSystemTest is Test {
 
         // Per-token fee should be tracked
         assertEq(bidding.accumulatedFeesByToken(address(usdc)), feeExpected);
+        assertEq(usdc.balanceOf(address(mockCommerce)), 50_000 * 1e6, "mock commerce should receive bid amount");
+        // Phase 47: both creator stake and winner stake are pull-based, so both remain in contract
+        assertEq(usdc.balanceOf(address(bidding)), feeExpected + stake * 2, "bidding should retain fee plus pending creator and winner refunds");
+        assertEq(usdc.allowance(address(bidding), address(mockCommerce)), 0, "commerce allowance should be consumed");
     }
 
     /***********************************/
@@ -1926,6 +2112,10 @@ contract BiddingSystemTest is Test {
         vm.warp(block.timestamp + 7 days + 30 minutes);
         vm.prank(bidder1);
         bidding.revealBid(sessionId, 5 ether, "msg", bytes32(uint256(0x1111)));
+        
+        // Warp past reveal window
+        vm.warp(block.timestamp + 1 hours + 1);
+        
         vm.prank(creator);
         bidding.acceptBid(sessionId, 1);
         assertEq(uint256(bidding.getBidStatus(sessionId, bidder1)), 3, "O-12: Accepted = 3");
@@ -1970,8 +2160,10 @@ contract BiddingSystemTest is Test {
         vm.warp(block.timestamp + 7 days + 30 minutes);
         vm.prank(bidder1);
         bidding.revealBid(sessionId, 5 ether, "msg1", bytes32(uint256(0x1111)));
-        vm.prank(bidder2);
-        bidding.revealBid(sessionId, 6 ether, "msg2", bytes32(uint256(0x2222)));
+        
+        // Warp past reveal window
+        vm.warp(block.timestamp + 1 hours + 1);
+        
         vm.prank(creator);
         bidding.acceptBid(sessionId, 1);
 
@@ -1990,3 +2182,22 @@ contract MockHook {
     uint256 public dummy;
 }
 
+contract MockRevertingCommerce {
+    function createJobForClient(
+        address,
+        address,
+        uint256,
+        address,
+        uint256,
+        uint256,
+        string calldata,
+        address,
+        address,
+        bool,
+        bool,
+        bool,
+        uint256
+    ) external payable returns (uint256) {
+        revert("downstream revert");
+    }
+}

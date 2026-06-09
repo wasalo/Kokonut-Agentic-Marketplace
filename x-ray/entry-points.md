@@ -8,7 +8,7 @@
 
 ### Setup (Owner)
 
-`setAdminRegistry()` → `AdminRegistry.setSlashManager()` → `SlashManager.setCommerce()` → `BiddingSystem.setMinStake/MaxStake()` → `PriceOracleV2.setPriceFeed()` / `setStablecoin()` → `MilestoneEscrowV2.setArbiterStake()` / `setSupportedToken()` → `ServiceRegistryV2.setIdentityRegistry()`
+`setAdminRegistry()` → `AdminRegistry.setSlashManager()` → `SlashManager.setCommerce()` → `BiddingSystem.setMinStake/MaxStake()` → `PriceOracleV2.setPriceFeed()` / `setStablecoin()` → `MilestoneEscrowV2.setArbiterStake()` / `setSupportedToken()` → `ServiceRegistryV2.setIdentityRegistry()` → Phase 46 UUPS scripts for AgentSkillRegistryV2 / AgenticCommerceV9 / SlashManager / BiddingSystem
 
 ### Service Listing (Provider)
 
@@ -33,10 +33,11 @@
 `[owner setup above]` → `BiddingSystem.createBiddingSession()` ◄── stake
                                                             ├─→ `commitBid()` × N (bidders, 1% stake)
                                                             ├─→ `revealBid()` × N
-                                                            ├─→ `acceptBid()` → `createJobAndFund()` → `AgenticCommerceV9.fund()`
+                                                            ├─→ `acceptBid()` → `createJobAndFund()` → exact ERC-20 allowance / ETH payment → `AgenticCommerceV9.createJobForClient()`
                                                             ├─→ `rejectBid()`
                                                             ├─→ `cancelSession()`
-                                                            └─→ [30 days] → `sweepUnclaimedStakes()`
+                                                            ├─→ `withdrawCreatorStake()` (pending pull refund or stuck recovery after 7 days)
+                                                            └─→ [30 days] → `sweepUnclaimedStakes()` (unrevealed no-shows only)
 
 ### Dispute (Client or Provider)
 
@@ -46,12 +47,12 @@
 
 ### Slashing (Multisig 3-of-5)
 
-`SlashManager.createProposal()` (owner or signer) → `confirmProposal()` × 3 (3 distinct signers) → [1 hour] → `executeSlash()` → `AgenticCommerceV9.slashByGovernance()`
+`SlashManager.createProposal()` (owner or signer) → `confirmProposal()` × 3 (3 distinct signers) → [1 hour] → `executeSlash()` → capped slash amount → `AgenticCommerceV9.slashByGovernance(evaluator, slashAmount, reason)`
 
 ### Maintenance (Anyone)
 
 - `AgenticCommerceV9.refundExpired()` — anyone, for expired jobs
-- `BiddingSystem.sweepUnclaimedStakes()` — anyone, after 30-day timeout
+- `BiddingSystem.sweepUnclaimedStakes()` — anyone, after 30-day timeout; only unrevealed no-shows are swept
 - `BiddingSystem.closeBidding()` — anyone, after deadline
 - `MilestoneEscrowV2.releaseMilestone()` — client, after provider `submitMilestone()`
 - `ServiceRegistryV2.withdrawServiceBond()` — provider, after 7-day cooldown
@@ -67,9 +68,9 @@
 | Visibility | external, nonReentrant |
 | Caller | Anyone |
 | Parameters | sessionId (protocol-derived) |
-| Call chain | `→ BiddingSystem.sweepUnclaimedStakes → session.sweepable[] → _sendEth/transfer` |
-| State modified | `withdrawStakeClaimableAt[sessionId][bidder] = 0`, `accumulatedFeesByToken` |
-| Value flow | Stake (refund) → bidder; platform fee → treasury |
+| Call chain | `→ BiddingSystem.sweepUnclaimedStakes → unrevealed no-show bids → _sendToken` |
+| State modified | `withdrawStakeClaimableAt[sessionId][bidder] = 0`, `stakeLocked[bidder] = 0`, bid status → Withdrawn |
+| Value flow | 5% stake slash → treasury; 95% stake refund → bidder; revealed bids skipped |
 | Reentrancy guard | yes |
 
 ### `BiddingSystem.closeBidding(uint256 sessionId)`
@@ -90,7 +91,7 @@
 | Visibility | external, whenNotPaused |
 | Caller | Session creator only, after `revealWindowEnd` |
 | Parameters | sessionId (protocol-derived), bidder (user-controlled) |
-| State modified | `bid.rejected = true, stakeWithdrawn = true`, slashAmount → treasury |
+| State modified | bid status → Withdrawn, `bid.rejected = true`, `stakeLocked[bidder] = 0`, slashAmount → treasury |
 | Value flow | 5% of stake → treasury, 95% → bidder |
 | Reentrancy guard | yes |
 
@@ -366,8 +367,8 @@
 | Caller | Anyone (after 3 confirmations + 1h) |
 | Parameters | proposalHash |
 | Call chain | `→ SlashManager.executeSlash → AgenticCommerceV9.slashByGovernance → evaluator stake deduction` |
-| State modified | `proposal.executed = true`, `activeSlashByEvaluator[evaluator][id] = 0` |
-| Value flow | slashed amount → treasury (slashByGovernance implementation) |
+| State modified | `proposal.executed = true`, `activeSlashByEvaluator[evaluator][id] = 0`; V9 stake reduced by capped partial amount |
+| Value flow | capped slash amount → treasury; full slash unregisters evaluator, partial slash keeps registration |
 | Reentrancy guard | yes |
 
 ---

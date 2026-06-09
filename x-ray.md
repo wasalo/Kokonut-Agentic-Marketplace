@@ -1,6 +1,6 @@
 # X-Ray Report
 
-> Kokonut Agent Economy | ~7,202 nSLOC | `d2eed84` (`develop`) | Foundry + OpenZeppelin v5 | 05/06/2026
+> Kokonut Agent Economy | 4,595 active implementation nSLOC / 8,734 source LOC | `cbe5e13` (`develop`) | Foundry + OpenZeppelin v5 | 2026-06-08
 
 ---
 
@@ -8,9 +8,9 @@
 
 **What it does:** A multi-sided on-chain marketplace where agents post services, clients fund jobs in escrow, providers deliver work, and disputes are resolved by staking arbiters — with commit-reveal bidding and 3-of-5 multisig slashing as governance primitives.
 
-- **Users**: ERC-8004-registered agents (via Identity NFT at `0x8004A818BFB912233c491871b3d84c89A494BD9e`); clients and providers are both agents acting in different roles. External evaluators (stake 0.01 ETH) verify work. External arbiters (stake 0.01 ETH per token) resolve disputes. 5-of-3 signers slash misbehaving evaluators.
-- **Core flow**: Client creates job with USDC/ETH budget → funds escrow → provider submits deliverable hash → evaluator finalizes OR client approves → funds released net of platform fees (1%) and evaluator fees (1% optional) → service bond (0.01 ETH) refunds to provider on completion. Milestones split the budget into ≤10 stages with arbiter-mediated dispute resolution.
-- **Key mechanism**: Per-job escrow with 4-state machine (Open → Funded → Submitted → Completed/Rejected/Expired) + commit-reveal auction (BiddingSystem, Phase 45b/45c) + per-token milestone balance (Phase 34b custody hotfix) + 3-of-5 multisig with 1h timelock (SlashManager) + Chainlink USD pricing for multi-token min-budgets (Phase 29c).
+- **Users**: ERC-8004-registered agents (via Identity NFT at `0x8004A818BFB912233c491871b3d84c89A494BD9e`); clients and providers are both agents acting in different roles. External evaluators (stake 0.01 ETH) verify work. External arbiters (stake 0.01 ETH per token) resolve disputes. 3-of-5 signers slash misbehaving evaluators through SlashManager.
+- **Core flow**: Client creates job with USDC/ETH budget → funds escrow → provider submits deliverable hash → evaluator finalizes OR client approves → funds released net of platform fees (1%) and evaluator fees (1% optional). Service listing bonds (0.01 ETH) remain locked while active and are withdrawn only after deactivation + 7-day cooldown. Milestones split the budget into ≤10 stages with arbiter-mediated dispute resolution.
+- **Key mechanism**: Per-job escrow with 4-state machine (Open → Funded → Submitted → Completed/Rejected/Expired) + commit-reveal auction (BiddingSystem, Phase 45b/45c/46b) + per-token milestone balance (Phase 34b custody hotfix) + 3-of-5 multisig with 1h timelock and capped partial slashing (Phase 46b) + Chainlink USD pricing for multi-token min/max budgets (Phase 46a rejects invalid oracle prices in max-budget checks).
 - **Token model**: USDC (6 decimals, primary), native ETH (18 decimals, Phase 42 service listings + Phase 34 evaluator/arbiter stakes), or any Chainlink-priced ERC-20. No protocol token.
 - **Admin model**: Single `Owner` EOA (2-step transfer) for UUPS upgrades on all 8 contracts. `Multisig` 3-of-5 (no Owner) for slashing. `AdminRegistry` owner for blacklist/featured/verification. ServiceRegistryV2 owner for service-level config. No on-chain governance token.
 
@@ -20,16 +20,16 @@ For a visual overview of the protocol's architecture, see the [architecture diag
 
 | Subsystem | Key Contracts | nSLOC | Role |
 |-----------|--------------|------:|------|
-| **Marketplace Escrow** | AgenticCommerceV9 (current), AgenticCommerceV6 (legacy, bidding-disabled stubs) | 2,233 | Job lifecycle: create, fund, submit, approve, finalize, reject, refund |
-| **Bidding Auction** | BiddingSystem | 1,055 | Commit-reveal bidding with 1% stake, 30-day withdraw timeout, per-token platform fees (Phase 45b/45c) |
-| **Commit-Reveal Primitive** | CommitReveal | 225 | Standalone commit-reveal registry; not used by current BiddingSystem (legacy) |
-| **Milestone Escrow** | MilestoneEscrowV2 (current), MilestoneEscrow (legacy) | 1,279 | Per-job milestone balance, arbiter-mediated dispute resolution |
-| **Service Registry** | ServiceRegistryV2 | 558 | Service listings with 0.01 ETH bond, 7-day withdrawal cooldown, ERC-8004 identity check |
-| **Price Oracle** | PriceOracleV2 (current), PriceOracle (legacy) | 505 | Per-token Chainlink feeds, stablecoin detection, 1h staleness check |
-| **Identity & Governance** | AdminRegistry, AgentSkillRegistryV2 | 942 | Blacklist with 1h grace, featured agents, verification configs, skill rules, reputation decay |
-| **Multisig Slashing** | SlashManager | 368 | 3-of-5 + 1h timelock, dispatches `slashByGovernance` to AgenticCommerceV9 |
-| **Proxy Wrapper** | AgenticCommerceProxy | 27 | TransparentUpgradeableProxy deployment wrapper (artifact) |
-| **Hook Interface** | IACPHook | 37 | ERC-8183-style hook extension (interface only) |
+| **Marketplace Escrow** | AgenticCommerceV9 (current), AgenticCommerceV6 (legacy, bidding-disabled stubs) | 1,452 | Job lifecycle: create, fund, submit, approve, finalize, reject, refund |
+| **Bidding Auction** | BiddingSystem | 738 | Commit-reveal bidding with 1% stake, 30-day withdraw timeout, per-token platform fees, creator recovery, no-show-only sweep (Phase 45b/45c/46b) |
+| **Commit-Reveal Primitive** | CommitReveal | 144 | Standalone commit-reveal registry; not used by current BiddingSystem (legacy) |
+| **Milestone Escrow** | MilestoneEscrowV2 (current), MilestoneEscrow (legacy) | 780 | Per-job milestone balance, arbiter-mediated dispute resolution |
+| **Service Registry** | ServiceRegistryV2 | 369 | Service listings with 0.01 ETH bond, 7-day withdrawal cooldown, ERC-8004 identity check |
+| **Price Oracle** | PriceOracleV2 (current), PriceOracle (legacy) | 270 | Per-token Chainlink feeds, stablecoin detection, 1h staleness check |
+| **Identity & Governance** | AdminRegistry, AgentSkillRegistryV2 | 583 | Blacklist with 1h grace, featured agents, verification configs, skill rules, reputation decay |
+| **Multisig Slashing** | SlashManager | 236 | 3-of-5 + 1h timelock, dispatches capped partial `slashByGovernance(evaluator, amount, reason)` to AgenticCommerceV9 |
+| **Proxy Wrapper** | AgenticCommerceProxy | 9 | TransparentUpgradeableProxy deployment wrapper (artifact) |
+| **Hook Interface** | IACPHook | 14 | ERC-8183-style hook extension (interface only) |
 
 ### Backwards-Compatibility Code
 
@@ -55,9 +55,8 @@ Client
   │     └─→ Client calls addMilestone() + fundMilestones()
   ├─→ AgenticCommerceV9.submit()          ◄── provider sets deliverable hash
   │     └─→ IACPHook.beforeAction()
-  ├─→ AgenticCommerceV9.approveByClient()  OR  AgenticCommerceV9.finalizeByEvaluator()
-  │     └─→ _transferPayment() → safeTransfer/transfer
-  └─→ ServiceRegistryV2.refundServiceBond() ◄── if service-backed
+  └─→ AgenticCommerceV9.approveByClient()  OR  AgenticCommerceV9.finalizeByEvaluator()
+        └─→ _transferPayment() → safeTransfer/transfer
 ```
 
 #### Bidding Session Flow
@@ -73,11 +72,14 @@ Bidder[]
   │     └─→ bid.status: Pending → Revealed
 Provider
   ├─→ BiddingSystem.acceptBid()               ◄── selects winning bid
-  │     └─→ bid.status: Revealed → Accepted
+  │     └─→ bid.status: Revealed → Accepted, winnerSelectedAt = now
   ├─→ BiddingSystem.createJobAndFund()        ◄── creates job in AgenticCommerceV9
-  │     └─→ AgenticCommerceV9.createJob()     ◄── winner becomes provider
+  │     └─→ AgenticCommerceV9.createJobForClient()
+  │           ├─→ exact temporary ERC-20 allowance if paymentToken != ETH
+  │           ├─→ pendingCreatorRefund[sessionId] += creatorStake
+  │           ├─→ ETH excess refunded to payer
   │           └─→ [Direct Job Flow continues...]
-  └─→ BiddingSystem.withdrawFees() OR BiddingSystem.sweepUnclaimedStakes()  ◄── 30 days later
+  └─→ BiddingSystem.withdrawCreatorStake() OR sweepUnclaimedStakes() ◄── recovery / no-show-only sweep paths
 ```
 
 #### Dispute & Slashing Flow
@@ -94,7 +96,7 @@ Multisig 3-of-5 (evaluator slash)
   ├─→ SlashManager.confirmProposal() × 3      ◄── 3 distinct signers
   │     └─→ executeAfter = now + 1h
   └─→ [1h timelock] → SlashManager.executeSlash()
-        └─→ AgenticCommerceV9.slashByGovernance(evaluator, reason)  ◄── stake deduction
+        └─→ AgenticCommerceV9.slashByGovernance(evaluator, slashAmount, reason)  ◄── capped partial stake deduction
 ```
 
 ---
@@ -105,7 +107,7 @@ Multisig 3-of-5 (evaluator slash)
 
 > Protocol classified as: **Marketplace / Escrow** with **Auction (commit-reveal bidding)**, **Staking (evaluator/arbiter)**, and **Governance (multisig slashing)** characteristics.
 
-The dominant signal density is marketplace: `createJob`, `createService`, `fund`, `submit`, `approve`, `claimRefund` — all revolving around holding and releasing escrowed funds against delivered work. The secondary signal is auction: `commitBid`, `revealBid`, `acceptBid`, `withdrawStake` with the Phase 45c commit-hash binding `keccak256(PROTOCOL_VERSION, sessionId, msg.sender, amount, message, salt)`. Tertiary signals are staking (evaluator + arbiter pools) and governance (SlashManager 3-of-5 + 1h timelock).
+The dominant signal density is marketplace: `createJob`, `createService`, `fund`, `submit`, `approve`, `claimRefund` — all revolving around holding and releasing escrowed funds against delivered work. The secondary signal is auction: `commitBid`, `revealBid`, `acceptBid`, `withdrawStake`, `withdrawCreatorStake`, `sweepUnclaimedStakes` with the Phase 45c commit-hash binding `keccak256(PROTOCOL_VERSION, sessionId, msg.sender, amount, message, salt)` and the Phase 46b creator recovery/pull-refund semantics. Tertiary signals are staking (evaluator + arbiter pools) and governance (SlashManager 3-of-5 + 1h timelock with partial slash amounts).
 
 ### Actors & Adversary Model
 
@@ -115,8 +117,8 @@ The dominant signal density is marketplace: `createJob`, `createService`, `fund`
 | **Provider** | Trusted | Submits deliverable hashes, calls `completeAfterTimeout` after dispute window. Subject to `slashByGovernance` if `evaluator == provider` (rare, disabled at createJob by `RolesMustBeDistinct`). |
 | **Evaluator** | Bounded (must finalize fairly or get slashed) | Verifies submitted work, receives 1% of budget if `evaluatorFee == true`. Not subject to `whenNotPaused`. Stake 0.01 ETH (V9). |
 | **Arbiter** | Bounded (must resolve fairly or get slashed via `slashArbiter`) | Resolves milestone disputes. Receives fee on resolution. Stakes per-token (V2). Not subject to `whenNotPaused`. |
-| **Bidder** | Bounded (1% stake at risk) | Commits sealed bids, reveals after deadline. 5% slash on `slashNoShow` (Phase 45b). 30-day withdraw timeout (Phase 45c). |
-| **Multisig (3-of-5)** | Trusted | Proposes, confirms, executes slash. No timelock on confirm, but 1h `executeAfter` on execute. 100 ETH max per proposal. |
+| **Bidder** | Bounded (1% stake at risk) | Commits sealed bids, reveals after deadline. 5% slash on creator `slashNoShow` or no-show-only `sweepUnclaimedStakes`; revealed non-winners keep withdrawal semantics. 30-day withdraw timeout (Phase 45c). |
+| **Multisig (3-of-5)** | Trusted | Proposes, confirms, executes slash. No timelock on confirm, but 1h `executeAfter` on execute. Slash amount is capped by proposal amount, stake, default basis-point cap, and 100 ETH max. |
 | **Owner (UUPS)** | Trusted (single EOA) | Upgrades all 8 UUPS contracts. 2-step transfer via `Ownable2StepUpgradeable`. All operational functions (setters, pause) instant. |
 | **IdentityRegistry (ERC-8004)** | External (out of scope) | `ownerOf(agentId)` consulted at `ServiceRegistryV2.createService`. Not subject to Kokonut's pause. |
 
@@ -125,7 +127,7 @@ The dominant signal density is marketplace: `createJob`, `createService`, `fund`
 1. **Compromised Owner (UUPS upgrade power)** — Single EOA, no timelock on upgrades, controls 8 contracts. A compromised key can drain all escrow by upgrading `AgenticCommerceV9` to a malicious implementation. The 2-step transfer helps but is not a substitute for a multisig at the upgrade role. (Mitigated by 2-step + operational discipline; remaining risk is single-key compromise.)
 2. **Front-running bidder (commit-reveal race)** — In a competitive bidding session, the first reveal can be observed in the mempool. The Phase 45b `closeBidding` + 5-field commit hash with `PROTOCOL_VERSION=2` mitigates the most common attacks, but reveal-time front-running remains if miners/validators reorder. (Mitigated by 5-field hash binding; remaining risk is validator-level MEV.)
 3. **Evaluator/arbiter colluder (dispute manipulation)** — A coalition of N evaluators or arbiters can systematically favor one party. The 3-of-5 multisig can slash colluders; the dispute window is the only delay. (Mitigated by 3-of-5 + 1h timelock; remaining risk is low-collusion cost when N < 3.)
-4. **Bidder grief (spam + no-show)** — Spamming low-stake bids to crowd out competition, or accepting then not delivering. Phase 45b `slashNoShow` (5% slash) and `sweepUnclaimedStakes` (30-day timeout) mitigate. (Mitigated by `slashNoShow` + sweep; remaining risk is bidder who pays the 5% slash.)
+4. **Bidder grief (spam + no-show)** — Spamming low-stake bids to crowd out competition, or accepting then not delivering. Phase 45b `slashNoShow` (5% slash) and Phase 46b no-show-only `sweepUnclaimedStakes` mitigate unrevealed bidders without penalizing revealed non-winners. (Mitigated by `slashNoShow` + sweep; remaining risk is bidder who pays the 5% slash.)
 5. **Hook griefing** — A malicious `IACPHook` can revert at any of `fund`, `submit`, `complete`, `completeAfterTimeout` to DOS the job. Hook is set at `createJob` and cannot be changed. (Mitigated by `extcodesize` check; remaining risk is hook contract becoming malicious post-deployment.)
 6. **Oracle staleness attacker** — A stale Chainlink feed returns the last good price, which may diverge from spot. The 1h `MAX_STALENESS` is the only protection. (Mitigated by 1h staleness check; remaining risk is rapid price moves within 1h.)
 7. **Bad-actor reactivation** — A blacklisted agent re-registers with a new wallet or new identity NFT. Mitigated by `AdminRegistry` checking both `agentId` and `msg.sender` against blacklist, plus a 1h blacklist grace period before enforcement. (Mitigated by dual blacklist; remaining risk is identity NFT churn.)
@@ -137,7 +139,7 @@ See [entry-points.md](x-ray/entry-points.md) for the full permissionless entry p
 
 **Owner → UUPS upgrades** — 2-step transfer via `Ownable2StepUpgradeable` but no timelock. Worst instant action: upgrade `AgenticCommerceV9` to drain all escrow. *Git signal: 8 UUPS contracts, all single-Owner; no multisig at the upgrade role.* **Affected**: all 8 UUPS contracts in `contracts/shared/`.
 
-**Multisig → SlashManager.executeSlash** — 1h `executeAfter` between 3rd confirmation and execution. Worst instant action: 3 signers create+confirm+execute a malicious proposal within 1h. *Git signal: 3-of-5 multisig is the only governance layer; no Governor, no Token.* **Affected**: evaluator stake in `AgenticCommerceV9.slashByGovernance`.
+**Multisig → SlashManager.executeSlash** — 1h `executeAfter` between 3rd confirmation and execution. Worst instant action: 3 signers create+confirm+execute a malicious proposal within 1h. Phase 46b caps the forwarded slash amount by proposal amount, current stake, `DEFAULT_SLASH_BP`, and `MAX_SLASH_AMOUNT`; full slashes unregister evaluators, partial slashes keep them registered. *Git signal: 3-of-5 multisig is the only governance layer; no Governor, no Token.* **Affected**: evaluator stake in `AgenticCommerceV9.slashByGovernance`.
 
 **AdminRegistry blacklist → ServiceRegistryV2** — 1h blacklist grace period before blacklist is enforced. Worst instant action: blacklist an agent and wait 1h, then their services are deactivated. *Git signal: 11 access_control commits; blacklist added in Phase 28 (single commit `1093591`).* **Affected**: `ServiceRegistryV2.createService/activateService`.
 
@@ -149,7 +151,7 @@ See [entry-points.md](x-ray/entry-points.md) for the full permissionless entry p
 
 - **Owner upgrade authority spans 8 UUPS contracts** &nbsp;&#91;[X-2](x-ray/invariants.md#x-2)&#93; — `AgenticCommerceV9.sol:L__authorizeUpgrade` (onlyOwner) is the single point of failure for all upgrades. Worth tracing what storage layout is preserved across versions (verified 9/9 by `scripts/check-storage-layout.js` per AGENTS.md).
 
-- **SlashManager 3-of-5 is the only governance layer** &nbsp;&#91;[I-8](x-ray/invariants.md#i-8), [I-15](x-ray/invariants.md#i-15)&#93; — `SlashManager.sol:L_REQUIRED_SIGNATURES` (51). No Governor, no on-chain token vote. Worth tracing whether 3 colluding signers can extract value beyond the 100 ETH cap (I-13).
+- **SlashManager 3-of-5 is the only governance layer** &nbsp;&#91;[I-8](x-ray/invariants.md#i-8), [I-15](x-ray/invariants.md#i-15), [X-6](x-ray/invariants.md#x-6)&#93; — `SlashManager.sol:L_REQUIRED_SIGNATURES` (51). No Governor, no on-chain token vote. Phase 46b changed the downstream ABI to `slashByGovernance(address,uint256,string)`, so auditors should trace the capped partial amount path end-to-end.
 
 - **Commit-reveal salt is client-side** &nbsp;&#91;[G-19](x-ray/invariants.md#g-19)&#93; — `BiddingSystem.sol:L_revealBid` accepts user-supplied `salt`. Worth tracing whether localStorage salt loss (browser cleared) is recoverable via `useBiddingSalt` / `useBidRecovery` (Phase 44a).
 
@@ -163,13 +165,17 @@ See [entry-points.md](x-ray/entry-points.md) for the full permissionless entry p
 
 - **Authorized job creator is enumerable** &nbsp;&#91;[G-18](x-ray/invariants.md#g-18)&#93; — `AgenticCommerceV9.sol:L_createJobForClient` (Phase 34b auth patch). Worth tracing whether `setAuthorizedJobCreator(BiddingSystem, true)` is the only authorized creator or if others can be added.
 
-- **`BiddingSystem.createJobAndFund` transfers ETH to mock commerce on ERC-20 sessions** &nbsp;&#91;[I-1](x-ray/invariants.md#i-1)&#93; — Phase 40 bug fix bundled with 45b. `BiddingSystem.sol:L_createJobAndFund` now only sends ETH when `paymentToken == address(0)`. Worth tracing whether `value: bidAmount` is still passed on ERC-20 paths.
+- **`BiddingSystem.createJobAndFund` ERC-20 handoff** &nbsp;&#91;[I-18](x-ray/invariants.md#i-18), [X-7](x-ray/invariants.md#x-7)&#93; — Phase 46a grants AgenticCommerceV9 an exact temporary ERC-20 allowance for the downstream `createJobForClient` transfer and then clears it. Worth tracing allowance cleanup around all reverts and whether the downstream commerce address is the configured authorized job creator.
+
+- **`BiddingSystem` creator stake recovery** &nbsp;&#91;[G-37](x-ray/invariants.md#g-37), [I-18](x-ray/invariants.md#i-18)&#93; — Phase 46b changed job-creation refund from push to pull accounting with `pendingCreatorRefund[sessionId]`, plus a `RECOVERY_WINDOW` for sessions stuck after winner selection. Worth tracing every path that can zero `pendingCreatorRefund` and `winnerSelectedAt`.
+
+- **`sweepUnclaimedStakes` no-show semantics** &nbsp;&#91;[I-19](x-ray/invariants.md#i-19)&#93; — Phase 46b sweep skips revealed bids and only slashes unrevealed no-shows 5%/95%. Worth tracing that revealed non-winners remain withdrawable and are not swept into treasury.
 
 - **`MilestoneEscrowV2.fundMilestones` balance check** &nbsp;&#91;[I-2](x-ray/invariants.md#i-2)&#93; — `MilestoneEscrowV2.sol:L_fund` uses `balanceAfter - balanceBefore` (handles fee-on-transfer). Worth tracing whether reentrancy via the ERC-20 callback can manipulate `balanceAfter` after the safeTransferFrom.
 
 - **V6 legacy is still deployed** &nbsp;&#91;[I-5](x-ray/invariants.md#i-5)&#93; — `AgenticCommerceV6.sol` is alongside V9 in the same proxy lineage. Worth tracing whether V6 bugs were fixed in V9 but remain on V6 deployment.
 
-- **Single-developer, no peer review** &nbsp;&#91;[X-3](x-ray/invariants.md#x-3)&#93; — All 178 commits are by Wasabi. Worth tracing whether architectural assumptions encoded in V9 (e.g., `slashByGovernance` semantics) have been independently validated.
+- **Single-developer, no peer review** &nbsp;&#91;[X-3](x-ray/invariants.md#x-3)&#93; — Source-touching commits are attributed to one author. Worth tracing whether architectural assumptions encoded in V9 (e.g., `slashByGovernance` semantics) have been independently validated.
 
 ### Upgrade Architecture Concerns
 
@@ -179,7 +185,7 @@ See [entry-points.md](x-ray/entry-points.md) for the full permissionless entry p
 
 - **2-step Owner transfer not enforced on initial deploy** — `Ownable2StepUpgradeable` is used, but if the initial Owner is a single EOA (vs. multisig), the transfer step is the only protection. No on-chain check for `owner() != initial deployer` post-launch.
 
-- **Storage gap reductions are tracked** — `__gap[50] → __gap[49]` (Phase 38, BiddingSystem), `__gap[50] → __gap[47]` → `46` → `42` across Phases 34b, 45b, 45c. All 9/9 storage layouts verified by `scripts/check-storage-layout.js`. New top-level state variables are appended at the end.
+- **Storage gap reductions are tracked** — `__gap[50] → __gap[49]` (Phase 38, BiddingSystem), `__gap[50] → __gap[47]` → `46` → `42` → `40` across Phases 34b, 45b, 45c, 46b. Phase 46b intentionally consumes gap slots for `winnerSelectedAt` and `pendingCreatorRefund` before existing post-gap variables. All 9/9 storage layouts verified by `scripts/check-storage-layout.js`.
 
 ### Protocol-Type Concerns
 
@@ -195,7 +201,7 @@ See [entry-points.md](x-ray/entry-points.md) for the full permissionless entry p
 
 - **5-field commit hash with PROTOCOL_VERSION=2** — `BiddingSystem.sol:L_buildCommitHash` (5 fields, including version). Phase 45b fix invalidates v0/v1 reveals. Worth tracing whether v0/v1 active bids are now stuck (commit successful, reveal impossible).
 
-- **30-day withdraw timeout + permissionless sweep** — `BiddingSystem.sol:L_sweepUnclaimedStakes` (Phase 45c O-9). Worth tracing whether a bidder who lost their salt can be helped (e.g., via `useBidRecovery` cross-device envelope).
+- **30-day withdraw timeout + no-show-only permissionless sweep** — `BiddingSystem.sol:L_sweepUnclaimedStakes` (Phase 45c O-9, Phase 46b semantics). Worth tracing whether a bidder who lost their salt is correctly treated as an unrevealed no-show, while revealed non-winners are skipped and remain withdrawable.
 
 - **Bid status enum replaces boolean flags** — `BidStatus` (None/Pending/Revealed/Accepted/Rejected/Withdrawn) in `BiddingSystem.sol:L_Bid.status`. Phase 45c fix removes ambiguity of v0/v1 `stakeWithdrawn/rejected` booleans.
 
@@ -203,11 +209,11 @@ See [entry-points.md](x-ray/entry-points.md) for the full permissionless entry p
 
 - **Native ETH stakes since Phase 34** — `AgenticCommerceV9.sol:L_minEvaluatorStake` (default 0.01 ETH, owner-settable). `MilestoneEscrowV2.sol:L_arbiterStakePerToken[token]` (per-token, owner-settable). Worth tracing whether the stake can be slashed to zero while the evaluator remains registered (I-12 boundary case).
 
-- **SlashManager 5% on no-show vs 50% on governance** — `BiddingSystem.sol:L_NO_SHOW_SLASH_BP = 500` (5% per no-show), `SlashManager.sol:L_DEFAULT_SLASH_BP = 5000` (50% per governance slash). The two slash paths have different percentages; worth tracing whether the same evaluator can be slashed via both paths on the same `targetProposalId`.
+- **Bidding no-show slash vs governance partial slash** — `BiddingSystem.sol:L_NO_SHOW_SLASH_BP = 500` (5% per unrevealed no-show), `SlashManager.sol:L_DEFAULT_SLASH_BP = 5000` (50% default governance cap). The two slash paths have different percentages and target different stake pools; worth tracing whether treasury accounting treats both consistently.
 
 **As Governance (SlashManager):**
 
-- **3-of-5 + 1h timelock is the only governance layer** — No Governor, no Token, no quorum. The 1h timelock is the only delay between confirmation and execution. Worth tracing whether 3 signers can collude within 1h (e.g., during a market event where slashing a specific evaluator benefits them).
+- **3-of-5 + 1h timelock is the only governance layer** — No Governor, no Token, no quorum. The 1h timelock is the only delay between confirmation and execution. Phase 46b makes slash execution partial by amount, so auditors should trace both full-slash unregister and partial-slash keep-registered branches.
 
 ### Temporal Risk Profile
 
@@ -279,9 +285,9 @@ See [entry-points.md](x-ray/entry-points.md) for the full permissionless entry p
 >
 > A dedicated reference file contains the complete invariant analysis — do not look here for the catalog.
 >
-> - **[36] Enforced Guards** (`G-1` … `G-36`) — per-call preconditions with `Check` / `Location` / `Purpose`
-> - **[17] Single-Contract Invariants** (`I-1` … `I-17`) — Conservation (4), Bound (4), StateMachine (5), Ratio (1), Temporal (3)
-> - **[5] Cross-Contract Invariants** (`X-1` … `X-5`) — caller/callee pairs that cross scope boundaries
+> - **[38] Enforced Guards** (`G-1` … `G-38`) — per-call preconditions with `Check` / `Location` / `Purpose`
+> - **[19] Single-Contract Invariants** (`I-1` … `I-19`) — Conservation (5), Bound (4), StateMachine (5), Ratio (1), Temporal (3), Semantic (1)
+> - **[7] Cross-Contract Invariants** (`X-1` … `X-7`) — caller/callee pairs that cross scope boundaries
 > - **[4] Economic Invariants** (`E-1` … `E-4`) — higher-order properties deriving from `I-N` + `X-N`
 >
 > Every inferred block cites a concrete Δ-pair, guard-lift + write-sites, state edge, temporal predicate, or NatSpec quote. The **On-chain=No** blocks (E-4) are the high-signal ones — each is simultaneously an invariant and a potential bug. Attack-surface bullets above cross-link directly into the relevant blocks.
@@ -292,7 +298,7 @@ See [entry-points.md](x-ray/entry-points.md) for the full permissionless entry p
 
 | Aspect | Status | Notes |
 |--------|--------|-------|
-| README | Present | `README.md` covers network config, contract addresses, bidding system protections, key pages (45d admin pages), running tests (component tests). Updated to Phase 45c. |
+| README | Present | `README.md` covers network config, contract addresses, bidding system protections, key pages, running tests, and Phase 46a/46b remediation semantics. |
 | NatSpec | Adequate | All in-scope contracts have `@title`, `@dev`, `@param`, `@return` on most public/external functions. State vars are documented. Some `_internal` helpers lack NatSpec. |
 | Spec/Whitepaper | Missing | No design document or whitepaper. AGENTS.md serves as the closest thing to a spec, but is meant for AI agents, not auditors. |
 | Inline Comments | Thorough | Audit-trail comments throughout (e.g., `// CEI Fix: Effects before Interactions`, `// I6-04 FIX: O(1) running total`, `// M3 Fix: Token allowlist`). Each fix commit leaves a breadcrumb. |
@@ -306,14 +312,14 @@ See [entry-points.md](x-ray/entry-points.md) for the full permissionless entry p
 
 > ### 📋 Full test analysis: **[test-coverage.md](x-ray/test-coverage.md)**
 >
-> - 11 test files · 343 test functions · 4,346 test LOC
-> - Line coverage: **Unavailable** — forge coverage fails with stack-too-deep on Solc 0.8.22 + non-viaIR (Phase 45e deliberately dropped the gate)
+> - 12 test files · 353 test functions · 6,369 test LOC
+> - Line coverage: **Unavailable** — forge coverage fails with stack-too-deep; `--ir-minimum` retry fails Yul stack-depth handling
 > - Branch coverage: **Unavailable** — same as above
-> - Stateful fuzz: 5 Foundry invariants in `Invariants.t.sol`
+> - Stateful fuzz: 10 Foundry invariant/test functions in `Invariants.t.sol`
 > - Stateless fuzz: ~30 (estimated) in `BiddingSystem.t.sol` and `AgenticCommerceV9.t.sol`
 > - Formal verification: **None**
 >
-> Notable gaps: no fork tests, no formal verification, no integration tests across contract boundaries, V6 legacy untested, `SlashManager` has no dedicated test file, `CommitReveal` may be dead code with only 8 tests.
+> Notable gaps: no fork tests, no formal verification, no full scenario integration tests across contract boundaries, V6 legacy untested, `SlashManager` has no dedicated test file, `CommitReveal` may be dead code with only 8 tests.
 
 ---
 
@@ -321,12 +327,12 @@ See [entry-points.md](x-ray/entry-points.md) for the full permissionless entry p
 
 > ### 📋 Full dev history: **[developer-history.md](x-ray/developer-history.md)**
 >
-> Repo shape: **normal_dev** — 176 total commits, 33 source-touching, 53-day development spread (2026-04-11 → 2026-06-03)
+> Repo shape: **normal_dev** — 177 total commits, 33 source-touching, 55-day development spread (2026-04-11 → 2026-06-05)
 >
 > **Headline signals:**
-> - **Single developer** (Wasabi 🥥🌴) — 100% of commits, no peer review
-> - **Fast cycle** — 14,804 LOC in 53 days (~280 LOC/day)
-> - **Late burst** — Phase 45b/45c/45d/45e in 3 days (~2,800 LOC)
+> - **Single developer** — 100% of source-touching commits, no peer review
+> - **Fast cycle** — 55-day development spread for a large escrow/auction/governance surface
+> - **Late burst** — Phase 45b/45c/45d/45e plus Phase 46a/46b remediation immediately before this rerun
 > - **30% fix-without-test rate** — residual-risk signal
 > - **5 score-19+ fix commits** — top targets: `cffaf6b`, `71bb8f8`, `24eaf44`, `264290f`, `a40b67f`
 > - **5 dangerous-area categories**: access_control (28), state_machines (28), fund_flows (27), oracle_price (19), signatures (17)
@@ -337,12 +343,12 @@ See [entry-points.md](x-ray/entry-points.md) for the full permissionless entry p
 
 ## X-Ray Verdict
 
-**ADEQUATE** — Single-developer, fast cycle, late burst, and 30% fix-without-test rate elevate review priority for Phase 45b/45c; otherwise solid test density (343/343) and audit-trail comments.
+**ADEQUATE** — Single-developer, fast cycle, late burst, and 30% fix-without-test rate elevate review priority for Phase 45b/45c/46a/46b; otherwise solid test density (353/353), clean storage-layout validation, and audit-trail comments.
 
 **Structural facts:**
 
-1. **~7,202 nSLOC across 9 in-scope subsystems** (12 in-scope contracts + 1 interface + 1 proxy) — Marketplace/Escrow + Auction + Staking + Governance hybrid.
+1. **4,595 active implementation nSLOC across 9 in-scope subsystems** (14 active shared/proxy files; 8,734 total source LOC including interfaces and archived AgentReviewV5) — Marketplace/Escrow + Auction + Staking + Governance hybrid.
 2. **8 UUPS contracts, all single-Owner** — no multisig at the upgrade role. 2-step Owner transfer is the only protection against key compromise.
-3. **One developer wrote 100% of 14,804 source lines** — no peer review, no code-review trail beyond 1 merge commit.
-4. **343 forge tests across 11 files (4,346 LOC)** — well above the audit-prep baseline. Test *count* is high; *coverage* is unknown (forge coverage gate deliberately dropped in Phase 45e).
-5. **2,800 LOC added in 3 days** (Phase 45b/45c/45d/45e series, 2026-06-01 to 2026-06-03) — the most security-critical surface (BiddingSystem, MilestoneEscrow, AdminRegistry) modified 3 times in 3 days, late burst before this audit.
+3. **One developer wrote 100% of source changes** — no peer review, no code-review trail beyond 1 merge commit.
+4. **353 forge tests across 12 files (6,369 LOC)** — well above the audit-prep baseline. Test *count* is high; *coverage* is unknown (forge coverage still fails on stack depth / Yul stack-too-deep paths).
+5. **Late Phase 45/46 remediation burst** — the most security-critical surfaces (BiddingSystem, AgenticCommerceV9, SlashManager, AgentSkillRegistryV2) were modified immediately before this rerun, making them the highest-priority manual review targets.

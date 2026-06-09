@@ -670,6 +670,40 @@ contract AgenticCommerceV9Test is Test {
         assertTrue(evaluator.balance > balanceBefore);
     }
 
+    function testSlashByGovernanceSlashesPartialStake() public {
+        address slashManager = makeAddr("slashManager");
+        vm.prank(owner);
+        commerce.setSlashManager(slashManager);
+
+        vm.prank(evaluator);
+        commerce.registerAsEvaluator{value: 0.1 ether}();
+
+        uint256 treasuryBefore = treasury.balance;
+
+        vm.prank(slashManager);
+        commerce.slashByGovernance(evaluator, 0.02 ether, "partial slash");
+
+        assertEq(commerce.evaluatorStakes(evaluator), 0.08 ether);
+        assertTrue(commerce.isRegisteredEvaluator(evaluator));
+        assertEq(treasury.balance, treasuryBefore + 0.02 ether);
+    }
+
+    function testSlashByGovernanceFullAmountUnregistersEvaluator() public {
+        address slashManager = makeAddr("slashManager");
+        vm.prank(owner);
+        commerce.setSlashManager(slashManager);
+
+        vm.prank(evaluator);
+        commerce.registerAsEvaluator{value: 0.1 ether}();
+
+        vm.prank(slashManager);
+        commerce.slashByGovernance(evaluator, 0.1 ether, "full slash");
+
+        assertEq(commerce.evaluatorStakes(evaluator), 0);
+        assertFalse(commerce.isRegisteredEvaluator(evaluator));
+        assertEq(commerce.getEvaluatorPoolSize(), 0);
+    }
+
     function testCleanupStaleEvaluators() public {
         vm.prank(evaluator);
         commerce.registerAsEvaluator{value: 0.01 ether}();
@@ -720,6 +754,34 @@ contract AgenticCommerceV9Test is Test {
         vm.prank(owner);
         commerce.setMaxBudgetUsd(2_000_000e6);
         assertEq(commerce.maxBudgetUsd(), 2_000_000e6);
+    }
+
+    function testCheckMaxBudgetRevertsOnInvalidOraclePrice() public {
+        vm.prank(owner);
+        commerce.setMaxBudgetUsd(1_000_000e6);
+
+        vm.mockCall(
+            address(priceOracle),
+            abi.encodeWithSelector(MockPriceOracle.getUsdPriceOfToken.selector, address(0)),
+            abi.encode(int256(0))
+        );
+
+        vm.prank(client);
+        vm.expectRevert(AgenticCommerceV9.InvalidPrice.selector);
+        commerce.createJob(
+            provider,
+            1 ether,
+            address(0),
+            0,
+            block.timestamp + 7 days,
+            "Test",
+            evaluator,
+            address(0),
+            false,
+            true,
+            false,
+            0
+        );
     }
 
     function testSetStablecoin() public {

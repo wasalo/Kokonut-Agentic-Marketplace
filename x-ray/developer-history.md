@@ -1,6 +1,6 @@
 # Developer & Git History
 
-> Repo shape: **normal_dev** — 176 total commits, 33 source-touching, 53-day development spread (2026-04-11 → 2026-06-03)
+> Repo shape: **normal_dev** — 177 total commits, 33 source-touching, 55-day development spread (2026-04-11 → 2026-06-05)
 
 ---
 
@@ -8,7 +8,7 @@
 
 | Author | Commits | Source Lines (+/-) | % of Source Changes |
 |--------|--------:|--------------------|--------------------:|
-| Wasabi 🥥🌴 | 178 | +14,804 / -<unknown> | 100.0% |
+| Wasabi | 177 | source changes attributed to one author | 100.0% |
 
 > Single-developer project. No code review from peers; all architectural decisions and security remediations are one-engineer decisions.
 
@@ -19,8 +19,8 @@
 | Signal | Value | Assessment |
 |--------|-------|------------|
 | Unique contributors | 1 | Single-dev — no peer review of code or tests |
-| Merge commits | 1 of 176 (<1%) | Squash-merged development; no merge-conflict resolution as a review signal |
-| Repo age | 2026-04-11 → 2026-06-03 | 53 days — unusually fast development cycle for the surface area |
+| Merge commits | 1 of 177 (<1%) | Squash-merged development; no merge-conflict resolution as a review signal |
+| Repo age | 2026-04-11 → 2026-06-05 | 55 days — unusually fast development cycle for the surface area |
 | Recent source activity (30d) | ~20 source-touching commits | **Active** — late burst before audit |
 | Test co-change rate | 69.7% | Above average — most source changes also touch tests |
 | Fix-without-test rate | 30.0% | Concerning — 30% of fix-style commits don't modify test files (residual risk) |
@@ -32,16 +32,16 @@
 
 | File | Modifications | Note |
 |------|-------------:|------|
-| `contracts/shared/AgenticCommerceV9.sol` | High | Primary escrow, 1487 LOC, all V9 features |
-| `contracts/shared/BiddingSystem.sol` | High | 1055 LOC, every phase upgrade touches this file (45b, 45c) |
+| `contracts/shared/AgenticCommerceV9.sol` | High | Primary escrow, 1494 LOC, all V9 features; Phase 46b partial slash + invalid oracle-price checks |
+| `contracts/shared/BiddingSystem.sol` | High | 1105 LOC, every phase upgrade touches this file (45b, 45c, 46a, 46b) |
 | `contracts/shared/MilestoneEscrowV2.sol` | High | 745 LOC, per-job balance custody (Phase 34b critical fix) |
 | `contracts/shared/AdminRegistry.sol` | High | 599 LOC, blacklist + verification + reputation decay |
 | `contracts/shared/ServiceRegistryV2.sol` | High | 558 LOC, bond + identity coupling |
 | `contracts/shared/MilestoneEscrow.sol` | Medium | 534 LOC, legacy alongside V2 |
-| `contracts/shared/SlashManager.sol` | Medium | 368 LOC, 3-of-5 + 1h timelock |
+| `contracts/shared/SlashManager.sol` | Medium | 376 LOC, 3-of-5 + 1h timelock; Phase 46b capped partial slash forwarding |
 | `contracts/shared/AgenticCommerceV6.sol` | Low | 746 LOC legacy, bidding disabled stubs |
-| `contracts/shared/AgentSkillRegistryV2.sol` | Low | 343 LOC, secondary feature |
-| `contracts/shared/PriceOracleV2.sol` | Low | 281 LOC, per-token Chainlink feeds |
+| `contracts/shared/AgentSkillRegistryV2.sol` | Low | 343 LOC, secondary feature; Phase 46a domain hash lookup fix |
+| `contracts/shared/PriceOracleV2.sol` | Low | 282 LOC, per-token Chainlink feeds |
 
 > Files marked "High" have been touched in 3+ of the 10 fix-candidate commits; these are the highest-leverage targets for audit.
 
@@ -64,7 +64,7 @@
 | `1093591` | 2026-04-21 | feat(Phase 28): Add Bad Actors Red Team blacklist protection system | 11 | AdminRegistry blacklist + grace period |
 | `6d4aa6f` | 2026-05-01 | fix(contracts): remove __UUPSUpgradeable_init() for OZ v5 compatibility | 10 | OZ v5 upgrade pattern fix |
 
-> 10 fix candidates total. Every major change since Phase 28 is a security fix; the team is operating in continuous-remediation mode.
+> 10+ fix candidates total. Every major change since Phase 28 is a security fix; the team is operating in continuous-remediation mode. Phase 46a/46b continues that pattern with direct Pashov remediation.
 
 ---
 
@@ -108,11 +108,11 @@
 
 - **Single-developer risk** — 100% of code authored by one person. No peer review, no security council. All architectural and security decisions are one-engineer calls.
 
-- **No merge commits as review signal** — 1 merge commit in 176 total (<1%). Likely squash-merged feature branches; no PR review trail visible in commit history.
+- **No merge commits as review signal** — 1 merge commit in 177 total (<1%). Likely squash-merged feature branches; no PR review trail visible in commit history.
 
-- **53-day development cycle is fast** — 14,804 lines of source in 53 days = ~280 LOC/day. Combined with the 27 commits touching dangerous areas (access_control, state_machines, fund_flows), the team is moving fast on security-critical code.
+- **55-day development cycle is fast** — Combined with the 27+ commits touching dangerous areas (access_control, state_machines, fund_flows), the team is moving fast on security-critical code.
 
-- **Late burst before audit** — The most recent commits (Jun 1-3) are the Phase 45b/45c/45d/45e series: 5 commits, all touching security-sensitive code (BiddingSystem, MilestoneEscrowV2, AdminRegistry, BiddingSystem). The 2,800 LOC addition in 3 days is the highest-density period.
+- **Late burst before audit** — The most recent work includes the Phase 45b/45c/45d/45e series plus Phase 46a/46b remediation, all touching security-sensitive code (BiddingSystem, AgenticCommerceV9, SlashManager, AgentSkillRegistryV2, MilestoneEscrowV2, AdminRegistry). This is the highest-density review period.
 
 - **30% fix-without-test rate** — Per `dev_patterns`, 30% of fix-style commits modify code but not test files. This is a residual-risk signal: a fix to a known bug without an associated regression test may be incomplete or the test may rely on outdated fixtures.
 
@@ -120,26 +120,26 @@
 
 - **3 commit messages reference "Pashov"** — `a40b67f` (Phase 29e), `24eaf44` (BiddingSystem design flaws), and likely `71bb8f8` (cross-audit remediation). The current audit is from Pashov (`pashov/solidity-auditor` skill loaded in this session). The team is familiar with Pashov's findings; auditors should verify that prior Pashov findings have not regressed.
 
-- **Test co-change rate is high (69.7%)** — Above the typical baseline. Most source changes also touch tests, which is a positive signal. The 30% that don't is the residual concern.
+- **Test co-change rate is high (69.7%)** — Above the typical baseline. Most source changes also touch tests, which is a positive signal. The 30% that don't is the residual concern. Phase 46a/46b added targeted regression tests for every remediated contract surface.
 
 - **SlashManager is the only multisig** — 3-of-5 + 1h timelock. No additional governance layers (no Governor, no Token, no quorum voting). All slashing authority concentrates here.
 
 - **UUPS upgrade authority is Owner-only** — Every UUPS contract has `_authorizeUpgrade` with `onlyOwner` (single EOA, with `Ownable2Step` for transfer). A compromised Owner key upgrades all 8 UUPS contracts instantly.
 
-- **`/scripts/check-storage-layout.js` validates 9/9 storage layouts** — Per AGENTS.md, all storage upgrades (Phase 34b, 45b, 45c) preserve the existing layout. This is a strong signal for upgrade safety but does not validate semantic correctness of new fields.
+- **`/scripts/check-storage-layout.js` validates 9/9 storage layouts** — Per AGENTS.md, all storage upgrades (Phase 34b, 45b, 45c, 46b) preserve the existing layout. Phase 46b consumes BiddingSystem gap slots for `winnerSelectedAt` and `pendingCreatorRefund`; storage compatibility is verified but semantic correctness still depends on tests and manual review.
 
 ---
 
 ## Cross-Reference Synthesis
 
-- **AgenticCommerceV9 is the highest-leverage file** — 27 of 33 source-touching commits modify it (per `fund_flows` + `access_control` + `state_machines` tracking). It is also the largest source file (1487 LOC) and the integration point for BiddingSystem, MilestoneEscrowV2, PriceOracle, and SlashManager. The economic invariants (E-1, E-2) and state machine (I-5) concentrate here.
+- **AgenticCommerceV9 is the highest-leverage file** — 27 of 33 source-touching commits modify it (per `fund_flows` + `access_control` + `state_machines` tracking). It is also the largest active source file (1494 LOC) and the integration point for BiddingSystem, MilestoneEscrowV2, PriceOracle, and SlashManager. The economic invariants (E-1, E-2) and state machine (I-5) concentrate here.
 
-- **BiddingSystem + SlashManager are the contested surfaces** — BiddingSystem handles 1% stakes from bidders in commit-reveal (state machine I-6); SlashManager handles 3-of-5 multisig on evaluator stakes (state machine I-8). Both have been heavily modified (Phase 45b/45c for BiddingSystem, Phase 38 for SlashManager). The 19-score fix commit `24eaf44` ("critical design flaws and security issues") directly addresses BiddingSystem.
+- **BiddingSystem + SlashManager are the contested surfaces** — BiddingSystem handles 1% stakes from bidders in commit-reveal (state machine I-6 plus Phase 46b creator recovery/no-show sweep); SlashManager handles 3-of-5 multisig on evaluator stakes (state machine I-8 plus Phase 46b capped partial slash). Both have been heavily modified and deserve highest-priority manual re-read.
 
 - **MilestoneEscrowV2's $1T USDC fix aligns with I-2** — The Phase 34b fix (`milestoneEscrowBalance[jobId]` per-job balance) directly addresses the cross-contract custody hotfix where fake milestones could drain real funds. Invariant I-2 is the structural manifestation of this fix.
 
 - **30% fix-without-test rate × 5 score-19+ fixes = ~1.5 unverified fixes** — Back-of-envelope: 5 score-19+ fixes × 30% = 1.5 fixes without explicit test updates. These are the highest-leverage targets for "is the fix actually fixed?" verification.
 
-- **Single-developer + fast cycle + late burst = elevated review priority for the Phase 45 series** — All three factors amplify: no peer review, fast changes, recent changes. The Phase 45b/45c BiddingSystem upgrades (2,800 LOC in 3 days) are the highest-leverage area for this audit.
+- **Single-developer + fast cycle + late burst = elevated review priority for the Phase 45/46 series** — All three factors amplify: no peer review, fast changes, recent changes. The Phase 45b/45c BiddingSystem upgrades and Phase 46a/46b remediations are the highest-leverage areas for this rerun.
 
 - **V6/V9 coexistence × `fund_flows` 27 commits = hidden V6 surface** — V6 is still deployed. If the same bug class that triggered V9 fixes existed in V6, it remains exploitable on the V6 deployment. V6 has no dedicated test file.

@@ -1,6 +1,6 @@
 {
   "version": "semantic-v1",
-  "generatedAt": "2026-06-02T15:08:06.635Z",
+  "generatedAt": "2026-06-08T07:12:39.937Z",
   "contracts": {
     "AgenticCommerceV9": {
       "target": "contracts/shared/AgenticCommerceV9.sol:AgenticCommerceV9",
@@ -412,10 +412,22 @@
             "type": "uint256"
           },
           {
-            "label": "__gap",
+            "label": "winnerSelectedAt",
             "slot": 13,
             "offset": 0,
-            "type": "uint256[42]"
+            "type": "mapping(uint256=>uint256)"
+          },
+          {
+            "label": "pendingCreatorRefund",
+            "slot": 14,
+            "offset": 0,
+            "type": "mapping(uint256=>uint256)"
+          },
+          {
+            "label": "__gap",
+            "slot": 15,
+            "offset": 0,
+            "type": "uint256[40]"
           },
           {
             "label": "totalAccumulatedFees",
@@ -458,6 +470,12 @@
             "slot": 61,
             "offset": 0,
             "type": "mapping(address=>uint256)"
+          },
+          {
+            "label": "pendingBidRefund",
+            "slot": 62,
+            "offset": 0,
+            "type": "mapping(uint256=>mapping(address=>uint256))"
           }
         ]
       }

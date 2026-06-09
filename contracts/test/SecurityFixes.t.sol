@@ -236,6 +236,23 @@ contract SecurityFixesTest is Test {
         bytes32 storedHash = slashManager.activeSlashByEvaluator(evaluator, 999);
         assertEq(storedHash, bytes32(0));
     }
+
+    function test_M2_hasActiveSlash_ReturnsFalseForStaleProposal() public {
+        vm.prank(owner);
+        slashManager.setCommerce(makeAddr("dummyCommerce"));
+
+        vm.prank(owner);
+        slashManager.createProposal(
+            evaluator,
+            1,
+            1 ether,
+            "Test reason"
+        );
+
+        vm.warp(block.timestamp + slashManager.MAX_PROPOSAL_AGE() + 1);
+
+        assertFalse(slashManager.hasActiveSlash(evaluator, 1));
+    }
     
     // ==========================================
     // M3: AgenticCommerceV6 Token Allowlist
@@ -682,6 +699,36 @@ contract SecurityFixesTest is Test {
         
         assertTrue(hash != bytes32(0));
     }
+
+    function test_M5_SlashManager_ExecutesCappedPartialSlashAmount() public {
+        MockSlashCommerce mockCommerce = new MockSlashCommerce();
+        mockCommerce.setStake(evaluator, 10 ether);
+
+        vm.prank(owner);
+        slashManager.setCommerce(address(mockCommerce));
+
+        vm.prank(owner);
+        bytes32 hash = slashManager.createProposal(
+            evaluator,
+            1,
+            9 ether,
+            "Test reason"
+        );
+
+        vm.prank(signer1);
+        slashManager.confirmProposal(hash);
+        vm.prank(signer2);
+        slashManager.confirmProposal(hash);
+        vm.prank(signer3);
+        slashManager.confirmProposal(hash);
+
+        vm.warp(block.timestamp + slashManager.EXECUTION_DELAY());
+
+        slashManager.executeSlash(hash);
+
+        assertEq(mockCommerce.lastEvaluator(), evaluator);
+        assertEq(mockCommerce.lastSlashAmount(), 5 ether, "DEFAULT_SLASH_BP caps slash at 50% stake");
+    }
     
     // ==========================================
     // L7: ServiceRegistryV2 OZ _getImplementation
@@ -863,5 +910,23 @@ contract MockERC20 {
         allowance[from][msg.sender] -= amount;
         emit Transfer(from, to, amount);
         return true;
+    }
+}
+
+contract MockSlashCommerce {
+    mapping(address => uint256) public evaluatorStakes;
+    address public lastEvaluator;
+    uint256 public lastSlashAmount;
+    string public lastReason;
+
+    function setStake(address evaluator, uint256 stake) external {
+        evaluatorStakes[evaluator] = stake;
+    }
+
+    function slashByGovernance(address evaluator, uint256 slashAmount, string calldata reason) external {
+        lastEvaluator = evaluator;
+        lastSlashAmount = slashAmount;
+        lastReason = reason;
+        evaluatorStakes[evaluator] -= slashAmount;
     }
 }

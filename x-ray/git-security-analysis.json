@@ -2,24 +2,24 @@
   "meta": {
     "repo": "/Users/alejandro/GitHub/Kokonut-Agentic-Marketplace",
     "src_dir": "contracts",
-    "generated_at": "2026-06-05T14:10:27.617716+00:00",
-    "git_head": "d2eed84",
+    "generated_at": "2026-06-08T06:15:08.124286+00:00",
+    "git_head": "cbe5e13",
     "git_branch": "develop",
-    "total_commits": 176,
+    "total_commits": 177,
     "total_source_files": 21,
-    "analysis_time_ms": 3125
+    "analysis_time_ms": 3222
   },
   "repo_shape": {
     "classification": "normal_dev",
-    "total_commits": 176,
+    "total_commits": 177,
     "source_touching_commits": 33,
     "bulk_import_sha": null,
-    "date_spread_days": 53,
+    "date_spread_days": 55,
     "first_commit_date": "2026-04-11",
-    "last_commit_date": "2026-06-03",
+    "last_commit_date": "2026-06-05",
     "signals": [
-      "Date spread: 53 days",
-      "33 commits touch source files out of 176 total"
+      "Date spread: 55 days",
+      "33 commits touch source files out of 177 total"
     ]
   },
   "fix_candidates": [
@@ -873,8 +873,8 @@
   },
   "late_changes": {
     "window_days": 30,
-    "cutoff_date": "2026-05-04",
-    "latest_commit_date": "2026-06-03",
+    "cutoff_date": "2026-05-06",
+    "latest_commit_date": "2026-06-05",
     "late_commits": [
       {
         "sha": "2f4feff",
