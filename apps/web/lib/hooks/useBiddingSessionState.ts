@@ -17,6 +17,8 @@ import {
   useBiddingWithdrawCreatorStake,
   useCloseBidding,
   useSlashNoShow,
+  useWithdrawBidRefund,
+  usePendingBidRefund,
   SessionStatus,
   type BiddingSession,
   type BidInfo,
@@ -120,6 +122,10 @@ export interface UseBiddingSessionStateResult {
   handleCompleteSession: () => void;
   handleCloseBidding: () => void;                 // Phase 45b O-2
   handleSlashNoShow: (bidder: `0x${string}`) => void; // Phase 45b O-3
+  handleWithdrawBidRefund: () => void;            // Phase 47
+  canWithdrawBidRefund: boolean;                    // Phase 47
+  pendingRefundAmount: bigint;                     // Phase 47
+  isWithdrawBidRefundPending: boolean;            // Phase 47
 }
 
 const ZERO_WINNER = '0x0000000000000000000000000000000000000000';
@@ -161,6 +167,9 @@ export function useBiddingSessionState({
   // Phase 45b O-2 + O-3
   const { closeBidding, isPending: isClosePending, writeError: closeError } = useCloseBidding();
   const { slashNoShow, isPending: isSlashPending, writeError: slashError } = useSlashNoShow();
+  // Phase 47
+  const { withdrawBidRefund, isPending: isWithdrawBidRefundPending, error: withdrawBidRefundError } = useWithdrawBidRefund();
+  const { refund: pendingRefundAmount } = usePendingBidRefund(sessionId, address);
 
   const { data: ethBalance } = useBalance({ address });
   const { balance: usdcBalance } = useUSDCBalance(address);
@@ -211,14 +220,17 @@ export function useBiddingSessionState({
                 ? 'Cancelling session'
                 : isExtendPending
                   ? 'Extending reveal window'
-                  : isWithdrawPending || isCreatorWithdrawPending
-                    ? 'Withdrawing stake'
-                    : isCompletePending
-                      ? 'Completing session'
-                      : null;
+                    : isWithdrawPending || isCreatorWithdrawPending
+                      ? 'Withdrawing stake'
+                      : isWithdrawBidRefundPending
+                        ? 'Claiming bid refund'
+                        : isCompletePending
+                          ? 'Completing session'
+                          : null;
 
   const currentError = commitWriteError || revealError || acceptError || rejectError || cancelError ||
-    extendError || withdrawError || creatorWithdrawError || completeError || closeError || slashError;
+    extendError || withdrawError || creatorWithdrawError || completeError || closeError || slashError ||
+    withdrawBidRefundError;
 
   const { ensureUSDCApproval } = useUSDCApproval({
     account: address,
@@ -243,7 +255,7 @@ export function useBiddingSessionState({
     session && isOpenStatus && now >= session.deadline && now < session.revealWindowEnd
   );
   const isSelectionPhase = Boolean(
-    session && isCreator && isOpenStatus && now >= session.deadline
+    session && isCreator && isOpenStatus && now >= session.revealWindowEnd
   );
   const isCompletedPhase = Boolean(
     session &&
@@ -286,8 +298,13 @@ export function useBiddingSessionState({
       revealedBids.length === 0
   );
   const canExtendRevealWindow = Boolean(isCreator && isRevealPhase);
+  // Phase 47: winners and rejected bidders must use withdrawBidRefund, not withdrawStake
+  const isTerminalBid = Boolean(userBid && (userBid.accepted || userBid.rejected));
   const canWithdrawUserStake = Boolean(
-    userBid && userBid.stake > 0n && !userBid.stakeWithdrawn
+    userBid && userBid.stake > 0n && !userBid.stakeWithdrawn && !isTerminalBid
+  );
+  const canWithdrawBidRefund = Boolean(
+    userBid && isTerminalBid && pendingRefundAmount > 0n
   );
   const canWithdrawCreatorStake = Boolean(
     isCreator &&
@@ -316,6 +333,7 @@ export function useBiddingSessionState({
       canReveal ||
       isSelectionPhase ||
       canWithdrawUserStake ||
+      canWithdrawBidRefund ||
       canCompleteSession ||
       canWithdrawCreatorStake ||
       canCancelSession ||
@@ -417,6 +435,11 @@ export function useBiddingSessionState({
     slashNoShow({ sessionId, bidder });
   }, [sessionId, slashNoShow]);
 
+  // Phase 47: pull-based bid refund for accepted/rejected bids
+  const handleWithdrawBidRefund = useCallback(() => {
+    withdrawBidRefund(sessionId);
+  }, [sessionId, withdrawBidRefund]);
+
   return {
     address,
     isConnected,
@@ -493,5 +516,9 @@ export function useBiddingSessionState({
     handleCompleteSession,
     handleCloseBidding,
     handleSlashNoShow,
+    handleWithdrawBidRefund,
+    canWithdrawBidRefund,
+    pendingRefundAmount,
+    isWithdrawBidRefundPending,
   };
 }

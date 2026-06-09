@@ -391,9 +391,15 @@ export function useJobLifecycle({ jobId }: UseJobLifecycleParams): UseJobLifecyc
   }, [job, refundExpired, handleAction]);
 
   const handlePaymentTokenSetup = useCallback(() => {
+    // Phase 47: setPaymentToken reverts if job.budget != 0
+    if (job && job.budget !== 0n) {
+      showToast.error('Cannot change payment token', 'Reset the job budget to 0 before changing the payment token.');
+      setShowPaymentTokenModal(false);
+      return;
+    }
     handleAction('Setting payment token', () => setPaymentToken(jobId, selectedPaymentToken.address));
     setShowPaymentTokenModal(false);
-  }, [handleAction, setPaymentToken, jobId, selectedPaymentToken.address]);
+  }, [handleAction, setPaymentToken, jobId, selectedPaymentToken.address, job]);
 
   const handleClientApprove = useCallback(() => {
     if (!job) return;

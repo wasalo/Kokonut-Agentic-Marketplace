@@ -322,6 +322,18 @@ export interface PaginatedResult<T> {
 // Error Types
 // ============================================================================
 
+export type BiddingError =
+  | 'BidAlreadyRevealed'
+  | 'BidAlreadyAccepted'
+  | 'SessionNotFound'
+  | 'InvalidBid'
+  | 'InsufficientStake'
+  | 'RevealWindowNotExpired'
+  | 'BidNotRevealed'
+  | 'NoShowWindowNotExpired'
+  | 'StakeAlreadyWithdrawn'
+  | 'Unauthorized';
+
 export class SDKError extends Error {
   constructor(
     message: string,

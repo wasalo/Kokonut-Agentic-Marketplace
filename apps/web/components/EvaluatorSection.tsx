@@ -7,6 +7,7 @@ import {
   useEvaluatorStatus,
   useRegisterAsEvaluator,
   useUnregisterAsEvaluator,
+  useHasActiveEvaluatorJobs,
 } from '@/lib/hooks/useJobs';
 import { DashboardCard } from '@/components/ui/DashboardCard';
 import { Button } from '@/components/ui/Button';
@@ -17,6 +18,7 @@ export function EvaluatorSection(): JSX.Element {
   const { address, isConnected } = useAccount();
   const { count: poolSize, isLoading: isPoolLoading } = useEvaluatorPoolSize();
   const { isEvaluator, isLoading: isEvaluatorLoading } = useEvaluatorStatus(address);
+  const { hasActiveEvaluatorJobs } = useHasActiveEvaluatorJobs(address);
   const { registerAsEvaluator, isPending: isRegisterPending, error: registerError } = useRegisterAsEvaluator();
   const { unregisterAsEvaluator, isPending: isUnregisterPending, error: unregisterError } = useUnregisterAsEvaluator();
 
@@ -49,9 +51,11 @@ export function EvaluatorSection(): JSX.Element {
             variant="danger"
             size="sm"
             isLoading={isUnregisterPending}
+            disabled={hasActiveEvaluatorJobs}
             onClick={unregisterAsEvaluator}
+            title={hasActiveEvaluatorJobs ? 'You are assigned to an active job. Complete or finalize it before unregistering.' : undefined}
           >
-            Unregister as Evaluator
+            {hasActiveEvaluatorJobs ? 'Active job assigned' : 'Unregister as Evaluator'}
           </Button>
         ) : (
           <Button

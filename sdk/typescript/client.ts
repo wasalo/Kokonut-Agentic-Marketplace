@@ -677,6 +677,11 @@ class CommerceModule {
   }
 
   async createJob(params: JobParams): Promise<TransactionResult> {
+    // Phase 47: V9 requires exact funding when fundNow is true
+    if (params.fundNow === true && params.fundAmount !== params.budget) {
+      throw new Error('Phase 47: fundAmount must equal budget when fundNow is true.');
+    }
+
     const hash = await this.wallet.writeContract({
       address: this.contracts.agenticCommerce as Address,
       abi: AGENTIC_COMMERCE_ABI,
@@ -2037,6 +2042,11 @@ class BiddingSystemModule {
     };
   }
 
+  /**
+   * Accept a winning bid. Phase 47: This no longer auto-sends refunds to bidders.
+   * It records the refund in `pendingBidRefund` mapping; bidders must call
+   * `withdrawBidRefund` to claim their stake.
+   */
   async acceptBid(params: { sessionId: bigint; bidId: bigint }): Promise<TransactionResult> {
     const hash = await this.wallet.writeContract({
       address: this.contracts.biddingSystem!,
@@ -2051,6 +2061,11 @@ class BiddingSystemModule {
     };
   }
 
+  /**
+   * Reject a bid. Phase 47: This no longer auto-sends refunds to bidders.
+   * It records the refund in `pendingBidRefund` mapping; bidders must call
+   * `withdrawBidRefund` to claim their stake.
+   */
   async rejectBid(params: {
     sessionId: bigint;
     bidId: bigint;
@@ -2081,6 +2096,30 @@ class BiddingSystemModule {
       hash,
       wait: () => this.publicClient.waitForTransactionReceipt({ hash }),
     };
+  }
+
+  /// @notice Phase 47: Withdraw a recorded bid refund for a non-winning bid.
+  async withdrawBidRefund(sessionId: bigint): Promise<TransactionResult> {
+    const hash = await this.wallet.writeContract({
+      address: this.contracts.biddingSystem!,
+      abi: BIDDING_SYSTEM_ABI,
+      functionName: 'withdrawBidRefund',
+      args: [sessionId],
+    } as any);
+    return {
+      hash,
+      wait: () => this.publicClient.waitForTransactionReceipt({ hash }),
+    };
+  }
+
+  /// @notice Phase 47: Get the pending refund amount for a bidder in a session.
+  async getPendingBidRefund(sessionId: bigint, bidder: Address): Promise<bigint> {
+    return (await this.publicClient.readContract({
+      address: this.contracts.biddingSystem!,
+      abi: BIDDING_SYSTEM_ABI,
+      functionName: 'pendingBidRefund',
+      args: [sessionId, bidder],
+    } as any)) as bigint;
   }
 
   async claimStake(sessionId: bigint): Promise<TransactionResult> {
@@ -2143,6 +2182,11 @@ class BiddingSystemModule {
     } as any)) as bigint;
   }
 
+  /**
+   * Create and fund a job from a winning bid. Phase 47: This no longer
+   * auto-sends refunds to non-winning bidders. Refunds are recorded in
+   * `pendingBidRefund` mapping; bidders must call `withdrawBidRefund` to claim.
+   */
   async createJobAndFund(params: {
     sessionId: bigint;
     jobExpiredAt: bigint;

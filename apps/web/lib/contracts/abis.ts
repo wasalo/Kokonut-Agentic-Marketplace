@@ -254,6 +254,8 @@ export const BIDDING_SYSTEM_ABI = parseAbi([
   'function rejectBid(uint256 sessionId, uint256 bidId, string reason) external',
   'function withdrawCreatorStake(uint256 sessionId) external',
   'function withdrawStake(uint256 sessionId) external',
+  'function withdrawBidRefund(uint256 sessionId) external',
+  'function pendingBidRefund(uint256 sessionId, address bidder) external view returns (uint256)',
 
   'function completeSession(uint256 sessionId) external',
   'function createJobAndFund(uint256 sessionId, uint256 jobExpiredAt, string description) external payable returns (uint256 jobId)',
@@ -280,6 +282,10 @@ export const BIDDING_SYSTEM_ABI = parseAbi([
   'event BidderSlashed(uint256 indexed sessionId, address indexed bidder, uint256 slashAmount, uint256 refundAmount)',
   'event EvaluatorFinalized(uint256 indexed sessionId, address indexed evaluator, uint256 finalizedAt)',
   'event FeesWithdrawn(address indexed token, address indexed to, uint256 amount)',
+
+  // Phase 47 errors
+  'error BidAlreadyRevealed()',
+  'error BidAlreadyAccepted()',
 ]);
 
 

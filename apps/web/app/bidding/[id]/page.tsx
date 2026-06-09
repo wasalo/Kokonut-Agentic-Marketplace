@@ -66,6 +66,7 @@ export default function BiddingSessionDetailPage({
     selectedBid,
     canCancelSession,
     canWithdrawUserStake,
+    canWithdrawBidRefund,
     canCompleteSession,
     canWithdrawCreatorStake,
     canExtendRevealWindow,
@@ -89,9 +90,12 @@ export default function BiddingSessionDetailPage({
     handleExtendWindow,
     handleCloseBidding,
     handleWithdrawStake,
+    handleWithdrawBidRefund,
     handleWithdrawCreatorStake,
     handleCompleteSession,
     isWinner,
+    isWithdrawBidRefundPending,
+    pendingRefundAmount,
   } = state;
 
   if (isLoading) {
@@ -194,7 +198,20 @@ export default function BiddingSessionDetailPage({
                       <AlertCircle className="size-5 text-danger shrink-0 mt-0.5" />
                       <div>
                         <p className="font-semibold text-danger">Your bid was rejected.</p>
-                        <p className="text-sm text-default-500">Your stake can be withdrawn if it has not already been claimed.</p>
+                        <p className="text-sm text-default-500">Claim your refunded stake below.</p>
+                      </div>
+                    </div>
+                  </div>
+                )}
+                {canWithdrawBidRefund && pendingRefundAmount > 0n && (
+                  <div className="mt-4 p-4 bg-primary/10 rounded-lg border border-primary/20">
+                    <div className="flex items-start gap-3">
+                      <Wallet className="size-5 text-primary shrink-0 mt-0.5" />
+                      <div>
+                        <p className="font-semibold text-primary">Refund available</p>
+                        <p className="text-sm text-default-500">
+                          {formatAmount(pendingRefundAmount, sessionToken, { includeSymbol: true })} ready to claim.
+                        </p>
                       </div>
                     </div>
                   </div>
@@ -294,11 +311,22 @@ export default function BiddingSessionDetailPage({
             {canWithdrawUserStake && userBid && (
               <SessionActionButton
                 icon={<Wallet className="size-5 text-primary" />}
-                title={isWinner ? 'Claim winner stake' : 'Withdraw stake'}
-                description={`Recover your ${formatAmount(userBid.stake, sessionToken, { includeSymbol: true })} bid stake.`}
+                title="Withdraw stake"
+                description={`Recover your ${formatAmount(userBid.stake, sessionToken, { includeSymbol: true })} bid stake. Unrevealed bids incur a 5% no-show slash.`}
                 isPending={isWithdrawPending}
                 disabled={isWithdrawPending}
                 onClick={handleWithdrawStake}
+              />
+            )}
+
+            {canWithdrawBidRefund && (
+              <SessionActionButton
+                icon={<Wallet className="size-5 text-primary" />}
+                title={isWinner ? 'Claim winner refund' : 'Claim bid refund'}
+                description={`Claim your ${formatAmount(pendingRefundAmount, sessionToken, { includeSymbol: true })} refunded stake.`}
+                isPending={isWithdrawBidRefundPending}
+                disabled={isWithdrawBidRefundPending}
+                onClick={handleWithdrawBidRefund}
               />
             )}
 

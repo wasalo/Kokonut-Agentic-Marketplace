@@ -7,6 +7,7 @@ export {
   useUserBid,
   useEvaluatorPoolSize,
   useEvaluatorStatus,
+  useHasActiveEvaluatorJobs,
 } from './read';
 
 export {

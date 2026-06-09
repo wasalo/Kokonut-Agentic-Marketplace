@@ -136,8 +136,8 @@ export function useBiddingSessions(start: number = 0, count?: number) {
 
   const sessions = useMemo(
     () =>
-      (data
-        ?.map(result => result.result as BiddingSession | undefined)
+      ((data as unknown[] | undefined)
+        ?.map(result => (result as { result?: unknown }).result as BiddingSession | undefined)
         .filter((session): session is BiddingSession => session !== undefined) ?? []),
     [data]
   );
@@ -851,4 +851,50 @@ export function useBidStatus(sessionId: bigint | undefined, bidder: `0x${string}
     query: { retry: 2, staleTime: 15 * 1000, enabled: sessionId !== undefined && bidder !== undefined },
   });
   return { status: (data as number | undefined) ?? 0, isLoading, error, refetch };
+}
+
+// ============ Phase 47 Hooks ============
+
+/// @notice Phase 47: withdraw a pull-based bid refund after acceptBid/rejectBid/createJobAndFund.
+export function useWithdrawBidRefund() {
+  const { data: hash, isPending, writeContract, error: writeError } = useWriteContract();
+  const { isLoading: isConfirming, isSuccess: isConfirmed } = useWaitForTransactionReceipt({ hash });
+
+  function withdrawBidRefund(sessionId: bigint) {
+    writeContract({
+      chainId: SEPOLIA_CHAIN_ID,
+      address: BIDDING_SYSTEM_ADDRESS,
+      abi: BIDDING_SYSTEM_ABI,
+      functionName: 'withdrawBidRefund',
+      args: [sessionId],
+    });
+  }
+
+  return {
+    withdrawBidRefund,
+    hash,
+    isPending,
+    isConfirming,
+    isConfirmed,
+    error: writeError as Error | null,
+  };
+}
+
+/// @notice Phase 47: read the pending pull-based refund for a bidder in a session.
+export function usePendingBidRefund(
+  sessionId: bigint | undefined,
+  bidder: `0x${string}` | undefined
+) {
+  const { data, isLoading, error, refetch } = useReadContract({
+    address: BIDDING_SYSTEM_ADDRESS,
+    abi: BIDDING_SYSTEM_ABI,
+    functionName: 'pendingBidRefund',
+    args: sessionId !== undefined && bidder !== undefined ? [sessionId, bidder] : undefined,
+    query: {
+      retry: 2,
+      staleTime: 15 * 1000,
+      enabled: sessionId !== undefined && bidder !== undefined,
+    },
+  });
+  return { refund: (data as bigint | undefined) ?? 0n, isLoading, error, refetch };
 }

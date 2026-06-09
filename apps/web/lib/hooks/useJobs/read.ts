@@ -179,3 +179,14 @@ export function useEvaluatorStatus(address: `0x${string}` | undefined) {
 
   return { isEvaluator: data || false, isLoading, error, refetch };
 }
+
+// Phase 47: check if evaluator is assigned to any active job (Funded, Submitted, PendingClientApproval)
+const ACTIVE_EVALUATOR_STATUSES: number[] = [JobStatus.Funded, JobStatus.Submitted, JobStatus.PendingClientApproval];
+
+export function useHasActiveEvaluatorJobs(address: `0x${string}` | undefined) {
+  const { jobs, isLoading, error, refetch } = useUserJobs(address, 'evaluator');
+
+  const hasActive = jobs.some(job => ACTIVE_EVALUATOR_STATUSES.includes(job.status));
+
+  return { hasActiveEvaluatorJobs: hasActive, isLoading, error, refetch };
+}

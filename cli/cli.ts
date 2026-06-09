@@ -2788,37 +2788,6 @@ program
     console.log(chalk.yellow('Bidding was moved to the standalone BiddingSystem contract.'));
   });
 
-// 🎯 GET CLIENT JOB COUNT COMMAND
-program
-  .command('get-client-job-count')
-  .description('Get job count for a client address (V6)')
-  .option('--address <address>', 'Client address (defaults to connected wallet)')
-  .action(async options => {
-    try {
-      const opts = program.opts();
-      initWallet(undefined, opts.wallet, opts.passphrase);
-
-      const commerceABI = parseAbi([
-        'function getClientJobCount(address client) external view returns (uint256)',
-      ]);
-
-      const commerce = getContractInstance(
-        config.contracts.agenticCommerce as Address,
-        commerceABI
-      );
-
-      const address = (options.address as Address) || config.signerAddress;
-      const count = (await commerce.read.getClientJobCount([address])) as bigint;
-
-      console.log(chalk.cyan('\n📊 Client Job Count:'));
-      console.log(chalk.dim('Client:'), address);
-      console.log(chalk.bold('Total Jobs:'), count.toString());
-    } catch (error: unknown) {
-      const err = error as { message?: string };
-      console.error(chalk.red('❌ Error:'), err.message);
-    }
-  });
-
 // 🎯 ACTIVATE SERVICE COMMAND
 program
   .command('activate-service')
@@ -3266,7 +3235,7 @@ program
 
       console.log(chalk.cyan('Transaction sent:'), hash);
       await waitForTransactionReceipt(hash);
-      console.log(chalk.green('✅ Bid accepted! Winner can now claim stake.'));
+      console.log(chalk.green('✅ Bid accepted! Winner can now withdraw bid refund after the job is created.'));
     } catch (error: unknown) {
       const err = error as { message?: string };
       console.error(chalk.red('❌ Error:'), err.message);
@@ -3328,6 +3297,39 @@ program
       console.log(chalk.dim('  Job Created:'), session.jobCreated || session[11]);
       console.log(chalk.dim('  Random Evaluator:'), session.useRandomEvaluator || session[13] || false);
       console.log(chalk.dim('  Payment Token:'), (session.paymentToken || session[14]) === ZeroAddress ? 'ETH' : session.paymentToken || session[14]);
+    } catch (error: unknown) {
+      const err = error as { message?: string };
+      console.error(chalk.red('❌ Error:'), err.message);
+    }
+  });
+
+program
+  .command('withdraw-bid-refund')
+  .description('Withdraw your recorded bid refund from a session (Phase 47 pull-based refund)')
+  .requiredOption('--session <id>', 'Session ID', parseInt)
+  .action(async options => {
+    try {
+      const opts = program.opts();
+      initWallet(undefined, opts.wallet, opts.passphrase);
+
+      if (!config.contracts.biddingSystem) {
+        console.error(chalk.red('❌ BiddingSystem not configured'));
+        return;
+      }
+
+      const contract = getContractInstance(
+        config.contracts.biddingSystem as Address,
+        BIDDING_SYSTEM_ABI_PARSED
+      );
+
+      console.log(chalk.cyan('Withdrawing bid refund...'));
+      console.log(chalk.dim('  Session ID:'), options.session);
+
+      const hash = await contract.write.withdrawBidRefund([BigInt(options.session)]);
+
+      console.log(chalk.cyan('Transaction sent:'), hash);
+      await waitForTransactionReceipt(hash);
+      console.log(chalk.green('✅ Bid refund withdrawn!'));
     } catch (error: unknown) {
       const err = error as { message?: string };
       console.error(chalk.red('❌ Error:'), err.message);
@@ -4703,7 +4705,6 @@ program
     console.log(chalk.dim('  withdraw-stake') + '         Use withdraw-bidding-stake instead');
     console.log(chalk.dim('  get-my-bid') + '             Use get-bidding-session instead');
     console.log(chalk.dim('  get-job-bid-count') + '      Removed from V9');
-    console.log(chalk.cyan('  get-client-job-count') + '   Get job count for a client');
     console.log(chalk.cyan('  -- BiddingSystem (Phase 41) --'));
     console.log(chalk.cyan('  create-bidding-session') + '  Create a new bidding session');
     console.log(chalk.cyan('  commit-bidding') + '         Commit a sealed bid');
@@ -4713,7 +4714,7 @@ program
     console.log(chalk.cyan('  cancel-session') + '         Cancel a session (creator only)');
     console.log(chalk.cyan('  complete-session') + '       Complete a bidding session');
     console.log(chalk.cyan('  extend-reveal-window') + '   Extend the reveal window');
-    console.log(chalk.cyan('  claim-stake') + '            Claim your stake (winner)');
+    console.log(chalk.cyan('  withdraw-bid-refund') + '    Withdraw your recorded bid refund (Phase 47)');
     console.log(chalk.cyan('  create-job-from-session') + ' Create job from winning bid');
     console.log(chalk.cyan('  get-bidding-session') + '    Get session details');
     console.log(chalk.cyan('  get-bid') + '                Get specific bid details');

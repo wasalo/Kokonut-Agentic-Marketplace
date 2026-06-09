@@ -11,6 +11,7 @@ import {
   useWithdrawServiceBond,
   type Service,
 } from '@/lib/hooks/useServices';
+import { useIsAgentBlacklisted } from '@/lib/hooks/useAdminBlacklist';
 import { getTransactionError, showToast } from '@/lib/toast';
 import { SERVICE_BOND_AMOUNT, SERVICE_BOND_COOLDOWN_MS } from '@/lib/contracts/bonds';
 
@@ -27,6 +28,7 @@ export function ProviderServiceActions({ service, onRefetch }: ProviderServiceAc
   const { withdrawServiceBond, isPending: isWithdrawPending } = useWithdrawServiceBond();
   const { bond } = useGetServiceBond(service.id);
   const { deactivatedAt } = useDeactivatedAt(service.id);
+  const { isBlacklisted: isAgentBlacklisted } = useIsAgentBlacklisted(service.agentId);
 
   useEffect(() => {
     function handleClickOutside(event: MouseEvent) {
@@ -40,6 +42,17 @@ export function ProviderServiceActions({ service, onRefetch }: ProviderServiceAc
   }, []);
 
   const handleActivate = async () => {
+    // Phase 47: pre-validate agent blacklist and bond before activating
+    if (isAgentBlacklisted) {
+      showToast.error('Activation blocked', 'This agent is blacklisted. Services cannot be activated.');
+      setIsOpen(false);
+      return;
+    }
+    if (bond === 0n) {
+      showToast.error('Activation blocked', 'Service bond has been withdrawn. Re-create the service to re-activate.');
+      setIsOpen(false);
+      return;
+    }
     try {
       const toastId = showToast.loading('Activating service...');
       await activateService(service.id);

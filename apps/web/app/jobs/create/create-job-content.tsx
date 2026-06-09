@@ -286,7 +286,8 @@ function CreateJobContent() {
         const budgetAmount = parseAmount(budget || '0', paymentToken);
         const paymentTokenAddr = paymentToken.address as `0x${string}`;
 
-        const fundAmount = fundJobNow && paymentToken.symbol === 'ETH' ? budgetAmount : 0n;
+        // Phase 47: exact funding required when fundNow=true for all tokens
+        const fundAmount = fundJobNow ? budgetAmount : 0n;
 
         if (fundJobNow && paymentToken.symbol === 'USDC') {
           const isApproved = await ensureUSDCApproval(budgetAmount, budget);
