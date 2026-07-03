@@ -5,6 +5,7 @@ import { Service } from '@/lib/hooks/useServices';
 import { useTokenPriceConversion } from '@/lib/hooks/useTokenConversion';
 import { Card } from '@heroui/react';
 import { useRouter } from 'next/navigation';
+import NextLink from 'next/link';
 import {
   ShoppingBag,
   DollarSign,
@@ -76,16 +77,21 @@ const ServiceCard = memo(function ServiceCard({
     toggleBookmark(serviceIdStr);
   };
 
-  const handleCardClick = () => {
-    router.push(`/marketplace/${serviceIdStr}`);
+  const prefetchService = () => {
+    router.prefetch(`/marketplace/${serviceIdStr}`);
   };
 
   return (
+    <NextLink
+      href={`/marketplace/${serviceIdStr}`}
+      className="block focus:outline-none focus-visible:ring-2 focus-visible:ring-primary rounded-xl"
+      onMouseEnter={prefetchService}
+    >
     <Card className={card('clickable', 'hover:border-success h-full')}>
       <div className="p-5 flex flex-col h-full">
         {/* Header Row */}
         <div className="flex items-start justify-between mb-2">
-          <div className="flex-1 min-w-0 pr-2" onClick={handleCardClick}>
+          <div className="flex-1 min-w-0 pr-2">
             <h3 className="font-semibold text-sm md:text-base truncate">{service.name}</h3>
           </div>
           <div className="flex items-center gap-1.5 shrink-0">
@@ -115,7 +121,7 @@ const ServiceCard = memo(function ServiceCard({
         </div>
 
         {/* Description */}
-        <div className="flex-1" onClick={handleCardClick}>
+        <div className="flex-1">
           <p className="text-default-500 text-xs mb-3 line-clamp-2">{service.description}</p>
         </div>
 
@@ -187,6 +193,7 @@ const ServiceCard = memo(function ServiceCard({
         </div>
       </div>
     </Card>
+    </NextLink>
   );
 });
 

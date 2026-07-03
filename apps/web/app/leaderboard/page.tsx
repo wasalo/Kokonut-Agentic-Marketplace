@@ -2,7 +2,6 @@
 
 
 import { useState, useEffect } from 'react';
-import { useRouter } from 'next/navigation';
 import NextLink from 'next/link';
 import {
   Trophy,
@@ -74,20 +73,12 @@ interface LeaderboardRowProps {
 }
 
 function LeaderboardRow({ entry, rank }: LeaderboardRowProps) {
-  const router = useRouter();
   const agentName = entry.name || `Agent #${entry.agentId.toString()}`;
 
-  const handleRowClick = () => {
-    router.push(`/identity/${entry.agentId.toString()}`);
-  };
-
   return (
-    <div
-      onClick={handleRowClick}
-      onKeyDown={(e) => { if (e.key === 'Enter' || e.key === ' ') handleRowClick(); }}
-      role="button"
-      tabIndex={0}
-      className="flex items-center gap-4 p-4 hover:bg-content2 transition-colors rounded-lg cursor-pointer"
+    <NextLink
+      href={`/identity/${entry.agentId.toString()}`}
+      className="flex items-center gap-4 p-4 hover:bg-content2 transition-colors rounded-lg cursor-pointer focus:outline-none focus-visible:ring-2 focus-visible:ring-primary"
     >
       <TierBadge rank={rank} />
       <div className="flex-1 min-w-0">
@@ -117,7 +108,7 @@ function LeaderboardRow({ entry, rank }: LeaderboardRowProps) {
           <span>{entry.servicesCount} svc</span>
         </div>
       </div>
-    </div>
+    </NextLink>
   );
 }
 

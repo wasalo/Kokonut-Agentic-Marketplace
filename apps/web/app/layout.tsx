@@ -18,6 +18,7 @@ import { ClientErrorBoundary } from '@/components/error/ClientErrorBoundary';
 import { WebVitalsProvider } from '@/components/WebVitalsProvider';
 import { Toaster } from 'sonner';
 import { SearchModal } from '@/components/SearchModal';
+import { RouteProgress } from '@/components/RouteProgress';
 import { SuppressHmrRace } from '@/lib/dev/suppress-hmr-race';
 
 const inter = Inter({ subsets: ['latin'] });
@@ -80,6 +81,7 @@ export default function RootLayout({
           <ClientErrorBoundary>
             <WebVitalsProvider>
               <Providers>
+                <RouteProgress />
                 <div className="min-h-screen flex flex-col bg-background">
                   <SearchModal />
                   <a

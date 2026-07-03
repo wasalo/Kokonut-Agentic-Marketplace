@@ -22,25 +22,25 @@ export const DS = {
   buttons: {
     /** Primary CTA: gradient green, white text */
     primary:
-      'inline-flex items-center justify-center gap-2 px-5 py-2.5 bg-gradient-to-r from-[#009F4D] to-[#00c853] text-white rounded-lg font-medium hover:opacity-90 transition-opacity disabled:opacity-50 disabled:cursor-not-allowed',
+      'inline-flex items-center justify-center gap-2 px-5 py-2.5 bg-gradient-to-r from-[#009F4D] to-[#00c853] text-white rounded-lg font-medium hover:opacity-90 transition-opacity disabled:opacity-50 disabled:cursor-not-allowed focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-primary focus-visible:ring-offset-2 focus-visible:ring-offset-background',
 
     /** Secondary: outlined green */
     secondary:
-      'inline-flex items-center justify-center gap-2 px-5 py-2.5 border-2 border-[#009F4D] text-[#009F4D] font-semibold rounded-lg hover:bg-[#009F4D]/5 disabled:opacity-50 disabled:cursor-not-allowed',
+      'inline-flex items-center justify-center gap-2 px-5 py-2.5 border-2 border-[#009F4D] text-[#009F4D] font-semibold rounded-lg hover:bg-[#009F4D]/5 disabled:opacity-50 disabled:cursor-not-allowed focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-primary focus-visible:ring-offset-2 focus-visible:ring-offset-background',
 
     /** Danger: red background */
     danger:
-      'inline-flex items-center justify-center gap-2 px-5 py-2.5 bg-danger text-white rounded-lg font-medium hover:bg-red-600 transition-colors disabled:opacity-50 disabled:cursor-not-allowed',
+      'inline-flex items-center justify-center gap-2 px-5 py-2.5 bg-danger text-white rounded-lg font-medium hover:bg-red-600 transition-colors disabled:opacity-50 disabled:cursor-not-allowed focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-danger focus-visible:ring-offset-2 focus-visible:ring-offset-background',
 
     /** Ghost: subtle border, hover background */
     ghost:
-      'inline-flex items-center justify-center gap-2 px-4 py-2 rounded-lg border border-divider hover:bg-content2 transition-colors disabled:opacity-50 disabled:cursor-not-allowed',
+      'inline-flex items-center justify-center gap-2 px-4 py-2 rounded-lg border border-divider hover:bg-content2 transition-colors disabled:opacity-50 disabled:cursor-not-allowed focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-primary focus-visible:ring-offset-2 focus-visible:ring-offset-background',
 
     /** Icon-only button */
-    icon: 'inline-flex items-center justify-center p-2 rounded-lg text-default-400 hover:text-foreground hover:bg-content2 transition-colors disabled:opacity-50',
+    icon: 'inline-flex items-center justify-center p-2 rounded-lg text-default-400 hover:text-foreground hover:bg-content2 transition-colors disabled:opacity-50 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-primary focus-visible:ring-offset-2 focus-visible:ring-offset-background',
 
     /** Link-style text button */
-    link: 'inline-flex items-center gap-1 text-sm text-primary hover:text-primary-600 transition-colors disabled:opacity-50',
+    link: 'inline-flex items-center gap-1 text-sm text-primary hover:text-primary-600 transition-colors disabled:opacity-50 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-primary rounded',
   },
 
   /** Input fields */

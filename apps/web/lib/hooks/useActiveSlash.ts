@@ -33,7 +33,7 @@ export function useActiveSlash(jobId: bigint | undefined, evaluator: Address | n
   const publicClient = usePublicClient();
 
   const query = useQuery<bigint | null>({
-    queryKey: ['active-slash', jobId, evaluator],
+    queryKey: ['active-slash', jobId?.toString(), evaluator],
     queryFn: async () => {
       if (!publicClient) return null;
 

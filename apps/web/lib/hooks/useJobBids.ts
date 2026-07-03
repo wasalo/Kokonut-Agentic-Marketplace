@@ -13,7 +13,7 @@ export function useJobBids(jobId: bigint | undefined, enabled: boolean) {
   const { count: bidCount } = useJobBidCount(jobId);
 
   const query = useQuery<Bid[]>({
-    queryKey: ['job-bids', jobId],
+    queryKey: ['job-bids', jobId?.toString()],
     queryFn: async () => {
       const calls = Array.from({ length: bidCount }, (_, i) => ({
         address: AGENTIC_COMMERCE_ADDRESS,

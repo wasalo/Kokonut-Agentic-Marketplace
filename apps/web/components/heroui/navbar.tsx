@@ -57,7 +57,7 @@ export const NavbarComponent = React.memo(function NavbarComponent(): JSX.Elemen
     <header className="sticky top-0 z-50 backdrop-blur-xl bg-background/80 border-b border-divider">
       <nav className="container mx-auto px-4">
         <div className="flex items-center justify-between h-16">
-          <NextLink href="/" className="flex items-center gap-2 shrink-0">
+          <NextLink href="/" className="flex items-center gap-2 shrink-0 focus:outline-none focus-visible:ring-2 focus-visible:ring-primary rounded-lg">
             <div className="size-9 rounded-lg bg-gradient-to-br from-[#009F4D] to-[#FFCD00] flex items-center justify-center">
               <span className="text-white font-bold text-sm">KK</span>
             </div>
@@ -69,7 +69,7 @@ export const NavbarComponent = React.memo(function NavbarComponent(): JSX.Elemen
               <NextLink
                 key={link.name}
                 href={link.href}
-                className="px-3 py-2 text-sm text-foreground hover:bg-content2 rounded-lg transition-colors"
+                className="px-3 py-2 text-sm text-foreground hover:bg-content2 rounded-lg transition-colors focus:outline-none focus-visible:ring-2 focus-visible:ring-primary"
               >
                 {link.name}
               </NextLink>
@@ -77,7 +77,7 @@ export const NavbarComponent = React.memo(function NavbarComponent(): JSX.Elemen
             {mounted && isConnected && (
               <NextLink
                 href="/dashboard"
-                className="px-3 py-2 text-sm text-foreground hover:bg-content2 rounded-lg transition-colors"
+                className="px-3 py-2 text-sm text-foreground hover:bg-content2 rounded-lg transition-colors focus:outline-none focus-visible:ring-2 focus-visible:ring-primary"
               >
                 Dashboard
               </NextLink>
@@ -91,7 +91,7 @@ export const NavbarComponent = React.memo(function NavbarComponent(): JSX.Elemen
             {mounted && (
               <button type="button"
                 onClick={toggleTheme}
-                className="p-2 text-foreground hover:bg-content2 rounded-lg transition-colors"
+                className="p-2 text-foreground hover:bg-content2 rounded-lg transition-colors focus:outline-none focus-visible:ring-2 focus-visible:ring-primary"
                 aria-label="Toggle theme"
               >
                 {theme === 'dark' ? <Sun className="size-5" /> : <Moon className="size-5" />}
@@ -102,7 +102,7 @@ export const NavbarComponent = React.memo(function NavbarComponent(): JSX.Elemen
             </div>
 
             <button type="button"
-              className="md:hidden p-2 text-foreground hover:bg-content2 rounded-lg transition-colors"
+              className="md:hidden p-2 text-foreground hover:bg-content2 rounded-lg transition-colors focus:outline-none focus-visible:ring-2 focus-visible:ring-primary"
               onClick={toggleMenu}
               aria-label={isMenuOpen ? 'Close navigation menu' : 'Open navigation menu'}
               aria-expanded={isMenuOpen}
@@ -121,7 +121,7 @@ export const NavbarComponent = React.memo(function NavbarComponent(): JSX.Elemen
               <NextLink
                 key={link.name}
                 href={link.href}
-                className="block px-4 py-2 text-sm text-foreground hover:bg-content2 rounded-lg transition-colors"
+                className="block px-4 py-2 text-sm text-foreground hover:bg-content2 rounded-lg transition-colors focus:outline-none focus-visible:ring-2 focus-visible:ring-primary"
                 onClick={closeMenu}
               >
                 {link.name}
@@ -130,7 +130,7 @@ export const NavbarComponent = React.memo(function NavbarComponent(): JSX.Elemen
             {mounted && isConnected && (
               <NextLink
                 href="/dashboard"
-                className="block px-4 py-2 text-sm text-foreground hover:bg-content2 rounded-lg transition-colors"
+                className="block px-4 py-2 text-sm text-foreground hover:bg-content2 rounded-lg transition-colors focus:outline-none focus-visible:ring-2 focus-visible:ring-primary"
                 onClick={closeMenu}
               >
                 Dashboard
@@ -138,7 +138,7 @@ export const NavbarComponent = React.memo(function NavbarComponent(): JSX.Elemen
             )}
             <NextLink
               href="/onboarding"
-              className="block px-4 py-2 text-sm text-default-500 hover:bg-content2 rounded-lg transition-colors"
+              className="block px-4 py-2 text-sm text-default-500 hover:bg-content2 rounded-lg transition-colors focus:outline-none focus-visible:ring-2 focus-visible:ring-primary"
               onClick={closeMenu}
             >
               Get Started

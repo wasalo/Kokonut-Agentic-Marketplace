@@ -78,14 +78,14 @@ function LinkSection({ title, links }: { title: string; links: typeof discoverLi
                   href={link.href}
                   target="_blank"
                   rel="noopener noreferrer"
-                  className="text-default-500 text-sm hover:text-primary transition-colors flex items-center gap-2"
+                  className="text-default-500 text-sm hover:text-primary transition-colors flex items-center gap-2 focus:outline-none focus-visible:ring-2 focus-visible:ring-primary rounded"
                 >
                   {content}
                 </a>
               ) : (
                 <NextLink
                   href={link.href}
-                  className="text-default-500 text-sm hover:text-primary transition-colors flex items-center gap-2"
+                  className="text-default-500 text-sm hover:text-primary transition-colors flex items-center gap-2 focus:outline-none focus-visible:ring-2 focus-visible:ring-primary rounded"
                 >
                   {content}
                 </NextLink>
@@ -105,7 +105,7 @@ export function Footer(): JSX.Element {
         <div className="grid grid-cols-2 md:grid-cols-5 gap-8">
           {/* Brand */}
           <div className="col-span-2">
-            <NextLink href="/" className="flex items-center gap-2 mb-4">
+            <NextLink href="/" className="flex items-center gap-2 mb-4 focus:outline-none focus-visible:ring-2 focus-visible:ring-primary rounded-lg">
               <div className="size-10 rounded-xl bg-gradient-to-br from-[#009F4D] to-[#FFCD00] flex items-center justify-center">
                 <span className="text-white font-bold">KK</span>
               </div>
@@ -121,7 +121,7 @@ export function Footer(): JSX.Element {
                   href={social.href}
                   target="_blank"
                   rel="noopener noreferrer"
-                  className="text-default-500 hover:text-primary transition-colors"
+                  className="text-default-500 hover:text-primary transition-colors focus:outline-none focus-visible:ring-2 focus-visible:ring-primary rounded"
                   title={social.name}
                 >
                   <social.icon className="size-5" />
@@ -147,7 +147,7 @@ export function Footer(): JSX.Element {
               <NextLink
                 key={link.name}
                 href={link.href}
-                className="text-default-500 text-sm hover:text-primary transition-colors"
+                className="text-default-500 text-sm hover:text-primary transition-colors focus:outline-none focus-visible:ring-2 focus-visible:ring-primary rounded"
               >
                 {link.name}
               </NextLink>

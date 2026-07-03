@@ -54,7 +54,7 @@ function DomainCard({
     <button
       type="button"
       onClick={onClick}
-      className={`p-4 rounded-xl border text-left transition-all ${
+      className={`p-4 rounded-xl border text-left transition-all focus:outline-none focus-visible:ring-2 focus-visible:ring-primary ${
         isSelected
           ? 'border-success bg-success/5'
           : 'border-divider hover:border-primary/30 hover:shadow-sm hover:bg-content2/50'
