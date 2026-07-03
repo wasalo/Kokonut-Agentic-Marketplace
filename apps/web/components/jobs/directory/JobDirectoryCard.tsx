@@ -3,6 +3,7 @@
 import { memo } from 'react';
 import type { MouseEvent } from 'react';
 import NextLink from 'next/link';
+import { useRouter } from 'next/navigation';
 import { Card } from '@heroui/react';
 import { Bookmark, Clock, DollarSign } from 'lucide-react';
 import { StatusBadge, getJobStatusBadgeType } from '@/components/StatusBadge';
@@ -13,6 +14,7 @@ import { formatAmount, getTokenByAddress } from '@/lib/tokenUtils';
 import { card } from '@/lib/design-system';
 
 export const JobDirectoryCard = memo(function JobDirectoryCard({ job }: { job: Job }) {
+  const router = useRouter();
   const { service } = useService(job.serviceId ?? 0n);
   const { isBookmarked, toggleBookmark } = useJobBookmarks();
   const { getJobCount } = useBookmarkCounts();
@@ -32,10 +34,18 @@ export const JobDirectoryCard = memo(function JobDirectoryCard({ job }: { job: J
     toggleBookmark(jobIdStr);
   };
 
+  const prefetchJob = () => {
+    router.prefetch(`/jobs/${jobIdStr}`);
+  };
+
   return (
     <Card className={card('interactive')}>
       <div className="flex items-start justify-between gap-4">
-        <NextLink href={`/jobs/${jobIdStr}`} className="flex-1 min-w-0">
+        <NextLink
+          href={`/jobs/${jobIdStr}`}
+          className="flex-1 min-w-0 focus:outline-none focus-visible:ring-2 focus-visible:ring-primary rounded-lg"
+          onMouseEnter={prefetchJob}
+        >
           <div className="flex items-center gap-2">
             <h3 className="font-semibold">Job #{jobIdStr}</h3>
             <StatusBadge status={getJobStatusBadgeType(job.status)} size="sm" />

@@ -1,6 +1,8 @@
 'use client';
 
+import { memo } from 'react';
 import NextLink from 'next/link';
+import { useRouter } from 'next/navigation';
 import { Card } from '@heroui/react';
 import { CircleDot, Clock, DollarSign } from 'lucide-react';
 import { StatusBadge } from '@/components/StatusBadge';
@@ -18,7 +20,8 @@ interface BiddingSessionCardProps {
   isConnected: boolean;
 }
 
-export function BiddingSessionCard({ session, isConnected }: BiddingSessionCardProps) {
+export const BiddingSessionCard = memo(function BiddingSessionCard({ session, isConnected }: BiddingSessionCardProps) {
+  const router = useRouter();
   const sessionIdStr = session.id.toString();
   const isActive = session.status === SessionStatus.Active;
   const token = getTokenByAddress(session.paymentToken);
@@ -28,10 +31,18 @@ export function BiddingSessionCard({ session, isConnected }: BiddingSessionCardP
     ? 'Random Pool'
     : session.evaluator;
 
+  const prefetchSession = () => {
+    router.prefetch(`/bidding/${sessionIdStr}`);
+  };
+
   return (
     <Card className={card('interactive')}>
       <div className="flex flex-col sm:flex-row sm:items-start sm:justify-between gap-4">
-        <NextLink href={`/bidding/${sessionIdStr}`} className="flex-1 min-w-0">
+        <NextLink
+          href={`/bidding/${sessionIdStr}`}
+          className="flex-1 min-w-0 focus:outline-none focus-visible:ring-2 focus-visible:ring-primary rounded-lg"
+          onMouseEnter={prefetchSession}
+        >
           <div className="flex flex-wrap items-center gap-2">
             <h3 className="font-semibold">Session #{sessionIdStr}</h3>
             <StatusBadge status={getSessionStatusBadge(session.status).badge} size="sm" />
@@ -73,4 +84,4 @@ export function BiddingSessionCard({ session, isConnected }: BiddingSessionCardP
       </div>
     </Card>
   );
-}
+});

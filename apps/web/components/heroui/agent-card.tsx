@@ -2,9 +2,10 @@
 
 import { memo } from 'react';
 import Image from 'next/image';
+import NextLink from 'next/link';
+import { useRouter } from 'next/navigation';
 import { Card, Chip } from '@heroui/react';
 import { Star, ExternalLink, Shield, Users, UserCheck } from 'lucide-react';
-import { useRouter } from 'next/navigation';
 import { useAccount } from 'wagmi';
 import { FollowButton } from '@/components/FollowButton';
 import { Address } from '@/components/Address';
@@ -40,23 +41,21 @@ export const AgentCard = memo(function AgentCard({
   const router = useRouter();
   const { address: connectedAddress } = useAccount();
 
-  const handleClick = () => {
-    router.push(`/identity/${id}`);
-  };
-
   const handleFollowClick = (e: React.MouseEvent) => {
     e.stopPropagation();
   };
 
   const isOwner = connectedAddress && connectedAddress.toLowerCase() === owner.toLowerCase();
 
+  const prefetchAgent = () => {
+    router.prefetch(`/identity/${id}`);
+  };
+
   return (
-    <div
-      onClick={handleClick}
-      onKeyDown={e => e.key === 'Enter' && handleClick()}
-      role="button"
-      tabIndex={0}
-      className="block cursor-pointer"
+    <NextLink
+      href={`/identity/${id}`}
+      className="block focus:outline-none focus-visible:ring-2 focus-visible:ring-primary rounded-xl"
+      onMouseEnter={prefetchAgent}
     >
       <Card className={card('base', 'hover:shadow-lg transition-shadow')}>
         <div className="flex gap-4 p-4">
@@ -167,6 +166,6 @@ export const AgentCard = memo(function AgentCard({
           </div>
         </div>
       </Card>
-    </div>
+    </NextLink>
   );
 });

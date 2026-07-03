@@ -1,13 +1,21 @@
 'use client';
 
+import { memo } from 'react';
 import NextLink from 'next/link';
+import { useRouter } from 'next/navigation';
 import { Card } from '@heroui/react';
 import { Tag } from 'lucide-react';
 import { StatusBadge } from '@/components/StatusBadge';
 import type { MarketplaceSkill } from '@/lib/hooks/useMarketplaceSkillsDirectory';
 import { card } from '@/lib/design-system';
 
-export function MarketplaceSkillCard({ skill }: { skill: MarketplaceSkill }) {
+export const MarketplaceSkillCard = memo(function MarketplaceSkillCard({ skill }: { skill: MarketplaceSkill }) {
+  const router = useRouter();
+
+  const prefetchSkill = () => {
+    router.prefetch(`/marketplace?tab=skills&skillDomain=${skill.domains[0] || ''}`);
+  };
+
   return (
     <Card className={card('interactive', 'hover:border-success/30')}>
       <div className="flex items-start justify-between mb-3">
@@ -52,7 +60,8 @@ export function MarketplaceSkillCard({ skill }: { skill: MarketplaceSkill }) {
 
         <NextLink
           href={`/marketplace?skillDomain=${skill.domains[0] || ''}`}
-          className="text-xs text-success hover:underline flex items-center gap-1"
+          className="text-xs text-success hover:underline flex items-center gap-1 focus:outline-none focus-visible:ring-2 focus-visible:ring-primary rounded"
+          onMouseEnter={prefetchSkill}
         >
           <Tag className="size-3" />
           Find Services
@@ -65,4 +74,4 @@ export function MarketplaceSkillCard({ skill }: { skill: MarketplaceSkill }) {
       </div>
     </Card>
   );
-}
+});

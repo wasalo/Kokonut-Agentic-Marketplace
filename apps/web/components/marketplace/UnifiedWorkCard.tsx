@@ -4,6 +4,7 @@ import React from 'react';
 import type { ReactNode } from 'react';
 import NextLink from 'next/link';
 import { ArrowRight } from 'lucide-react';
+import { card } from '@/lib/design-system';
 
 interface UnifiedWorkCardProps {
   title: string;
@@ -25,11 +26,14 @@ export const UnifiedWorkCard = React.memo(function UnifiedWorkCard({
   actionLabel = 'Open',
 }: UnifiedWorkCardProps) {
   return (
-    <div className="rounded-2xl border border-divider bg-content1 p-4 transition hover:border-success/40 hover:bg-content2/50">
+    <div className={`${card('interactive')} focus-within:ring-2 focus-within:ring-primary rounded-xl`}>
       <div className="flex items-start justify-between gap-3">
         <div className="min-w-0">
           {eyebrow && <p className="mb-1 text-xs font-medium uppercase tracking-wide text-default-400">{eyebrow}</p>}
-          <NextLink href={href} className="font-semibold text-foreground hover:text-success">
+          <NextLink
+            href={href}
+            className="font-semibold text-foreground hover:text-success focus:outline-none focus-visible:ring-2 focus-visible:ring-primary rounded"
+          >
             {title}
           </NextLink>
           {description && <p className="mt-1 line-clamp-2 text-sm text-default-500">{description}</p>}
@@ -50,7 +54,7 @@ export const UnifiedWorkCard = React.memo(function UnifiedWorkCard({
 
       <NextLink
         href={href}
-        className="mt-4 inline-flex items-center gap-1 text-sm font-medium text-success hover:underline"
+        className="mt-4 inline-flex items-center gap-1 text-sm font-medium text-success hover:underline focus:outline-none focus-visible:ring-2 focus-visible:ring-primary rounded"
       >
         {actionLabel}
         <ArrowRight className="size-3" />

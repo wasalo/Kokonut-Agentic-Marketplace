@@ -4,6 +4,7 @@ import { useState, useEffect, useCallback, useRef } from 'react';
 import { Search, ArrowRight } from 'lucide-react';
 import { useRouter } from 'next/navigation';
 import NextLink from 'next/link';
+import { input as inputStyle } from '@/lib/design-system';
 
 interface SearchItem {
   label: string;
@@ -127,7 +128,7 @@ export function SearchModal() {
             value={query}
             onChange={e => setQuery(e.target.value)}
             onKeyDown={handleKeyDown}
-            className="flex-1 bg-transparent text-foreground placeholder:text-default-400 outline-none"
+            className={`${inputStyle()} flex-1 bg-transparent border-0 outline-none placeholder:text-default-400`}
           />
           <kbd className="hidden sm:inline-flex items-center gap-1 px-1.5 py-0.5 text-[10px] text-default-400 bg-content2 rounded border border-divider">
             ESC
@@ -146,7 +147,7 @@ export function SearchModal() {
                     key={item.href}
                     href={item.href}
                     onClick={() => { setIsOpen(false); setQuery(''); }}
-                    className={`flex items-center justify-between px-3 py-2 rounded-lg text-sm transition-colors ${
+                    className={`flex items-center justify-between px-3 py-2 rounded-lg text-sm transition-colors focus:outline-none focus-visible:ring-2 focus-visible:ring-primary ${
                       index === selectedIndex
                         ? 'bg-primary/10 text-primary'
                         : 'text-foreground hover:bg-content2'

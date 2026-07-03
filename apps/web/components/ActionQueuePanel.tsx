@@ -6,6 +6,7 @@ import { Bell, X, Briefcase, Gavel, Inbox } from 'lucide-react';
 import { useAccount } from 'wagmi';
 import { useActionQueue, type ActionItem } from '@/lib/hooks/useActionQueue';
 
+
 const URGENCY_DOT: Record<ActionItem['urgency'], string> = {
   high: 'bg-danger',
   medium: 'bg-warning',
@@ -50,7 +51,7 @@ export function HeaderBell(): JSX.Element | null {
       <button
         type="button"
         onClick={() => setOpen(prev => !prev)}
-        className="relative p-2 text-foreground hover:bg-content2 rounded-lg transition-colors"
+        className="relative p-2 text-foreground hover:bg-content2 rounded-lg transition-colors focus:outline-none focus-visible:ring-2 focus-visible:ring-primary"
         aria-label={`Action queue (${totalCount} pending)`}
         aria-haspopup="dialog"
         aria-expanded={open}
@@ -84,7 +85,7 @@ export function HeaderBell(): JSX.Element | null {
             <button
               type="button"
               onClick={close}
-              className="p-1 text-default-500 hover:text-foreground rounded"
+              className="p-1 text-default-500 hover:text-foreground rounded focus:outline-none focus-visible:ring-2 focus-visible:ring-primary"
               aria-label="Close action queue"
             >
               <X className="size-4" />
@@ -104,7 +105,7 @@ export function HeaderBell(): JSX.Element | null {
                   <NextLink
                     href={item.href}
                     onClick={close}
-                    className="flex items-start gap-3 px-4 py-3 hover:bg-content2 transition-colors"
+                    className="flex items-start gap-3 px-4 py-3 hover:bg-content2 transition-colors focus:outline-none focus-visible:ring-2 focus-visible:ring-primary rounded-lg"
                   >
                     <span
                       aria-hidden="true"
