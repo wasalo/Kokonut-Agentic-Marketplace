@@ -1372,6 +1372,26 @@ All contract addresses have hardcoded fallbacks to Sepolia testnet addresses in 
 | Staging | `staging.yml` | Staging deployment on `staging` branch push |
 | Deploy | `deploy.yml` | Production deployment on tag push (`v*`) |
 | Storage Layout | `storage-layout.yml` | Contract storage layout validation |
+| Dependabot Auto-Merge | `dependabot-auto-merge.yml` | Auto-merges Dependabot PRs after CI passes |
+
+### Branch Protection Rules
+
+All three branches (`develop`, `staging`, `main`) are protected via GitHub branch protection rules. Direct pushes are blocked — all changes must go through PRs.
+
+| Branch | Approvals | Status Checks | Dismiss Stale | Conversation Resolution | Force Push | Deletions |
+|--------|-----------|---------------|---------------|------------------------|------------|-----------|
+| `develop` | 1 | `contracts`, `frontend`, `e2e` | No | No | No | No |
+| `staging` | 1 | `contracts`, `frontend`, `e2e`, `security` | No | No | No | No |
+| `main` | 1 | `contracts`, `frontend`, `e2e`, `security` | Yes | Yes | No | No |
+
+**CODEOWNERS**: `@wasalo @wasabinetwork` required on all paths. PR review requests are auto-generated for every PR.
+
+**Auto-merge**: Enabled repo-wide. Dependabot PRs auto-merge after CI passes (via `dependabot-auto-merge.yml`).
+
+**Workflow**:
+1. Feature work → PR targeting `develop` → CI gate + 1 approval → merge
+2. Release prep → PR from `develop` → `staging` → CI gate + 1 approval → merge
+3. Production release → PR from `staging` → `main` → CI gate + 1 approval + conversation resolution → merge → `deploy.yml` triggers → GitHub Environment approval gate → deploy
 
 ### E2E Testing
 
