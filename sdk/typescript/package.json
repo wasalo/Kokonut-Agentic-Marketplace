@@ -25,6 +25,11 @@
       "import": "./dist/types.mjs",
       "require": "./dist/types.js",
       "types": "./dist/types.d.ts"
+    },
+    "./intelligence": {
+      "import": "./dist/modules/intelligence.mjs",
+      "require": "./dist/modules/intelligence.js",
+      "types": "./dist/modules/intelligence.d.ts"
     }
   },
   "scripts": {

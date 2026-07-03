@@ -9,12 +9,14 @@ import {
   Check,
   Terminal,
   ExternalLink,
+  Sprout,
 } from 'lucide-react';
 import { MCPDemoPanel } from '@/components/MCPDemoPanel';
 import NextLink from 'next/link';
 import { useState, useEffect } from 'react';
 import { Card, Button, Chip } from '@heroui/react';
 import { card } from '@/lib/design-system';
+import { useIntelligenceClient } from '@/lib/hooks/useIntelligenceClient';
 
 const MCP_SERVER_PORT = process.env.NEXT_PUBLIC_MCP_PORT || '3100';
 const MCP_SERVER_URL = process.env.NEXT_PUBLIC_MCP_URL || `http://localhost:${MCP_SERVER_PORT}`;
@@ -69,6 +71,20 @@ export default function IntegrationsPage() {
   }, []);
 
   const [activeTab, setActiveTab] = useState<'mcp' | 'webhooks' | 'email'>('mcp');
+  const intelligenceClient = useIntelligenceClient();
+  const [intelligenceHealth, setIntelligenceHealth] = useState<boolean | null>(null);
+  const intelligenceApiUrl =
+    process.env.NEXT_PUBLIC_INTELLIGENCE_API_URL ?? 'http://localhost:8055';
+
+  useEffect(() => {
+    let cancelled = false;
+    intelligenceClient.health().then(ok => {
+      if (!cancelled) setIntelligenceHealth(ok);
+    });
+    return () => {
+      cancelled = true;
+    };
+  }, [intelligenceClient]);
 
   const tabs = [
     {
@@ -99,6 +115,80 @@ export default function IntegrationsPage() {
           Connect your AI agents to the Kokonut platform via MCP, webhooks, and email.
         </p>
       </div>
+
+      <Card className={card('base') + ' mb-8'}>
+        <div className="p-6">
+          <div className="flex items-center gap-3 mb-6">
+            <div className="size-10 rounded-lg bg-primary/10 flex items-center justify-center">
+              <Sprout className="size-5 text-primary" />
+            </div>
+            <div>
+              <h2 className="text-xl font-semibold">Kokonut Intelligence</h2>
+              <p className="text-sm text-default-500">
+                Regenerative agriculture MRV, attestation, and AI agent data platform
+              </p>
+            </div>
+          </div>
+
+          <div className="bg-success/10 border border-success/20 rounded-lg p-4 mb-6">
+            <p className="text-sm text-success">
+              Kokonut Intelligence provides on-chain attestations for farm-level measurement,
+              reporting, and verification (MRV) data, with AI agents that monitor and summarize
+              cross-farm activity.
+            </p>
+          </div>
+
+          <div className="grid grid-cols-1 md:grid-cols-2 gap-4 mb-6">
+            <div className="bg-content2 rounded-lg p-4">
+              <p className="text-xs text-default-500 mb-1">Directus API URL</p>
+              <code className="text-sm text-foreground break-all">{intelligenceApiUrl}</code>
+            </div>
+            <div className="bg-content2 rounded-lg p-4">
+              <p className="text-xs text-default-500 mb-1">Health Status</p>
+              <div className="flex items-center gap-2">
+                {intelligenceHealth === null ? (
+                  <Chip size="sm" variant="soft">
+                    Checking…
+                  </Chip>
+                ) : intelligenceHealth ? (
+                  <Chip size="sm" color="success" variant="soft">
+                    ● Online
+                  </Chip>
+                ) : (
+                  <Chip size="sm" color="danger" variant="soft">
+                    ● Offline
+                  </Chip>
+                )}
+              </div>
+            </div>
+          </div>
+
+          <div className="flex flex-wrap gap-3">
+            <NextLink
+              href="/intelligence"
+              className="inline-flex items-center gap-1 text-sm text-primary hover:underline"
+            >
+              Open Intelligence Dashboard <ExternalLink className="size-3" />
+            </NextLink>
+            <a
+              href="https://kokonut.network/kokonut-intelligence"
+              target="_blank"
+              rel="noopener noreferrer"
+              className="inline-flex items-center gap-1 text-sm text-primary hover:underline"
+            >
+              Kokonut Intelligence Docs <ExternalLink className="size-3" />
+            </a>
+            <a
+              href="https://kokonut.network/kokonut-x-ai-agents"
+              target="_blank"
+              rel="noopener noreferrer"
+              className="inline-flex items-center gap-1 text-sm text-primary hover:underline"
+            >
+              AI Agents Overview <ExternalLink className="size-3" />
+            </a>
+          </div>
+        </div>
+      </Card>
 
       <div className="flex gap-2 mb-8 flex-wrap">
         {tabs.map(tab => (

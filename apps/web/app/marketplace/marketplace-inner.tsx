@@ -29,6 +29,7 @@ import {
   StudioHubPanel,
   getAttentionReason,
 } from '@/components/marketplace/MarketplaceHubPanels';
+import { IntelligenceStatsPanel } from '@/components/intelligence/IntelligenceStatsPanel';
 
 const ITEMS_PER_PAGE = 12;
 const MAX_MARKETPLACE_BATCH = 50;
@@ -55,6 +56,7 @@ const HUB_TABS = new Set<MarketplaceHubTab>([
   'skills',
   'my-work',
   'studio',
+  'intelligence',
 ]);
 
 function parseMarketplaceTab(value: string | null): MarketplaceHubTab {
@@ -541,6 +543,7 @@ export default function MarketplaceInner() {
           }}
         />
       )}
+      {activeTab === 'intelligence' && <IntelligenceStatsPanel />}
     </MarketplaceHubShell>
   );
 }

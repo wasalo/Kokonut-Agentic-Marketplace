@@ -48,7 +48,7 @@ export function useWalletAgentsFromSubgraph(ownerAddress: `0x${string}` | undefi
         owner: a.owner as `0x${string}`,
         agentURI: a.metadataURI || '',
         metadata,
-        hasKokonutTag: a.source === 'kokonut-marketplace' || metadata?.source === 'kokonut-marketplace',
+        hasKokonutTag: a.source === 'kokonut-marketplace' || a.source === 'kokonut-intelligence' || metadata?.source === 'kokonut-marketplace' || metadata?.source === 'kokonut-intelligence',
       };
     });
   }, [data]);

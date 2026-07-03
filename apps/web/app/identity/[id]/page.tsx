@@ -5,7 +5,10 @@ import { useState } from 'react';
 import Link from 'next/link';
 import { Card, Badge, Skeleton } from '@heroui/react';
 import { useUnifiedAgentProfile, useEfpStats } from '@/lib/hooks';
+import { useIntelligenceClient } from '@/lib/hooks/useIntelligenceClient';
 import { formatUsd } from '@/lib/tokenUtils';
+import { useQuery } from '@tanstack/react-query';
+import { card } from '@/lib/design-system';
 
 import { useAccount } from 'wagmi';
 import { Address } from '@/components/Address';
@@ -26,7 +29,16 @@ import {
   Webhook,
   Mail,
   Users,
+  Sprout,
+  Loader2,
+  ClipboardList,
+  Shield,
+  ShieldOff,
+  ShieldCheck,
 } from 'lucide-react';
+import { useEASAttestation } from '@/lib/hooks/useEASAttestation';
+import { formatAttestationTime } from '@/lib/eas-utils';
+import { CELO_EAS_CONTRACTS } from '@/lib/contracts/intelligence';
 
 interface AgentDetailPageProps {
   params: Promise<{ id: string }>;
@@ -623,6 +635,170 @@ function SkillsTab({ skillIds, isLoading }: { skillIds: bigint[] | undefined; is
   );
 }
 
+function IntelligenceDataSection({ metadata }: { metadata: any }) {
+  const client = useIntelligenceClient();
+  const intelligence = metadata?.intelligence;
+  const isIntelligenceAgent =
+    metadata?.source === 'kokonut-intelligence' || Boolean(intelligence);
+
+  const directusId = intelligence?.directusId;
+  const { data: tasks, isLoading: tasksLoading } = useQuery({
+    queryKey: ['intelligence-agent-tasks', directusId],
+    queryFn: () => client.listTasksByAgent(directusId, { limit: 10 }),
+    enabled: Boolean(directusId),
+    staleTime: 60 * 1000,
+    retry: 1,
+  });
+
+  // EAS attestation on Celo — must be called before early return
+  const verification = metadata?.verification;
+  const attestationUid = verification?.attestationUid;
+  const {
+    attestation,
+    isLoading: attestationLoading,
+  } = useEASAttestation(
+    verification?.provider === 'eas.celo' ? attestationUid : null
+  );
+
+  if (!isIntelligenceAgent) return null;
+
+  const agentType = intelligence?.agentType ?? intelligence?.agent_type ?? '—';
+  const farmId = intelligence?.farmId ?? intelligence?.farm_id ?? '—';
+  const manifestCid =
+    intelligence?.capabilityManifestCid ??
+    intelligence?.capability_manifest_cid ??
+    '—';
+  const reviewRequired = intelligence?.reviewRequired ?? intelligence?.review_required ?? false;
+
+  return (
+    <div className={card('padded', 'mt-4 md:mt-6')}>
+      <h3 className="font-semibold mb-4 flex items-center gap-2 text-sm md:text-base">
+        <Sprout className="size-4 text-primary" />
+        Intelligence Data
+      </h3>
+      <div className="grid grid-cols-1 md:grid-cols-2 gap-3 mb-4">
+        <div className="flex justify-between py-1.5 border-b border-divider/50">
+          <span className="text-default-500 text-xs md:text-sm">Agent Type</span>
+          <span className="font-medium text-xs md:text-sm">{agentType}</span>
+        </div>
+        <div className="flex justify-between py-1.5 border-b border-divider/50">
+          <span className="text-default-500 text-xs md:text-sm">Farm ID</span>
+          <span className="font-medium text-xs md:text-sm truncate max-w-[180px]">{farmId}</span>
+        </div>
+        <div className="flex justify-between py-1.5 border-b border-divider/50">
+          <span className="text-default-500 text-xs md:text-sm">Manifest CID</span>
+          <span className="font-medium text-xs md:text-sm truncate max-w-[180px]">{manifestCid}</span>
+        </div>
+        <div className="flex justify-between py-1.5 border-b border-divider/50">
+          <span className="text-default-500 text-xs md:text-sm">Review Required</span>
+          <span className="font-medium text-xs md:text-sm">
+            {reviewRequired ? 'Yes' : 'No'}
+          </span>
+        </div>
+      </div>
+
+      {/* EAS Attestation Badge */}
+      {verification?.provider === 'eas.celo' && (
+        <div className="mb-4">
+          {attestationLoading ? (
+            <div className="flex items-center gap-2 text-sm text-default-500">
+              <Loader2 className="size-4 animate-spin" />
+              Verifying on-chain attestation…
+            </div>
+          ) : attestation ? (
+            <div
+              className={`flex items-center gap-3 p-3 rounded-lg border ${
+                attestation.isValid
+                  ? 'bg-success/5 border-success/20'
+                  : attestation.revocationTime > 0
+                    ? 'bg-danger/5 border-danger/20'
+                    : 'bg-warning/5 border-warning/20'
+              }`}
+            >
+              {attestation.isValid ? (
+                <ShieldCheck className="size-5 text-success shrink-0" />
+              ) : attestation.revocationTime > 0 ? (
+                <ShieldOff className="size-5 text-danger shrink-0" />
+              ) : (
+                <Shield className="size-5 text-warning shrink-0" />
+              )}
+              <div className="min-w-0 flex-1">
+                <p className="text-sm font-medium">
+                  {attestation.isValid
+                    ? 'On-Chain Verified'
+                    : attestation.revocationTime > 0
+                      ? 'Attestation Revoked'
+                      : 'Attestation Expired'}
+                </p>
+                <p className="text-xs text-default-500 truncate">
+                  Attested by {attestation.attester.slice(0, 6)}…{attestation.attester.slice(-4)}
+                  {' · '}
+                  {formatAttestationTime(BigInt(attestation.time))}
+                  {attestation.schema && ` · ${attestation.schema}`}
+                </p>
+              </div>
+              <a
+                href={`https://celoscan.io/address/${CELO_EAS_CONTRACTS.eas}`}
+                target="_blank"
+                rel="noopener noreferrer"
+                className="text-xs text-primary hover:underline shrink-0"
+              >
+                View on Celo
+              </a>
+            </div>
+          ) : attestationUid ? (
+            <div className="flex items-center gap-2 p-3 rounded-lg border bg-content2/50 border-divider">
+              <Shield className="size-4 text-default-400" />
+              <span className="text-xs text-default-500">
+                Attestation not found on Celo ({attestationUid.slice(0, 10)}…)
+              </span>
+            </div>
+          ) : null}
+        </div>
+      )}
+
+      {directusId && (
+        <div>
+          <h4 className="font-medium text-sm mb-3 flex items-center gap-2">
+            <ClipboardList className="size-4 text-default-500" />
+            Agent Tasks ({tasks?.length ?? 0})
+          </h4>
+          {tasksLoading ? (
+            <div className="flex items-center gap-2 text-sm text-default-500">
+              <Loader2 className="size-4 animate-spin" />
+              Loading tasks…
+            </div>
+          ) : tasks && tasks.length > 0 ? (
+            <div className="space-y-2">
+              {tasks.map(task => (
+                <div
+                  key={task.id}
+                  className="flex items-center justify-between gap-2 p-2.5 bg-content2 rounded-lg"
+                >
+                  <div className="min-w-0">
+                    <p className="text-sm font-medium truncate">{task.task_type || 'Task'}</p>
+                    <p className="text-xs text-default-500 truncate">
+                      {task.subject_type}: {task.subject_id}
+                    </p>
+                  </div>
+                  <div className="flex items-center gap-2 shrink-0">
+                    <Badge className="text-xs">{task.execution_status || '—'}</Badge>
+                    {task.review_status && (
+                      <Badge className="text-xs">{task.review_status}</Badge>
+                    )}
+                  </div>
+                </div>
+              ))}
+            </div>
+          ) : (
+            <p className="text-xs text-default-500">No tasks recorded for this agent.</p>
+          )}
+        </div>
+      )}
+    </div>
+  );
+}
+
 export default function AgentDetailPage({ params }: AgentDetailPageProps) {
   useEffect(() => {
     document.title = 'Agent Profile | Kokonut Agent Economy';
@@ -716,6 +892,8 @@ export default function AgentDetailPage({ params }: AgentDetailPageProps) {
           <ConnectionsTab metadata={metadata} owner={owner} connectedAddress={connectedAddress as `0x${string}` | undefined} />
         )}
       </div>
+
+      <IntelligenceDataSection metadata={metadata} />
     </div>
   );
 }

@@ -36,9 +36,17 @@ export interface AgentMetadata8004 {
   updatedAt: string;
   verification?: {
     level: 'self-attest' | 'id-verified';
-    provider: 'self.xyz';
+    provider: 'self.xyz' | 'eas.celo';
     verifiedAt: number;
     proof?: string;
+    attestationUid?: string;
+  };
+  intelligence?: {
+    agentType: string;
+    farmId?: string;
+    capabilityManifestCid?: string;
+    reviewRequired?: boolean;
+    directusId?: string;
   };
   portfolio?: {
     title: string;

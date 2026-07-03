@@ -2,10 +2,16 @@ import { createServer, IncomingMessage, ServerResponse } from 'http';
 import { parse } from 'url';
 import { publicClient, CONTRACTS, JOB_STATUS, BIDDING_SYSTEM_ABI } from './client.js';
 import { createWallet, listWallets, getWallet, signMessage } from '@open-wallet-standard/core';
+import { IntelligenceModule } from '../../../apps/web/lib/intelligence/client';
 
 const PORT = parseInt(process.env.MCP_PORT || '3100', 10);
 const HOST = process.env.MCP_HOST || '127.0.0.1';
 const MCP_API_KEY = process.env.MCP_API_KEY || '';
+
+const intelligence = new IntelligenceModule({
+  baseUrl: process.env.NEXT_PUBLIC_INTELLIGENCE_API_URL ?? 'http://localhost:8055',
+  token: process.env.INTELLIGENCE_API_TOKEN ?? process.env.NEXT_PUBLIC_INTELLIGENCE_API_TOKEN,
+});
 
 function isLoopbackHost(host: string): boolean {
   return host === '127.0.0.1' || host === '::1' || host === 'localhost';
@@ -413,6 +419,51 @@ async function handleToolCall(toolName: string, args: Record<string, unknown>) {
       return getBiddingSession(args.sessionId as string);
     case 'bidding_sessions_list':
       return listBiddingSessions(Number(args.start) || 0, Number(args.count) || 20);
+    // Intelligence Tools
+    case 'intelligence_farms_list': {
+      const limit = args.limit != null ? Number(args.limit) : undefined;
+      return intelligence.listFarms(limit != null ? { limit } : undefined);
+    }
+    case 'intelligence_farm_get':
+      return intelligence.getFarm(args.id as string);
+    case 'intelligence_mrv_events': {
+      const farmId = (args.farmId as string) || undefined;
+      const limit = args.limit != null ? Number(args.limit) : undefined;
+      const opts = limit != null ? { limit } : undefined;
+      return farmId ? intelligence.listMRVByFarm(farmId, opts) : intelligence.listMRVEvents(opts);
+    }
+    case 'intelligence_attestation_get': {
+      const id = args.id as string;
+      try {
+        return await intelligence.getAttestation(id);
+      } catch {
+        return intelligence.listAttestationsByUID(id);
+      }
+    }
+    case 'intelligence_agents_list':
+      return intelligence.listAgents();
+    case 'intelligence_agent_capabilities':
+      return intelligence.getManifest(args.agentId as string);
+    case 'intelligence_attestations': {
+      const limit = args.limit != null ? Number(args.limit) : undefined;
+      return intelligence.listAttestations(limit != null ? { limit } : undefined);
+    }
+    case 'intelligence_manifest_get':
+      return intelligence.getManifest(args.agentId as string);
+    case 'intelligence_tasks_list': {
+      const agentId = (args.agentId as string) || undefined;
+      const limit = args.limit != null ? Number(args.limit) : undefined;
+      const opts = limit != null ? { limit } : undefined;
+      return agentId ? intelligence.listTasksByAgent(agentId, opts) : intelligence.listTasks(opts);
+    }
+    case 'intelligence_ai_summaries': {
+      const limit = args.limit != null ? Number(args.limit) : undefined;
+      return intelligence.listAISummaries(limit != null ? { limit } : undefined);
+    }
+    case 'intelligence_reports': {
+      const limit = args.limit != null ? Number(args.limit) : undefined;
+      return intelligence.listReports(limit != null ? { limit } : undefined);
+    }
     default:
       throw new Error(`Unknown tool: ${toolName}`);
   }
@@ -567,6 +618,119 @@ const TOOLS = [
       properties: { start: { type: 'string' }, count: { type: 'string' } },
     },
   },
+  // Intelligence Tools
+  {
+    name: 'intelligence_farms_list',
+    description: 'List all farms in Kokonut Intelligence',
+    inputSchema: {
+      type: 'object',
+      properties: {
+        limit: { type: 'number', description: 'Maximum number of results to return' },
+      },
+    },
+  },
+  {
+    name: 'intelligence_farm_get',
+    description: 'Get a single farm by Directus ID',
+    inputSchema: {
+      type: 'object',
+      properties: { id: { type: 'string', description: 'Directus farm ID' } },
+      required: ['id'],
+    },
+  },
+  {
+    name: 'intelligence_mrv_events',
+    description: 'List MRV (measurement, reporting, verification) events',
+    inputSchema: {
+      type: 'object',
+      properties: {
+        farmId: { type: 'string', description: 'Filter events by farm ID' },
+        limit: { type: 'number', description: 'Maximum number of results to return' },
+      },
+    },
+  },
+  {
+    name: 'intelligence_attestation_get',
+    description: 'Get an attestation by Directus ID or EAS UID',
+    inputSchema: {
+      type: 'object',
+      properties: {
+        id: { type: 'string', description: 'Directus attestation ID or attestation UID' },
+      },
+      required: ['id'],
+    },
+  },
+  {
+    name: 'intelligence_agents_list',
+    description: 'List all Intelligence agents',
+    inputSchema: {
+      type: 'object',
+      properties: {},
+    },
+  },
+  {
+    name: 'intelligence_agent_capabilities',
+    description: 'Get the capability manifest for an Intelligence agent',
+    inputSchema: {
+      type: 'object',
+      properties: {
+        agentId: { type: 'string', description: 'Directus agent UUID' },
+      },
+      required: ['agentId'],
+    },
+  },
+  {
+    name: 'intelligence_ai_summaries',
+    description: 'List AI summaries',
+    inputSchema: {
+      type: 'object',
+      properties: {
+        limit: { type: 'number', description: 'Maximum number of results to return' },
+      },
+    },
+  },
+  {
+    name: 'intelligence_attestations',
+    description: 'List EAS attestation records',
+    inputSchema: {
+      type: 'object',
+      properties: {
+        limit: { type: 'number', description: 'Maximum number of results to return' },
+      },
+    },
+  },
+  {
+    name: 'intelligence_manifest_get',
+    description: 'Get the capability manifest for an agent',
+    inputSchema: {
+      type: 'object',
+      properties: {
+        agentId: { type: 'string', description: 'Directus agent UUID' },
+      },
+      required: ['agentId'],
+    },
+  },
+  {
+    name: 'intelligence_tasks_list',
+    description: 'List agent tasks, optionally filtered by agent ID',
+    inputSchema: {
+      type: 'object',
+      properties: {
+        agentId: { type: 'string', description: 'Filter tasks by agent ID' },
+        limit: { type: 'number', description: 'Maximum number of results to return' },
+      },
+    },
+  },
+  {
+    name: 'intelligence_reports',
+    description: 'List report snapshots',
+    inputSchema: {
+      type: 'object',
+      properties: {
+        limit: { type: 'number', description: 'Maximum number of results to return' },
+      },
+    },
+  },
 ];
 
 const RESOURCES = [
@@ -575,6 +739,33 @@ const RESOURCES = [
     uri: 'platform://contracts',
     name: 'Contract Addresses',
     description: 'Sepolia contract addresses',
+  },
+  {
+    uri: 'intelligence://farms',
+    name: 'Kokonut Farms',
+    description: 'List of all farms in Kokonut Intelligence',
+    mimeType: 'application/json',
+  },
+  {
+    uri: 'intelligence://attestations',
+    name: 'EAS Attestations',
+    description: 'Attestation records from Kokonut Intelligence',
+    mimeType: 'application/json',
+  },
+  {
+    uri: 'intelligence://agents',
+    name: 'Kokonut Intelligence Agents',
+    description: 'List of all agents in Kokonut Intelligence',
+    mimeType: 'application/json',
+  },
+];
+
+const PROMPTS = [
+  {
+    id: 'intelligence_farm_summary',
+    title: 'Farm Summary',
+    description: 'Generate a summary report for a Kokonut farm',
+    arguments: [{ name: 'farmId', description: 'Directus farm ID', required: true }],
   },
 ];
 
@@ -629,6 +820,12 @@ async function requestHandler(req: IncomingMessage, res: ServerResponse): Promis
     return;
   }
 
+  if (pathname === '/prompts') {
+    res.writeHead(200, { 'Content-Type': 'application/json' });
+    res.end(JSON.stringify({ prompts: PROMPTS }));
+    return;
+  }
+
   if (pathname === '/mcp' && req.method === 'POST') {
     let body = '';
     req.on('data', chunk => {
@@ -662,6 +859,38 @@ async function requestHandler(req: IncomingMessage, res: ServerResponse): Promis
         if (method === 'resources/list') {
           res.writeHead(200, { 'Content-Type': 'application/json' });
           res.end(JSON.stringify({ jsonrpc: '2.0', id, result: { resources: RESOURCES } }));
+          return;
+        }
+
+        if (method === 'resources/read') {
+          const { uri } = params || {};
+          let contents = '';
+          if (uri === 'intelligence://farms') {
+            const farms = await intelligence.listFarms();
+            contents = JSON.stringify(farms, null, 2);
+          } else if (uri === 'intelligence://agents') {
+            const agents = await intelligence.listAgents();
+            contents = JSON.stringify(agents, null, 2);
+          } else if (uri === 'intelligence://attestations') {
+            const attestations = await intelligence.listAttestations();
+            contents = JSON.stringify(attestations, null, 2);
+          } else {
+            res.writeHead(404, { 'Content-Type': 'application/json' });
+            res.end(JSON.stringify({ jsonrpc: '2.0', id, error: { code: -32601, message: `Resource not found: ${uri}` } }));
+            return;
+          }
+          res.writeHead(200, { 'Content-Type': 'application/json' });
+          res.end(JSON.stringify({
+            jsonrpc: '2.0',
+            id,
+            result: { contents: [{ uri, mimeType: 'application/json', text: contents }] },
+          }));
+          return;
+        }
+
+        if (method === 'prompts/list') {
+          res.writeHead(200, { 'Content-Type': 'application/json' });
+          res.end(JSON.stringify({ jsonrpc: '2.0', id, result: { prompts: PROMPTS } }));
           return;
         }
 

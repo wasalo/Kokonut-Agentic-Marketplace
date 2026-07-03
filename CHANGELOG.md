@@ -5,6 +5,101 @@ All notable changes to the Kokonut Agent Economy Stack are documented in this fi
 The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.0.0/),
 and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0.html).
 
+## [2026-07-03] — Kokonut Intelligence Integration + Phase H
+
+### Overview
+Integrated the Kokonut Intelligence platform (Python/Directus/ClickHouse/EAS-on-Celo) as a native citizen layer of the Agentic Marketplace. Intelligence agents, farms, MRV events, attestations, and AI summaries are now accessible via the Marketplace UI, SDK, MCP server, and CLI. Phase H adds cross-chain EAS attestation verification from Celo.
+
+### SDK
+- **IntelligenceModule** (`sdk/typescript/modules/intelligence.ts`): Lightweight fetch-based Directus REST API adapter with typed methods for farms, MRV events, attestations, agents, capability manifests, tasks, AI summaries, reports, and health check.
+- Client instantiation: `new KokonutClient({ intelligenceApiUrl, intelligenceApiToken })` → `client.intelligence.listFarms()`.
+- Exported from `@kokonut/sdk` and `@kokonut/sdk/intelligence`.
+
+### Frontend
+- **IntelligenceStatsPanel** (`components/intelligence/IntelligenceStatsPanel.tsx`): Cross-farm dashboard showing farm, agent, attestation, and AI summary counts.
+- **IntelligenceBadge** (`components/IntelligenceBadge.tsx`): Green leaf badge for agents with `source === 'kokonut-intelligence'`.
+- **/intelligence page** (`app/intelligence/page.tsx`): Full dashboard with farms, MRV events, attestations, AI summaries, and reports.
+- **Agent profile intelligence panel** (`app/identity/[id]/page.tsx`): Shows Intelligence data for agents with `metadata.intelligence`.
+- **Integrations page Intelligence section** (`app/integrations/page.tsx`): Directus health check, API URL, and documentation links.
+- **Footer kokonut.network links** (`components/heroui/footer.tsx`): Homepage, Intelligence, AI Agents, Docs Index.
+- **Marketplace Hub Intelligence tab** (`app/marketplace/marketplace-inner.tsx`): New tab with stats panel.
+- **Source filter expansion**: All agent discovery hooks now accept `source in ('kokonut-marketplace', 'kokonut-intelligence')`.
+- **Metadata type extension** (`lib/metadata.ts`): `AgentMetadata8004.intelligence` block with `agentType`, `farmId`, `capabilityManifestCid`, `reviewRequired`, `directusId`.
+- **Verification provider**: `eas.celo` added to `verification.provider` union type.
+
+### Hooks
+- `useIntelligenceClient()` — singleton IntelligenceModule instance
+- `useIntelligenceFarms()` — farm registry records
+- `useIntelligenceAgents()` — Intelligence agents
+- `useIntelligenceMRVEvents(farmId?)` — MRV monitoring events
+- `useKokonutDocs()` — parsed `kokonut.network/llms.txt` documentation
+
+### MCP Server
+- 8 Intelligence tools: `intelligence_farms_list`, `intelligence_farm_get`, `intelligence_mrv_events`, `intelligence_attestations`, `intelligence_agents_list`, `intelligence_manifest_get`, `intelligence_tasks_list`, `intelligence_ai_summaries`
+- 3 Intelligence resources: `intelligence://farms`, `intelligence://agents`, `intelligence://attestations`
+- Resource read handler for all 3 URIs
+
+### A2A Protocol
+- Updated `/.well-known/agent.json` with Intelligence capabilities and endpoint
+
+### Webhook Bridge
+- `/api/intelligence/sync` POST endpoint with Bearer token auth
+- `lib/intelligence/webhook-bridge.ts`: `sendToIntelligence()` and `buildMarketplaceEvent()` helpers
+
+### Registration Script
+- `scripts/register-intelligence-agents.ts`: Registers 14 Intelligence agents on ERC-8004 (Sepolia) and syncs `erc8004_agent_id` back to Directus
+- `scripts/seed-intelligence-agents.ts`: Seeds all 14 agents into Directus `agent_identity` table
+
+### Registered Agents (Sepolia ERC-8004)
+
+| Agent | ERC-8004 ID | TX Hash |
+|-------|-------------|---------|
+| kokonut-mrv-reporter | 1 | `0x38455f163d6f5a4818024ff9f79ac1d4d87cc58ca19e6c67c8f098771d2fc5b2` |
+| kokonut-ebf-scorecard | 2 | `0xe8d811e03acfeafb58f5d1ea69067a5ff039614ca5a09875601613cbec2ce6a7` |
+| kokonut-ebf-calibration | 3 | `0x084d8ea81be30fcbdbc0d2cc51f35a859aa2346e2ead972894709cacc703a9f6` |
+| kokonut-carbon-balance | 4 | `0xc2838cb90591eb602442be650c75c621c2d5f574922fa6bacf90b86c12c07b3f` |
+| kokonut-revenue-multiplier | 5 | `0x7e133880be91eb5f71995f71e4b03947f30bd4fd931afba7f1b1371f3d782b6b` |
+| kokonut-bio-factory | 6 | `0x034108c1f2f36513ce778ca84985a2b1367508e86e942f901635eeaaa3ed288a` |
+| kokonut-regenerator | 7 | `0x19568a5b00396a179ee023ca35c3d002184a6d2f872592073e3b41ed9bf98488` |
+| kokonut-commons-agent | 8 | `0x51deeb965f57eb3204218e24afe2f54ba63085b70529342c959de9d8b4a53cf5` |
+| kokonut-wellbeing | 9 | `0xefe0a195a92aab89d87c0a3354545117fe3cba8e240ae9fa19d57e96502747a8` |
+| kokonut-gnh-agent | 10 | `0x8d09660b55035299e431d6cf0a8c02172399223a619a5a82652517042c11ea90` |
+| kokonut-capital-efficiency | 11 | `0xd31bb770c06dabe11c4172427d25d6e1ad424c95ad54aedbdfedc408b54ccd2f` |
+| kokonut-open-source-capitalist | 12 | `0x4bdbc8d7a5b14dbbf4afdaf976ab3e990bb790408ffe9c406bb3ea1501eefcb3` |
+| kokonut-resilience | 13 | `0x3fda5f27879487d8db4daac97e967f79b4baef518750dddaf1e092c097e6e910` |
+| kokonut-ebf-evidence-gap | 14 | `0x971483e99eac48c6705a75ffd258c478b5347a8f6f21224f74010473c8079a88` |
+
+### Verification
+- `type-check` ✓, `type-check:strict` ✓, `lint` ✓, `test:components` 80/80 ✓
+- All 14 agents registered on Sepolia ERC-8004 and synced to Directus
+
+### Phase H: EAS Cross-Chain Attestation (July 3, 2026)
+
+#### New Files
+- **`apps/web/lib/contracts/eas.ts`**: Minimal EAS + SchemaRegistry ABIs (view functions only) with typed `EASAttestation` and `EASSchemaRecord` interfaces.
+- **`apps/web/lib/eas-utils.ts`**: EAS schema string parser (supports tuple nesting) + `decodeAttestationData()` + `isAttestationValid()` + `formatAttestationTime()`.
+- **`apps/web/lib/hooks/useEASAttestation.ts`**: React hook that reads an attestation from Celo by UID, fetches its schema definition, and ABI-decodes the claim data. Uses `staleTime: Infinity` (attestations are immutable).
+- **`sdk/typescript/modules/eas.ts`**: Self-contained EAS utilities for the SDK (ABIs + parser + decoder).
+
+#### Modified Files
+- **`apps/web/lib/contracts/intelligence.ts`**: Added standalone Celo `PublicClient` singleton (`celoClient`) using `viem/chains` + `forno.celo.org`.
+- **`apps/web/app/identity/[id]/page.tsx`**: Added `EASAttestationBadge` in `IntelligenceDataSection` — shows ✅ Verified / ⚠️ Revoked / ⏱ Expired / ❌ Not Found status with attester, timestamp, and schema info.
+- **`sdk/typescript/modules/intelligence.ts`**: Added `getIntelligenceAttestationOnChain(uid)` method — dynamic import of viem + EAS utils, reads from Celo EAS, decodes claim data.
+
+#### How It Works
+1. Agent metadata includes `verification.provider: 'eas.celo'` and `verification.attestationUid: '0x...'`.
+2. `useEASAttestation(uid)` calls `EAS.getAttestation(uid)` on Celo (cross-chain read).
+3. Fetches the schema definition from `SchemaRegistry.getSchema(schemaUID)`.
+4. Parses the schema string into ABI parameters (supports nested tuples).
+5. ABI-decodes the `data` bytes into a named `Record<string, unknown>`.
+6. Computes validity: `isValid = !revoked && !expired`.
+7. Agent profile shows the attestation badge with status, attester, timestamp, and schema.
+
+#### Verification
+- `type-check` ✓, `type-check:strict` ✓, `lint` ✓, `test:components` 80/80 ✓
+
+---
+
 ## [2026-06-08] — Phase 47: Pashov Audit Remediation (8 Live Findings)
 
 ### Contracts

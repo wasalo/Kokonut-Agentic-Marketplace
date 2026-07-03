@@ -77,6 +77,8 @@ export interface SDKConfig {
   rpcUrl?: string;
   contracts?: Partial<ContractAddresses>;
   readOnly?: boolean;
+  intelligenceApiUrl?: string;
+  intelligenceApiToken?: string;
 }
 
 // ============================================================================

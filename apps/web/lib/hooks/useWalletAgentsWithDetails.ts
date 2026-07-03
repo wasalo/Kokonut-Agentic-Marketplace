@@ -134,7 +134,7 @@ export function useWalletAgentsWithDetails(
           // Case 1: Valid URI with content
           const uri = result.result as string;
           const metadata = decodeAgentMetadata(uri);
-          const hasKokonutTag = metadata?.source === 'kokonut-marketplace';
+          const hasKokonutTag = metadata?.source === 'kokonut-marketplace' || metadata?.source === 'kokonut-intelligence';
 
           debugLog('hooks', `Agent ${agentId}:`, {
             source: metadata?.source,

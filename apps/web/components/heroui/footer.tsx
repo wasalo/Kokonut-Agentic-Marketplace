@@ -13,6 +13,9 @@ import {
   Terminal,
   LayoutDashboard,
   Settings,
+  Sprout,
+  Bot,
+  FileText,
 } from 'lucide-react';
 import NextLink from 'next/link';
 import { BlockNumber } from '@/components/BlockNumber';
@@ -36,6 +39,10 @@ const resourceLinks = [
   { name: 'Contact', href: '/contact', icon: Mail },
   { name: 'Contracts', href: '/contracts', icon: Code2 },
   { name: 'Security', href: '/security', icon: Shield },
+  { name: 'Homepage', href: 'https://kokonut.network', icon: Globe },
+  { name: 'Intelligence', href: 'https://kokonut.network/kokonut-intelligence', icon: Sprout },
+  { name: 'AI Agents', href: 'https://kokonut.network/kokonut-x-ai-agents', icon: Bot },
+  { name: 'Docs Index', href: 'https://kokonut.network/llms.txt', icon: FileText },
 ];
 
 const socialLinks = [
@@ -56,17 +63,36 @@ function LinkSection({ title, links }: { title: string; links: typeof discoverLi
     <div>
       <h4 className="font-semibold text-sm mb-4">{title}</h4>
       <ul className="space-y-2.5">
-        {links.map(link => (
-          <li key={link.name}>
-            <NextLink
-              href={link.href}
-              className="text-default-500 text-sm hover:text-primary transition-colors flex items-center gap-2"
-            >
+        {links.map(link => {
+          const isExternal = link.href.startsWith('http');
+          const content = (
+            <>
               <link.icon className="size-3.5 opacity-70" />
               {link.name}
-            </NextLink>
-          </li>
-        ))}
+            </>
+          );
+          return (
+            <li key={link.name}>
+              {isExternal ? (
+                <a
+                  href={link.href}
+                  target="_blank"
+                  rel="noopener noreferrer"
+                  className="text-default-500 text-sm hover:text-primary transition-colors flex items-center gap-2"
+                >
+                  {content}
+                </a>
+              ) : (
+                <NextLink
+                  href={link.href}
+                  className="text-default-500 text-sm hover:text-primary transition-colors flex items-center gap-2"
+                >
+                  {content}
+                </NextLink>
+              )}
+            </li>
+          );
+        })}
       </ul>
     </div>
   );

@@ -2,10 +2,10 @@
 
 import type { ComponentType, ReactNode } from 'react';
 import NextLink from 'next/link';
-import { Briefcase, Code, Compass, Gavel, LayoutDashboard, Store } from 'lucide-react';
+import { Briefcase, Code, Compass, Gavel, LayoutDashboard, Leaf, Store } from 'lucide-react';
 import { btn } from '@/lib/design-system';
 
-export type MarketplaceHubTab = 'discover' | 'jobs' | 'bidding' | 'skills' | 'my-work' | 'studio';
+export type MarketplaceHubTab = 'discover' | 'jobs' | 'bidding' | 'skills' | 'my-work' | 'studio' | 'intelligence';
 
 export const MARKETPLACE_HUB_TABS: Array<{
   id: MarketplaceHubTab;
@@ -63,6 +63,14 @@ export const MARKETPLACE_HUB_TABS: Array<{
     color: 'text-pink-500',
     bg: 'bg-pink-500/10',
   },
+  {
+    id: 'intelligence',
+    label: 'Intelligence',
+    description: 'Cross-farm monitoring & AI',
+    icon: Leaf,
+    color: 'text-emerald-600',
+    bg: 'bg-emerald-500/10',
+  },
 ];
 
 interface MarketplaceHubShellProps {
@@ -110,7 +118,7 @@ export function MarketplaceHubShell({
       </div>
 
       <div className="mb-6 overflow-x-auto rounded-2xl border border-divider bg-content1/60 p-1">
-        <div className="grid min-w-[760px] grid-cols-6 gap-1 md:min-w-0">
+        <div className="grid min-w-[760px] grid-cols-7 gap-1 md:min-w-0">
           {MARKETPLACE_HUB_TABS.map(tab => {
             const Icon = tab.icon;
             const isActive = activeTab === tab.id;

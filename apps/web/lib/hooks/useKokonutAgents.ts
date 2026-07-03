@@ -242,7 +242,7 @@ export function useKokonutAgents(
             const metadata = decodeAgentMetadata(uri);
 
             // Check if this is a Kokonut agent
-            if (metadata?.source === 'kokonut-marketplace') {
+            if (metadata?.source === 'kokonut-marketplace' || metadata?.source === 'kokonut-intelligence') {
               kokonutAgents.push({
                 id: apiAgent.token_id,
                 owner: apiAgent.owner_address as `0x${string}`,

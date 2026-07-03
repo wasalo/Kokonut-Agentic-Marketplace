@@ -7,6 +7,7 @@ import { createPublicClient, createWalletClient, http, custom, encodeAbiParamete
 import { privateKeyToAccount } from 'viem/accounts';
 import { EFPModule } from './efp';
 import { SubgraphModule } from './subgraph';
+import { IntelligenceModule } from './modules/intelligence';
 import {
   IDENTITY_REGISTRY_ABI,
   LEGACY_REPUTATION_ABI,
@@ -74,6 +75,7 @@ export class KokonutClient {
   public adminRegistry: AdminRegistryModule;
   public efp: EFPModule;
   public subgraph: SubgraphModule;
+  public intelligence: IntelligenceModule;
 
 
   constructor(config: SDKConfig) {
@@ -123,6 +125,10 @@ export class KokonutClient {
     this.adminRegistry = new AdminRegistryModule(this.wallet, this.publicClient, this.contracts);
     this.efp = new EFPModule(this.wallet, this.publicClient, this.contracts);
     this.subgraph = new SubgraphModule();
+    this.intelligence = new IntelligenceModule({
+      baseUrl: config.intelligenceApiUrl ?? 'http://localhost:8055',
+      token: config.intelligenceApiToken,
+    });
 
     if (!this.readOnly) {
       this.setupEventListeners();

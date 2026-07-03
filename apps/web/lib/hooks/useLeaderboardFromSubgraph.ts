@@ -43,7 +43,7 @@ export function useLeaderboardFromSubgraph(page: number, limit: number) {
         agents(
           first: $first
           skip: $skip
-          where: { source: "kokonut-marketplace", isActive: true }
+          where: { source_in: ["kokonut-marketplace", "kokonut-intelligence"], isActive: true }
           orderBy: createdAt
           orderDirection: desc
         ) {

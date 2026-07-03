@@ -67,6 +67,14 @@ const GET_AGENTS_BY_SOURCE = `
   }
 `;
 
+const GET_KOKONUT_AGENTS = `
+  query GetKokonutAgents($first: Int!, $skip: Int!) {
+    agents(first: $first, skip: $skip, where: { source_in: ["kokonut-marketplace", "kokonut-intelligence"] }, orderBy: createdAt, orderDirection: desc) {
+      id agentId owner name capabilities source isActive
+    }
+  }
+`;
+
 const GET_JOBS = `
   query GetJobs($first: Int!, $skip: Int!) {
     jobs(first: $first, skip: $skip, orderBy: createdAt, orderDirection: desc) {
@@ -90,10 +98,9 @@ export class SubgraphModule {
   }
 
   async getKokonutAgents(first = 20, skip = 0): Promise<SubgraphAgent[]> {
-    const data = await query<{ agents: SubgraphAgent[] }>(GET_AGENTS_BY_SOURCE, {
+    const data = await query<{ agents: SubgraphAgent[] }>(GET_KOKONUT_AGENTS, {
       first,
       skip,
-      source: 'kokonut-marketplace',
     });
     return data.agents;
   }

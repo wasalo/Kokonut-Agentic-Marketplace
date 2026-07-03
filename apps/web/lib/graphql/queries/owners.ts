@@ -22,7 +22,7 @@ export const GET_AGENTS_BY_OWNER_FULL = `
       }
     }
     agentEntities: agents(
-      where: { owner: $owner, source: "kokonut-marketplace" }
+      where: { owner: $owner, source_in: ["kokonut-marketplace", "kokonut-intelligence"] }
     ) {
       id
     }
@@ -32,6 +32,6 @@ export const GET_AGENTS_BY_OWNER_FULL = `
 export const GET_AGENT_COUNTS_BY_OWNER = `
   query GetAgentCountsByOwner($owner: Bytes!) {
     all: agents(where: { owner: $owner }) { id }
-    kokonut: agents(where: { owner: $owner, source: "kokonut-marketplace" }) { id }
+    kokonut: agents(where: { owner: $owner, source_in: ["kokonut-marketplace", "kokonut-intelligence"] }) { id }
   }
 `;
