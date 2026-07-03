@@ -12,16 +12,19 @@
 - [ ] Documentation update
 - [ ] Refactoring (no functional changes)
 - [ ] Security fix
+- [ ] CI / infrastructure
 
 ## Checklist
 
 - [ ] I have tested my changes locally
 - [ ] I have added necessary documentation (if applicable)
 - [ ] I have added tests that prove my fix is effective or my feature works
-- [ ] I have checked for linting errors (`npm run lint`)
-- [ ] I have checked for type errors (`npm run typecheck`)
+- [ ] I have checked for linting errors (`pnpm run lint`)
+- [ ] I have checked for type errors (`pnpm run type-check`)
 - [ ] Smart contracts: I have verified tests pass (`forge test`)
-- [ ] I have verified build succeeds (`npm run build`)
+- [ ] Smart contracts: Storage layout is compatible (`node scripts/check-storage-layout.js`)
+- [ ] I have verified build succeeds (`pnpm run build`)
+- [ ] No secrets, private keys, or `.env` files in the diff
 
 ## Screenshots (if applicable)
 

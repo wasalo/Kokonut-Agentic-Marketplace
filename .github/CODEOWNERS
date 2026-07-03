@@ -1,24 +1,21 @@
-# Code Owners for Kokonut Agentic Marketplace
-# See: https://help.github.com/articles/about-code-owners/
+# CODEOWNERS — Kokonut Agentic Marketplace
+# Each entry triggers review requests on PRs that touch matching paths.
+# See: https://docs.github.com/en/repositories/managing-your-repositorys-settings-and-features/customizing-your-repository/about-code-owners
 
-# Default owner for all files (fallback)
-* @wasalo
+# Default — all changes require review from co-owners
+* @wasalo @wasabinetwork
 
-# Smart Contracts
-contracts/ @wasalo
+# Security-sensitive files — require admin review
+.env.example @wasalo @wasabinetwork
+AGENTS.md @wasalo @wasabinetwork
+.github/ @wasalo @wasabinetwork
+config/address-manifest.json @wasalo @wasabinetwork
 
-# Frontend / Web App
-apps/web/ @wasalo
+# Smart Contracts — require admin review (UUPS storage layout risk)
+contracts/shared/ @wasalo @wasabinetwork
+contracts/script/ @wasalo @wasabinetwork
+contracts/interfaces/ @wasalo @wasabinetwork
 
-# SDK
-sdk/ @wasalo
-
-# CLI
-cli/ @wasalo
-
-# GitHub workflows
-.github/ @wasalo
-
-# Deployment scripts
-deploy.sh @wasalo
-scripts/ @wasalo
+# Deployment & Scripts
+deploy.sh @wasalo @wasabinetwork
+scripts/ @wasalo @wasabinetwork
