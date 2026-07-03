@@ -2,10 +2,11 @@
 
 import { useEffect, useState } from 'react';
 import { useAccount } from 'wagmi';
-import { Card, Input, Button } from '@heroui/react';
+import { Card } from '@heroui/react';
 import { Settings, AlertCircle, Clock, Percent, Info } from 'lucide-react';
 import NextLink from 'next/link';
-import { DS, card } from '@/lib/design-system';
+import { card, btn } from '@/lib/design-system';
+import { Input } from '@/components/ui/Input';
 import { toast } from 'sonner';
 import { useDefaultDisputeWindow, useMilestoneConfigAdmin } from '@/lib/hooks/useMilestoneConfig';
 
@@ -96,9 +97,9 @@ export default function MilestoneConfigAdminPage(): JSX.Element {
             type="number"
             className="mb-3"
           />
-          <Button onClick={handleSetDisputeWindow} isDisabled={!isConnected || !overrideJobId || !overrideWindow || isSettingWindow} className={DS.buttons.primary}>
+          <button type="button" onClick={handleSetDisputeWindow} disabled={!isConnected || !overrideJobId || !overrideWindow || isSettingWindow} className={btn('primary')}>
             Update dispute window
-          </Button>
+          </button>
         </Card>
 
         <Card className={card('padded', 'p-6')}>
@@ -116,9 +117,9 @@ export default function MilestoneConfigAdminPage(): JSX.Element {
             type="number"
             className="mb-3"
           />
-          <Button onClick={handleSetSlashBP} isDisabled={!isConnected || !newSlashBP || isSettingSlash} className={DS.buttons.primary}>
+          <button type="button" onClick={handleSetSlashBP} disabled={!isConnected || !newSlashBP || isSettingSlash} className={btn('primary')}>
             Update slash BP
-          </Button>
+          </button>
         </Card>
       </div>
     </div>

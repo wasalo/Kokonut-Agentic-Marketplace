@@ -141,16 +141,15 @@ export class IntelligenceModule {
     path: string,
     options?: { method?: string; body?: unknown; params?: Record<string, string> }
   ): Promise<T> {
-    const url = new URL(`${this.baseUrl}${path}`);
+    let urlStr = `${this.baseUrl}${path}`;
     if (options?.params) {
-      for (const [k, v] of Object.entries(options.params)) {
-        url.searchParams.set(k, v);
-      }
+      const qs = new URLSearchParams(options.params).toString();
+      if (qs) urlStr += `?${qs}`;
     }
     const headers: Record<string, string> = { 'Content-Type': 'application/json' };
     if (this.token) headers['Authorization'] = `Bearer ${this.token}`;
 
-    const res = await fetch(url.toString(), {
+    const res = await fetch(urlStr, {
       method: options?.method ?? 'GET',
       headers,
       body: options?.body ? JSON.stringify(options.body) : undefined,

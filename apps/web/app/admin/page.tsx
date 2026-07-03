@@ -3,11 +3,12 @@
 import { useState, useEffect } from 'react';
 import { useAccount, useReadContract } from 'wagmi';
 import { Settings, AlertCircle, ShieldAlert, Wallet, XCircle, Loader } from 'lucide-react';
-import { Card, Input } from '@heroui/react';
+import { Card } from '@heroui/react';
 import { getContractAddress } from '@/lib/contracts/config';
 import { AGENTIC_COMMERCE_ABI } from '@/lib/contracts/abis';
 import { useAdminBlacklist } from '@/lib/hooks/useAdminBlacklist';
 import { DS, card } from '@/lib/design-system';
+import { Input } from '@/components/ui/Input';
 import { toast } from 'sonner';
 
 const AGENTIC_COMMERCE_ADDRESS = getContractAddress('AGENTIC_COMMERCE');

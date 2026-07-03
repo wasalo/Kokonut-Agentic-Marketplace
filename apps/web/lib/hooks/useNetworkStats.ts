@@ -1,10 +1,9 @@
 'use client';
 
-import { useState, useCallback } from 'react';
+import { useQuery } from '@tanstack/react-query';
 import { useReadContracts } from 'wagmi';
 import { SUPPORTED_CHAINS } from '@/lib/chains';
 import { withRetry } from '@/lib/utils/retry';
-import { useNetworkStatus } from '@/lib/hooks/useNetworkStatus';
 import {
   useBiddingSessionCount,
 } from '@/lib/hooks/useBiddingSystem';
@@ -27,16 +26,9 @@ export interface NetworkStatsExtended extends NetworkStat {
 }
 
 export function useNetworkStats() {
-  const [isLoading, setIsLoading] = useState(false);
-  const [stats, setStats] = useState<NetworkStat[]>([]);
-  const [error, setError] = useState<Error | null>(null);
-  const networkStatus = useNetworkStatus();
-
-  // Phase 45d expansion: live bidding + evaluator pool stats
   const { count: totalBiddingSessions } = useBiddingSessionCount();
   const { count: evaluatorPoolSize } = useEvaluatorPoolSize();
 
-  // Pull dispute count from the milestone escrow (best-effort)
   const { data: disputeCountData } = useReadContracts({
     contracts: [
       {
@@ -59,17 +51,10 @@ export function useNetworkStats() {
     ? Number(disputeCountData[0].result as bigint)
     : 0;
 
-  const refetch = useCallback(async () => {
-    if (!networkStatus.isOnline) {
-      setError(new Error('Network offline'));
-      return;
-    }
-
-    setIsLoading(true);
-    setError(null);
-
-    try {
-      const newStats: NetworkStat[] = await withRetry(
+  const query = useQuery<NetworkStat[]>({
+    queryKey: ['network-stats'],
+    queryFn: async () => {
+      return withRetry(
         async () => {
           return SUPPORTED_CHAINS.map(chain => ({
             chainId: chain.id,
@@ -81,25 +66,18 @@ export function useNetworkStats() {
           console.warn(`Network stats retry ${attempt}: ${err.message}`);
         }}
       );
-      setStats(newStats);
-    } catch (err) {
-      const error = err instanceof Error ? err : new Error('Failed to fetch network stats');
-      console.error('Failed to fetch network stats:', error);
-      setError(error);
-    } finally {
-      setIsLoading(false);
-    }
-  }, [networkStatus.isOnline]);
+    },
+    enabled: false,
+  });
 
   return {
-    stats,
-    isLoading,
-    error,
-    refetch,
-    // Phase 45d expansion
+    stats: query.data ?? [],
+    isLoading: query.isLoading,
+    error: query.error,
+    refetch: query.refetch,
     bidPoolStats: {
       totalSessions: totalBiddingSessions,
-      activeSessions: 0, // would require iterating session list; left as 0 for now
+      activeSessions: 0,
     },
     disputeCount,
     evaluatorPoolSize,
@@ -107,7 +85,7 @@ export function useNetworkStats() {
     stats: NetworkStat[];
     isLoading: boolean;
     error: Error | null;
-    refetch: () => Promise<void>;
+    refetch: () => Promise<unknown>;
     bidPoolStats: { totalSessions: number; activeSessions: number };
     disputeCount: number;
     evaluatorPoolSize: number;

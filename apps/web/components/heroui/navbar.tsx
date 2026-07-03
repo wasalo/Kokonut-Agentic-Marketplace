@@ -1,7 +1,7 @@
 'use client';
 
 import { Menu, X, Wallet, Sun, Moon } from 'lucide-react';
-import { useState, useCallback, useEffect } from 'react';
+import React, { useState, useCallback, useEffect } from 'react';
 import { useTheme } from '@/contexts/ThemeContext';
 import NextLink from 'next/link';
 import { useAccount } from 'wagmi';
@@ -28,7 +28,7 @@ const primaryNavLinks = [
   { name: 'Marketplace Hub', href: '/marketplace', description: 'Services, jobs, bidding' },
 ];
 
-export function NavbarComponent(): JSX.Element {
+export const NavbarComponent = React.memo(function NavbarComponent(): JSX.Element {
   const [isMenuOpen, setIsMenuOpen] = useState(false);
   const { isConnected } = useAccount();
   const [mounted, setMounted] = useState(false);
@@ -151,4 +151,4 @@ export function NavbarComponent(): JSX.Element {
       </nav>
     </header>
   );
-}
+});

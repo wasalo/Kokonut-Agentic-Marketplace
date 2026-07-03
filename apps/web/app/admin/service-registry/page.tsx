@@ -2,12 +2,12 @@
 
 import { useEffect, useState } from 'react';
 import { useAccount, useReadContract } from 'wagmi';
-import { Card, Button } from '@heroui/react';
+import { Card } from '@heroui/react';
 import { Store, AlertCircle } from 'lucide-react';
 import NextLink from 'next/link';
 import { getContractAddress, ZERO_ADDRESS } from '@/lib/contracts/config';
 import { SERVICE_REGISTRY_ABI, AGENTIC_COMMERCE_ABI } from '@/lib/contracts/abis';
-import { DS, card } from '@/lib/design-system';
+import { card, btn } from '@/lib/design-system';
 import { useServiceAdmin } from '@/lib/hooks/useServiceAdmin';
 import { formatAmount } from '@/lib/tokenUtils';
 
@@ -114,21 +114,16 @@ export default function ServiceRegistryAdminPage(): JSX.Element {
             placeholder="0x... (ServiceRegistry proxy)"
             className="flex-1 px-3 py-2 bg-content1 border border-divider rounded-lg font-mono text-sm"
           />
-          <Button onClick={handleSetRegistry} isDisabled={!isConnected || !newServiceRegistry || isSettingRegistry} className={DS.buttons.primary}>
+          <button type="button" onClick={handleSetRegistry} disabled={!isConnected || !newServiceRegistry || isSettingRegistry} className={btn('primary')}>
             Update
-          </Button>
+          </button>
         </div>
       </Card>
 
       <div className="flex items-center gap-3 mb-4">
-        <Button
-          onClick={loadServices}
-          isDisabled={isLoading}
-          className={DS.buttons.secondary}
-         
-        >
+        <button type="button" onClick={loadServices} disabled={isLoading} className={btn('secondary')}>
           Refresh
-        </Button>
+        </button>
         <span className="text-sm text-default-500 ml-auto">{services.length} services</span>
       </div>
 
@@ -163,9 +158,9 @@ export default function ServiceRegistryAdminPage(): JSX.Element {
                     <td className="p-3 font-mono text-xs">{s.paymentToken === ZERO_ADDRESS ? 'ETH' : s.paymentToken.slice(0, 8) + '…'}</td>
                     <td className="p-3">{s.active ? 'Active' : 'Paused'}</td>
                     <td className="p-3 text-right">
-                        <Button size="sm" isDisabled={!isConnected || !s.active || isDeactivating} onClick={() => handlePause(s.serviceId)}>
+                        <button type="button" className={btn('primary', 'text-sm')} disabled={!isConnected || !s.active || isDeactivating} onClick={() => handlePause(s.serviceId)}>
                         Pause
-                      </Button>
+                      </button>
                     </td>
                   </tr>
                 ))

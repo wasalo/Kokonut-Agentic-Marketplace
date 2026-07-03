@@ -89,7 +89,7 @@ function AnalyticsPageWithParams(): JSX.Element {
     (newRange: TimeRange) => {
       const params = new URLSearchParams(searchParams.toString());
       params.set('range', newRange);
-      router.push(`${pathname}?${params.toString()}`);
+      router.replace(`${pathname}?${params.toString()}`);
     },
     [router, pathname, searchParams]
   );

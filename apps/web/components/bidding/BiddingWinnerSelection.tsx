@@ -4,6 +4,7 @@ import { Loader2 } from 'lucide-react';
 import type { BidInfo } from '@/lib/hooks/useBiddingSystem';
 import type { Token } from '@/lib/tokenUtils';
 import { formatAmount } from '@/lib/tokenUtils';
+import { btn } from '@/lib/design-system';
 
 interface BiddingWinnerSelectionProps {
   selectableBids: BidInfo[];
@@ -90,7 +91,7 @@ export function BiddingWinnerSelection({
           type="button"
           onClick={onAcceptBid}
           disabled={!selectedBid || selectedBid.accepted || isAcceptPending}
-          className="w-full sm:w-auto px-6 py-2 bg-primary text-white font-medium rounded-lg hover:bg-[#007a3d] transition-colors disabled:opacity-50 disabled:cursor-not-allowed"
+          className={btn('primary', 'w-full sm:w-auto disabled:opacity-50 disabled:cursor-not-allowed')}
         >
           {isAcceptPending ? (
             <Loader2 className="size-4 animate-spin inline" />
@@ -104,7 +105,7 @@ export function BiddingWinnerSelection({
           type="button"
           onClick={onRejectBid}
           disabled={!selectedBid || selectedBid.rejected || isRejectPending}
-          className="w-full sm:w-auto px-6 py-2 bg-warning text-white font-medium rounded-lg hover:opacity-80 transition-colors disabled:opacity-50 disabled:cursor-not-allowed"
+          className={btn('danger', 'w-full sm:w-auto disabled:opacity-50 disabled:cursor-not-allowed')}
         >
           {isRejectPending ? (
             <Loader2 className="size-4 animate-spin inline" />
@@ -119,7 +120,7 @@ export function BiddingWinnerSelection({
             type="button"
             onClick={onCancelSession}
             disabled={isCancelPending}
-            className="w-full sm:w-auto px-6 py-2 bg-danger text-white font-medium rounded-lg hover:opacity-80 transition-colors disabled:opacity-50 disabled:cursor-not-allowed"
+            className={btn('danger', 'w-full sm:w-auto disabled:opacity-50 disabled:cursor-not-allowed')}
           >
             {isCancelPending ? (
               <Loader2 className="size-4 animate-spin inline" />

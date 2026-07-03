@@ -1,6 +1,6 @@
 'use client';
 
-import { useCallback, useEffect, useState } from 'react';
+import { useCallback, useEffect, useMemo, useState } from 'react';
 import { useAccount } from 'wagmi';
 import { useRouter, useSearchParams } from 'next/navigation';
 import { JobStatus, useJobs, type Job } from '@/lib/hooks/useJobs';
@@ -48,70 +48,84 @@ export function useJobsDirectory({
 
   const { jobs, isLoading } = useJobs(0, fetchCount);
 
-  const hookStats = {
-    openJobs: jobs.filter(job => job.status === JobStatus.Open).length,
-    inProgressJobs: jobs.filter(job => job.status === JobStatus.Submitted || job.status === JobStatus.Funded).length,
-    completedJobs: jobs.filter(job => job.status === JobStatus.Completed).length,
-    totalJobs: jobs.length,
-  };
+  const hookStats = useMemo(
+    () => ({
+      openJobs: jobs.filter(job => job.status === JobStatus.Open).length,
+      inProgressJobs: jobs.filter(job => job.status === JobStatus.Submitted || job.status === JobStatus.Funded).length,
+      completedJobs: jobs.filter(job => job.status === JobStatus.Completed).length,
+      totalJobs: jobs.length,
+    }),
+    [jobs]
+  );
 
   const handleSortChange = useCallback(
     (newSortBy: string, newSortOrder: string) => {
       const params = new URLSearchParams(searchParams.toString());
       params.set('sort', newSortBy);
       params.set('order', newSortOrder);
-      router.push(`${routePath}?${params.toString()}`);
+      router.replace(`${routePath}?${params.toString()}`);
     },
     [routePath, searchParams, router]
   );
 
-  const filteredJobs = jobs.filter(job => {
-    if (
-      debouncedSearchQuery &&
-      !job.description.toLowerCase().includes(debouncedSearchQuery.toLowerCase())
-    ) {
-      return false;
-    }
+  const filteredJobs = useMemo(
+    () =>
+      jobs.filter(job => {
+        if (
+          debouncedSearchQuery &&
+          !job.description.toLowerCase().includes(debouncedSearchQuery.toLowerCase())
+        ) {
+          return false;
+        }
 
-    if (roleFilter === 'myJobs' && address) {
-      const isClient = job.client?.toLowerCase() === address.toLowerCase();
-      const isProvider = job.provider?.toLowerCase() === address.toLowerCase();
-      const isEvaluator = job.evaluator?.toLowerCase() === address.toLowerCase();
-      if (!isClient && !isProvider && !isEvaluator) return false;
-    }
+        if (roleFilter === 'myJobs' && address) {
+          const isClient = job.client?.toLowerCase() === address.toLowerCase();
+          const isProvider = job.provider?.toLowerCase() === address.toLowerCase();
+          const isEvaluator = job.evaluator?.toLowerCase() === address.toLowerCase();
+          if (!isClient && !isProvider && !isEvaluator) return false;
+        }
 
-    if (statusFilter !== 'all') {
-      const statusNum = parseInt(statusFilter, 10);
-      if (job.status !== statusNum) return false;
-    }
+        if (statusFilter !== 'all') {
+          const statusNum = parseInt(statusFilter, 10);
+          if (job.status !== statusNum) return false;
+        }
 
-    const token = getTokenByAddress(job.paymentToken);
-    const budgetInUsd = tokenAmountToUsd(job.budget, token);
-    if (minBudget && budgetInUsd < Number(minBudget)) return false;
-    if (maxBudget && budgetInUsd > Number(maxBudget)) return false;
+        const token = getTokenByAddress(job.paymentToken);
+        const budgetInUsd = tokenAmountToUsd(job.budget, token);
+        if (minBudget && budgetInUsd < Number(minBudget)) return false;
+        if (maxBudget && budgetInUsd > Number(maxBudget)) return false;
 
-    return true;
-  });
+        return true;
+      }),
+    [jobs, debouncedSearchQuery, roleFilter, address, statusFilter, minBudget, maxBudget]
+  );
 
-  const sortedJobs = [...filteredJobs].sort((a: Job, b: Job) => {
-    const multiplier = sortOrder === 'asc' ? 1 : -1;
+  const sortedJobs = useMemo(
+    () =>
+      [...filteredJobs].sort((a: Job, b: Job) => {
+        const multiplier = sortOrder === 'asc' ? 1 : -1;
 
-    switch (sortBy) {
-      case 'budget':
-        return multiplier * (
-          tokenAmountToUsd(a.budget, getTokenByAddress(a.paymentToken)) -
-          tokenAmountToUsd(b.budget, getTokenByAddress(b.paymentToken))
-        );
-      case 'deadline':
-        return multiplier * (Number(a.expiredAt) - Number(b.expiredAt));
-      case 'newest':
-      default:
-        return multiplier * (Number(a.id) - Number(b.id));
-    }
-  });
+        switch (sortBy) {
+          case 'budget':
+            return multiplier * (
+              tokenAmountToUsd(a.budget, getTokenByAddress(a.paymentToken)) -
+              tokenAmountToUsd(b.budget, getTokenByAddress(b.paymentToken))
+            );
+          case 'deadline':
+            return multiplier * (Number(a.expiredAt) - Number(b.expiredAt));
+          case 'newest':
+          default:
+            return multiplier * (Number(a.id) - Number(b.id));
+        }
+      }),
+    [filteredJobs, sortBy, sortOrder]
+  );
 
   const totalPages = Math.ceil(sortedJobs.length / pageSize);
-  const paginatedJobs = sortedJobs.slice(page * pageSize, (page + 1) * pageSize);
+  const paginatedJobs = useMemo(
+    () => sortedJobs.slice(page * pageSize, (page + 1) * pageSize),
+    [sortedJobs, page, pageSize]
+  );
 
   const updateFilter = useCallback(
     (setter: (value: string) => void) => (value: string) => {

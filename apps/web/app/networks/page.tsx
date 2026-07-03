@@ -10,10 +10,10 @@ import {
   RefreshCw,
   ExternalLink,
 } from 'lucide-react';
-import { Card, Button } from '@heroui/react';
+import { Card } from '@heroui/react';
 import { PRODUCTION_CHAINS, ChainConfig } from '@/lib/chains';
 import { useNetworkStats } from '@/lib/hooks/useNetworkStats';
-import { card } from '@/lib/design-system';
+import { card, btn } from '@/lib/design-system';
 
 interface NetworkCardProps {
   chain: ChainConfig;
@@ -160,10 +160,10 @@ export default function NetworksPage() {
           </h1>
           <p className="text-default-500">ERC-8004 compatible blockchain networks</p>
         </div>
-        <Button variant="ghost" size="sm" onPress={() => refetch()} isDisabled={isLoading}>
+        <button type="button" className={btn('ghost', 'text-sm')} onClick={() => refetch()} disabled={isLoading}>
           <RefreshCw className={`size-4 ${isLoading ? 'animate-spin' : ''}`} />
           Refresh
-        </Button>
+        </button>
       </div>
 
       <div className="flex flex-col lg:flex-row gap-6 mb-8">

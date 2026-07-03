@@ -20,6 +20,7 @@ import { DS } from '@/lib/design-system';
 import { SEPOLIA_CHAIN_ID } from '@/lib/contracts/config';
 import { ActivityFeed } from '@/components/ActivityFeed';
 import { DashboardCard } from '@/components/ui/DashboardCard';
+import { ErrorDisplay } from '@/components/ErrorDisplay';
 
 const ArbiterSection = dynamicImport(() => import('@/components/ArbiterSection').then(m => m.ArbiterSection), {
   loading: () => <div className="animate-pulse h-40 bg-content2 rounded-lg" />,
@@ -107,7 +108,7 @@ function QuickActions() {
 }
 
 function PriorityActions({ user }: { user: `0x${string}` }) {
-  const { jobs, isLoading } = useUserJobs(user, 'all');
+  const { jobs, isLoading, error } = useUserJobs(user, 'all');
   const lower = user.toLowerCase();
   const needsFunding = jobs.filter(
     job => job.client?.toLowerCase() === lower && job.status === JobStatus.Open
@@ -141,6 +142,14 @@ function PriorityActions({ user }: { user: `0x${string}` }) {
       tone: 'primary' as const,
     })),
   ].slice(0, 4);
+
+  if (error && !isLoading) {
+    return (
+      <div className="mb-8">
+        <ErrorDisplay error={error as Error} />
+      </div>
+    );
+  }
 
   if (isLoading || items.length === 0) return null;
 

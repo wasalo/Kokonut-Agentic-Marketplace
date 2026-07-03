@@ -26,6 +26,17 @@ const nextConfig = {
   // Fix lockfile warning for monorepo with multiple lockfiles
   outputFileTracingRoot: __dirname,
 
+  // Proxy Kokonut Intelligence Directus API to avoid CORS issues
+  async rewrites() {
+    const intelligenceUrl = process.env.NEXT_PUBLIC_INTELLIGENCE_API_URL || 'http://localhost:8055';
+    return [
+      {
+        source: '/api/intelligence-proxy/:path*',
+        destination: `${intelligenceUrl}/:path*`,
+      },
+    ];
+  },
+
   // Phase 3: Security Headers
   // CSP is in report-only mode for testing phase
   async headers() {

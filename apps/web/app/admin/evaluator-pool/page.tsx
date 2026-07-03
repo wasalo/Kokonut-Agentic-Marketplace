@@ -2,10 +2,11 @@
 
 import { useEffect, useState } from 'react';
 import { useAccount } from 'wagmi';
-import { Card, Button, Input } from '@heroui/react';
+import { Card } from '@heroui/react';
 import { Users, AlertCircle, RefreshCw, Trash2 } from 'lucide-react';
 import NextLink from 'next/link';
-import { DS, card } from '@/lib/design-system';
+import { DS, card, btn } from '@/lib/design-system';
+import { Input } from '@/components/ui/Input';
 import { toast } from 'sonner';
 import { useEvaluatorPoolSize, useMinEvaluatorStake, useEvaluatorPoolAdmin } from '@/lib/hooks/useEvaluators';
 import { formatAmount } from '@/lib/tokenUtils';
@@ -97,16 +98,16 @@ export default function EvaluatorPoolAdminPage(): JSX.Element {
             placeholder="10000000000000000 (0.01 ETH)"
             className="font-mono"
           />
-        <Button onClick={handleSetMinStake} isDisabled={!isConnected || !newMinStake || isSettingMin} className={DS.buttons.primary}>
+        <button type="button" onClick={handleSetMinStake} disabled={!isConnected || !newMinStake || isSettingMin} className={btn('primary')}>
           Update
-        </Button>
+        </button>
         </div>
       </Card>
 
       <div className="flex items-center gap-3 mb-4">
-        <Button onClick={loadEvaluators} isDisabled={isLoading} className={DS.buttons.secondary}>
+        <button type="button" onClick={loadEvaluators} disabled={isLoading} className={btn('secondary')}>
           <RefreshCw className="size-4 mr-1 inline" /> Refresh
-        </Button>
+        </button>
         <span className="text-sm text-default-500 ml-auto">{evaluators.length} evaluators</span>
       </div>
 

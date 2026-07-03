@@ -1,5 +1,6 @@
 'use client';
 
+import React from 'react';
 import type { ReactNode } from 'react';
 import NextLink from 'next/link';
 import { ArrowRight } from 'lucide-react';
@@ -14,7 +15,7 @@ interface UnifiedWorkCardProps {
   actionLabel?: string;
 }
 
-export function UnifiedWorkCard({
+export const UnifiedWorkCard = React.memo(function UnifiedWorkCard({
   title,
   description,
   href,
@@ -56,4 +57,4 @@ export function UnifiedWorkCard({
       </NextLink>
     </div>
   );
-}
+});

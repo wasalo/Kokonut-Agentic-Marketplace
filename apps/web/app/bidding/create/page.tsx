@@ -4,7 +4,7 @@ import { useState, useCallback, useEffect, useMemo } from 'react';
 import { useRouter } from 'next/navigation';
 import { useAccount, useBalance, usePublicClient, useWriteContract } from 'wagmi';
 import { ArrowLeft, Loader2, AlertCircle, Clock, Shield, Wallet } from 'lucide-react';
-import { Card, Button } from '@heroui/react';
+import { Card } from '@heroui/react';
 import NextLink from 'next/link';
 import { toHex } from 'viem';
 import { useCreateBiddingSession } from '@/lib/hooks/useBiddingSystem';
@@ -317,24 +317,16 @@ export default function CreateBiddingSessionPage(): JSX.Element {
           )}
 
           <div className="flex items-center justify-between">
-            <Button
-              variant="ghost"
-              isDisabled={isBusy}
-              onPress={() => setShowConfirm(false)}
-            >
+            <button type="button" className={btn('ghost')} disabled={isBusy} onClick={() => setShowConfirm(false)}>
               Back
-            </Button>
-            <Button
-              className={btn('primary')}
-              onPress={handleConfirm}
-              isDisabled={isBusy}
-            >
+            </button>
+            <button type="button" className={btn('primary')} onClick={handleConfirm} disabled={isBusy}>
               {isPending || isConfirming || approvalPhase === 'creating' ? (
                 <Loader2 className="size-4 animate-spin" />
               ) : (
                 confirmLabel
               )}
-            </Button>
+            </button>
           </div>
         </Card>
       </div>

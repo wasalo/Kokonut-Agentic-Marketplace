@@ -1,6 +1,6 @@
 'use client';
 
-import { useMemo, type ReactNode } from 'react';
+import { useCallback, useMemo, type ReactNode } from 'react';
 import NextLink from 'next/link';
 import { useRouter, useSearchParams } from 'next/navigation';
 import { ArrowRight, Briefcase, Code, Gavel, RefreshCw, Store } from 'lucide-react';
@@ -316,26 +316,40 @@ export function MyWorkHubPanel({ jobs, user, isLoading }: { jobs: Job[]; user?: 
   const router = useRouter();
   const subtab: 'jobs' | 'bids' = searchParams.get('subtab') === 'bids' ? 'bids' : 'jobs';
 
+  const myJobs = useMemo(
+    () =>
+      user
+        ? jobs.filter(job => {
+            const lower = user.toLowerCase();
+            return job.client.toLowerCase() === lower || job.provider.toLowerCase() === lower || job.evaluator.toLowerCase() === lower;
+          })
+        : [],
+    [jobs, user]
+  );
+
+  const attentionJobs = useMemo(
+    () =>
+      myJobs
+        .map(job => ({ job, reason: getAttentionReason(job, user!) }))
+        .filter((item): item is { job: Job; reason: string } => item.reason !== null)
+        .slice(0, 8),
+    [myJobs, user]
+  );
+
+  const switchSubtab = useCallback(
+    (next: 'jobs' | 'bids') => {
+      const params = new URLSearchParams(searchParams.toString());
+      if (next === 'jobs') params.delete('subtab');
+      else params.set('subtab', next);
+      const query = params.toString();
+      router.replace(`/marketplace?tab=my-work${query ? `&${query}` : ''}`, { scroll: false });
+    },
+    [searchParams, router]
+  );
+
   if (!user) {
     return <EmptyHubState title="Connect to see your work" description="Your active jobs and required actions will appear here." />;
   }
-
-  const myJobs = jobs.filter(job => {
-    const lower = user.toLowerCase();
-    return job.client.toLowerCase() === lower || job.provider.toLowerCase() === lower || job.evaluator.toLowerCase() === lower;
-  });
-  const attentionJobs = myJobs
-    .map(job => ({ job, reason: getAttentionReason(job, user) }))
-    .filter((item): item is { job: Job; reason: string } => item.reason !== null)
-    .slice(0, 8);
-
-  const switchSubtab = (next: 'jobs' | 'bids') => {
-    const params = new URLSearchParams(searchParams.toString());
-    if (next === 'jobs') params.delete('subtab');
-    else params.set('subtab', next);
-    const query = params.toString();
-    router.replace(`/marketplace?tab=work${query ? `&${query}` : ''}`, { scroll: false });
-  };
 
   return (
     <section>
@@ -480,34 +494,49 @@ export function StudioHubPanel({
   onRefetch: () => void;
   onRefreshAll: () => void;
 }) {
+  const lowerUser = user?.toLowerCase() ?? '';
+
+  const { activeServices, inactiveServices, studioJobs, studioSessions, attentionJobs, activeJobs, completedJobs, createdSessions, wonSessions, activeSessions } = useMemo(() => {
+    const activeServices = services.filter(service => service.isActive);
+    const inactiveServices = services.filter(service => !service.isActive);
+    const studioJobs = jobs.filter(job =>
+      job.client.toLowerCase() === lowerUser ||
+      job.provider.toLowerCase() === lowerUser ||
+      job.evaluator.toLowerCase() === lowerUser
+    );
+    const studioSessions = sessions.filter(session =>
+      session.creator.toLowerCase() === lowerUser ||
+      session.winner.toLowerCase() === lowerUser
+    );
+    const attentionJobs = studioJobs.filter(job => user && getAttentionReason(job, user) !== null);
+    const activeJobs = studioJobs.filter(job =>
+      job.status !== JobStatus.Completed &&
+      job.status !== JobStatus.Rejected &&
+      job.status !== JobStatus.Expired
+    );
+    const completedJobs = studioJobs.filter(job => job.status === JobStatus.Completed);
+    const createdSessions = studioSessions.filter(session => session.creator.toLowerCase() === lowerUser);
+    const wonSessions = studioSessions.filter(session => session.winner.toLowerCase() === lowerUser);
+    const activeSessions = studioSessions.filter(session => session.status === SessionStatus.Active);
+    return {
+      activeServices,
+      inactiveServices,
+      studioJobs,
+      studioSessions,
+      attentionJobs,
+      activeJobs,
+      completedJobs,
+      createdSessions,
+      wonSessions,
+      activeSessions,
+    };
+  }, [services, jobs, sessions, lowerUser, user]);
+
+  const isRefreshing = isLoading || isJobsLoading || isBiddingLoading;
+
   if (!isConnected || !user) {
     return <EmptyHubState title="Connect to manage your studio" description="Your services, agents, and skills live here once connected." />;
   }
-
-  const lowerUser = user.toLowerCase();
-  const activeServices = services.filter(service => service.isActive);
-  const inactiveServices = services.filter(service => !service.isActive);
-  const studioJobs = jobs.filter(job =>
-    job.client.toLowerCase() === lowerUser ||
-    job.provider.toLowerCase() === lowerUser ||
-    job.evaluator.toLowerCase() === lowerUser
-  );
-  const studioSessions = sessions.filter(session =>
-    session.creator.toLowerCase() === lowerUser ||
-    session.winner.toLowerCase() === lowerUser
-  );
-  const attentionJobs = studioJobs.filter(job => getAttentionReason(job, user) !== null);
-  const activeJobs = studioJobs.filter(job =>
-    job.status !== JobStatus.Completed &&
-    job.status !== JobStatus.Rejected &&
-    job.status !== JobStatus.Expired
-  );
-  const completedJobs = studioJobs.filter(job => job.status === JobStatus.Completed);
-  const createdSessions = studioSessions.filter(session => session.creator.toLowerCase() === lowerUser);
-  const wonSessions = studioSessions.filter(session => session.winner.toLowerCase() === lowerUser);
-  const activeSessions = studioSessions.filter(session => session.status === SessionStatus.Active);
-
-  const isRefreshing = isLoading || isJobsLoading || isBiddingLoading;
 
   return (
     <section>

@@ -3,7 +3,7 @@
 import { useState, useCallback } from 'react';
 import { Card } from '@heroui/react';
 import { ChevronDown, ChevronRight, Copy, Check, Play, Loader2 } from 'lucide-react';
-import { card } from '@/lib/design-system';
+import { card, input } from '@/lib/design-system';
 import {
   MCP_TOOLS,
   MOCK_JOBS,
@@ -138,7 +138,7 @@ function ParameterInput({
         value={value}
         onChange={e => onChange(e.target.value)}
         placeholder={parameter.description}
-        className="w-full px-3 py-2 bg-content2 border border-divider rounded-lg text-sm focus:outline-none focus:ring-2 focus:ring-primary"
+        className={input()}
       />
     </div>
   );

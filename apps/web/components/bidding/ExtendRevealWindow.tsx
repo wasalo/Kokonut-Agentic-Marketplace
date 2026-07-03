@@ -2,6 +2,7 @@
 
 import { Loader2 } from 'lucide-react';
 import { Input } from '@/components/ui/Input';
+import { btn } from '@/lib/design-system';
 
 interface ExtendRevealWindowProps {
   extendSeconds: string;
@@ -36,7 +37,7 @@ export function ExtendRevealWindow({
           type="button"
           onClick={onExtend}
           disabled={isExtendPending || !extendSeconds}
-          className="w-full sm:w-auto px-6 py-2 bg-content2 border border-divider font-medium rounded-lg hover:bg-content3 transition-colors disabled:opacity-50 disabled:cursor-not-allowed"
+          className={btn('ghost', 'w-full sm:w-auto disabled:opacity-50 disabled:cursor-not-allowed')}
         >
           {isExtendPending ? (
             <Loader2 className="size-4 animate-spin inline" />

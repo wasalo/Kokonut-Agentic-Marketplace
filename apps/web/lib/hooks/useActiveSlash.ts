@@ -1,7 +1,7 @@
 'use client';
 
-import { usePublicClient, useAccount } from 'wagmi';
-import { useEffect, useState } from 'react';
+import { usePublicClient } from 'wagmi';
+import { useQuery } from '@tanstack/react-query';
 import { type Address } from 'viem';
 import { CONTRACTS } from '@/lib/wagmi';
 import { assertValidAddress } from '@/lib/utils/typeGuards';
@@ -30,21 +30,18 @@ export interface EvaluatorSlashWarning {
 ///         The actual slashing authority lives in SlashManager; this hook is
 ///         purely informational for the JobActionsCard warning banner.
 export function useActiveSlash(jobId: bigint | undefined, evaluator: Address | null) {
-  const { address: user } = useAccount();
   const publicClient = usePublicClient();
-  const [lastActivity, setLastActivity] = useState<bigint | null>(null);
 
-  useEffect(() => {
-    if (!publicClient || !jobId || !evaluator) return;
-    const client = publicClient;
-    let cancelled = false;
+  const query = useQuery<bigint | null>({
+    queryKey: ['active-slash', jobId, evaluator],
+    queryFn: async () => {
+      if (!publicClient) return null;
 
-    async function findLastActivity(): Promise<bigint | null> {
       try {
-        const currentBlock = await client.getBlockNumber();
+        const currentBlock = await publicClient.getBlockNumber();
         const fromBlock = currentBlock > 50000n ? currentBlock - 50000n : 0n;
 
-        const logs = await client.getLogs({
+        const logs = await publicClient.getLogs({
           address: AGENTIC_COMMERCE_ADDRESS,
           fromBlock,
           toBlock: currentBlock,
@@ -61,23 +58,13 @@ export function useActiveSlash(jobId: bigint | undefined, evaluator: Address | n
       } catch {
         return null;
       }
-    }
+    },
+    refetchInterval: POLL_INTERVAL,
+    enabled: !!publicClient && !!jobId && !!evaluator,
+    staleTime: 30_000,
+  });
 
-    void findLastActivity().then(block => {
-      if (!cancelled) setLastActivity(block);
-    });
-
-    const interval = setInterval(() => {
-      void findLastActivity().then(block => {
-        if (!cancelled) setLastActivity(block);
-      });
-    }, POLL_INTERVAL);
-
-    return () => {
-      cancelled = true;
-      clearInterval(interval);
-    };
-  }, [publicClient, jobId, evaluator, user]);
+  const lastActivity = query.data ?? null;
 
   const nowSecs = BigInt(Math.floor(Date.now() / 1000));
   let risk: SlashRisk = 'none';

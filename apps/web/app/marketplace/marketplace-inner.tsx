@@ -3,6 +3,7 @@
 import { useMemo, useState, useCallback, useEffect, useRef } from 'react';
 import { useAccount, usePublicClient } from 'wagmi';
 import { useSearchParams, useRouter } from 'next/navigation';
+import { useQueryClient } from '@tanstack/react-query';
 import NextLink from 'next/link';
 import { ArrowRight, Briefcase, Code, Gavel, Store } from 'lucide-react';
 import { ServiceList } from '@/components/heroui/service-list';
@@ -30,6 +31,7 @@ import {
   getAttentionReason,
 } from '@/components/marketplace/MarketplaceHubPanels';
 import { IntelligenceStatsPanel } from '@/components/intelligence/IntelligenceStatsPanel';
+import { getIntelligenceClient } from '@/lib/hooks/useIntelligenceClient';
 
 const ITEMS_PER_PAGE = 12;
 const MAX_MARKETPLACE_BATCH = 50;
@@ -128,6 +130,7 @@ export default function MarketplaceInner() {
   const router = useRouter();
   const searchParams = useSearchParams();
   const { ethToUsdcRate } = useTokenPriceConversion();
+  const queryClient = useQueryClient();
 
   const activeTab = parseMarketplaceTab(searchParams.get('tab'));
   const providerParam = searchParams.get('provider');
@@ -360,47 +363,100 @@ export default function MarketplaceInner() {
     [updateMarketplaceUrl]
   );
 
-  const openJobsCount = hubJobs.filter(job => job.status === JobStatus.Open).length;
-  const activeSessionsCount = biddingSessions.filter(session => session.status === SessionStatus.Active).length;
-  const needsAttentionCount = address
-    ? hubJobs.filter(job => getAttentionReason(job, address)).length
-    : 0;
+  const handleTabHover = useCallback(
+    (tab: MarketplaceHubTab) => {
+      if (tab !== 'intelligence') return;
+      const client = getIntelligenceClient();
+      const STALE = 5 * 60 * 1000;
+      queryClient.prefetchQuery({
+        queryKey: ['intelligence-farms'],
+        queryFn: () => client.listFarms({ limit: 100 }),
+        staleTime: STALE,
+      });
+      queryClient.prefetchQuery({
+        queryKey: ['intelligence-agents'],
+        queryFn: () => client.listAgents({ limit: 100 }),
+        staleTime: STALE,
+      });
+      queryClient.prefetchQuery({
+        queryKey: ['intelligence-attestations'],
+        queryFn: () => client.listAttestations({ limit: 100 }),
+        staleTime: STALE,
+      });
+      queryClient.prefetchQuery({
+        queryKey: ['intelligence-ai-summaries'],
+        queryFn: () => client.listAISummaries({ limit: 100 }),
+        staleTime: STALE,
+      });
+    },
+    [queryClient]
+  );
 
-  const hubStats = [
-    {
-      label: 'Services',
-      value: activeServicesCount,
-      detail: `${uniqueProviders} provider${uniqueProviders === 1 ? '' : 's'} · avg $${avgPrice.toFixed(0)}`,
-      icon: <Store className="size-4" />,
-      isLoading: isServicesLoading || isTotalCountLoading,
-    },
-    {
-      label: 'Awaiting Escrow',
-      value: openJobsCount,
-      detail: 'Jobs pending client funding',
-      icon: <Briefcase className="size-4" />,
-      isLoading: isJobsLoading,
-    },
-    {
-      label: 'Bidding',
-      value: activeSessionsCount,
-      detail: `${biddingTotalCount} total sessions`,
-      icon: <Gavel className="size-4" />,
-      isLoading: isBiddingLoading,
-    },
-    {
-      label: 'Needs Attention',
-      value: needsAttentionCount,
-      detail: isConnected ? 'Your action queue' : 'Connect wallet',
-      icon: <ArrowRight className="size-4" />,
-      isLoading: isJobsLoading,
-    },
-  ];
+  const openJobsCount = useMemo(
+    () => hubJobs.filter(job => job.status === JobStatus.Open).length,
+    [hubJobs]
+  );
+  const activeSessionsCount = useMemo(
+    () => biddingSessions.filter(session => session.status === SessionStatus.Active).length,
+    [biddingSessions]
+  );
+  const needsAttentionCount = useMemo(
+    () => (address ? hubJobs.filter(job => getAttentionReason(job, address)).length : 0),
+    [hubJobs, address]
+  );
+
+  const hubStats = useMemo(
+    () => [
+      {
+        label: 'Services',
+        value: activeServicesCount,
+        detail: `${uniqueProviders} provider${uniqueProviders === 1 ? '' : 's'} · avg $${avgPrice.toFixed(0)}`,
+        icon: <Store className="size-4" />,
+        isLoading: isServicesLoading || isTotalCountLoading,
+      },
+      {
+        label: 'Awaiting Escrow',
+        value: openJobsCount,
+        detail: 'Jobs pending client funding',
+        icon: <Briefcase className="size-4" />,
+        isLoading: isJobsLoading,
+      },
+      {
+        label: 'Bidding',
+        value: activeSessionsCount,
+        detail: `${biddingTotalCount} total sessions`,
+        icon: <Gavel className="size-4" />,
+        isLoading: isBiddingLoading,
+      },
+      {
+        label: 'Needs Attention',
+        value: needsAttentionCount,
+        detail: isConnected ? 'Your action queue' : 'Connect wallet',
+        icon: <ArrowRight className="size-4" />,
+        isLoading: isJobsLoading,
+      },
+    ],
+    [
+      activeServicesCount,
+      uniqueProviders,
+      avgPrice,
+      openJobsCount,
+      activeSessionsCount,
+      needsAttentionCount,
+      isServicesLoading,
+      isTotalCountLoading,
+      isJobsLoading,
+      isBiddingLoading,
+      biddingTotalCount,
+      isConnected,
+    ]
+  );
 
   return (
     <MarketplaceHubShell
       activeTab={activeTab}
       onTabChange={handleTabChange}
+      onTabHover={handleTabHover}
       actions={
         isConnected ? (
           <>

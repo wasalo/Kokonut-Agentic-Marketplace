@@ -242,8 +242,6 @@ export default function JobDetailPage({
           </Card>
         )}
 
-        {Boolean(currentError) && <ErrorDisplay error={currentError as Error} />}
-
         <JobFundingSection
           job={job}
           isClient={isClient}

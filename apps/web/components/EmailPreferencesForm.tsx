@@ -8,7 +8,7 @@ import { useEmailStore } from '@/lib/emails/store';
 import type { EmailPreferences } from '@/lib/emails/types';
 import { createOwnerAuthHeaders } from '@/lib/client-auth';
 import { Input } from '@/components/ui/Input';
-import { card } from '@/lib/design-system';
+import { card, btn } from '@/lib/design-system';
 
 interface EmailPreferencesFormProps {
   onSuccess?: () => void;
@@ -208,7 +208,7 @@ export function EmailPreferencesForm({ onSuccess }: EmailPreferencesFormProps) {
 
         <button type="submit"
           disabled={isSaving}
-          className="w-full flex items-center justify-center gap-2 px-4 py-2 bg-primary text-white rounded-lg font-medium hover:opacity-90 disabled:opacity-50"
+          className={btn('primary', 'w-full disabled:opacity-50')}
         >
           {isSaving ? (
             <>

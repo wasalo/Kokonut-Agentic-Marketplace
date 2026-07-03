@@ -1,6 +1,6 @@
 'use client';
 
-import { useCallback, useEffect, useState } from 'react';
+import React, { useCallback, useEffect, useState } from 'react';
 import { usePathname } from 'next/navigation';
 import NextLink from 'next/link';
 import {
@@ -87,7 +87,7 @@ function ProfileAvatar({ shortAddress }: { shortAddress: string | null }) {
   );
 }
 
-export function BottomNav(): JSX.Element | null {
+export const BottomNav = React.memo(function BottomNav(): JSX.Element | null {
   const pathname = usePathname();
   const { activeTab, isConnected, pendingTxCount, unreadCount, shortAddress, connect } =
     useBottomNavState();
@@ -228,4 +228,4 @@ export function BottomNav(): JSX.Element | null {
       </ul>
     </nav>
   );
-}
+});

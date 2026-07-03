@@ -10,13 +10,14 @@ import {
   Star,
   RefreshCw,
 } from 'lucide-react';
-import { Card, Button } from '@heroui/react';
+import { Card } from '@heroui/react';
 import { useLeaderboardFromSubgraph } from '@/lib/hooks';
 import type { LeaderboardEntry } from '@/lib/hooks/useLeaderboardFromSubgraph';
 import { getTierColor, formatScore, getScoreColor } from '@/lib/healthScore';
 import { StatusBadge } from '@/components/StatusBadge';
 import { Address } from '@/components/Address';
 import { card, btn } from '@/lib/design-system';
+import { ErrorDisplay } from '@/components/ErrorDisplay';
 
 interface TierBadgeProps {
   rank: number;
@@ -194,6 +195,7 @@ export default function LeaderboardPage() {
   const {
     entries,
     isLoading,
+    error,
     refetch,
   } = useLeaderboardFromSubgraph(page, 50);
 
@@ -208,12 +210,18 @@ export default function LeaderboardPage() {
           <p className="text-default-500">Top-performing Kokonut agents ranked by health score</p>
         </div>
         <div className="flex items-center gap-3">
-          <Button variant="ghost" size="sm" onPress={() => refetch()} isDisabled={isLoading}>
+          <button type="button" className={btn('ghost', 'text-sm')} onClick={() => refetch()} disabled={isLoading}>
             <RefreshCw className={`size-4 ${isLoading ? 'animate-spin' : ''}`} />
             Refresh
-          </Button>
+          </button>
         </div>
       </div>
+
+      {error && !isLoading && (
+        <div className="mb-6">
+          <ErrorDisplay error={error as Error} />
+        </div>
+      )}
 
       <div className="flex flex-col lg:flex-row gap-6 mb-8">
         <Card className={card('padded', 'p-6 flex-1')}>

@@ -2,10 +2,10 @@
 
 import { useEffect, useState, useCallback } from 'react';
 import { useAccount } from 'wagmi';
-import { Card, Button } from '@heroui/react';
+import { Card } from '@heroui/react';
 import { Scale, AlertCircle } from 'lucide-react';
 import NextLink from 'next/link';
-import { DS, card } from '@/lib/design-system';
+import { card, btn } from '@/lib/design-system';
 import { toast } from 'sonner';
 import { ZERO_ADDRESS } from '@/lib/contracts/config';
 import {
@@ -37,7 +37,8 @@ export default function MilestoneDisputesAdminPage(): JSX.Element {
   const [isSweeping, setIsSweeping] = useState(false);
 
   const loadDisputes = useCallback(async () => {
-    const active = await load();
+    const result = await load();
+    const active = result.data ?? [];
     setDisputes(
       active.map(d => ({
         ...d,
@@ -100,22 +101,12 @@ export default function MilestoneDisputesAdminPage(): JSX.Element {
       )}
 
       <div className="flex items-center gap-3 mb-4">
-        <Button
-          onClick={loadDisputes}
-          isDisabled={isLoadingDisputes}
-          className={DS.buttons.secondary}
-         
-        >
+        <button type="button" onClick={loadDisputes} disabled={isLoadingDisputes} className={btn('secondary')}>
           Refresh
-        </Button>
-        <Button
-          onClick={handleSweep}
-          isDisabled={isSweeping || disputes.length === 0}
-          className={DS.buttons.secondary}
-         
-        >
+        </button>
+        <button type="button" onClick={handleSweep} disabled={isSweeping || disputes.length === 0} className={btn('secondary')}>
           Sweep stale disputes
-        </Button>
+        </button>
         <span className="text-sm text-default-500 ml-auto">{disputes.length} active</span>
       </div>
 
@@ -165,18 +156,18 @@ export default function MilestoneDisputesAdminPage(): JSX.Element {
                               Release to provider
                             </label>
                             <div className="flex gap-2">
-                              <Button size="sm" onClick={() => handleResolve(d.jobId)} className={DS.buttons.primary}>
+                              <button type="button" className={btn('primary', 'text-sm')} onClick={() => handleResolve(d.jobId)}>
                                 Submit
-                              </Button>
-                              <Button size="sm" onClick={() => setResolvingJob(null)}>
+                              </button>
+                              <button type="button" className={btn('ghost', 'text-sm')} onClick={() => setResolvingJob(null)}>
                                 Cancel
-                              </Button>
+                              </button>
                             </div>
                           </div>
                         ) : (
-                          <Button size="sm" isDisabled={!isConnected} onClick={() => setResolvingJob(key)}>
+                          <button type="button" className={btn('primary', 'text-sm')} disabled={!isConnected} onClick={() => setResolvingJob(key)}>
                             Resolve
-                          </Button>
+                          </button>
                         )}
                       </td>
                     </tr>

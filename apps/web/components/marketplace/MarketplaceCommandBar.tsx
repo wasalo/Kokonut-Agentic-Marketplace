@@ -1,5 +1,6 @@
 'use client';
 
+import React from 'react';
 import type { ReactNode } from 'react';
 import { Search } from 'lucide-react';
 
@@ -10,7 +11,7 @@ interface MarketplaceCommandBarProps {
   children?: ReactNode;
 }
 
-export function MarketplaceCommandBar({
+export const MarketplaceCommandBar = React.memo(function MarketplaceCommandBar({
   value,
   placeholder = 'Search marketplace...',
   onChange,
@@ -35,4 +36,4 @@ export function MarketplaceCommandBar({
       </div>
     </div>
   );
-}
+});

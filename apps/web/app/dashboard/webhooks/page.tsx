@@ -251,8 +251,8 @@ export default function WebhooksPage() {
       }
 
       try {
-        const webhooks = await listWebhooks();
-        setServerWebhooks(webhooks);
+        const result = await listWebhooks();
+        setServerWebhooks(result.data ?? []);
       } catch (error) {
         console.error('Failed to fetch webhooks:', error);
       } finally {
@@ -265,8 +265,8 @@ export default function WebhooksPage() {
 
   const handleCreate = async (registration: WebhookRegistration) => {
     await createWebhook(registration);
-    const webhooks = await listWebhooks();
-    setServerWebhooks(webhooks);
+    const result = await listWebhooks();
+    setServerWebhooks(result.data ?? []);
     setShowCreateForm(false);
   };
 

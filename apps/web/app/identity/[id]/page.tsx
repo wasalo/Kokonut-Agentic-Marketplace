@@ -9,6 +9,7 @@ import { useIntelligenceClient } from '@/lib/hooks/useIntelligenceClient';
 import { formatUsd } from '@/lib/tokenUtils';
 import { useQuery } from '@tanstack/react-query';
 import { card } from '@/lib/design-system';
+import { ErrorDisplay } from '@/components/ErrorDisplay';
 
 import { useAccount } from 'wagmi';
 import { Address } from '@/components/Address';
@@ -809,11 +810,19 @@ export default function AgentDetailPage({ params }: AgentDetailPageProps) {
   const agentAddress = `0x${id}` as `0x${string}`;
   const { address: connectedAddress } = useAccount();
   
-  const { profile, isLoading } = useUnifiedAgentProfile(agentId, agentAddress);
+  const { profile, isLoading, error } = useUnifiedAgentProfile(agentId, agentAddress);
   const { owner, metadata, services, skillIds, providerJobs, clientJobs, reputationScore } = profile;
   const { followersCount, followingCount } = useEfpStats(owner);
   
   const [activeTab, setActiveTab] = useState('overview');
+
+  if (error && !isLoading) {
+    return (
+      <div className="container mx-auto px-3 md:px-4 py-4 md:py-8 max-w-5xl">
+        <ErrorDisplay error={error as Error} />
+      </div>
+    );
+  }
 
   const tabs = [
     { id: 'overview', label: 'Overview' },

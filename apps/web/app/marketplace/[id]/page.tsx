@@ -51,6 +51,7 @@ import { SERVICE_REGISTRY_ABI } from '@/lib/contracts/abis';
 import { getContractAddress } from '@/lib/contracts/config';
 import { SERVICE_BOND_AMOUNT, SERVICE_BOND_COOLDOWN_MS } from '@/lib/contracts/bonds';
 import { card, btn } from '@/lib/design-system';
+import { ErrorDisplay } from '@/components/ErrorDisplay';
 
 const SERVICE_REGISTRY_ADDRESS = getContractAddress('SERVICE_REGISTRY');
 
@@ -67,7 +68,7 @@ export default function ServiceDetailPage({
   const serviceId = BigInt(id);
   const { address } = useAccount();
 
-  const { service, isLoading, refetch } = useServiceContract(serviceId);
+  const { service, isLoading, error, refetch } = useServiceContract(serviceId);
   const reputation = useAgentReputation(service?.provider);
   const { ethToUsdcRate } = useTokenPriceConversion();
 
@@ -130,6 +131,16 @@ export default function ServiceDetailPage({
             <div className="h-8 bg-content2 rounded w-1/3" />
             <div className="h-48 bg-content2 rounded" />
           </div>
+        </div>
+      </div>
+    );
+  }
+
+  if (error && !isLoading) {
+    return (
+      <div className="container mx-auto px-4 py-8">
+        <div className="max-w-2xl mx-auto">
+          <ErrorDisplay error={error as Error} />
         </div>
       </div>
     );

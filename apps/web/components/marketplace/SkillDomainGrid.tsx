@@ -2,16 +2,17 @@
 
 import { Loader2 } from 'lucide-react';
 import { useFindSkillsByDomain } from '@/lib/hooks/useSkills';
+import { DS } from '@/lib/design-system';
 
 export const POPULAR_SKILL_DOMAINS = [
-  { id: 'defi', label: 'DeFi', color: '#009F4D' },
-  { id: 'nft', label: 'NFT', color: '#FFCD00' },
-  { id: 'ai', label: 'AI / ML', color: '#009F4D' },
-  { id: 'governance', label: 'Governance', color: '#FFCD00' },
-  { id: 'web3', label: 'Web3', color: '#009F4D' },
-  { id: 'data', label: 'Data Analysis', color: '#FFCD00' },
-  { id: 'security', label: 'Security', color: '#009F4D' },
-  { id: 'infrastructure', label: 'Infrastructure', color: '#FFCD00' },
+  { id: 'defi', label: 'DeFi', color: DS.colors.primary },
+  { id: 'nft', label: 'NFT', color: DS.colors.secondary },
+  { id: 'ai', label: 'AI / ML', color: DS.colors.primary },
+  { id: 'governance', label: 'Governance', color: DS.colors.secondary },
+  { id: 'web3', label: 'Web3', color: DS.colors.primary },
+  { id: 'data', label: 'Data Analysis', color: DS.colors.secondary },
+  { id: 'security', label: 'Security', color: DS.colors.primary },
+  { id: 'infrastructure', label: 'Infrastructure', color: DS.colors.secondary },
 ];
 
 interface SkillDomainGridProps {
@@ -56,7 +57,7 @@ function DomainCard({
       className={`p-4 rounded-xl border text-left transition-all ${
         isSelected
           ? 'border-success bg-success/5'
-          : 'border-divider hover:border-[#009F4D]/30 hover:shadow-sm hover:bg-content2/50'
+          : 'border-divider hover:border-primary/30 hover:shadow-sm hover:bg-content2/50'
       }`}
     >
       <div className="flex items-center justify-between mb-2">

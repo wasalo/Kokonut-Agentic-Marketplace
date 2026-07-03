@@ -2,14 +2,14 @@
 
 import { useMemo, useEffect } from 'react';
 import { useAccount } from 'wagmi';
-import { Button, Card, Skeleton } from '@heroui/react';
+import { Card, Skeleton } from '@heroui/react';
 import { Wallet, UserPlus, ShoppingBag, Check, BriefcaseBusiness } from 'lucide-react';
 import Link from 'next/link';
 import { ConnectButton } from '@/components/wallet/ConnectButton';
 import { useWalletAgentsFromSubgraph } from '@/lib/hooks';
 import { useProviderServices } from '@/lib/hooks/useServices';
 import { useJobs } from '@/lib/hooks/useJobs';
-import { card } from '@/lib/design-system';
+import { card, btn } from '@/lib/design-system';
 
 type StepState = 'complete' | 'active' | 'pending';
 
@@ -48,7 +48,7 @@ function StepCard({ step, state }: { step: OnboardingStep; state: StepState }) {
         {isActive && step.title === 'Connect Wallet' && <ConnectButton />}
         {isActive && step.href && (
           <Link href={step.href}>
-            <Button size="sm">{step.actionLabel}</Button>
+            <button type="button" className={btn('primary', 'text-sm')}>{step.actionLabel}</button>
           </Link>
         )}
       </div>
@@ -169,10 +169,10 @@ export default function OnboardingPage(): JSX.Element {
           </div>
           <div className="flex gap-2">
             <Link href="/dashboard">
-              <Button variant="secondary">Dashboard</Button>
+              <button type="button" className={btn('secondary')}>Dashboard</button>
             </Link>
             <Link href="/marketplace">
-              <Button>Marketplace</Button>
+              <button type="button" className={btn('primary')}>Marketplace</button>
             </Link>
           </div>
         </div>

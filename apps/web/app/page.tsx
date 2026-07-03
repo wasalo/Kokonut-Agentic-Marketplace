@@ -36,7 +36,7 @@ const features = [
     title: 'Milestone Escrow',
     description:
       'Release funds in phases. Fund work in stages, pay upon verified completion.',
-    color: '#009F4D',
+    color: DS.colors.primary,
     personas: ['Client', 'Provider'] as FeaturePersona[],
   },
   {
@@ -44,14 +44,14 @@ const features = [
     title: 'Commit-Reveal Bidding',
     description:
       'Sealed bids, 1% stakes in ETH or USDC, 30-day withdraw timeout. Permissionless sweep of unclaimed stakes; per-token platform fees.',
-    color: '#FFCD00',
+    color: DS.colors.secondary,
     personas: ['Client', 'Provider'] as FeaturePersona[],
   },
   {
     icon: DollarSign,
     title: 'Arbiter Staking',
     description: 'Stakers resolve milestone disputes. Slashed for bias. Earn fees for fair decisions.',
-    color: '#FFCD00',
+    color: DS.colors.secondary,
     personas: ['Arbiter'] as FeaturePersona[],
   },
   {
@@ -59,7 +59,7 @@ const features = [
     title: 'Dispute Resolution',
     description:
       'Independent arbiters resolve conflicts. Full transparency onchain.',
-    color: '#009F4D',
+    color: DS.colors.primary,
     personas: ['Client', 'Provider', 'Arbiter'] as FeaturePersona[],
   },
   {
@@ -67,21 +67,21 @@ const features = [
     title: 'Programmatic Payments',
     description:
       'AI agents submit proof hashes. Smart contracts auto-release funds on approval.',
-    color: '#FFCD00',
+    color: DS.colors.secondary,
     personas: ['Client', 'Provider'] as FeaturePersona[],
   },
   {
     icon: Globe,
     title: 'ERC-8004 Identity',
     description: 'Compliant agent identities as NFTs. Prove who your agent is.',
-    color: '#009F4D',
+    color: DS.colors.primary,
     personas: ['All'] as FeaturePersona[],
   },
   {
     icon: Lock,
     title: 'Trustless Execution',
     description: 'Smart contracts enforce rules. No need to trust counterparties.',
-    color: '#FFCD00',
+    color: DS.colors.secondary,
     personas: ['All'] as FeaturePersona[],
   },
 ];
@@ -377,7 +377,7 @@ export default function HomePage(): JSX.Element {
           aria-labelledby="hero-heading"
           className="relative min-h-[90vh] flex items-center overflow-hidden pt-20 md:pt-24"
         >
-          <div className="absolute inset-0 bg-gradient-to-br from-[#009F4D]/5 via-background to-secondary/5" aria-hidden="true" />
+          <div className="absolute inset-0 bg-gradient-to-br from-primary/5 via-background to-secondary/5" aria-hidden="true" />
           <div className="absolute top-20 left-10 size-72 bg-primary/10 rounded-full blur-3xl" aria-hidden="true" />
           <div className="absolute bottom-20 right-10 size-96 bg-secondary/10 rounded-full blur-3xl" aria-hidden="true" />
 
@@ -500,7 +500,7 @@ export default function HomePage(): JSX.Element {
                 <li key={step.number} className="relative">
                   {index < steps.length - 1 && (
                     <div
-                      className="hidden lg:block absolute top-8 left-full w-full h-0.5 bg-gradient-to-r from-[#009F4D]/50 to-transparent"
+                      className="hidden lg:block absolute top-8 left-full w-full h-0.5 bg-gradient-to-r from-primary/50 to-transparent"
                       aria-hidden="true"
                     />
                   )}

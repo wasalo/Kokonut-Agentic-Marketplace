@@ -8,6 +8,7 @@ export const DS = {
   /** Brand colors */
   colors: {
     primary: '#009F4D',
+    secondary: '#FFCD00',
     primaryHover: '#007a3d',
     success: '#00c853',
     danger: '#ef4444',

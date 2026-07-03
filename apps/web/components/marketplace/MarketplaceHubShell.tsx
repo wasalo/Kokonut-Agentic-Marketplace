@@ -1,5 +1,6 @@
 'use client';
 
+import React from 'react';
 import type { ComponentType, ReactNode } from 'react';
 import NextLink from 'next/link';
 import { Briefcase, Code, Compass, Gavel, LayoutDashboard, Leaf, Store } from 'lucide-react';
@@ -76,13 +77,15 @@ export const MARKETPLACE_HUB_TABS: Array<{
 interface MarketplaceHubShellProps {
   activeTab: MarketplaceHubTab;
   onTabChange: (tab: MarketplaceHubTab) => void;
+  onTabHover?: (tab: MarketplaceHubTab) => void;
   actions?: ReactNode;
   children: ReactNode;
 }
 
-export function MarketplaceHubShell({
+export const MarketplaceHubShell = React.memo(function MarketplaceHubShell({
   activeTab,
   onTabChange,
+  onTabHover,
   actions,
   children,
 }: MarketplaceHubShellProps) {
@@ -127,6 +130,7 @@ export function MarketplaceHubShell({
                 key={tab.id}
                 type="button"
                 onClick={() => onTabChange(tab.id)}
+                onMouseEnter={() => onTabHover?.(tab.id)}
                 className={`rounded-xl px-3 py-3 text-left transition-all ${
                   isActive
                     ? `${tab.bg} border border-current/20 shadow-sm`
@@ -149,4 +153,4 @@ export function MarketplaceHubShell({
       {children}
     </div>
   );
-}
+});

@@ -1,11 +1,11 @@
 'use client';
 
 import { AlertTriangle, Loader2, ShieldCheck, Wallet } from 'lucide-react';
-import { Button } from '@heroui/react';
 import { TransactionError } from '@/components/TransactionError';
 import { ServicePaymentTokenSelector } from './ServicePaymentTokenSelector';
 import { Token } from '@/lib/hooks/useTokenConversion';
 import { formatTimeRemaining } from '@/lib/hooks/useDebounce';
+import { btn } from '@/lib/design-system';
 
 const MAX_SERVICE_NAME_LENGTH = 100;
 const MAX_DESCRIPTION_LENGTH = 500;
@@ -310,10 +310,10 @@ export function ServiceFormFields({
 
       <TransactionError error={serviceError} />
 
-      <Button
+      <button
         type="submit"
-        className="w-full border-2 border-primary text-primary hover:bg-primary/5 font-semibold"
-        isDisabled={!isConnected || isServicePending || isServiceConfirming || !canSubmit || !hasEnoughBondBalance}
+        className={btn('secondary', 'w-full font-semibold')}
+        disabled={!isConnected || isServicePending || isServiceConfirming || !canSubmit || !hasEnoughBondBalance}
       >
         {isServicePending || isServiceConfirming
           ? <><Loader2 className="size-4 mr-2 animate-spin" />Creating…</>
@@ -321,7 +321,7 @@ export function ServiceFormFields({
             ? <><Loader2 className="size-4 mr-2 animate-spin" />Wait {formatTimeRemaining(timeUntilNextSubmit)}…</>
             : 'Create Service'
         }
-      </Button>
+      </button>
     </form>
   );
 }

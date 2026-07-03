@@ -1,7 +1,7 @@
 'use client';
 
 import { useState, useEffect } from 'react';
-import { Card, Button, Chip } from '@heroui/react';
+import { Card, Chip } from '@heroui/react';
 import {
   ListChecks,
   Clock,
@@ -20,7 +20,7 @@ import {
 } from '@/lib/hooks/useMilestoneEscrow';
 import { ErrorDisplay } from '@/components/ErrorDisplay';
 import { Input } from '@/components/ui/Input';
-import { card } from '@/lib/design-system';
+import { card, btn } from '@/lib/design-system';
 import { JobStatus } from '@/lib/hooks/useJobs';
 
 interface MilestoneSectionProps {
@@ -387,15 +387,14 @@ export function MilestoneSection({
                         onChange={(e) => setProofHash(e.target.value)}
                       />
                     </div>
-                    <Button
-                      size="sm"
-                      variant="outline"
-                      className="border-primary text-primary"
-                      onPress={() => handleCompleteMilestone(index)}
-                      isDisabled={!proofHash || isCompletePending || isTerminal}
+                    <button
+                      type="button"
+                      className={btn('secondary', 'text-sm')}
+                      onClick={() => handleCompleteMilestone(index)}
+                      disabled={!proofHash || isCompletePending || isTerminal}
                     >
                       {isCompletePending ? 'Submitting…' : 'Submit'}
-                    </Button>
+                    </button>
                   </div>
                 </div>
               )}

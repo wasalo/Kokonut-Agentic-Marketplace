@@ -14,8 +14,8 @@ import {
 import { MCPDemoPanel } from '@/components/MCPDemoPanel';
 import NextLink from 'next/link';
 import { useState, useEffect } from 'react';
-import { Card, Button, Chip } from '@heroui/react';
-import { card } from '@/lib/design-system';
+import { Card, Chip } from '@heroui/react';
+import { card, btn } from '@/lib/design-system';
 import { useIntelligenceClient } from '@/lib/hooks/useIntelligenceClient';
 
 const MCP_SERVER_PORT = process.env.NEXT_PUBLIC_MCP_PORT || '3100';
@@ -46,9 +46,9 @@ function CopyButton({ text }: { text: string }) {
   };
 
   return (
-    <Button size="sm" variant="ghost" isIconOnly onPress={handleCopy}>
+    <button type="button" className={btn('icon')} onClick={handleCopy}>
       {copied ? <Check className="size-4" /> : <Copy className="size-4" />}
-    </Button>
+    </button>
   );
 }
 
@@ -192,14 +192,15 @@ export default function IntegrationsPage() {
 
       <div className="flex gap-2 mb-8 flex-wrap">
         {tabs.map(tab => (
-          <Button
+          <button
             key={tab.id}
-            variant={activeTab === tab.id ? 'outline' : 'ghost'}
-            onPress={() => setActiveTab(tab.id)}
+            type="button"
+            className={btn(activeTab === tab.id ? 'secondary' : 'ghost')}
+            onClick={() => setActiveTab(tab.id)}
           >
             <tab.icon className="size-4 mr-2" />
             {tab.label}
-          </Button>
+          </button>
         ))}
       </div>
 

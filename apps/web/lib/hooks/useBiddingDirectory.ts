@@ -49,7 +49,7 @@ export function useBiddingDirectory({
       const params = new URLSearchParams(searchParams.toString());
       params.set('sort', newSortBy);
       params.set('order', newSortOrder);
-      router.push(`${routePath}?${params.toString()}`);
+      router.replace(`${routePath}?${params.toString()}`);
     },
     [routePath, searchParams, router]
   );

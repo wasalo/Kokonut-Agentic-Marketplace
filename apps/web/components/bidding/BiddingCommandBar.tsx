@@ -1,9 +1,9 @@
 'use client';
 
-import { Card, Button } from '@heroui/react';
+import { Card } from '@heroui/react';
 import { Search, SlidersHorizontal } from 'lucide-react';
 import { Input, Select } from '@/components/ui/Input';
-import { card } from '@/lib/design-system';
+import { card, btn } from '@/lib/design-system';
 
 interface BiddingCommandBarProps {
   searchQuery: string;
@@ -43,15 +43,14 @@ export function BiddingCommandBar({
             />
           </div>
 
-          <Button
-            variant="ghost"
-            size="sm"
-            onPress={onToggleFilters}
-            className={showFilters ? 'bg-primary/20' : ''}
+          <button
+            type="button"
+            className={btn('ghost', `text-sm ${showFilters ? 'bg-primary/20' : ''}`)}
+            onClick={onToggleFilters}
           >
             <SlidersHorizontal className="size-4 mr-1" />
             Filters
-          </Button>
+          </button>
         </div>
 
         <div className="flex items-center gap-2">

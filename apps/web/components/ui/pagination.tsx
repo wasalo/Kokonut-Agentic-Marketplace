@@ -1,8 +1,8 @@
 'use client';
 
 import React from 'react';
-import { Button } from '@heroui/react';
 import { ChevronLeft, ChevronRight, ChevronsLeft, ChevronsRight } from 'lucide-react';
+import { btn } from '@/lib/design-system';
 
 interface PaginationProps {
   currentPage: number;
@@ -82,41 +82,39 @@ export function Pagination({
 
       <div className="flex items-center gap-1">
         {/* First */}
-        <Button
-          isIconOnly
-          size="sm"
-          variant="ghost"
-          onPress={() => onPageChange(0)}
-          isDisabled={!hasPrevPage}
+        <button
+          type="button"
+          className={btn('icon', 'text-sm')}
+          onClick={() => onPageChange(0)}
+          disabled={!hasPrevPage}
           aria-label="First page"
         >
           <ChevronsLeft className="size-4" />
-        </Button>
+        </button>
 
         {/* Previous */}
-        <Button
-          isIconOnly
-          size="sm"
-          variant="ghost"
-          onPress={() => onPageChange(currentPage - 1)}
-          isDisabled={!hasPrevPage}
+        <button
+          type="button"
+          className={btn('icon', 'text-sm')}
+          onClick={() => onPageChange(currentPage - 1)}
+          disabled={!hasPrevPage}
           aria-label="Previous page"
         >
           <ChevronLeft className="size-4" />
-        </Button>
+        </button>
 
         {/* Page Numbers */}
         <div className="flex items-center gap-1">
           {getPageNumbers().map((page, idx) =>
             typeof page === 'number' ? (
-              <Button
+              <button
                 key={`${page}-${idx}`}
-                size="sm"
-                onPress={() => onPageChange(page)}
-                className="min-w-8"
+                type="button"
+                className={btn('primary', 'text-sm min-w-8')}
+                onClick={() => onPageChange(page)}
               >
                 {page + 1}
-              </Button>
+              </button>
             ) : (
               <span key={`ellipsis-${idx}`} className="px-1 text-default-400">
                 {page}
@@ -126,28 +124,26 @@ export function Pagination({
         </div>
 
         {/* Next */}
-        <Button
-          isIconOnly
-          size="sm"
-          variant="ghost"
-          onPress={() => onPageChange(currentPage + 1)}
-          isDisabled={!hasNextPage}
+        <button
+          type="button"
+          className={btn('icon', 'text-sm')}
+          onClick={() => onPageChange(currentPage + 1)}
+          disabled={!hasNextPage}
           aria-label="Next page"
         >
           <ChevronRight className="size-4" />
-        </Button>
+        </button>
 
         {/* Last */}
-        <Button
-          isIconOnly
-          size="sm"
-          variant="ghost"
-          onPress={() => onPageChange(totalPages - 1)}
-          isDisabled={!hasNextPage}
+        <button
+          type="button"
+          className={btn('icon', 'text-sm')}
+          onClick={() => onPageChange(totalPages - 1)}
+          disabled={!hasNextPage}
           aria-label="Last page"
         >
           <ChevronsRight className="size-4" />
-        </Button>
+        </button>
       </div>
     </div>
   );

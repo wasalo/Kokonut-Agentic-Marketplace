@@ -72,12 +72,7 @@ export default function RootLayout({
           if ('serviceWorker' in navigator) {
             window.addEventListener('load', function() {
               navigator.serviceWorker.register('/push-sw.js')
-                .then(function(registration) {
-                  console.log('[SW] Registered successfully:', registration.scope);
-                })
-                .catch(function(error) {
-                  console.log('[SW] Registration failed:', error);
-                });
+                .catch(function() {});
             });
           }
         `}</Script>

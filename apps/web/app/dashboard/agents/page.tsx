@@ -184,7 +184,7 @@ export default function DashboardAgentsPage() {
               <p className="text-danger-600 text-sm mt-1">{error.message}</p>
               <button type="button"
                  onClick={() => refetch()}
-                className="mt-3 px-4 py-2 bg-danger text-white rounded-lg text-sm font-medium hover:bg-danger-600 transition-colors"
+                className={btn('danger', 'mt-3 text-sm')}
               >
                 Try Again
               </button>

@@ -14,8 +14,6 @@ export async function POST(request: NextRequest) {
       return NextResponse.json({ error: 'Invalid payload' }, { status: 400 });
     }
 
-    console.log(`[Intelligence Sync] Event: ${body.event}`, JSON.stringify(body.data, null, 2));
-
     return NextResponse.json({ ok: true, received: body.event });
   } catch {
     return NextResponse.json({ error: 'Invalid JSON' }, { status: 400 });

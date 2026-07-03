@@ -141,7 +141,7 @@ export default function GovernancePage() {
 
         {/* Create Slash Proposal (owner only) */}
         {isOwner && (
-          <Card className="border border-danger/30 p-6 mb-6">
+          <Card className={card('padded', 'border border-danger/30 mb-6')}>
             <h2 className="text-base font-semibold mb-4 text-danger flex items-center gap-2">
               <AlertTriangle className="size-4" />
               Create Slash Proposal
@@ -197,7 +197,7 @@ export default function GovernancePage() {
               )}
               <button type="submit"
                 disabled={isCreatePending || anyPending}
-                className="w-full px-6 py-3 bg-danger text-white rounded-lg font-medium hover:opacity-90 disabled:opacity-50"
+                className={btn('danger', 'w-full px-6 py-3 disabled:opacity-50')}
               >
                 {isCreatePending ? 'Creating…' : 'Create Slash Proposal'}
               </button>
@@ -207,7 +207,7 @@ export default function GovernancePage() {
 
         {/* Confirm Proposal (signers only) */}
         {isUserSigner && (
-          <Card className="border border-primary/30 p-6 mb-6">
+          <Card className={card('padded', 'border border-primary/30 mb-6')}>
             <h2 className="text-base font-semibold mb-4 text-primary flex items-center gap-2">
               <CheckCircle2 className="size-4" />
               Confirm Proposal
@@ -232,7 +232,7 @@ export default function GovernancePage() {
         )}
 
         {/* Execute Proposal (anyone after timelock) */}
-        <Card className="border border-success/30 p-6 mb-6">
+        <Card className={card('padded', 'border border-success/30 mb-6')}>
           <h2 className="text-base font-semibold mb-4 text-success flex items-center gap-2">
             <Shield className="size-4" />
             Execute Proposal
@@ -248,7 +248,7 @@ export default function GovernancePage() {
             <button type="button"
               onClick={handleExecuteProposal}
               disabled={!executeProposalId || isExecutePending || anyPending}
-              className="w-full px-6 py-3 bg-success text-white rounded-lg font-medium hover:opacity-90 disabled:opacity-50"
+              className={btn('primary', 'w-full px-6 py-3 disabled:opacity-50')}
             >
               {isExecutePending ? 'Executing…' : 'Execute Proposal'}
             </button>

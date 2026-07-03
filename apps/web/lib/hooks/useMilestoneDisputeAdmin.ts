@@ -1,6 +1,7 @@
 'use client';
 
 import { useCallback, useState } from 'react';
+import { useQuery } from '@tanstack/react-query';
 import { usePublicClient, useWriteContract, useWaitForTransactionReceipt } from 'wagmi';
 import { getContractAddress } from '@/lib/contracts/config';
 import { MILESTONE_ESCROW_ABI } from '@/lib/contracts/abis';
@@ -14,29 +15,25 @@ export interface MilestoneDispute {
 
 export function useActiveDisputes() {
   const publicClient = usePublicClient();
-  const [isLoading, setIsLoading] = useState(false);
-  const [error, setError] = useState<string | null>(null);
 
-  const load = useCallback(async (): Promise<MilestoneDispute[]> => {
-    if (!publicClient) return [];
-    setIsLoading(true);
-    setError(null);
-    try {
-      const result = (await publicClient.readContract({
+  const query = useQuery<MilestoneDispute[]>({
+    queryKey: ['active-disputes'],
+    queryFn: async () => {
+      const result = (await publicClient!.readContract({
         address: MILESTONE_ESCROW_ADDRESS,
         abi: MILESTONE_ESCROW_ABI,
         functionName: 'getActiveDisputes',
       } as never)) as bigint[];
       return result.map((jobId, idx) => ({ jobId, milestoneIndex: BigInt(idx) }));
-    } catch (err) {
-      setError(err instanceof Error ? err.message : 'Failed to load disputes');
-      return [];
-    } finally {
-      setIsLoading(false);
-    }
-  }, [publicClient]);
+    },
+    enabled: false,
+  });
 
-  return { load, isLoading, error };
+  return {
+    load: query.refetch,
+    isLoading: query.isLoading,
+    error: query.error?.message ?? null,
+  };
 }
 
 export function useResolveDispute() {

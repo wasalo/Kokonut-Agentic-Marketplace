@@ -1,6 +1,7 @@
 'use client';
 
-import { useEffect, useRef, useCallback, useState } from 'react';
+import { useRef, useCallback } from 'react';
+import { useQuery, useQueryClient } from '@tanstack/react-query';
 import { usePublicClient } from 'wagmi';
 import { parseAbiItem } from 'viem';
 import { getContractAddress, DEFAULT_FROM_BLOCK } from '@/lib/contracts/config';
@@ -28,25 +29,23 @@ export interface ServiceEvent {
  */
 export function useServiceEvents(onNewEvent?: () => void) {
   const publicClient = usePublicClient();
+  const queryClient = useQueryClient();
   const lastBlockRef = useRef(DEFAULT_FROM_BLOCK);
   const onNewEventRef = useRef(onNewEvent);
   onNewEventRef.current = onNewEvent;
-  const [recentEvents, setRecentEvents] = useState<ServiceEvent[]>([]);
 
-  const pushEvent = useCallback((event: ServiceEvent) => {
-    setRecentEvents(prev => [event, ...prev].slice(0, 50));
-  }, []);
+  const query = useQuery<ServiceEvent[]>({
+    queryKey: ['service-events'],
+    queryFn: async () => {
+      if (!publicClient) return [];
 
-  const pollEvents = useCallback(async () => {
-    if (!publicClient) return;
-
-    try {
+      const prev = queryClient.getQueryData<ServiceEvent[]>(['service-events']) ?? [];
+      const events: ServiceEvent[] = [];
       const currentBlock = await publicClient.getBlockNumber();
-      if (currentBlock <= lastBlockRef.current) return;
+      if (currentBlock <= lastBlockRef.current) return prev;
       const fromBlock = lastBlockRef.current + 1n;
       const toBlock = currentBlock;
 
-      // ServiceCreated
       const createdLogs = await publicClient.getLogs({
         address: SERVICE_REGISTRY_ADDRESS,
         event: parseAbiItem(
@@ -57,7 +56,7 @@ export function useServiceEvents(onNewEvent?: () => void) {
       });
       for (const log of createdLogs) {
         const { serviceId, provider } = log.args as { serviceId: bigint; provider: `0x${string}` };
-        pushEvent({
+        events.push({
           kind: 'created',
           serviceId,
           blockNumber: log.blockNumber ?? 0n,
@@ -67,7 +66,6 @@ export function useServiceEvents(onNewEvent?: () => void) {
         });
       }
 
-      // ServiceBondWithdrawn (Phase 45d: ServiceRegistryV2)
       const bondLogs = await publicClient.getLogs({
         address: SERVICE_REGISTRY_ADDRESS,
         event: parseAbiItem(
@@ -82,7 +80,7 @@ export function useServiceEvents(onNewEvent?: () => void) {
           provider: `0x${string}`;
           amount: bigint;
         };
-        pushEvent({
+        events.push({
           kind: 'bondWithdrawn',
           serviceId,
           blockNumber: log.blockNumber ?? 0n,
@@ -93,7 +91,6 @@ export function useServiceEvents(onNewEvent?: () => void) {
         });
       }
 
-      // PaymentAddressSet (Phase 45d: ServiceRegistryV2)
       const paymentLogs = await publicClient.getLogs({
         address: SERVICE_REGISTRY_ADDRESS,
         event: parseAbiItem(
@@ -108,7 +105,7 @@ export function useServiceEvents(onNewEvent?: () => void) {
           provider: `0x${string}`;
           paymentAddress: `0x${string}`;
         };
-        pushEvent({
+        events.push({
           kind: 'paymentAddressSet',
           serviceId,
           blockNumber: log.blockNumber ?? 0n,
@@ -119,7 +116,6 @@ export function useServiceEvents(onNewEvent?: () => void) {
         });
       }
 
-      // ServiceReactivated (Phase 45d: ServiceRegistryV2)
       const reactLogs = await publicClient.getLogs({
         address: SERVICE_REGISTRY_ADDRESS,
         event: parseAbiItem(
@@ -130,7 +126,7 @@ export function useServiceEvents(onNewEvent?: () => void) {
       });
       for (const log of reactLogs) {
         const { serviceId, provider } = log.args as { serviceId: bigint; provider: `0x${string}` };
-        pushEvent({
+        events.push({
           kind: 'reactivated',
           serviceId,
           blockNumber: log.blockNumber ?? 0n,
@@ -141,20 +137,23 @@ export function useServiceEvents(onNewEvent?: () => void) {
       }
 
       lastBlockRef.current = toBlock;
-      if (createdLogs.length + bondLogs.length + paymentLogs.length + reactLogs.length > 0 && onNewEventRef.current) {
+      if (events.length > 0 && onNewEventRef.current) {
         onNewEventRef.current();
       }
-    } catch {
-      // Silently fail — polling will retry on next interval
-    }
-  }, [publicClient, pushEvent]);
 
-  useEffect(() => {
-    if (!publicClient) return;
-    const interval = setInterval(pollEvents, POLL_INTERVAL);
-    void pollEvents();
-    return () => clearInterval(interval);
-  }, [publicClient, pollEvents]);
+      return [...events, ...prev].slice(0, 50);
+    },
+    refetchInterval: POLL_INTERVAL,
+    enabled: !!publicClient,
+    staleTime: 0,
+    gcTime: 0,
+  });
 
-  return { recentEvents, clearEvents: () => setRecentEvents([]) };
+  const recentEvents = (query.data ?? []).slice(0, 50);
+  const clearEvents = useCallback(
+    () => queryClient.setQueryData<ServiceEvent[]>(['service-events'], []),
+    [queryClient],
+  );
+
+  return { recentEvents, clearEvents };
 }
