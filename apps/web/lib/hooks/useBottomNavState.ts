@@ -5,6 +5,7 @@ import { useAccount, useConnect } from 'wagmi';
 import { useActionQueue } from '@/lib/hooks/useActionQueue';
 import { useTransactionRegistry } from '@/lib/stores/transactionRegistry';
 import { useAgenticCommerceOwner } from '@/lib/hooks/useAgenticCommerceAdmin';
+import { useConversations } from '@/lib/hooks/useConversations';
 
 export type BottomNavTab = 'market' | 'work' | 'activity' | 'notifications' | 'profile';
 
@@ -51,6 +52,7 @@ export function useBottomNavState(): BottomNavState {
   const { isConnected, address } = useAccount();
   const { connect: wagmiConnect, connectors } = useConnect();
   const { totalCount: unreadCount } = useActionQueue();
+  const { unread: chatUnread } = useConversations();
   const transactions = useTransactionRegistry((s) => s.transactions);
   const { owner } = useAgenticCommerceOwner();
 
@@ -77,7 +79,7 @@ export function useBottomNavState(): BottomNavState {
     activeTab,
     isConnected,
     pendingTxCount,
-    unreadCount,
+    unreadCount: unreadCount + chatUnread,
     isAdmin,
     shortAddress: shortAddress(address),
     connect,

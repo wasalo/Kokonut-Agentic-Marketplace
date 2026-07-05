@@ -21,6 +21,7 @@ import {
   X,
 } from 'lucide-react';
 import { Card } from '@heroui/react';
+import { ContactProviderButton } from '@/components/marketplace/ContactProviderButton';
 import { StatusBadge } from '@/components/StatusBadge';
 import {
   useUpdateService,
@@ -535,13 +536,20 @@ export default function ServiceDetailPage({
                   approved.
                 </p>
               </div>
-              <NextLink
-                href={`/jobs/create?serviceId=${service.id}&provider=${service.provider}`}
-                className={btn('primary', 'px-6 py-3 whitespace-nowrap')}
-              >
-                <ShieldCheck className="size-4" />
-                Purchase Service
-              </NextLink>
+              <div className="flex items-center gap-2">
+                <ContactProviderButton
+                  providerAddress={service.provider}
+                  serviceId={String(service.id)}
+                  serviceName={service.name}
+                />
+                <NextLink
+                  href={`/jobs/create?serviceId=${service.id}&provider=${service.provider}`}
+                  className={btn('primary', 'px-6 py-3 whitespace-nowrap')}
+                >
+                  <ShieldCheck className="size-4" />
+                  Purchase Service
+                </NextLink>
+              </div>
             </div>
           </Card>
         )}

@@ -945,6 +945,10 @@ A live activity feed (last 6 events) sourced from `useActivityFromSubgraph`. Ren
 | `useIntelligenceAgents()` | Intelligence agents from Directus |
 | `useIntelligenceMRVEvents(farmId?)` | MRV monitoring events (optional farm filter) |
 | `useKokonutDocs()` | Parsed `kokonut.network/llms.txt` documentation |
+| `useConversations()` | List all conversations for connected wallet, with unread counts |
+| `useConversationMessages(conversationId)` | Fetch messages for a conversation, auto-mark as read |
+| `useSendMessage()` | Send mutation (with optional wallet signature) + upload attachment mutation |
+| `useMessageStream(conversationId)` | SSE client for real-time message delivery (invalidates React Query caches) |
 
 ### useJobs Module (Refactored)
 
@@ -1035,6 +1039,21 @@ A live activity feed (last 6 events) sourced from `useActivityFromSubgraph`. Ren
 | `bidding/BiddingCommandBar` | Search + filter + sort for bidding sessions |
 | `bidding/BiddingSessionCard` | Session card with status, budget, deadline |
 | `bidding/BiddingStatsStrip` | 3-stat grid: Total, Active, In Progress |
+
+### Chat Components
+
+| Component | Purpose |
+|-----------|---------|
+| `chat/MessageBubble` | Chat bubble with timestamps, read receipts, attachment display |
+| `chat/MessageInput` | Text input with file upload + send button |
+| `chat/MessageThread` | Scrollable message list with auto-scroll |
+| `chat/ConversationList` | Sidebar list with unread indicators + scope icons |
+| `chat/UnreadBadge` | Unread count badge |
+| `chat/ChatDrawer` | Slide-out chat panel + toggle button |
+| `chat/FileAttachment` | File attachment preview with open link |
+| `jobs/JobChatSection` | Job-scoped chat wrapper |
+| `marketplace/ContactProviderButton` | Slide-out panel for contacting provider |
+| `bidding/BiddingChatSection` | Bidding-scoped chat wrapper |
 
 ### HeroUI Components
 
@@ -1204,6 +1223,11 @@ The design system provides centralized tokens (`DS` object) plus helper function
 | `/api/push/unsubscribe` | POST | Push notification unsubscribe |
 | `/api/push/send` | POST | Send push notification |
 | `/api/push/keys` | GET | Get VAPID public key |
+| `/api/messages` | GET/POST | List conversations/messages, send message |
+| `/api/messages/[conversationId]` | GET/DELETE | Conversation-scoped messages, delete conversation |
+| `/api/messages/[id]/read` | POST | Mark conversation as read |
+| `/api/messages/stream` | GET | SSE real-time message delivery |
+| `/api/messages/attachments` | POST | File upload (base64, 10MB limit) |
 
 ---
 

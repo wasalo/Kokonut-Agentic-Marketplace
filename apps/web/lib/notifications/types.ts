@@ -34,7 +34,8 @@ export type NotificationAction =
   | 'arbiter.registered'
   | 'arbiter.unregistered'
   | 'dispute.flagged'
-  | 'dispute.resolved';
+  | 'dispute.resolved'
+  | 'message.received';
 
 export interface Notification {
   id: string;
@@ -103,6 +104,7 @@ export const NOTIFICATION_ACTION_LABELS: Record<NotificationAction, string> = {
   'arbiter.unregistered': 'Arbiter Unregistered',
   'dispute.flagged': 'Dispute Flagged',
   'dispute.resolved': 'Dispute Resolved',
+  'message.received': 'New Message',
 };
 
 export const NOTIFICATION_ICONS: Record<NotificationType, string> = {
