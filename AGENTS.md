@@ -1396,7 +1396,7 @@ All contract addresses have hardcoded fallbacks to Sepolia testnet addresses in 
 | Staging | `staging.yml` | Staging deployment on `staging` branch push |
 | Deploy | `deploy.yml` | Production deployment on tag push (`v*`) |
 | Storage Layout | `storage-layout.yml` | Contract storage layout validation |
-| Dependabot Auto-Merge | `dependabot-auto-merge.yml` | Auto-merges Dependabot PRs after CI passes |
+
 
 ### Branch Protection Rules
 
@@ -1410,7 +1410,7 @@ All three branches (`develop`, `staging`, `main`) are protected via GitHub branc
 
 **CODEOWNERS**: `@wasalo @wasabinetwork` required on all paths. PR review requests are auto-generated for every PR.
 
-**Auto-merge**: Enabled repo-wide. Dependabot PRs auto-merge after CI passes (via `dependabot-auto-merge.yml`).
+**Auto-merge**: Disabled. PRs require manual review and merge.
 
 **Workflow**:
 1. Feature work → PR targeting `develop` → CI gate + 1 approval → merge
