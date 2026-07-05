@@ -1,7 +1,6 @@
 'use client';
 
 import { useMemo } from 'react';
-import { useAccount } from 'wagmi';
 import { Card } from '@heroui/react';
 import { card } from '@/lib/design-system';
 import { MessageThread } from '@/components/chat/MessageThread';
@@ -18,7 +17,6 @@ interface JobChatSectionProps {
 }
 
 export function JobChatSection({ jobId, client, provider, isClient, isProvider }: JobChatSectionProps) {
-  const { address } = useAccount();
   const { conversations } = useConversations('job');
 
   const conversationId = useMemo(() => {

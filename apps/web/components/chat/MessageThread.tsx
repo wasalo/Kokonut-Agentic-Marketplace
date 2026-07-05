@@ -5,7 +5,7 @@ import { useAccount } from 'wagmi';
 import { cn } from '@/lib/utils';
 import { MessageBubble } from './MessageBubble';
 import { MessageInput } from './MessageInput';
-import { useConversationMessages, useConversations } from '@/lib/hooks/useConversations';
+import { useConversationMessages } from '@/lib/hooks/useConversations';
 import { useSendMessage, useUploadAttachment } from '@/lib/hooks/useSendMessage';
 import type { Attachment, Message } from '@/lib/types/chat';
 import { MessageSquare } from 'lucide-react';

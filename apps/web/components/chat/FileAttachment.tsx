@@ -2,7 +2,7 @@
 
 import { cn } from '@/lib/utils';
 import type { Attachment } from '@/lib/types/chat';
-import { FileText, Image as ImageIcon, Download, ExternalLink } from 'lucide-react';
+import { FileText, Image as ImageIcon, ExternalLink } from 'lucide-react';
 
 interface FileAttachmentProps {
   attachment: Attachment;

@@ -1,7 +1,6 @@
 'use client';
 
 import { cn } from '@/lib/utils';
-import { formatAddress } from '@/lib/utils';
 import { useConversations } from '@/lib/hooks/useConversations';
 import type { Conversation, ConversationScope } from '@/lib/types/chat';
 import { MessageSquare, Briefcase, Gavel, ShoppingBag } from 'lucide-react';

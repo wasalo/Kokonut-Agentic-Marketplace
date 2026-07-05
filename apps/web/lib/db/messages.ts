@@ -6,7 +6,6 @@ import type {
   Conversation,
   Attachment,
   ConversationScope,
-  SendMessageParams,
 } from '@/lib/types/chat';
 
 const DATA_DIR = path.join(process.cwd(), 'data');

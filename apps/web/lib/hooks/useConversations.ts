@@ -2,9 +2,8 @@
 
 import { useQuery, useMutation, useQueryClient } from '@tanstack/react-query';
 import { useCallback } from 'react';
-import { useAccount, useWalletClient } from 'wagmi';
+import { useAccount } from 'wagmi';
 import type { Conversation, ConversationScope } from '@/lib/types/chat';
-import { createOwnerAuthHeaders } from '@/lib/client-auth';
 
 async function fetchConversations(
   address: string,

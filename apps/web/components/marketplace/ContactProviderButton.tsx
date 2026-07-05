@@ -2,7 +2,6 @@
 
 import { useState, useCallback } from 'react';
 import { useAccount } from 'wagmi';
-import { useRouter } from 'next/navigation';
 import { cn } from '@/lib/utils';
 import { DS } from '@/lib/design-system';
 import { useSendMessage } from '@/lib/hooks/useSendMessage';
@@ -23,7 +22,6 @@ export function ContactProviderButton({
   className,
 }: ContactProviderButtonProps) {
   const { address } = useAccount();
-  const router = useRouter();
   const [isOpen, setIsOpen] = useState(false);
   const [message, setMessage] = useState('');
   const { send, isSending } = useSendMessage();
