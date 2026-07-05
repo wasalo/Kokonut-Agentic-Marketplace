@@ -9,14 +9,14 @@ import { requireAuthenticatedOwner } from '@/lib/api-auth';
 
 export async function GET(
   request: NextRequest,
-  { params }: { params: Promise<{ conversationId: string }> }
+  { params }: { params: Promise<{ id: string }> }
 ) {
   try {
     const auth = await requireAuthenticatedOwner(request);
     if ('response' in auth) return auth.response;
     const owner = auth.owner;
 
-    const { conversationId } = await params;
+    const { id: conversationId } = await params;
     const conv = await getConversationById(conversationId);
 
     if (!conv) {
@@ -43,14 +43,14 @@ export async function GET(
 
 export async function DELETE(
   request: NextRequest,
-  { params }: { params: Promise<{ conversationId: string }> }
+  { params }: { params: Promise<{ id: string }> }
 ) {
   try {
     const auth = await requireAuthenticatedOwner(request);
     if ('response' in auth) return auth.response;
     const owner = auth.owner;
 
-    const { conversationId } = await params;
+    const { id: conversationId } = await params;
     const conv = await getConversationById(conversationId);
 
     if (!conv) {
