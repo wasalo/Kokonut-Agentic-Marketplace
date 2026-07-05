@@ -1,0 +1,20 @@
+{
+  "name": "@kokonut/a2a-protocol",
+  "version": "0.1.0",
+  "description": "A2A Protocol for Kokonut Agent-to-Agent Communication",
+  "type": "module",
+  "main": "dist/index.js",
+  "types": "dist/index.d.ts",
+  "scripts": {
+    "build": "tsc",
+    "dev": "tsx src/index.ts"
+  },
+  "dependencies": {
+    "zod": "^3.23.0"
+  },
+  "devDependencies": {
+    "@types/node": "^22.0.0",
+    "tsx": "^4.0.0",
+    "typescript": "^5.0.0"
+  }
+}

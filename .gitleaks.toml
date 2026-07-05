@@ -1,0 +1,84 @@
+title = "Kokonut Agentic Marketplace"
+ignore-paths = [
+  "node_modules/**",
+  ".git/**",
+  "*.min.js",
+  "*.map",
+  "dist/**",
+  "coverage/**",
+  ".next/**",
+  "**/artifacts/**",
+  "**/cache/**",
+  "lib/**",
+]
+
+[[rules]]
+  id = "aws-access-key-id"
+  description = "AWS Access Key"
+  regex = '(A3T[A-Z0-9]|AKIA|AGPA|AIDA|AROA|AIPA|ANPA|ANVA|ASIA)[A-Z0-9]{16}'
+  tags = ["key", "AWS"]
+
+[[rules]]
+  id = "aws-secret-access-key"
+  description = "AWS Secret Key"
+  regex = '''(?i)aws(.{0,20})?(?-i)secret(.{0,20})?['"][0-9a-zA-Z/+]{40}['"]'''
+  tags = ["key", "AWS"]
+
+[[rules]]
+  id = "github-pat"
+  description = "GitHub Personal Access Token"
+  regex = 'ghp_[0-9a-zA-Z]{36}'
+  tags = ["key", "GitHub"]
+
+[[rules]]
+  id = "github-oauth-token"
+  description = "GitHub OAuth Token"
+  regex = 'gho_[0-9a-zA-Z]{36}'
+  tags = ["key", "GitHub"]
+
+[[rules]]
+  id = "ethereum-private-key"
+  description = "Ethereum Private Key"
+  regex = '0x[a-fA-F0-9]{64}'
+  tags = ["key", "Ethereum", "critical"]
+  [rules.allowlist]
+    regexes = [
+      '''0x0000000000000000000000000000000000000000''',
+      '''0x0000000000000000000000000000000000000001''',
+    ]
+
+[[rules]]
+  id = "alchemy-api-key"
+  description = "Alchemy API Key"
+  regex = '[a-zA-Z0-9]{20,30}'
+  tags = ["key", "Alchemy"]
+
+[[rules]]
+  id = "walletconnect-project-id"
+  description = "WalletConnect Project ID"
+  regex = '[a-zA-Z0-9]{20,50}'
+  tags = ["key", "WalletConnect"]
+
+[[rules]]
+  id = "resend-api-key"
+  description = "Resend API Key"
+  regex = 're_[0-9a-zA-Z]{30,}'
+  tags = ["key", "Resend"]
+
+[[rules]]
+  id = "generic-api-key"
+  description = "Generic API Key"
+  regex = '''(?i)(api[_-]?key|apikey|secret[_-]?key)[=\s:]['"][0-9a-zA-Z]{16,64}['"]'''
+  tags = ["key", "generic"]
+
+[[rules]]
+  id = "database-connection-string"
+  description = "Database Connection String"
+  regex = '(?i)(mysql|postgres|mongodb|redis):\/\/[^\s]+'
+  tags = ["key", "database"]
+
+[[rules]]
+  id = "private-key-block"
+  description = "Private Key Block"
+  regex = '-----BEGIN (?:RSA |EC |DSA )?PRIVATE KEY-----'
+  tags = ["key", "private"]

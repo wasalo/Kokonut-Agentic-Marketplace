@@ -1,0 +1,40 @@
+name: Storage Layout Check
+
+on:
+  pull_request:
+    paths:
+      - 'contracts/**/*.sol'
+  push:
+    branches: [main, staging]
+    paths:
+      - 'contracts/**/*.sol'
+
+env:
+  FORCE_JAVASCRIPT_ACTIONS_TO_NODE24: true
+
+jobs:
+  storage-layout:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@93cb6efe18208431cddfb8368fd83d5badbf9bfd # v5.0.0
+        with:
+          submodules: recursive
+
+      - name: Install Foundry
+        uses: ./.github/actions/setup-foundry
+        with:
+          version: v1.7.1
+
+      - name: Build contracts
+        run: cd contracts && forge build
+
+      - name: Check storage layouts
+        run: node scripts/check-storage-layout.js
+
+      - name: Upload baseline
+        if: github.ref == 'refs/heads/main'
+        uses: actions/upload-artifact@330a01c490aca151604b8cf639adc76d48f6c5d4 # v5.0.0
+        with:
+          name: storage-layout-baseline
+          path: contracts/storage-layout-baseline.json
+          retention-days: 30

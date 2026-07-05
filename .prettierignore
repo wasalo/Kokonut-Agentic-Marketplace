@@ -1,0 +1,54 @@
+# Dependencies
+node_modules/
+.pnpm-store/
+
+# Build outputs
+dist/
+.next/
+out/
+build/
+
+# Coverage
+coverage/
+.nyc_output/
+
+# Logs
+*.log
+npm-debug.log*
+pnpm-debug.log*
+
+# IDE
+.idea/
+.vscode/
+*.swp
+*.swo
+
+# OS
+.DS_Store
+Thumbs.db
+
+# Test
+test-results/
+playwright-report/
+e2e-results/
+
+# Generated
+*.tsbuildinfo
+.next-env.d.ts
+
+# Lib (OpenZeppelin submodules)
+lib/
+
+# Environment files (never commit!)
+.env
+.env.local
+.env.*.local
+
+# Cache
+.turbo/
+.vercel/
+
+# Misc
+*.pid
+*.seed
+*.pid.lock

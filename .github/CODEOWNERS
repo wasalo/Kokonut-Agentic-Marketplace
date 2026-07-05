@@ -1,0 +1,21 @@
+# CODEOWNERS — Kokonut Agentic Marketplace
+# Each entry triggers review requests on PRs that touch matching paths.
+# See: https://docs.github.com/en/repositories/managing-your-repositorys-settings-and-features/customizing-your-repository/about-code-owners
+
+# Default — all changes require review from co-owners
+* @wasalo @wasabinetwork
+
+# Security-sensitive files — require admin review
+.env.example @wasalo @wasabinetwork
+AGENTS.md @wasalo @wasabinetwork
+.github/ @wasalo @wasabinetwork
+config/address-manifest.json @wasalo @wasabinetwork
+
+# Smart Contracts — require admin review (UUPS storage layout risk)
+contracts/shared/ @wasalo @wasabinetwork
+contracts/script/ @wasalo @wasabinetwork
+contracts/interfaces/ @wasalo @wasabinetwork
+
+# Deployment & Scripts
+deploy.sh @wasalo @wasabinetwork
+scripts/ @wasalo @wasabinetwork

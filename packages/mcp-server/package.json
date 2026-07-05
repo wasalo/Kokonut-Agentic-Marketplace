@@ -1,0 +1,26 @@
+{
+  "name": "@kokonut/mcp-server",
+  "version": "0.1.0",
+  "description": "MCP Server for Kokonut Agent Economy",
+  "type": "module",
+  "main": "dist/index.js",
+  "types": "dist/index.d.ts",
+  "scripts": {
+    "build": "tsc",
+    "start": "node dist/server.js",
+    "start:stdio": "tsx src/index.ts",
+    "start:http": "tsx src/server.ts",
+    "dev": "tsx src/server.ts"
+  },
+  "dependencies": {
+    "@modelcontextprotocol/sdk": "^1.0.0",
+    "@open-wallet-standard/core": "^1.2.0",
+    "viem": "^2.48.11",
+    "zod": "^3.23.0"
+  },
+  "devDependencies": {
+    "@types/node": "^22.0.0",
+    "tsx": "^4.0.0",
+    "typescript": "^5.0.0"
+  }
+}

@@ -1,0 +1,112 @@
+import { useReadContract } from 'wagmi';
+import { CONTRACTS } from '@/lib/wagmi';
+import { PRICE_ORACLE_ABI } from '@/lib/contracts/abis';
+import { assertValidAddress } from '@/lib/utils/typeGuards';
+
+const PRICE_ORACLE_ADDRESS = assertValidAddress(
+  CONTRACTS[11155111].priceOracle,
+  'PRICE_ORACLE_ADDRESS'
+);
+
+const USDC_ADDRESS = CONTRACTS[11155111].usdc as `0x${string}`;
+const ZERO_ADDRESS = '0x0000000000000000000000000000000000000000' as `0x${string}`;
+
+/**
+ * Hook to get the current USDC price from the oracle
+ * @returns USDC price with 8 decimals (1 USDC = 100000000)
+ */
+export function useUSDCPrice() {
+  const { data, isLoading, error, refetch } = useReadContract({
+    address: PRICE_ORACLE_ADDRESS,
+    abi: PRICE_ORACLE_ABI,
+    functionName: 'getUsdPriceOfToken',
+    args: [USDC_ADDRESS],
+    query: {
+      retry: 2,
+      staleTime: 60 * 1000, // 1 minute
+    },
+  });
+
+  return {
+    price: data as bigint | undefined,
+    priceInUsd: data ? Number(data) / 1e8 : undefined,
+    isLoading,
+    error,
+    refetch,
+  };
+}
+
+/**
+ * Hook to get the current ETH rate from the oracle
+ * @returns ETH rate with 8 decimals
+ */
+export function useETHRate() {
+  const { data, isLoading, error, refetch } = useReadContract({
+    address: PRICE_ORACLE_ADDRESS,
+    abi: PRICE_ORACLE_ABI,
+    functionName: 'getUsdPriceOfToken',
+    args: [ZERO_ADDRESS],
+    query: {
+      retry: 2,
+      staleTime: 60 * 1000,
+    },
+  });
+
+  return {
+    rate: data as bigint | undefined,
+    isLoading,
+    error,
+    refetch,
+  };
+}
+
+/**
+ * Hook to check if the price oracle data is stale
+ * @returns boolean indicating if price data is stale (> 1 hour old)
+ */
+export function usePriceOracleStale(tokenAddress: `0x${string}` = ZERO_ADDRESS) {
+  const { data, isLoading, error, refetch } = useReadContract({
+    address: PRICE_ORACLE_ADDRESS,
+    abi: PRICE_ORACLE_ABI,
+    functionName: 'isStale',
+    args: [tokenAddress],
+    query: {
+      retry: 2,
+      staleTime: 30 * 1000,
+    },
+  });
+
+  return {
+    isStale: data as boolean | undefined,
+    isLoading,
+    error,
+    refetch,
+  };
+}
+
+/**
+ * Hook to get the price of a specific token
+ * @param tokenAddress The token address to query
+ * @returns Token price in USD with 8 decimals
+ */
+export function useTokenPrice(tokenAddress: `0x${string}` | undefined) {
+  const { data, isLoading, error, refetch } = useReadContract({
+    address: PRICE_ORACLE_ADDRESS,
+    abi: PRICE_ORACLE_ABI,
+    functionName: 'getUsdPriceOfToken',
+    args: tokenAddress ? [tokenAddress] : undefined,
+    query: {
+      enabled: !!tokenAddress,
+      retry: 2,
+      staleTime: 60 * 1000,
+    },
+  });
+
+  return {
+    price: data as bigint | undefined,
+    priceInUsd: data ? Number(data) / 1e8 : undefined,
+    isLoading,
+    error,
+    refetch,
+  };
+}

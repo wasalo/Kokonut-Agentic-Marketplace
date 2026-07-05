@@ -1,0 +1,214 @@
+contracts/shared/AgenticCommerceV6.sol-233-        address evaluator,
+contracts/shared/AgenticCommerceV6.sol-234-        uint256 expiredAt,
+contracts/shared/AgenticCommerceV6.sol-235-        string calldata description,
+contracts/shared/AgenticCommerceV6.sol-236-        address hook,
+contracts/shared/AgenticCommerceV6.sol-237-        bool evaluatorFee
+contracts/shared/AgenticCommerceV6.sol:238:    ) external nonReentrant whenNotPaused returns (uint256 jobId) {
+--
+contracts/shared/AgenticCommerceV6.sol-275-        address,
+contracts/shared/AgenticCommerceV6.sol-276-        uint256,
+contracts/shared/AgenticCommerceV6.sol-277-        string calldata,
+contracts/shared/AgenticCommerceV6.sol-278-        address,
+contracts/shared/AgenticCommerceV6.sol-279-        bool
+contracts/shared/AgenticCommerceV6.sol:280:    ) external nonReentrant whenNotPaused returns (uint256) {
+--
+contracts/shared/AgenticCommerceV6.sol-289-        address,
+contracts/shared/AgenticCommerceV6.sol-290-        uint256,
+contracts/shared/AgenticCommerceV6.sol-291-        string calldata,
+contracts/shared/AgenticCommerceV6.sol-292-        IERC20,
+contracts/shared/AgenticCommerceV6.sol-293-        bool
+--
+contracts/shared/AgenticCommerceV6.sol-693-        address provider,
+contracts/shared/AgenticCommerceV6.sol-694-        uint256 expiredAt,
+contracts/shared/AgenticCommerceV6.sol-695-        string calldata description,
+contracts/shared/AgenticCommerceV6.sol-696-        address hook,
+contracts/shared/AgenticCommerceV6.sol-697-        bool evaluatorFee
+contracts/shared/AgenticCommerceV6.sol:698:    ) external nonReentrant whenNotPaused returns (uint256 jobId) {
+--
+contracts/shared/BiddingSystem.sol-251-        bytes calldata metadata,
+contracts/shared/BiddingSystem.sol-252-        uint256 serviceId,
+contracts/shared/BiddingSystem.sol-253-        address paymentToken,
+contracts/shared/BiddingSystem.sol-254-        bool evaluatorFee,
+contracts/shared/BiddingSystem.sol-255-        address hook
+contracts/shared/BiddingSystem.sol:256:    ) external payable nonReentrant whenNotPaused returns (uint256 sessionId) {
+--
+contracts/shared/BiddingSystem.sol-390-    function revealBid(
+contracts/shared/BiddingSystem.sol-391-        uint256 sessionId,
+contracts/shared/BiddingSystem.sol-392-        uint256 amount,
+contracts/shared/BiddingSystem.sol-393-        string calldata message,
+contracts/shared/BiddingSystem.sol-394-        bytes32 salt
+contracts/shared/BiddingSystem.sol:395:    ) external nonReentrant whenNotPaused onlyAfterDeadline(sessionId) {
+--
+contracts/shared/BiddingSystem.sol-639-    
+contracts/shared/BiddingSystem.sol-640-    function createJobAndFund(
+contracts/shared/BiddingSystem.sol-641-        uint256 sessionId,
+contracts/shared/BiddingSystem.sol-642-        uint256 jobExpiredAt,
+contracts/shared/BiddingSystem.sol-643-        string calldata description
+contracts/shared/BiddingSystem.sol:644:    ) external payable nonReentrant onlySessionCreator(sessionId) returns (uint256 jobId) {
+--
+contracts/shared/AgentSkillRegistryV2.sol-27-        string calldata name,
+contracts/shared/AgentSkillRegistryV2.sol-28-        string calldata version,
+contracts/shared/AgentSkillRegistryV2.sol-29-        string calldata description,
+contracts/shared/AgentSkillRegistryV2.sol-30-        string calldata endpoint,
+contracts/shared/AgentSkillRegistryV2.sol-31-        string[] memory domains
+contracts/shared/AgentSkillRegistryV2.sol:32:    ) external returns (uint256 skillId);
+--
+contracts/shared/AgentSkillRegistryV2.sol-36-        string calldata name,
+contracts/shared/AgentSkillRegistryV2.sol-37-        string calldata version,
+contracts/shared/AgentSkillRegistryV2.sol-38-        string calldata description,
+contracts/shared/AgentSkillRegistryV2.sol-39-        string calldata endpoint,
+contracts/shared/AgentSkillRegistryV2.sol-40-        string[] memory domains
+contracts/shared/AgentSkillRegistryV2.sol:41:    ) external;
+--
+contracts/shared/AgentSkillRegistryV2.sol-236-        string calldata name,
+contracts/shared/AgentSkillRegistryV2.sol-237-        string calldata version,
+contracts/shared/AgentSkillRegistryV2.sol-238-        string calldata description,
+contracts/shared/AgentSkillRegistryV2.sol-239-        string calldata endpoint,
+contracts/shared/AgentSkillRegistryV2.sol-240-        string[] memory domains
+contracts/shared/AgentSkillRegistryV2.sol:241:    ) external override {
+--
+contracts/shared/MilestoneEscrowV2.sol-326-        uint256 jobId,
+contracts/shared/MilestoneEscrowV2.sol-327-        address client,
+contracts/shared/MilestoneEscrowV2.sol-328-        address provider,
+contracts/shared/MilestoneEscrowV2.sol-329-        address paymentToken,
+contracts/shared/MilestoneEscrowV2.sol-330-        uint256 totalBudget
+contracts/shared/MilestoneEscrowV2.sol:331:    ) external whenNotPaused {
+--
+contracts/shared/MilestoneEscrowV2.sol-375-    function addMilestone(
+contracts/shared/MilestoneEscrowV2.sol-376-        uint256 jobId,
+contracts/shared/MilestoneEscrowV2.sol-377-        uint256 amount,
+contracts/shared/MilestoneEscrowV2.sol-378-        string calldata description,
+contracts/shared/MilestoneEscrowV2.sol-379-        uint256 dueDate
+contracts/shared/MilestoneEscrowV2.sol:380:    ) external whenNotPaused {
+--
+contracts/shared/MilestoneEscrowV2.sol-409-     */
+contracts/shared/MilestoneEscrowV2.sol-410-    function submitMilestone(
+contracts/shared/MilestoneEscrowV2.sol-411-        uint256 jobId,
+contracts/shared/MilestoneEscrowV2.sol-412-        uint256 milestoneIndex,
+contracts/shared/MilestoneEscrowV2.sol-413-        bytes32 proofHash
+contracts/shared/MilestoneEscrowV2.sol:414:    ) external whenNotPaused {
+--
+contracts/shared/MilestoneEscrowV2.sol-430-     * @dev Release milestone payment
+contracts/shared/MilestoneEscrowV2.sol-431-     */
+contracts/shared/MilestoneEscrowV2.sol-432-    function releaseMilestone(
+contracts/shared/MilestoneEscrowV2.sol-433-        uint256 jobId,
+contracts/shared/MilestoneEscrowV2.sol-434-        uint256 milestoneIndex
+contracts/shared/MilestoneEscrowV2.sol:435:    ) external nonReentrant whenNotPaused {
+--
+contracts/shared/PriceOracleV2.sol-265-     */
+contracts/shared/PriceOracleV2.sol-266-    function batchSetPriceFeeds(
+contracts/shared/PriceOracleV2.sol-267-        address[] calldata tokens,
+contracts/shared/PriceOracleV2.sol-268-        address[] calldata feeds,
+contracts/shared/PriceOracleV2.sol-269-        uint8[] calldata decimals_
+contracts/shared/PriceOracleV2.sol:270:    ) external onlyOwner {
+--
+contracts/shared/CommitReveal.sol-111-     */
+contracts/shared/CommitReveal.sol-112-    function reveal(
+contracts/shared/CommitReveal.sol-113-        bytes32 commitmentHash,
+contracts/shared/CommitReveal.sol-114-        bytes32 secret,
+contracts/shared/CommitReveal.sol-115-        uint256 serviceId
+contracts/shared/CommitReveal.sol:116:    ) external returns (bytes32) {
+--
+contracts/shared/AdminRegistry.sol-272-     */
+contracts/shared/AdminRegistry.sol-273-    function setSkillRule(
+contracts/shared/AdminRegistry.sol-274-        string memory skillName, 
+contracts/shared/AdminRegistry.sol-275-        uint256 minRating, 
+contracts/shared/AdminRegistry.sol-276-        bool isActive
+contracts/shared/AdminRegistry.sol:277:    ) public onlyOwner {
+--
+contracts/shared/ServiceRegistryV2.sol-33-        string calldata description,
+contracts/shared/ServiceRegistryV2.sol-34-        string calldata metadataURI,
+contracts/shared/ServiceRegistryV2.sol-35-        uint256 price,
+contracts/shared/ServiceRegistryV2.sol-36-        address paymentToken,
+contracts/shared/ServiceRegistryV2.sol-37-        address paymentAddress
+contracts/shared/ServiceRegistryV2.sol:38:    ) external payable returns (uint256 serviceId);
+--
+contracts/shared/ServiceRegistryV2.sol-41-        uint256 serviceId,
+contracts/shared/ServiceRegistryV2.sol-42-        string calldata name,
+contracts/shared/ServiceRegistryV2.sol-43-        string calldata description,
+contracts/shared/ServiceRegistryV2.sol-44-        string calldata metadataURI,
+contracts/shared/ServiceRegistryV2.sol-45-        uint256 price
+contracts/shared/ServiceRegistryV2.sol:46:    ) external;
+--
+contracts/shared/ServiceRegistryV2.sol-225-        string calldata description,
+contracts/shared/ServiceRegistryV2.sol-226-        string calldata metadataURI,
+contracts/shared/ServiceRegistryV2.sol-227-        uint256 price,
+contracts/shared/ServiceRegistryV2.sol-228-        address paymentToken,
+contracts/shared/ServiceRegistryV2.sol-229-        address paymentAddress
+contracts/shared/ServiceRegistryV2.sol:230:    ) external payable whenNotPaused returns (uint256 serviceId) {
+--
+contracts/shared/ServiceRegistryV2.sol-286-        uint256 serviceId,
+contracts/shared/ServiceRegistryV2.sol-287-        string calldata name,
+contracts/shared/ServiceRegistryV2.sol-288-        string calldata description,
+contracts/shared/ServiceRegistryV2.sol-289-        string calldata metadataURI,
+contracts/shared/ServiceRegistryV2.sol-290-        uint256 price
+contracts/shared/ServiceRegistryV2.sol:291:    ) external whenNotPaused {
+--
+contracts/shared/IACPHook.sol-19-     */
+contracts/shared/IACPHook.sol-20-    function beforeAction(
+contracts/shared/IACPHook.sol-21-        uint256 jobId, 
+contracts/shared/IACPHook.sol-22-        bytes4 selector, 
+contracts/shared/IACPHook.sol-23-        bytes calldata data
+contracts/shared/IACPHook.sol:24:    ) external;
+--
+contracts/shared/IACPHook.sol-31-     */
+contracts/shared/IACPHook.sol-32-    function afterAction(
+contracts/shared/IACPHook.sol-33-        uint256 jobId, 
+contracts/shared/IACPHook.sol-34-        bytes4 selector, 
+contracts/shared/IACPHook.sol-35-        bytes calldata data
+contracts/shared/IACPHook.sol:36:    ) external;
+--
+contracts/shared/SlashManager.sol-169-    function createProposal(
+contracts/shared/SlashManager.sol-170-        address evaluator,
+contracts/shared/SlashManager.sol-171-        uint256 _proposalId,
+contracts/shared/SlashManager.sol-172-        uint256 amount,
+contracts/shared/SlashManager.sol-173-        string calldata reason
+contracts/shared/SlashManager.sol:174:    ) external whenNotPaused returns (bytes32 proposalHash) {
+--
+contracts/shared/SlashManager.sol-257-     * @dev Check if an evaluator has an active slash proposal
+contracts/shared/SlashManager.sol-258-     */
+contracts/shared/SlashManager.sol-259-    function hasActiveSlash(
+contracts/shared/SlashManager.sol-260-        address evaluator,
+contracts/shared/SlashManager.sol-261-        uint256 targetProposalId
+--
+contracts/shared/AgenticCommerceV9.sol-358-        address hook,
+contracts/shared/AgenticCommerceV9.sol-359-        bool evaluatorFee,
+contracts/shared/AgenticCommerceV9.sol-360-        bool clientReview_,
+contracts/shared/AgenticCommerceV9.sol-361-        bool fundNow,
+contracts/shared/AgenticCommerceV9.sol-362-        uint256 fundAmount
+contracts/shared/AgenticCommerceV9.sol:363:    ) external payable nonReentrant whenNotPaused returns (uint256 jobId) {
+--
+contracts/shared/AgenticCommerceV9.sol-390-        address hook,
+contracts/shared/AgenticCommerceV9.sol-391-        bool evaluatorFee,
+contracts/shared/AgenticCommerceV9.sol-392-        bool clientReview_,
+contracts/shared/AgenticCommerceV9.sol-393-        bool fundNow,
+contracts/shared/AgenticCommerceV9.sol-394-        uint256 fundAmount
+contracts/shared/AgenticCommerceV9.sol:395:    ) external payable nonReentrant whenNotPaused returns (uint256 jobId) {
+--
+contracts/shared/AgenticCommerceV9.sol-556-        uint256 expiredAt,
+contracts/shared/AgenticCommerceV9.sol-557-        string calldata description,
+contracts/shared/AgenticCommerceV9.sol-558-        address hook,
+contracts/shared/AgenticCommerceV9.sol-559-        bool evaluatorFee,
+contracts/shared/AgenticCommerceV9.sol-560-        bool clientReview_
+contracts/shared/AgenticCommerceV9.sol:561:    ) external nonReentrant whenNotPaused returns (uint256 jobId) {
+--
+contracts/shared/MilestoneEscrow.sol-195-        uint256 jobId,
+contracts/shared/MilestoneEscrow.sol-196-        address client,
+contracts/shared/MilestoneEscrow.sol-197-        address provider,
+contracts/shared/MilestoneEscrow.sol-198-        address paymentToken,
+contracts/shared/MilestoneEscrow.sol-199-        uint256 totalBudget
+contracts/shared/MilestoneEscrow.sol:200:    ) external whenNotPaused {
+--
+contracts/shared/MilestoneEscrow.sol-220-    function addMilestone(
+contracts/shared/MilestoneEscrow.sol-221-        uint256 jobId,
+contracts/shared/MilestoneEscrow.sol-222-        string calldata description,
+contracts/shared/MilestoneEscrow.sol-223-        uint256 amount,
+contracts/shared/MilestoneEscrow.sol-224-        uint256 dueDate
+contracts/shared/MilestoneEscrow.sol:225:    ) external whenNotPaused {
+--
+contracts/shared/MilestoneEscrow.sol-257-     */
+contracts/shared/MilestoneEscrow.sol-258-    function completeMilestone(
+contracts/shared/MilestoneEscrow.sol-259-        uint256 jobId,
+contracts/shared/MilestoneEscrow.sol-260-        uint256 milestoneIndex,
+contracts/shared/MilestoneEscrow.sol-261-        bytes32 proofHash
+contracts/shared/MilestoneEscrow.sol:262:    ) external whenNotPaused {

@@ -1,0 +1,182 @@
+type Agent @entity(immutable: false) {
+  id: ID!
+  agentId: BigInt!
+  owner: Bytes!
+  metadataURI: String
+  name: String
+  description: String
+  capabilities: [String!]
+  source: String
+  isActive: Boolean!
+  createdAt: BigInt!
+  updatedAt: BigInt!
+  services: [Service!] @derivedFrom(field: "agent")
+  skills: [Skill!] @derivedFrom(field: "agent")
+  blacklisted: Boolean
+  featured: Boolean
+}
+
+type Review @entity(immutable: true) {
+  id: ID!
+  agent: Bytes!
+  reviewer: Bytes!
+  rating: Int!
+  feedbackId: BigInt!
+  timestamp: BigInt!
+}
+
+type Service @entity(immutable: false) {
+  id: ID!
+  serviceId: BigInt!
+  agent: Agent!
+  provider: Bytes!
+  name: String!
+  description: String
+  metadataURI: String
+  price: BigInt!
+  paymentToken: Bytes
+  paymentAddress: Bytes
+  isActive: Boolean!
+  createdAt: BigInt!
+  bond: BigInt
+  deactivatedAt: BigInt       # Phase 45d
+  bondWithdrawnAt: BigInt     # Phase 45d
+}
+
+type Job @entity(immutable: false) {
+  id: ID!
+  jobId: BigInt!
+  client: Bytes!
+  provider: Bytes
+  evaluator: Bytes
+  serviceId: BigInt
+  paymentToken: Bytes
+  description: String
+  budget: BigInt!
+  expiredAt: BigInt!
+  status: Int!
+  hook: Bytes
+  createdAt: BigInt!
+  fundedAt: BigInt
+  submittedAt: BigInt
+  completedAt: BigInt
+  rejectedAt: BigInt
+  deliverable: Bytes
+  platformFee: BigInt
+  evaluatorFee: BigInt
+}
+
+type Skill @entity(immutable: false) {
+  id: ID!
+  skillId: BigInt!
+  agent: Agent!
+  name: String
+  isActive: Boolean!
+  createdAt: BigInt!
+}
+
+type Milestone @entity(immutable: false) {
+  id: ID!
+  jobId: BigInt!
+  milestoneIndex: BigInt!
+  description: String
+  amount: BigInt!
+  status: Int!
+  createdAt: BigInt!
+  completedAt: BigInt
+  disputeRaisedAt: BigInt    # Phase 45d
+  disputeResolvedAt: BigInt  # Phase 45d
+}
+
+type Dispute @entity(immutable: false) {
+  id: ID!
+  jobId: BigInt!
+  milestoneIndex: BigInt!
+  flagger: Bytes!
+  arbiter: Bytes
+  token: Bytes
+  feePaid: BigInt
+  releasedToProvider: Boolean
+  arbiterFee: BigInt
+  resolved: Boolean!
+  createdAt: BigInt!
+  resolvedAt: BigInt
+}
+
+type Activity @entity(immutable: true) {
+  id: ID!
+  type: String!
+  actor: Bytes!
+  targetId: BigInt
+  blockNumber: BigInt!
+  timestamp: BigInt!
+  transactionHash: Bytes!
+  metadata: String
+}
+
+type BlacklistEntry @entity(immutable: false) {
+  id: ID!
+  agentId: BigInt
+  wallet: Bytes
+  reason: String
+  blacklistedBy: Bytes
+  blacklistedAt: BigInt!
+  activationAt: BigInt!
+  active: Boolean!
+}
+
+type BiddingSession @entity(immutable: false) {
+  id: ID!
+  sessionId: BigInt!
+  creator: Bytes!
+  evaluator: Bytes!
+  maxBudget: BigInt!
+  deadline: BigInt!
+  revealWindowEnd: BigInt
+  serviceId: BigInt
+  jobId: BigInt
+  winner: Bytes
+  winningBidId: BigInt
+  jobCreated: Boolean!
+  status: Int!
+  useRandomEvaluator: Boolean
+  paymentToken: Bytes
+  closedAt: BigInt              # Phase 45b O-2
+  evaluatorFinalizedAt: BigInt  # Phase 45b O-13
+  evaluatorFee: Boolean         # Phase 45c O-6
+  hook: Bytes                   # Phase 45c O-7
+  createdAt: BigInt!
+  updatedAt: BigInt!
+  bids: [Bid!] @derivedFrom(field: "session")
+}
+
+type Bid @entity(immutable: true) {
+  id: ID!
+  bidId: BigInt!
+  session: BiddingSession!
+  bidder: Bytes!
+  proposedAmount: BigInt
+  stake: BigInt!
+  commitHash: Bytes
+  revealed: Boolean!
+  accepted: Boolean!
+  rejected: Boolean!
+  stakeWithdrawn: Boolean!
+  timestamp: BigInt!
+  slashAmount: BigInt           # Phase 45b O-3
+  refundAmount: BigInt          # Phase 45b O-3
+  status: Int                   # Phase 45c O-12: BidStatus enum (0=None, 1=Pending, 2=Revealed, 3=Accepted, 4=Rejected, 5=Withdrawn)
+}
+
+type PlatformStat @entity(immutable: false) {
+  id: ID!
+  totalAgents: Int!
+  totalActiveAgents: Int!
+  totalServices: Int!
+  totalJobs: Int!
+  totalReviews: Int!
+  totalSkills: Int!
+  totalBlacklistedAgents: Int!
+  totalDisputes: Int!
+  updatedAt: BigInt!
+}

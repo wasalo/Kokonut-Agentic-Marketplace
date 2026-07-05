@@ -1,0 +1,150 @@
+<svg xmlns="http://www.w3.org/2000/svg" width="2078" height="645" viewBox="0 0 831 258" font-family="Arial, sans-serif">
+  <defs>
+    <marker id="ah" viewBox="0 0 8 6" refX="8" refY="3"
+      markerWidth="4" markerHeight="3" orient="auto">
+      <path d="M0.5,0.5 L7,3 L0.5,5.5" fill="none" stroke="#94A3B8"
+        stroke-width="1.2" stroke-linejoin="round" stroke-linecap="round"/>
+    </marker>
+    <filter id="shadow" x="-6%" y="-8%" width="112%" height="128%">
+      <feDropShadow dx="0" dy="0.5" stdDeviation="0.8"
+        flood-color="#000" flood-opacity="0.05"/>
+    </filter>
+  </defs>
+  <rect width="831" height="258" fill="#F8F9FB" rx="3"/>
+  <text x="416" y="11" text-anchor="middle" font-size="6" font-weight="700" fill="#1E293B">Kokonut Agent Economy Architecture</text>
+  <rect x="341" y="16" width="150" height="10" rx="3" fill="#fff" stroke="#E2E5EA" stroke-width="0.4"/>
+  <rect x="346" y="18.5" width="5" height="5" rx="2.5" fill="#fff" stroke="#E2E5EA" stroke-width="0.4"/>
+  <text x="354" y="22.5" font-size="3.5" fill="#1E293B">Actor</text>
+  <rect x="386" y="18.5" width="5" height="5" rx="1.5" fill="#fff" stroke="#E2E5EA" stroke-width="0.4"/>
+  <rect x="387" y="19.5" width="0.8" height="3" rx="0.4" fill="#3B82F6"/>
+  <text x="394" y="22.5" font-size="3.5" fill="#1E293B">Protocol</text>
+  <rect x="434" y="18.5" width="5" height="5" rx="1.5" fill="#fff" stroke="#E2E5EA" stroke-width="0.4"/>
+  <rect x="435" y="19.5" width="0.8" height="3" rx="0.4" fill="#F59E0B"/>
+  <text x="442" y="22.5" font-size="3.5" fill="#1E293B">External</text>
+  <path d="M156.1,46.0 C156.1,70.0 334.0,70.0 334.0,94.0" fill="none" stroke="#94A3B8" stroke-width="0.5" marker-end="url(#ah)"/>
+  <path d="M156.1,46.0 C156.1,70.0 462.4,70.0 462.4,94.0" fill="none" stroke="#94A3B8" stroke-width="0.5" marker-end="url(#ah)"/>
+  <path d="M156.1,46.0 C156.1,70.0 78.4,70.0 78.4,94.0" fill="none" stroke="#94A3B8" stroke-width="0.5" marker-end="url(#ah)"/>
+  <path d="M156.1,46.0 C156.1,70.0 203.8,70.0 203.8,94.0" fill="none" stroke="#94A3B8" stroke-width="0.5" marker-end="url(#ah)"/>
+  <path d="M461.0,46.0 C461.0,70.0 583.6,70.0 583.6,94.0" fill="none" stroke="#94A3B8" stroke-width="0.5" marker-end="url(#ah)"/>
+  <path d="M537.6,112.0 C531.0,134.0 522.2,134.0 515.6,114.0" fill="none" stroke="#94A3B8" stroke-width="0.5" marker-end="url(#ah)"/>
+  <path d="M409.2,112.0 C324.5,126.0 211.5,126.0 126.8,114.0" fill="none" stroke="#94A3B8" stroke-width="0.5" marker-end="url(#ah)"/>
+  <path d="M651.6,112.0 C572.3,130.0 466.5,130.0 387.2,114.0" fill="none" stroke="#94A3B8" stroke-width="0.5" marker-end="url(#ah)"/>
+  <path d="M462.4,114.0 C462.4,135.0 322.4,135.0 322.4,156.0" fill="none" stroke="#94A3B8" stroke-width="0.5" marker-end="url(#ah)"/>
+  <path d="M203.8,114.0 C203.8,135.0 322.4,135.0 322.4,156.0" fill="none" stroke="#94A3B8" stroke-width="0.5" marker-end="url(#ah)"/>
+  <path d="M339.8,46.0 C339.8,70.0 462.4,70.0 462.4,94.0" fill="none" stroke="#94A3B8" stroke-width="0.5" marker-end="url(#ah)"/>
+  <path d="M322.4,176.0 C322.4,197.0 298.4,197.0 298.4,218.0" fill="none" stroke="#94A3B8" stroke-width="0.5" marker-end="url(#ah)"/>
+  <path d="M462.4,114.0 C462.4,135.0 201.2,135.0 201.2,156.0" fill="none" stroke="#94A3B8" stroke-width="0.5" marker-end="url(#ah)"/>
+  <path d="M334.0,114.0 C334.0,135.0 201.2,135.0 201.2,156.0" fill="none" stroke="#94A3B8" stroke-width="0.5" marker-end="url(#ah)"/>
+  <path d="M78.4,114.0 C78.4,135.0 201.2,135.0 201.2,156.0" fill="none" stroke="#94A3B8" stroke-width="0.5" marker-end="url(#ah)"/>
+  <path d="M203.8,114.0 C203.8,135.0 201.2,135.0 201.2,156.0" fill="none" stroke="#94A3B8" stroke-width="0.5" marker-end="url(#ah)"/>
+  <path d="M258.8,112.0 C303.9,130.0 364.1,130.0 409.2,114.0" fill="none" stroke="#94A3B8" stroke-width="0.5" marker-end="url(#ah)"/>
+  <path d="M334.0,114.0 C334.0,135.0 459.8,135.0 459.8,156.0" fill="none" stroke="#94A3B8" stroke-width="0.5" marker-end="url(#ah)"/>
+  <g filter="url(#shadow)">
+    <rect x="75.9" y="32.0" width="160.4" height="14" rx="7" fill="#fff" stroke="#E2E5EA" stroke-width="0.5"/>
+    <text x="156.1" y="40.8" text-anchor="middle" font-size="4.8" font-weight="600" fill="#1E293B">Marketplace Users</text>
+  </g>
+  <g filter="url(#shadow)">
+    <rect x="425.8" y="32.0" width="70.4" height="14" rx="7" fill="#fff" stroke="#E2E5EA" stroke-width="0.5"/>
+    <text x="461.0" y="40.8" text-anchor="middle" font-size="4.8" font-weight="600" fill="#1E293B">Multisig</text>
+  </g>
+  <g filter="url(#shadow)">
+    <rect x="275.8" y="32.0" width="128.0" height="14" rx="7" fill="#fff" stroke="#E2E5EA" stroke-width="0.5"/>
+    <text x="339.8" y="40.8" text-anchor="middle" font-size="4.8" font-weight="600" fill="#1E293B">Owner</text>
+  </g>
+  <g filter="url(#shadow)">
+    <rect x="537.6" y="94.0" width="92.0" height="20" rx="3" fill="#fff" stroke="#E2E5EA" stroke-width="0.5"/>
+    <rect x="540.6" y="97.0" width="1.4" height="14" rx="0.6" fill="#3B82F6"/>
+    <text x="583.6" y="103.5" text-anchor="middle" font-size="4.8" font-weight="600" fill="#1E293B">SlashManager</text>
+    <text x="583.6" y="108.5" text-anchor="middle" font-size="3.5" fill="#64748B">3-of-5 + 1h timelock</text>
+  </g>
+  <g filter="url(#shadow)">
+    <rect x="148.8" y="94.0" width="110.0" height="20" rx="3" fill="#fff" stroke="#E2E5EA" stroke-width="0.5"/>
+    <rect x="151.8" y="97.0" width="1.4" height="14" rx="0.6" fill="#3B82F6"/>
+    <text x="203.8" y="103.5" text-anchor="middle" font-size="4.8" font-weight="600" fill="#1E293B">BiddingSystem</text>
+    <text x="203.8" y="108.5" text-anchor="middle" font-size="3.5" fill="#64748B">Commit-reveal + 30d sweep</text>
+  </g>
+  <g filter="url(#shadow)">
+    <rect x="409.2" y="94.0" width="106.4" height="20" rx="3" fill="#fff" stroke="#E2E5EA" stroke-width="0.5"/>
+    <rect x="412.2" y="97.0" width="1.4" height="14" rx="0.6" fill="#3B82F6"/>
+    <text x="462.4" y="103.5" text-anchor="middle" font-size="4.8" font-weight="600" fill="#1E293B">Marketplace Escrow</text>
+    <text x="462.4" y="108.5" text-anchor="middle" font-size="3.5" fill="#64748B">V6 / V9 (current: V9)</text>
+  </g>
+  <g filter="url(#shadow)">
+    <rect x="30.0" y="94.0" width="96.8" height="20" rx="3" fill="#fff" stroke="#E2E5EA" stroke-width="0.5"/>
+    <rect x="33.0" y="97.0" width="1.4" height="14" rx="0.6" fill="#3B82F6"/>
+    <text x="78.4" y="103.5" text-anchor="middle" font-size="4.8" font-weight="600" fill="#1E293B">Milestone Escrow</text>
+    <text x="78.4" y="108.5" text-anchor="middle" font-size="3.5" fill="#64748B">V1 / V2 (current: V2)</text>
+  </g>
+  <g filter="url(#shadow)">
+    <rect x="280.8" y="94.0" width="106.4" height="20" rx="3" fill="#fff" stroke="#E2E5EA" stroke-width="0.5"/>
+    <rect x="283.8" y="97.0" width="1.4" height="14" rx="0.6" fill="#3B82F6"/>
+    <text x="334.0" y="103.5" text-anchor="middle" font-size="4.8" font-weight="600" fill="#1E293B">ServiceRegistryV2</text>
+    <text x="334.0" y="108.5" text-anchor="middle" font-size="3.5" fill="#64748B">Listings + 0.01 ETH bond</text>
+  </g>
+  <g filter="url(#shadow)">
+    <rect x="651.6" y="94.0" width="149.6" height="20" rx="3" fill="#fff" stroke="#E2E5EA" stroke-width="0.5"/>
+    <rect x="654.6" y="97.0" width="1.4" height="14" rx="0.6" fill="#3B82F6"/>
+    <text x="726.4" y="103.5" text-anchor="middle" font-size="4.8" font-weight="600" fill="#1E293B">AgentRegistry</text>
+    <text x="726.4" y="108.5" text-anchor="middle" font-size="3.5" fill="#64748B">AdminRegistry / AgentSkillRegistryV2</text>
+  </g>
+  <g filter="url(#shadow)">
+    <rect x="263.8" y="156.0" width="117.2" height="20" rx="3" fill="#fff" stroke="#E2E5EA" stroke-width="0.5"/>
+    <rect x="266.8" y="159.0" width="1.4" height="14" rx="0.6" fill="#3B82F6"/>
+    <text x="322.4" y="165.5" text-anchor="middle" font-size="4.8" font-weight="600" fill="#1E293B">PriceOracleV2</text>
+    <text x="322.4" y="170.5" text-anchor="middle" font-size="3.5" fill="#64748B">Chainlink + per-token feeds</text>
+  </g>
+  <g filter="url(#shadow)">
+    <rect x="403.0" y="156.0" width="113.6" height="20" rx="3" fill="#fff" stroke="#E2E5EA" stroke-width="0.5"/>
+    <rect x="406.0" y="159.0" width="1.4" height="14" rx="0.6" fill="#F59E0B"/>
+    <text x="459.8" y="165.5" text-anchor="middle" font-size="4.8" font-weight="600" fill="#1E293B">ERC-8004 Identity</text>
+    <text x="459.8" y="170.5" text-anchor="middle" font-size="3.5" fill="#64748B">IdentityRegistry (ERC-721)</text>
+  </g>
+  <g filter="url(#shadow)">
+    <rect x="160.6" y="156.0" width="81.2" height="20" rx="3" fill="#fff" stroke="#E2E5EA" stroke-width="0.5"/>
+    <rect x="163.6" y="159.0" width="1.4" height="14" rx="0.6" fill="#F59E0B"/>
+    <text x="201.2" y="165.5" text-anchor="middle" font-size="4.8" font-weight="600" fill="#1E293B">Tokens</text>
+    <text x="201.2" y="170.5" text-anchor="middle" font-size="3.5" fill="#64748B">USDC / Native ETH</text>
+  </g>
+  <g filter="url(#shadow)">
+    <rect x="256.0" y="218.0" width="84.8" height="20" rx="3" fill="#fff" stroke="#E2E5EA" stroke-width="0.5"/>
+    <rect x="259.0" y="221.0" width="1.4" height="14" rx="0.6" fill="#F59E0B"/>
+    <text x="298.4" y="227.5" text-anchor="middle" font-size="4.8" font-weight="600" fill="#1E293B">Chainlink</text>
+    <text x="298.4" y="232.5" text-anchor="middle" font-size="3.5" fill="#64748B">ETH/USD + USDC/USD</text>
+  </g>
+  <rect x="231.1" y="65.0" width="28.0" height="6.0" rx="1" fill="#F8F9FB"/>
+  <text x="245.1" y="70.0" font-size="4" fill="#1E293B" font-weight="500" text-anchor="middle">list / buy</text>
+  <rect x="291.7" y="65.0" width="35.2" height="6.0" rx="1" fill="#F8F9FB"/>
+  <text x="309.3" y="70.0" font-size="4" fill="#1E293B" font-weight="500" text-anchor="middle">create / fund</text>
+  <rect x="99.7" y="65.0" width="35.2" height="6.0" rx="1" fill="#F8F9FB"/>
+  <text x="117.3" y="70.0" font-size="4" fill="#1E293B" font-weight="500" text-anchor="middle">add / release</text>
+  <rect x="160.0" y="65.0" width="40.0" height="6.0" rx="1" fill="#F8F9FB"/>
+  <text x="180.0" y="70.0" font-size="4" fill="#1E293B" font-weight="500" text-anchor="middle">commit / reveal</text>
+  <rect x="499.9" y="65.0" width="44.8" height="6.0" rx="1" fill="#F8F9FB"/>
+  <text x="522.3" y="70.0" font-size="4" fill="#1E293B" font-weight="500" text-anchor="middle">propose / confirm</text>
+  <rect x="504.2" y="133.0" width="44.8" height="6.0" rx="1" fill="#F8F9FB"/>
+  <text x="526.6" y="138.0" font-size="4" fill="#1E293B" font-weight="500" text-anchor="middle">slashByGovernance</text>
+  <rect x="246.8" y="125.0" width="42.4" height="6.0" rx="1" fill="#F8F9FB"/>
+  <text x="268.0" y="130.0" font-size="4" fill="#1E293B" font-weight="500" text-anchor="middle">enableMilestones</text>
+  <rect x="499.4" y="125.0" width="40.0" height="6.0" rx="1" fill="#F8F9FB"/>
+  <text x="519.4" y="130.0" font-size="4" fill="#1E293B" font-weight="500" text-anchor="middle">blacklist check</text>
+  <rect x="376.0" y="130.0" width="32.8" height="6.0" rx="1" fill="#F8F9FB"/>
+  <text x="392.4" y="135.0" font-size="4" fill="#1E293B" font-weight="500" text-anchor="middle">getMinBudget</text>
+  <rect x="247.9" y="134.0" width="30.4" height="6.0" rx="1" fill="#F8F9FB"/>
+  <text x="263.1" y="139.0" font-size="4" fill="#1E293B" font-weight="500" text-anchor="middle">getUsdPrice</text>
+  <rect x="384.7" y="65.0" width="32.8" height="6.0" rx="1" fill="#F8F9FB"/>
+  <text x="401.1" y="70.0" font-size="4" fill="#1E293B" font-weight="500" text-anchor="middle">UUPS upgrade</text>
+  <rect x="290.4" y="192.0" width="40.0" height="6.0" rx="1" fill="#F8F9FB"/>
+  <text x="310.4" y="197.0" font-size="4" fill="#1E293B" font-weight="500" text-anchor="middle">latestRoundData</text>
+  <rect x="319.0" y="130.0" width="25.6" height="6.0" rx="1" fill="#F8F9FB"/>
+  <text x="331.8" y="135.0" font-size="4" fill="#1E293B" font-weight="500" text-anchor="middle">transfers</text>
+  <rect x="252.4" y="142.0" width="30.4" height="6.0" rx="1" fill="#F8F9FB"/>
+  <text x="267.6" y="147.0" font-size="4" fill="#1E293B" font-weight="500" text-anchor="middle">bond refund</text>
+  <rect x="117.4" y="130.0" width="44.8" height="6.0" rx="1" fill="#F8F9FB"/>
+  <text x="139.8" y="135.0" font-size="4" fill="#1E293B" font-weight="500" text-anchor="middle">milestone release</text>
+  <rect x="182.5" y="130.0" width="40.0" height="6.0" rx="1" fill="#F8F9FB"/>
+  <text x="202.5" y="135.0" font-size="4" fill="#1E293B" font-weight="500" text-anchor="middle">stake transfers</text>
+  <rect x="312.8" y="121.0" width="42.4" height="6.0" rx="1" fill="#F8F9FB"/>
+  <text x="334.0" y="126.0" font-size="4" fill="#1E293B" font-weight="500" text-anchor="middle">createJobAndFund</text>
+  <rect x="386.5" y="122.0" width="20.8" height="6.0" rx="1" fill="#F8F9FB"/>
+  <text x="396.9" y="127.0" font-size="4" fill="#1E293B" font-weight="500" text-anchor="middle">ownerOf</text>
+</svg>

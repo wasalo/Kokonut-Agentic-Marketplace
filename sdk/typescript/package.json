@@ -1,0 +1,62 @@
+{
+  "name": "@kokonut/sdk",
+  "version": "0.2.0",
+  "description": "TypeScript SDK for Kokonut Agent Economy",
+  "main": "dist/index.js",
+  "module": "dist/index.mjs",
+  "types": "dist/index.d.ts",
+  "exports": {
+    ".": {
+      "import": "./dist/index.mjs",
+      "require": "./dist/index.js",
+      "types": "./dist/index.d.ts"
+    },
+    "./validation": {
+      "import": "./dist/validation.mjs",
+      "require": "./dist/validation.js",
+      "types": "./dist/validation.d.ts"
+    },
+    "./abis": {
+      "import": "./dist/abis.mjs",
+      "require": "./dist/abis.js",
+      "types": "./dist/abis.d.ts"
+    },
+    "./types": {
+      "import": "./dist/types.mjs",
+      "require": "./dist/types.js",
+      "types": "./dist/types.d.ts"
+    },
+    "./intelligence": {
+      "import": "./dist/modules/intelligence.mjs",
+      "require": "./dist/modules/intelligence.js",
+      "types": "./dist/modules/intelligence.d.ts"
+    }
+  },
+  "scripts": {
+    "build": "tsc -p tsconfig.json",
+    "build:esm": "tsc -p tsconfig.esm.json",
+    "build:all": "npm run build && npm run build:esm",
+    "test": "jest",
+    "type-check": "tsc --noEmit"
+  },
+  "keywords": [
+    "kokonut",
+    "agent-economy",
+    "web3",
+    "sdk"
+  ],
+  "author": "Kokonut Network",
+  "license": "MIT",
+  "dependencies": {
+    "@open-wallet-standard/core": "^1.2.0",
+    "viem": "^2.48.11",
+    "zod": "^3.23.0"
+  },
+  "devDependencies": {
+    "@types/jest": "^29.5.11",
+    "@types/node": "^20.10.0",
+    "jest": "^29.7.0",
+    "ts-jest": "^29.1.1",
+    "typescript": "^5.9.3"
+  }
+}

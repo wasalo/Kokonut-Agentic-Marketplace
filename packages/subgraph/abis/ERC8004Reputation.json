@@ -1,0 +1,29 @@
+[
+  {
+    "anonymous": false,
+    "inputs": [
+      {
+        "indexed": true,
+        "name": "feedbackId",
+        "type": "uint256"
+      },
+      {
+        "indexed": true,
+        "name": "agent",
+        "type": "address"
+      },
+      {
+        "indexed": true,
+        "name": "provider",
+        "type": "address"
+      },
+      {
+        "indexed": false,
+        "name": "rating",
+        "type": "int256"
+      }
+    ],
+    "name": "FeedbackSubmitted",
+    "type": "event"
+  }
+]

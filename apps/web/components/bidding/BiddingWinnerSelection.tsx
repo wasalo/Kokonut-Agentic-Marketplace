@@ -1,0 +1,135 @@
+'use client';
+
+import { Loader2 } from 'lucide-react';
+import type { BidInfo } from '@/lib/hooks/useBiddingSystem';
+import type { Token } from '@/lib/tokenUtils';
+import { formatAmount } from '@/lib/tokenUtils';
+import { btn } from '@/lib/design-system';
+
+interface BiddingWinnerSelectionProps {
+  selectableBids: BidInfo[];
+  selectedBid: BidInfo | undefined;
+  token: Token;
+  isLoadingRevealedBids: boolean;
+  isAcceptPending: boolean;
+  isRejectPending: boolean;
+  isCancelPending: boolean;
+  canCancelSession: boolean;
+  onSelectBid: (bidId: bigint) => void;
+  onAcceptBid: () => void;
+  onRejectBid: () => void;
+  onCancelSession: () => void;
+}
+
+export function BiddingWinnerSelection({
+  selectableBids,
+  selectedBid,
+  token,
+  isLoadingRevealedBids,
+  isAcceptPending,
+  isRejectPending,
+  isCancelPending,
+  canCancelSession,
+  onSelectBid,
+  onAcceptBid,
+  onRejectBid,
+  onCancelSession,
+}: BiddingWinnerSelectionProps) {
+  return (
+    <div className="space-y-4">
+      <p className="text-default-500">The bidding is closed. Select a winner to proceed.</p>
+      {isLoadingRevealedBids ? (
+        <div className="flex items-center gap-2 text-default-500">
+          <Loader2 className="size-4 animate-spin" />
+          Loading revealed bids...
+        </div>
+      ) : selectableBids.length === 0 ? (
+        <div className="p-4 rounded-lg border border-warning/30 bg-warning/10">
+          <p className="text-sm text-warning-700 dark:text-warning-200">
+            No revealed provider bids are available yet.
+          </p>
+        </div>
+      ) : (
+        <div className="space-y-3">
+          {selectableBids.map((bid: BidInfo) => {
+            const isSelected = selectedBid?.bidId === bid.bidId;
+            return (
+              <button
+                type="button"
+                key={bid.bidId.toString()}
+                onClick={() => onSelectBid(bid.bidId)}
+                className={`w-full text-left p-4 rounded-lg border transition-colors ${
+                  isSelected
+                    ? 'border-primary bg-primary/5'
+                    : 'border-divider hover:bg-content2'
+                }`}
+              >
+                <div className="flex flex-col md:flex-row md:items-center md:justify-between gap-2">
+                  <div>
+                    <p className="font-medium">Bid #{bid.bidId.toString()}</p>
+                    <p className="text-xs text-default-500 font-mono">{bid.bidder}</p>
+                    {bid.message && (
+                      <p className="text-sm text-default-500 mt-1">{bid.message}</p>
+                    )}
+                  </div>
+                  <div className="md:text-right">
+                    <p className="font-semibold text-primary">
+                      {formatAmount(bid.proposedAmount, token, { includeSymbol: true })}
+                    </p>
+                    <p className="text-xs text-default-500">
+                      Stake {formatAmount(bid.stake, token, { includeSymbol: true })}
+                    </p>
+                  </div>
+                </div>
+              </button>
+            );
+          })}
+        </div>
+      )}
+      <div className="flex flex-col sm:flex-row sm:flex-wrap gap-3">
+        <button
+          type="button"
+          onClick={onAcceptBid}
+          disabled={!selectedBid || selectedBid.accepted || isAcceptPending}
+          className={btn('primary', 'w-full sm:w-auto disabled:opacity-50 disabled:cursor-not-allowed')}
+        >
+          {isAcceptPending ? (
+            <Loader2 className="size-4 animate-spin inline" />
+          ) : selectedBid?.accepted ? (
+            'Accepted'
+          ) : (
+            'Accept Winning Bid'
+          )}
+        </button>
+        <button
+          type="button"
+          onClick={onRejectBid}
+          disabled={!selectedBid || selectedBid.rejected || isRejectPending}
+          className={btn('danger', 'w-full sm:w-auto disabled:opacity-50 disabled:cursor-not-allowed')}
+        >
+          {isRejectPending ? (
+            <Loader2 className="size-4 animate-spin inline" />
+          ) : selectedBid?.rejected ? (
+            'Rejected'
+          ) : (
+            'Reject Bid'
+          )}
+        </button>
+        {canCancelSession && (
+          <button
+            type="button"
+            onClick={onCancelSession}
+            disabled={isCancelPending}
+            className={btn('danger', 'w-full sm:w-auto disabled:opacity-50 disabled:cursor-not-allowed')}
+          >
+            {isCancelPending ? (
+              <Loader2 className="size-4 animate-spin inline" />
+            ) : (
+              'Cancel Session'
+            )}
+          </button>
+        )}
+      </div>
+    </div>
+  );
+}

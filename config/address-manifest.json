@@ -1,0 +1,64 @@
+{
+  "version": "2026-06-08-phase-47",
+  "defaultNetwork": "sepolia",
+  "networks": {
+    "sepolia": {
+      "chainId": 11155111,
+      "name": "Sepolia",
+      "rpcUrl": "https://ethereum-sepolia.publicnode.com",
+      "explorerUrl": "https://sepolia.etherscan.io",
+      "startBlock": 9989393,
+      "contracts": {
+        "identityRegistry": "0x8004A818BFB912233c491871b3d84c89A494BD9e",
+        "erc8004Registry": "0x8004A818BFB912233c491871b3d84c89A494BD9e",
+        "reputationRegistry": "0x8004B663056A597Dffe9eCcC1965A193B7388713",
+        "erc8004Reputation": "0x8004B663056A597Dffe9eCcC1965A193B7388713",
+        "skillRegistry": "0xA84684261558f342d6871DD2CFef90A2117Aa20A",
+        "skillRegistryImpl": "0xbf7283c4d141ca991dae6c91d29a255e7caff48d",
+        "serviceRegistry": "0x62E1eeEa1A2Ab987004F35bDA430457Ed6077201",
+        "serviceRegistryImpl": "0x41CeD1B43878E5d6De81FdfB5317305cb692C96B",
+        "_comment_serviceRegistryImpl_47": "Phase 47 deployed 2026-06-08: activateService agent blacklist + bond check",
+        "agenticCommerce": "0x3a1Bc03cC84040A282F6bf238b917D8351499239",
+        "agenticCommerceImpl": "0xe74A0ADF0074FC17628b0FF13f44C6551801E2C0",
+        "_comment_agenticCommerceImpl_47": "Phase 47 deployed 2026-06-08: exact funding, setPaymentToken validation, evaluator exclusion, active-job unregister guard",
+        "biddingSystem": "0x4D7F38C6A9DE5De44A7B789962B7A2B06bFE8fd6",
+        "biddingSystemImpl": "0x79Bc44CcB9d034AbAd04f93B6754dE13e8bf454b",
+        "_comment_biddingSystemImpl_47": "Phase 47 deployed 2026-06-08: Pashov audit remediation — reveal binding, accept timing, no-show slash, pull-based refunds",
+        "priceOracle": "0x29c27a26DD2F80f840cb4D7B5E53b7db3D67143d",
+        "priceOracleImpl": "0x7Bad7cc9754814246814299ca50041a939a244b1",
+        "commitReveal": "0x85F193670fCb7B0c97D55E70Bf2a950b1065Fb3a",
+        "commitRevealImpl": "0x85ac5fd55de6f19e95bed33991f11659a92dbbd2",
+        "slashManager": "0x1B8373cDF4f2eD740c3478e0129f0B8494CE4Fa3",
+        "slashManagerImpl": "0x8754Abeba49B6688dA132552b9f183FbC7acdc58",
+        "milestoneEscrow": "0xc89D63057288092012c5D3cEF66121C1F8449a9f",
+        "milestoneEscrowImpl": "0x7F515bCf8Ba3102eA46126B6111c451A5ACad42D",
+        "_comment_milestoneEscrowImpl_47": "Phase 47 deployed 2026-06-08: dispute lockout fix, self-arbitration exclusion, incomplete milestone refund",
+        "adminRegistry": "0xC81C864CEAb6231ad764cf9867e031D8b6dee41d",
+        "adminRegistryImpl": "0xE0611728f270172E1627267138BF96BfEF08F731",
+        "usdc": "0x1c7D4B196Cb0C7B01d743Fbc6116a902379C7238"
+      }
+    },
+    "mainnet": {
+      "chainId": 1,
+      "name": "Ethereum Mainnet",
+      "rpcUrl": "https://ethereum.publicnode.com",
+      "explorerUrl": "https://etherscan.io",
+      "contracts": {
+        "identityRegistry": "",
+        "erc8004Registry": "",
+        "reputationRegistry": "",
+        "erc8004Reputation": "",
+        "skillRegistry": "",
+        "serviceRegistry": "",
+        "agenticCommerce": "",
+        "biddingSystem": "",
+        "priceOracle": "",
+        "commitReveal": "",
+        "slashManager": "",
+        "milestoneEscrow": "",
+        "adminRegistry": "",
+        "usdc": "0xA0b86991c6218b36c1d19D4a2e9Eb0cE3606eB48"
+      }
+    }
+  }
+}

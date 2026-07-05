@@ -1,0 +1,107 @@
+[
+  {
+    "anonymous": false,
+    "inputs": [
+      {
+        "indexed": true,
+        "name": "agentId",
+        "type": "uint256"
+      },
+      {
+        "indexed": false,
+        "name": "isFeatured",
+        "type": "bool"
+      }
+    ],
+    "name": "FeaturedAgentUpdated",
+    "type": "event"
+  },
+  {
+    "anonymous": false,
+    "inputs": [
+      {
+        "indexed": true,
+        "name": "agentId",
+        "type": "uint256"
+      },
+      {
+        "indexed": true,
+        "name": "by",
+        "type": "address"
+      },
+      {
+        "indexed": false,
+        "name": "reason",
+        "type": "string"
+      },
+      {
+        "indexed": false,
+        "name": "activationAt",
+        "type": "uint256"
+      }
+    ],
+    "name": "AgentBlacklisted",
+    "type": "event"
+  },
+  {
+    "anonymous": false,
+    "inputs": [
+      {
+        "indexed": true,
+        "name": "agentId",
+        "type": "uint256"
+      },
+      {
+        "indexed": true,
+        "name": "by",
+        "type": "address"
+      }
+    ],
+    "name": "AgentUnblacklisted",
+    "type": "event"
+  },
+  {
+    "anonymous": false,
+    "inputs": [
+      {
+        "indexed": true,
+        "name": "wallet",
+        "type": "address"
+      },
+      {
+        "indexed": true,
+        "name": "by",
+        "type": "address"
+      },
+      {
+        "indexed": false,
+        "name": "reason",
+        "type": "string"
+      },
+      {
+        "indexed": false,
+        "name": "activationAt",
+        "type": "uint256"
+      }
+    ],
+    "name": "WalletBlacklisted",
+    "type": "event"
+  },
+  {
+    "anonymous": false,
+    "inputs": [
+      {
+        "indexed": true,
+        "name": "wallet",
+        "type": "address"
+      },
+      {
+        "indexed": true,
+        "name": "by",
+        "type": "address"
+      }
+    ],
+    "name": "WalletUnblacklisted",
+    "type": "event"
+  }
+]

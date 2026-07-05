@@ -1,0 +1,837 @@
+{
+  "version": "semantic-v1",
+  "generatedAt": "2026-06-08T07:12:39.937Z",
+  "contracts": {
+    "AgenticCommerceV9": {
+      "target": "contracts/shared/AgenticCommerceV9.sol:AgenticCommerceV9",
+      "normalized": {
+        "storage": [
+          {
+            "label": "_status",
+            "slot": 0,
+            "offset": 0,
+            "type": "uint256"
+          },
+          {
+            "label": "minBudgetUsd",
+            "slot": 1,
+            "offset": 0,
+            "type": "uint256"
+          },
+          {
+            "label": "maxBudgetUsd",
+            "slot": 2,
+            "offset": 0,
+            "type": "uint256"
+          },
+          {
+            "label": "minBudgetOverride",
+            "slot": 3,
+            "offset": 0,
+            "type": "mapping(address=>uint256)"
+          },
+          {
+            "label": "isStablecoin",
+            "slot": 4,
+            "offset": 0,
+            "type": "mapping(address=>bool)"
+          },
+          {
+            "label": "platformTreasury",
+            "slot": 5,
+            "offset": 0,
+            "type": "address"
+          },
+          {
+            "label": "adminRegistry",
+            "slot": 6,
+            "offset": 0,
+            "type": "address"
+          },
+          {
+            "label": "priceOracle",
+            "slot": 7,
+            "offset": 0,
+            "type": "address"
+          },
+          {
+            "label": "jobs",
+            "slot": 8,
+            "offset": 0,
+            "type": "mapping(uint256=>struct{id@0:0:uint256,client@1:0:address,provider@2:0:address,evaluator@3:0:address,serviceId@4:0:uint256,paymentToken@5:0:address,description@6:0:string,budget@7:0:uint256,expiredAt@8:0:uint256,status@9:0:enum IAgenticCommerceV9.JobStatus,hook@9:1:address,deliverable@10:0:bytes32})"
+          },
+          {
+            "label": "jobCounter",
+            "slot": 9,
+            "offset": 0,
+            "type": "uint256"
+          },
+          {
+            "label": "clientJobCount",
+            "slot": 10,
+            "offset": 0,
+            "type": "mapping(address=>uint256)"
+          },
+          {
+            "label": "jobClient",
+            "slot": 11,
+            "offset": 0,
+            "type": "mapping(uint256=>address)"
+          },
+          {
+            "label": "evaluatorFeeEnabled",
+            "slot": 12,
+            "offset": 0,
+            "type": "mapping(uint256=>bool)"
+          },
+          {
+            "label": "requiresClientReview",
+            "slot": 13,
+            "offset": 0,
+            "type": "mapping(uint256=>bool)"
+          },
+          {
+            "label": "clientApproved",
+            "slot": 14,
+            "offset": 0,
+            "type": "mapping(uint256=>bool)"
+          },
+          {
+            "label": "clientApprovedAt",
+            "slot": 15,
+            "offset": 0,
+            "type": "mapping(uint256=>uint256)"
+          },
+          {
+            "label": "jobDisputeWindow",
+            "slot": 16,
+            "offset": 0,
+            "type": "mapping(uint256=>uint256)"
+          },
+          {
+            "label": "jobNonResponsiveSlashBP",
+            "slot": 17,
+            "offset": 0,
+            "type": "mapping(uint256=>uint256)"
+          },
+          {
+            "label": "jobSubmittedAt",
+            "slot": 18,
+            "offset": 0,
+            "type": "mapping(uint256=>uint256)"
+          },
+          {
+            "label": "allowedTokens",
+            "slot": 19,
+            "offset": 0,
+            "type": "mapping(address=>bool)"
+          },
+          {
+            "label": "totalLockedETH",
+            "slot": 20,
+            "offset": 0,
+            "type": "uint256"
+          },
+          {
+            "label": "evaluatorPool",
+            "slot": 21,
+            "offset": 0,
+            "type": "address[]"
+          },
+          {
+            "label": "isRegisteredEvaluator",
+            "slot": 22,
+            "offset": 0,
+            "type": "mapping(address=>bool)"
+          },
+          {
+            "label": "evaluatorStakes",
+            "slot": 23,
+            "offset": 0,
+            "type": "mapping(address=>uint256)"
+          },
+          {
+            "label": "evaluatorCommits",
+            "slot": 24,
+            "offset": 0,
+            "type": "mapping(uint256=>struct{commitHash@0:0:bytes32,commitBlock@1:0:uint256,revealed@2:0:bool})"
+          },
+          {
+            "label": "jobCreationBlock",
+            "slot": 25,
+            "offset": 0,
+            "type": "mapping(uint256=>uint256)"
+          },
+          {
+            "label": "blacklistCheckRequired",
+            "slot": 26,
+            "offset": 0,
+            "type": "bool"
+          },
+          {
+            "label": "serviceRegistry",
+            "slot": 26,
+            "offset": 1,
+            "type": "address"
+          },
+          {
+            "label": "minEvaluatorStake",
+            "slot": 27,
+            "offset": 0,
+            "type": "uint256"
+          },
+          {
+            "label": "authorizedJobCreators",
+            "slot": 28,
+            "offset": 0,
+            "type": "mapping(address=>bool)"
+          },
+          {
+            "label": "slashManager",
+            "slot": 29,
+            "offset": 0,
+            "type": "address"
+          },
+          {
+            "label": "__gap",
+            "slot": 30,
+            "offset": 0,
+            "type": "uint256[45]"
+          }
+        ]
+      }
+    },
+    "ServiceRegistryV2": {
+      "target": "contracts/shared/ServiceRegistryV2.sol:ServiceRegistryV2",
+      "normalized": {
+        "storage": [
+          {
+            "label": "identityRegistry",
+            "slot": 0,
+            "offset": 0,
+            "type": "address"
+          },
+          {
+            "label": "_services",
+            "slot": 1,
+            "offset": 0,
+            "type": "mapping(uint256=>struct{provider@0:0:address,paymentAddress@1:0:address,agentId@2:0:uint256,name@3:0:string,description@4:0:string,metadataURI@5:0:string,price@6:0:uint256,paymentToken@7:0:address,isActive@7:20:bool,createdAt@8:0:uint256})"
+          },
+          {
+            "label": "_providerServices",
+            "slot": 2,
+            "offset": 0,
+            "type": "mapping(address=>uint256[])"
+          },
+          {
+            "label": "_agentServices",
+            "slot": 3,
+            "offset": 0,
+            "type": "mapping(uint256=>uint256[])"
+          },
+          {
+            "label": "_serviceCounter",
+            "slot": 4,
+            "offset": 0,
+            "type": "uint256"
+          },
+          {
+            "label": "_serviceBonds",
+            "slot": 5,
+            "offset": 0,
+            "type": "mapping(uint256=>uint256)"
+          },
+          {
+            "label": "_activeServiceCount",
+            "slot": 6,
+            "offset": 0,
+            "type": "uint256"
+          },
+          {
+            "label": "_activeCountInitialized",
+            "slot": 7,
+            "offset": 0,
+            "type": "bool"
+          },
+          {
+            "label": "agenticCommerce",
+            "slot": 7,
+            "offset": 1,
+            "type": "address"
+          },
+          {
+            "label": "slashManager",
+            "slot": 8,
+            "offset": 0,
+            "type": "address"
+          },
+          {
+            "label": "adminRegistry",
+            "slot": 9,
+            "offset": 0,
+            "type": "address"
+          },
+          {
+            "label": "deactivatedAt",
+            "slot": 10,
+            "offset": 0,
+            "type": "mapping(uint256=>uint256)"
+          },
+          {
+            "label": "__gap",
+            "slot": 11,
+            "offset": 0,
+            "type": "uint256[49]"
+          }
+        ]
+      }
+    },
+    "AgentSkillRegistryV2": {
+      "target": "contracts/shared/AgentSkillRegistryV2.sol:AgentSkillRegistryV2",
+      "normalized": {
+        "storage": [
+          {
+            "label": "identityRegistry",
+            "slot": 0,
+            "offset": 0,
+            "type": "address"
+          },
+          {
+            "label": "_skills",
+            "slot": 1,
+            "offset": 0,
+            "type": "mapping(uint256=>struct{agentId@0:0:uint256,name@1:0:string,version@2:0:string,description@3:0:string,endpoint@4:0:string,domains@5:0:string[],isActive@6:0:bool,registeredBy@6:1:address,registeredAt@7:0:uint256,updatedAt@8:0:uint256})"
+          },
+          {
+            "label": "_agentSkills",
+            "slot": 2,
+            "offset": 0,
+            "type": "mapping(uint256=>uint256[])"
+          },
+          {
+            "label": "_domainToSkills",
+            "slot": 3,
+            "offset": 0,
+            "type": "mapping(bytes32=>uint256[])"
+          },
+          {
+            "label": "_skillCounter",
+            "slot": 4,
+            "offset": 0,
+            "type": "uint256"
+          },
+          {
+            "label": "__gap",
+            "slot": 5,
+            "offset": 0,
+            "type": "uint256[50]"
+          }
+        ]
+      }
+    },
+    "BiddingSystem": {
+      "target": "contracts/shared/BiddingSystem.sol:BiddingSystem",
+      "normalized": {
+        "storage": [
+          {
+            "label": "_status",
+            "slot": 0,
+            "offset": 0,
+            "type": "uint256"
+          },
+          {
+            "label": "sessionCounter",
+            "slot": 1,
+            "offset": 0,
+            "type": "uint256"
+          },
+          {
+            "label": "sessions",
+            "slot": 2,
+            "offset": 0,
+            "type": "mapping(uint256=>struct{id@0:0:uint256,creator@1:0:address,evaluator@2:0:address,maxBudget@3:0:uint256,deadline@4:0:uint256,revealWindowEnd@5:0:uint256,metadata@6:0:bytes,serviceId@7:0:uint256,jobId@8:0:uint256,winner@9:0:address,winningBidId@10:0:uint256,jobCreated@11:0:bool,status@11:1:enum IBiddingSystem.SessionStatus,useRandomEvaluator@11:2:bool,paymentToken@11:3:address,evaluatorFee@11:23:bool,hook@12:0:address})"
+          },
+          {
+            "label": "sessionBids",
+            "slot": 3,
+            "offset": 0,
+            "type": "mapping(uint256=>struct{bidId@0:0:uint256,bidder@1:0:address,proposedAmount@2:0:uint256,stake@3:0:uint256,message@4:0:string,commitHash@5:0:bytes32,revealed@6:0:bool,accepted@6:1:bool,rejected@6:2:bool,stakeWithdrawn@6:3:bool,timestamp@7:0:uint256,status@8:0:enum IBiddingSystem.BidStatus}[])"
+          },
+          {
+            "label": "bidderToBidIndex",
+            "slot": 4,
+            "offset": 0,
+            "type": "mapping(uint256=>mapping(address=>uint256))"
+          },
+          {
+            "label": "validCommits",
+            "slot": 5,
+            "offset": 0,
+            "type": "mapping(uint256=>mapping(bytes32=>bool))"
+          },
+          {
+            "label": "totalStakesHeld",
+            "slot": 6,
+            "offset": 0,
+            "type": "mapping(uint256=>uint256)"
+          },
+          {
+            "label": "totalPlatformFees",
+            "slot": 7,
+            "offset": 0,
+            "type": "mapping(uint256=>uint256)"
+          },
+          {
+            "label": "commerce",
+            "slot": 8,
+            "offset": 0,
+            "type": "address"
+          },
+          {
+            "label": "treasury",
+            "slot": 9,
+            "offset": 0,
+            "type": "address"
+          },
+          {
+            "label": "adminRegistry",
+            "slot": 10,
+            "offset": 0,
+            "type": "address"
+          },
+          {
+            "label": "revealWindow",
+            "slot": 11,
+            "offset": 0,
+            "type": "uint256"
+          },
+          {
+            "label": "platformFeeBP",
+            "slot": 12,
+            "offset": 0,
+            "type": "uint256"
+          },
+          {
+            "label": "winnerSelectedAt",
+            "slot": 13,
+            "offset": 0,
+            "type": "mapping(uint256=>uint256)"
+          },
+          {
+            "label": "pendingCreatorRefund",
+            "slot": 14,
+            "offset": 0,
+            "type": "mapping(uint256=>uint256)"
+          },
+          {
+            "label": "__gap",
+            "slot": 15,
+            "offset": 0,
+            "type": "uint256[40]"
+          },
+          {
+            "label": "totalAccumulatedFees",
+            "slot": 55,
+            "offset": 0,
+            "type": "uint256"
+          },
+          {
+            "label": "creatorStakeWithdrawn",
+            "slot": 56,
+            "offset": 0,
+            "type": "mapping(uint256=>bool)"
+          },
+          {
+            "label": "accumulatedFeesByToken",
+            "slot": 57,
+            "offset": 0,
+            "type": "mapping(address=>uint256)"
+          },
+          {
+            "label": "minStake",
+            "slot": 58,
+            "offset": 0,
+            "type": "uint256"
+          },
+          {
+            "label": "maxStake",
+            "slot": 59,
+            "offset": 0,
+            "type": "uint256"
+          },
+          {
+            "label": "withdrawStakeClaimableAt",
+            "slot": 60,
+            "offset": 0,
+            "type": "mapping(uint256=>mapping(address=>uint256))"
+          },
+          {
+            "label": "platformFeeBPByToken",
+            "slot": 61,
+            "offset": 0,
+            "type": "mapping(address=>uint256)"
+          },
+          {
+            "label": "pendingBidRefund",
+            "slot": 62,
+            "offset": 0,
+            "type": "mapping(uint256=>mapping(address=>uint256))"
+          }
+        ]
+      }
+    },
+    "MilestoneEscrowV2": {
+      "target": "contracts/shared/MilestoneEscrowV2.sol:MilestoneEscrowV2",
+      "normalized": {
+        "storage": [
+          {
+            "label": "_status",
+            "slot": 0,
+            "offset": 0,
+            "type": "uint256"
+          },
+          {
+            "label": "arbiterFeePerToken",
+            "slot": 1,
+            "offset": 0,
+            "type": "mapping(address=>uint256)"
+          },
+          {
+            "label": "arbiterStakePerToken",
+            "slot": 2,
+            "offset": 0,
+            "type": "mapping(address=>uint256)"
+          },
+          {
+            "label": "supportedTokens",
+            "slot": 3,
+            "offset": 0,
+            "type": "mapping(address=>bool)"
+          },
+          {
+            "label": "jobMilestones",
+            "slot": 4,
+            "offset": 0,
+            "type": "mapping(uint256=>struct{client@0:0:address,provider@1:0:address,paymentToken@2:0:address,totalBudget@3:0:uint256,usesMilestones@4:0:bool,milestones@5:0:struct{description@0:0:string,amount@1:0:uint256,dueDate@2:0:uint256,completed@3:0:bool,released@3:1:bool,proofHash@4:0:bytes32}[]})"
+          },
+          {
+            "label": "milestoneTotalAmount",
+            "slot": 5,
+            "offset": 0,
+            "type": "mapping(uint256=>uint256)"
+          },
+          {
+            "label": "arbiterPool",
+            "slot": 6,
+            "offset": 0,
+            "type": "address[]"
+          },
+          {
+            "label": "arbiterStakes",
+            "slot": 7,
+            "offset": 0,
+            "type": "mapping(address=>uint256)"
+          },
+          {
+            "label": "arbiterStakeToken",
+            "slot": 8,
+            "offset": 0,
+            "type": "mapping(address=>address)"
+          },
+          {
+            "label": "isRegisteredArbiter",
+            "slot": 9,
+            "offset": 0,
+            "type": "mapping(address=>bool)"
+          },
+          {
+            "label": "disputes",
+            "slot": 10,
+            "offset": 0,
+            "type": "mapping(uint256=>struct{jobId@0:0:uint256,flagger@1:0:address,arbiter@2:0:address,flaggedAt@3:0:uint256,resolved@4:0:bool,releaseToProvider@4:1:bool,feePaid@5:0:uint256,milestoneIndex@6:0:uint256})"
+          },
+          {
+            "label": "activeDisputeIds",
+            "slot": 11,
+            "offset": 0,
+            "type": "uint256[]"
+          },
+          {
+            "label": "agenticCommerce",
+            "slot": 12,
+            "offset": 0,
+            "type": "address"
+          },
+          {
+            "label": "milestoneEscrowBalance",
+            "slot": 13,
+            "offset": 0,
+            "type": "mapping(uint256=>uint256)"
+          },
+          {
+            "label": "__gap",
+            "slot": 14,
+            "offset": 0,
+            "type": "uint256[49]"
+          }
+        ]
+      }
+    },
+    "PriceOracleV2": {
+      "target": "contracts/shared/PriceOracleV2.sol:PriceOracleV2",
+      "normalized": {
+        "storage": [
+          {
+            "label": "priceFeeds",
+            "slot": 0,
+            "offset": 0,
+            "type": "mapping(address=>address)"
+          },
+          {
+            "label": "feedDecimals",
+            "slot": 1,
+            "offset": 0,
+            "type": "mapping(address=>uint8)"
+          },
+          {
+            "label": "isStablecoin",
+            "slot": 2,
+            "offset": 0,
+            "type": "mapping(address=>bool)"
+          },
+          {
+            "label": "ethPriceFeed",
+            "slot": 3,
+            "offset": 0,
+            "type": "address"
+          },
+          {
+            "label": "ethFeedDecimals",
+            "slot": 3,
+            "offset": 20,
+            "type": "uint8"
+          },
+          {
+            "label": "__gap",
+            "slot": 4,
+            "offset": 0,
+            "type": "uint256[50]"
+          }
+        ]
+      }
+    },
+    "CommitReveal": {
+      "target": "contracts/shared/CommitReveal.sol:CommitReveal",
+      "normalized": {
+        "storage": [
+          {
+            "label": "_status",
+            "slot": 0,
+            "offset": 0,
+            "type": "uint256"
+          },
+          {
+            "label": "commitments",
+            "slot": 1,
+            "offset": 0,
+            "type": "mapping(bytes32=>struct{commitmentHash@0:0:bytes32,user@1:0:address,commitBlock@2:0:uint256,serviceId@3:0:uint256,revealed@4:0:bool,executed@4:1:bool,cancelled@4:2:bool})"
+          },
+          {
+            "label": "userCommitments",
+            "slot": 2,
+            "offset": 0,
+            "type": "mapping(address=>bytes32[])"
+          },
+          {
+            "label": "serviceRegistry",
+            "slot": 3,
+            "offset": 0,
+            "type": "address"
+          },
+          {
+            "label": "__gap",
+            "slot": 4,
+            "offset": 0,
+            "type": "uint256[50]"
+          }
+        ]
+      }
+    },
+    "SlashManager": {
+      "target": "contracts/shared/SlashManager.sol:SlashManager",
+      "normalized": {
+        "storage": [
+          {
+            "label": "_status",
+            "slot": 0,
+            "offset": 0,
+            "type": "uint256"
+          },
+          {
+            "label": "signers",
+            "slot": 1,
+            "offset": 0,
+            "type": "address[]"
+          },
+          {
+            "label": "isSigner",
+            "slot": 2,
+            "offset": 0,
+            "type": "mapping(address=>bool)"
+          },
+          {
+            "label": "proposals",
+            "slot": 3,
+            "offset": 0,
+            "type": "mapping(bytes32=>struct{evaluator@0:0:address,proposalId@1:0:uint256,amount@2:0:uint256,reason@3:0:string,createdAt@4:0:uint256,executeAfter@5:0:uint256,confirmations@6:0:uint256,executed@7:0:bool,confirmed@8:0:mapping(address=>bool)})"
+          },
+          {
+            "label": "proposalIds",
+            "slot": 4,
+            "offset": 0,
+            "type": "bytes32[]"
+          },
+          {
+            "label": "activeSlashByEvaluator",
+            "slot": 5,
+            "offset": 0,
+            "type": "mapping(address=>mapping(uint256=>bytes32))"
+          },
+          {
+            "label": "proposalNonce",
+            "slot": 6,
+            "offset": 0,
+            "type": "uint256"
+          },
+          {
+            "label": "commerce",
+            "slot": 7,
+            "offset": 0,
+            "type": "address"
+          },
+          {
+            "label": "__gap",
+            "slot": 8,
+            "offset": 0,
+            "type": "uint256[50]"
+          }
+        ]
+      }
+    },
+    "AdminRegistry": {
+      "target": "contracts/shared/AdminRegistry.sol:AdminRegistry",
+      "normalized": {
+        "storage": [
+          {
+            "label": "featuredAgents",
+            "slot": 0,
+            "offset": 0,
+            "type": "mapping(uint256=>struct{name@0:0:string,description@1:0:string,capabilities@2:0:string[],halfLifeDays@3:0:uint256,isFeatured@4:0:bool,verification@5:0:struct{provider@0:0:string,verifiedAt@1:0:uint256,proof@2:0:string,isVerified@3:0:bool},skillRules@9:0:struct{skillName@0:0:string,minRating@1:0:uint256,isActive@2:0:bool}[],createdAt@10:0:uint256,updatedAt@11:0:uint256})"
+          },
+          {
+            "label": "verificationProviders",
+            "slot": 1,
+            "offset": 0,
+            "type": "mapping(string=>bool)"
+          },
+          {
+            "label": "skillRules",
+            "slot": 2,
+            "offset": 0,
+            "type": "mapping(string=>struct{skillName@0:0:string,minRating@1:0:uint256,isActive@2:0:bool})"
+          },
+          {
+            "label": "halfLifeDays",
+            "slot": 3,
+            "offset": 0,
+            "type": "uint256"
+          },
+          {
+            "label": "blacklistedAgents",
+            "slot": 4,
+            "offset": 0,
+            "type": "mapping(uint256=>struct{isBlacklisted@0:0:bool,blacklistedAt@1:0:uint256,activationAt@2:0:uint256,reason@3:0:string,blacklistedBy@4:0:address,autoSlashed@4:20:bool})"
+          },
+          {
+            "label": "blacklistedWallets",
+            "slot": 5,
+            "offset": 0,
+            "type": "mapping(address=>struct{isBlacklisted@0:0:bool,blacklistedAt@1:0:uint256,activationAt@2:0:uint256,reason@3:0:string,blacklistedBy@4:0:address,autoSlashed@4:20:bool})"
+          },
+          {
+            "label": "blacklistedAgentIds",
+            "slot": 6,
+            "offset": 0,
+            "type": "uint256[]"
+          },
+          {
+            "label": "blacklistedWalletIndices",
+            "slot": 7,
+            "offset": 0,
+            "type": "uint256[]"
+          },
+          {
+            "label": "walletBlacklistIndex",
+            "slot": 8,
+            "offset": 0,
+            "type": "mapping(address=>uint256)"
+          },
+          {
+            "label": "agentBlacklistIndex",
+            "slot": 9,
+            "offset": 0,
+            "type": "mapping(uint256=>uint256)"
+          },
+          {
+            "label": "slashManager",
+            "slot": 10,
+            "offset": 0,
+            "type": "address"
+          },
+          {
+            "label": "identityRegistry",
+            "slot": 11,
+            "offset": 0,
+            "type": "address"
+          },
+          {
+            "label": "blacklistedWalletsList",
+            "slot": 12,
+            "offset": 0,
+            "type": "address[]"
+          },
+          {
+            "label": "_providerNames",
+            "slot": 13,
+            "offset": 0,
+            "type": "string[]"
+          },
+          {
+            "label": "_providerIndex",
+            "slot": 14,
+            "offset": 0,
+            "type": "mapping(string=>uint256)"
+          },
+          {
+            "label": "_featuredAgentIds",
+            "slot": 15,
+            "offset": 0,
+            "type": "uint256[]"
+          },
+          {
+            "label": "_featuredAgentIndex",
+            "slot": 16,
+            "offset": 0,
+            "type": "mapping(uint256=>uint256)"
+          },
+          {
+            "label": "__gap",
+            "slot": 17,
+            "offset": 0,
+            "type": "uint256[50]"
+          }
+        ]
+      }
+    }
+  }
+}
