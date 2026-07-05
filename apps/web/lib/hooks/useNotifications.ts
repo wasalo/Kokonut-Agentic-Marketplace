@@ -146,6 +146,20 @@ export function useNotificationActions() {
     [notify]
   );
 
+  const notifyMessageReceived = useCallback(
+    (senderAddress: string, conversationTitle: string) => {
+      notify({
+        type: 'system',
+        action: 'message.received',
+        title: 'New Message',
+        message: `New message from ${senderAddress.slice(0, 6)}...${senderAddress.slice(-4)} in ${conversationTitle}`,
+        link: '/marketplace?tab=my-work',
+        metadata: { senderAddress, conversationTitle },
+      });
+    },
+    [notify]
+  );
+
   return {
     notify,
     notifyJobCreated,
@@ -153,5 +167,6 @@ export function useNotificationActions() {
     notifyJobSubmitted,
     notifyPaymentReceived,
     notifyServiceCreated,
+    notifyMessageReceived,
   };
 }

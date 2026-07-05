@@ -1,6 +1,7 @@
 'use client';
 
 import { use, useEffect, type ReactNode } from 'react';
+import { useAccount } from 'wagmi';
 import { Loader2, CheckCircle, AlertCircle, RefreshCw, Trophy, Wallet, Clock } from 'lucide-react';
 import { Card } from '@heroui/react';
 import NextLink from 'next/link';
@@ -12,6 +13,7 @@ import { BiddingSessionHeader } from '@/components/bidding/BiddingSessionHeader'
 import { CommitBidForm } from '@/components/bidding/CommitBidForm';
 import { RevealBidForm } from '@/components/bidding/RevealBidForm';
 import { BiddingWinnerSelection } from '@/components/bidding/BiddingWinnerSelection';
+import { BiddingChatSection } from '@/components/bidding/BiddingChatSection';
 import { ExtendRevealWindow } from '@/components/bidding/ExtendRevealWindow';
 import { BidRecoveryPanel } from '@/components/bidding/BidRecoveryPanel';
 import { formatAmount } from '@/lib/tokenUtils';
@@ -29,6 +31,7 @@ export default function BiddingSessionDetailPage({
 
   const { id } = use(params);
   const sessionId = BigInt(id);
+  const { address } = useAccount();
 
   const state = useBiddingSessionState({ sessionId });
   const {
@@ -93,7 +96,9 @@ export default function BiddingSessionDetailPage({
     handleWithdrawBidRefund,
     handleWithdrawCreatorStake,
     handleCompleteSession,
+    isCreator,
     isWinner,
+    isBidder,
     isWithdrawBidRefundPending,
     pendingRefundAmount,
   } = state;
@@ -379,6 +384,16 @@ export default function BiddingSessionDetailPage({
             )}
           </div>
         </Card>
+
+        {(isCreator || isBidder) && session && (
+          <BiddingChatSection
+            sessionId={id}
+            creatorAddress={session.creator}
+            bidderAddress={userBid?.bidder || address || ''}
+            isCreator={isCreator}
+            isBidder={isBidder}
+          />
+        )}
       </div>
     </div>
   );

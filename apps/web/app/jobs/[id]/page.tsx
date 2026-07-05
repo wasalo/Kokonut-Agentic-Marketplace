@@ -19,6 +19,7 @@ import { BiddingSectionForProvider } from '@/components/jobs/BiddingSectionForPr
 import { JobFundingSection } from '@/components/jobs/JobFundingSection';
 import { JobActionsCard } from '@/components/jobs/JobActionsCard';
 import { JobBidListCard } from '@/components/jobs/JobBidListCard';
+import { JobChatSection } from '@/components/jobs/JobChatSection';
 import { PaymentTokenSetupModal } from '@/components/jobs/PaymentTokenSetupModal';
 import dynamic from 'next/dynamic';
 import { ZERO_ADDRESS } from '@/lib/contracts/config';
@@ -348,6 +349,16 @@ export default function JobDetailPage({
           isClient &&
           service &&
           Number(service.agentId) > 0 && <FeedbackCard agentId={service.agentId} jobId={job.id} />}
+
+        {(isClient || isProvider) && (
+          <JobChatSection
+            jobId={id}
+            client={job.client}
+            provider={job.provider}
+            isClient={isClient}
+            isProvider={isProvider}
+          />
+        )}
 
         {showPaymentTokenModal && (
           <PaymentTokenSetupModal

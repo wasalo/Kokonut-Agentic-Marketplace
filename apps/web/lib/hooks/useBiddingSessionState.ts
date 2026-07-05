@@ -56,6 +56,7 @@ export interface UseBiddingSessionStateResult {
 
   phase: BiddingPhase;
   isCreator: boolean;
+  isBidder: boolean;
   isWinner: boolean;
   isOpenStatus: boolean;
   hasDeadlinePassed: boolean;
@@ -242,6 +243,9 @@ export function useBiddingSessionState({
 
   const isCreator = Boolean(
     session && address && session.creator.toLowerCase() === address.toLowerCase()
+  );
+  const isBidder = Boolean(
+    userBid && address && userBid.bidder.toLowerCase() === address.toLowerCase()
   );
   const isWinner = Boolean(userBid && userBid.accepted);
   const now = BigInt(currentTimestamp);
@@ -455,6 +459,7 @@ export function useBiddingSessionState({
     stake,
     phase,
     isCreator,
+    isBidder,
     isWinner,
     isOpenStatus,
     hasDeadlinePassed,
